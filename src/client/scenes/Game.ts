@@ -24,31 +24,39 @@ const INTERACTION_BUTTON_DEFS: { type: InteractionType; label: string }[] = [
   { type: 'bellyRub', label: 'Belly Rub' },
 ];
 
+// Lane layout
+const LANE_COUNT = 3;
+const LANE_SPACING = 70;                    // vertical gap between lane centers
+const BOTTOM_LANE_Y_FROM_BOTTOM = 90;       // bottom-most lane's distance from canvas bottom
 const PSPSPS_BAR_WIDTH_FRACTION = 0.8;
-const PSPSPS_BAR_Y_FROM_BOTTOM = 100;
-const PSPSPS_BAR_HEIGHT = 64;
-const PSPSPS_TARGET_DISPLAY_SIZE = 80;
-const PSPSPS_ELEMENT_DISPLAY_WIDTH = 64;
-const PSPSPS_ELEMENT_DISPLAY_HEIGHT = 56;
+const PSPSPS_BAR_HEIGHT = 48;
+const PSPSPS_TARGET_DISPLAY_SIZE = 64;
+const PSPSPS_ELEMENT_DISPLAY_WIDTH = 52;
+const PSPSPS_ELEMENT_DISPLAY_HEIGHT = 48;
 
 // Temporarily off while we tune the rhythm bar in isolation.
 // When ready, flip this to true to re-enable the cat-petting mini-game.
 const INTERACTION_ENABLED = false;
 
+interface PspspsLane {
+  index: number;
+  system: RhythmSystem;
+  barBg: GameObjects.Image;
+  target: GameObjects.Image;
+  targetBaseScale: number;
+  elementSprites: Map<string, GameObjects.Image>;
+  centerY: number;
+}
+
 export class Game extends Scene {
   private cats: Cat[] = [];
   private score!: ScoreSystem;
   private meow!: MeowBarSystem;
-  private rhythm!: RhythmSystem;
   private interaction!: InteractionSystem;
   private selector!: CatSelectionSystem;
 
-  // Pspsps track
-  private rhythmBarBg!: GameObjects.Image;
-  private pspspsTarget!: GameObjects.Image;
-  private targetBaseScale = 1;
-  private elementSprites = new Map<string, GameObjects.Image>();
-  private rhythmSpawnTimer: Time.TimerEvent | null = null;
+  private lanes: PspspsLane[] = [];
+  private spawnTimer: Time.TimerEvent | null = null;
 
   // Meow bar
   private meowBarOutline!: GameObjects.Image;
@@ -84,7 +92,6 @@ export class Game extends Scene {
     // Systems
     this.score = new ScoreSystem();
     this.meow = new MeowBarSystem();
-    this.rhythm = new RhythmSystem();
     this.interaction = new InteractionSystem();
     this.selector = new CatSelectionSystem();
 
@@ -107,92 +114,102 @@ export class Game extends Scene {
       this.cats.push(cat);
     }
 
-    this.createPspspsTrack();
+    this.createLanes();
     this.createMeowBar();
     this.createHud();
     this.setupInput();
 
-    // Spawn-check on a steady cadence; movement happens every frame in update().
-    this.rhythmSpawnTimer = this.time.addEvent({
+    // One spawn check tick fans out to all lanes.
+    this.spawnTimer = this.time.addEvent({
       delay: Balance.tickDurationMs,
       loop: true,
-      callback: () => this.rhythm.spawnTick(),
+      callback: () => {
+        for (const lane of this.lanes) lane.system.spawnTick();
+      },
     });
 
     this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
   }
 
   override update(_time: number, delta: number): void {
-    this.rhythm.advance(delta);
-    this.syncPspspsElements();
+    for (const lane of this.lanes) {
+      lane.system.advance(delta);
+      this.syncLaneElements(lane);
+    }
     this.updateMeowBar();
     this.updateHud();
   }
 
-  // -- Pspsps track -------------------------------------------------------
+  // -- Lanes --------------------------------------------------------------
 
-  private createPspspsTrack(): void {
+  private createLanes(): void {
     const w = this.scale.width;
     const h = this.scale.height;
     const barWidth = w * PSPSPS_BAR_WIDTH_FRACTION;
-    const barY = h - PSPSPS_BAR_Y_FROM_BOTTOM;
     const barX = w / 2;
-
-    this.rhythmBarBg = this.add.image(barX, barY, AssetKeys.Image.RhythmBarBackground);
-    this.rhythmBarBg.displayWidth = barWidth;
-    this.rhythmBarBg.displayHeight = PSPSPS_BAR_HEIGHT;
-
-    // Static target sits at pspspsTargetXFraction of the bar
     const barLeft = barX - barWidth / 2;
-    const targetX = barLeft + barWidth * this.rhythm.getTargetFraction();
-    this.pspspsTarget = this.add.image(targetX, barY, AssetKeys.Image.PspspsTarget);
-    this.pspspsTarget.setDisplaySize(PSPSPS_TARGET_DISPLAY_SIZE, PSPSPS_TARGET_DISPLAY_SIZE);
-    // Remember the underlying scale produced by setDisplaySize so the pulse
-    // animation can return the target to its real resting size, not the
-    // texture's natural size.
-    this.targetBaseScale = this.pspspsTarget.scaleX;
+
+    for (let i = 0; i < LANE_COUNT; i++) {
+      // i = 0 -> bottom lane, larger i -> higher up
+      const centerY = h - BOTTOM_LANE_Y_FROM_BOTTOM - i * LANE_SPACING;
+      const system = new RhythmSystem();
+
+      const barBg = this.add.image(barX, centerY, AssetKeys.Image.RhythmBarBackground);
+      barBg.displayWidth = barWidth;
+      barBg.displayHeight = PSPSPS_BAR_HEIGHT;
+
+      const targetX = barLeft + barWidth * system.getTargetFraction();
+      const target = this.add.image(targetX, centerY, AssetKeys.Image.PspspsTarget);
+      target.setDisplaySize(PSPSPS_TARGET_DISPLAY_SIZE, PSPSPS_TARGET_DISPLAY_SIZE);
+      const targetBaseScale = target.scaleX;
+
+      this.lanes.push({
+        index: i,
+        system,
+        barBg,
+        target,
+        targetBaseScale,
+        elementSprites: new Map(),
+        centerY,
+      });
+    }
   }
 
-  private syncPspspsElements(): void {
+  private syncLaneElements(lane: PspspsLane): void {
     const w = this.scale.width;
-    const h = this.scale.height;
     const barWidth = w * PSPSPS_BAR_WIDTH_FRACTION;
     const barLeft = w / 2 - barWidth / 2;
-    const barY = h - PSPSPS_BAR_Y_FROM_BOTTOM;
 
-    const elements = this.rhythm.getElements();
+    const elements = lane.system.getElements();
     const aliveIds = new Set(elements.map((e) => e.id));
 
-    // Remove sprites whose elements no longer exist
-    for (const [id, sprite] of this.elementSprites) {
+    // Drop sprites whose elements no longer exist
+    for (const [id, sprite] of lane.elementSprites) {
       if (!aliveIds.has(id)) {
         sprite.destroy();
-        this.elementSprites.delete(id);
+        lane.elementSprites.delete(id);
       }
     }
 
     // Add or move sprites to match elements
     for (const el of elements) {
-      let sprite = this.elementSprites.get(el.id);
+      let sprite = lane.elementSprites.get(el.id);
       if (!sprite) {
-        sprite = this.add.image(0, barY, AssetKeys.Image.PspspsElement);
+        sprite = this.add.image(0, lane.centerY, AssetKeys.Image.PspspsElement);
         sprite.setDisplaySize(PSPSPS_ELEMENT_DISPLAY_WIDTH, PSPSPS_ELEMENT_DISPLAY_HEIGHT);
-        this.elementSprites.set(el.id, sprite);
+        lane.elementSprites.set(el.id, sprite);
       }
       sprite.x = barLeft + barWidth * el.fraction;
-      sprite.y = barY;
+      sprite.y = lane.centerY;
     }
   }
 
-  private pulseTarget(): void {
-    if (!this.pspspsTarget) return;
-    this.tweens.killTweensOf(this.pspspsTarget);
-    // Reset to the resting scale that setDisplaySize produced — NOT 1,
-    // since the underlying texture is much bigger than the display size.
-    this.pspspsTarget.setScale(this.targetBaseScale);
+  private pulseLaneTarget(lane: PspspsLane): void {
+    this.tweens.killTweensOf(lane.target);
+    lane.target.setScale(lane.targetBaseScale);
     this.tweens.add({
-      targets: this.pspspsTarget,
-      scale: this.targetBaseScale * 1.35,
+      targets: lane.target,
+      scale: lane.targetBaseScale * 1.35,
       duration: 120,
       yoyo: true,
       ease: 'Quad.easeOut',
@@ -203,8 +220,11 @@ export class Game extends Scene {
 
   private createMeowBar(): void {
     const w = this.scale.width;
-    const barY = this.scale.height - 180;
+    const h = this.scale.height;
     const barWidth = w * 0.6;
+    // Sit above the top-most rhythm lane with a bit of breathing room.
+    const topLaneY = h - BOTTOM_LANE_Y_FROM_BOTTOM - (LANE_COUNT - 1) * LANE_SPACING;
+    const barY = topLaneY - 50;
 
     this.meowBarOutline = this.add.image(w / 2, barY, AssetKeys.Image.MeowBarOutline);
     this.meowBarOutline.displayWidth = barWidth;
@@ -263,16 +283,27 @@ export class Game extends Scene {
   }
 
   private onTap(): void {
-    // No taps during interaction — the player resolves the petting prompt via buttons.
     if (this.interactionActive) return;
 
-    const result = this.rhythm.tap();
-    if (result.pointsAwarded > 0) {
-      this.score.add(result.pointsAwarded);
+    let totalPoints = 0;
+    let anyPerfect = false;
+    let lanesHit = 0;
+
+    for (const lane of this.lanes) {
+      const result = lane.system.tap();
+      if (result.pointsAwarded > 0) {
+        totalPoints += result.pointsAwarded;
+        if (result.perfectHits > 0) anyPerfect = true;
+        lanesHit += 1;
+        this.pulseLaneTarget(lane);
+      }
+    }
+
+    if (totalPoints > 0) {
+      this.score.add(totalPoints);
       this.meow.onScoreChanged(this.score.get());
       this.pspspsSfx?.play();
-      this.pulseTarget();
-      this.flashScore(result.pointsAwarded, result.perfectHits > 0);
+      this.flashScore(totalPoints, anyPerfect, lanesHit);
     }
 
     if (this.meow.isFull()) {
@@ -286,9 +317,10 @@ export class Game extends Scene {
     }
   }
 
-  private flashScore(points: number, isPerfect: boolean): void {
-    const label = isPerfect ? `PERFECT +${points}` : `+${points}`;
-    const color = isPerfect ? '#00ff88' : '#ffffff';
+  private flashScore(points: number, anyPerfect: boolean, lanesHit: number): void {
+    const prefix = lanesHit > 1 ? `${lanesHit}x` : anyPerfect ? 'PERFECT' : '';
+    const label = prefix ? `${prefix} +${points}` : `+${points}`;
+    const color = lanesHit > 1 ? '#ffd34d' : anyPerfect ? '#00ff88' : '#ffffff';
     const text = this.add
       .text(this.scale.width / 2, this.scale.height / 2 - 40, label, {
         fontFamily: 'sans-serif',
@@ -315,7 +347,6 @@ export class Game extends Scene {
     this.activeCat = this.cats.find((c) => c.model.id === chosenModel.id) ?? null;
     if (!this.activeCat) return;
 
-    // Tween the chosen cat to center-foreground at 2x scale
     this.tweens.add({
       targets: this.activeCat.sprite,
       x: this.scale.width / 2,
@@ -328,7 +359,6 @@ export class Game extends Scene {
 
     this.spawnInteractionButtons();
 
-    // Drain the meow bar each tick during the interaction
     this.drainTimer = this.time.addEvent({
       delay: Balance.tickDurationMs,
       loop: true,
@@ -455,14 +485,17 @@ export class Game extends Scene {
   private cleanup(): void {
     this.drainTimer?.remove();
     this.drainTimer = null;
-    this.rhythmSpawnTimer?.remove();
-    this.rhythmSpawnTimer = null;
+    this.spawnTimer?.remove();
+    this.spawnTimer = null;
     this.interactionButtons?.destroy(true);
     this.interactionButtons = null;
     this.music?.stop();
     this.music = null;
-    for (const sprite of this.elementSprites.values()) sprite.destroy();
-    this.elementSprites.clear();
+    for (const lane of this.lanes) {
+      for (const sprite of lane.elementSprites.values()) sprite.destroy();
+      lane.elementSprites.clear();
+    }
+    this.lanes = [];
     for (const c of this.cats) c.destroy();
     this.cats = [];
   }
