@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { devvit } from '@devvit/start/vite';
+import path from 'node:path';
 
 export default defineConfig({
   plugins: [
@@ -11,4 +12,9 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src/client'),
+    },
+  },
 });
