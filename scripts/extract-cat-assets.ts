@@ -278,12 +278,53 @@ async function copyStaticAssets(): Promise<void> {
   }
 }
 
+/**
+ * The prototype's meowBarFill.png is 148x30 but the cat-tail content only
+ * occupies the middle 10 rows (y=10..19). The empty rows above and below
+ * make the bar's white track show through when displayed. Trim the image
+ * to its actual opaque row range so the tail fills the bar vertically.
+ */
+async function trimMeowBarFill(): Promise<void> {
+  const filePath = path.join(OUT_IMAGES, 'meowBarFill.png');
+  const { data, info } = await sharp(filePath)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { width, height } = info;
+
+  let minY = height;
+  let maxY = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      if (data[i + 3]! > 0) {
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        break;
+      }
+    }
+  }
+  if (maxY < minY) return;
+  const cropHeight = maxY - minY + 1;
+  if (cropHeight === height) return;
+
+  const tmp = `${filePath}.tmp`;
+  await sharp(filePath)
+    .extract({ left: 0, top: minY, width, height: cropHeight })
+    .toFile(tmp);
+  await fs.rename(tmp, filePath);
+  console.log(
+    `[trim] meowBarFill: kept rows ${minY}-${maxY} (${cropHeight} of ${height})`,
+  );
+}
+
 async function main(): Promise<void> {
   await ensureDirs();
   const frames = await extractAllGifs();
   await packAtlas(frames);
   await copyStaticAssets();
   await splitPsElementIntoBallAndLetters();
+  await trimMeowBarFill();
   console.log('done.');
 }
 

@@ -108,7 +108,6 @@ export class Game extends Scene {
 
   // Meow bar
   private meowBarOutline!: GameObjects.Image;
-  private meowBarBackdropGfx!: GameObjects.Graphics;
   private meowBarFill!: GameObjects.Image;
   private meowBarBounds = { left: 0, top: 0, width: 0, height: 0, radius: 0 };
 
@@ -319,16 +318,14 @@ export class Game extends Scene {
       radius: interiorHeight / 2,
     };
 
-    // Three layers stacked under the outline frame:
-    //   1) White track — full interior, always drawn. Visible in the empty
-    //      portion only because layers 2+3 cover it on the filled side.
-    //   2) Solid orange backdrop — drawn each frame to match the current
-    //      fill width. It covers the white track wherever the bar is
-    //      "filled" so the cat-tail asset's transparent rows above and
-    //      below the tail show orange, not white.
-    //   3) Cat tail fill asset — its displayWidth grows with progress so
-    //      the tail extends across the bar from the left as the meter
-    //      fills.
+    // Two layers stacked under the outline frame:
+    //   1) White track — drawn once across the full interior. Visible in
+    //      the empty portion of the bar.
+    //   2) Cat-tail fill asset — displayWidth grows with progress so the
+    //      tail extends across the bar from the left as the meter fills.
+    //      The asset is now trimmed to its content rows (148×10 instead of
+    //      148×30) so it fills the bar's vertical interior with no
+    //      transparent gaps above or below the tail pixels.
     const track = this.add.graphics();
     track.fillStyle(0xffffff, 0.95);
     track.fillRoundedRect(
@@ -338,8 +335,6 @@ export class Game extends Scene {
       this.meowBarBounds.height,
       this.meowBarBounds.radius,
     );
-
-    this.meowBarBackdropGfx = this.add.graphics();
 
     this.meowBarFill = this.add.image(
       this.meowBarBounds.left,
@@ -357,28 +352,9 @@ export class Game extends Scene {
   }
 
   private updateMeowBar(): void {
-    if (!this.meowBarFill || !this.meowBarBackdropGfx) return;
+    if (!this.meowBarFill) return;
     const pct = this.meow.getProgress() / Balance.meowBarMax;
-    const fillWidth = pct * this.meowBarBounds.width;
-    const { left, top, height, radius } = this.meowBarBounds;
-
-    // Cat tail asset grows from the left.
-    this.meowBarFill.displayWidth = fillWidth;
-
-    // Solid orange backdrop matches the cat tail's current width and covers
-    // the white track inside the filled portion so the asset's transparent
-    // top/bottom rows can't expose any white.
-    this.meowBarBackdropGfx.clear();
-    if (fillWidth > 0.5) {
-      this.meowBarBackdropGfx.fillStyle(0xf57c00, 1);
-      this.meowBarBackdropGfx.fillRoundedRect(
-        left,
-        top,
-        fillWidth,
-        height,
-        Math.min(radius, fillWidth / 2),
-      );
-    }
+    this.meowBarFill.displayWidth = pct * this.meowBarBounds.width;
   }
 
   // -- HUD ----------------------------------------------------------------
