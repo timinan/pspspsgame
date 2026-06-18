@@ -330,21 +330,20 @@ export class Game extends Scene {
       this.meowBarBounds.radius,
     );
 
-    // Orange fill — uses the textured meowBarFill asset so it matches the
-    // prototype's look (with the bar's natural orange shading), sized to
-    // fill the interior at 100% progress. setCrop in updateMeowBar then
-    // hides the right portion based on current progress; the cropped right
-    // edge stays clean and straight while the rounded LEFT end (baked into
-    // the asset) lines up with the white track's left curve.
+    // Orange fill — uses the textured meowBarFill asset (the prototype's
+    // orange-pill graphic with shading). We grow its displayWidth from 0 up
+    // to the interior width as progress climbs, so the orange pill extends
+    // across the bar like a cat tail filling out. Both rounded ends of the
+    // pill stay visible at any size since the texture's left+right caps are
+    // both inside the displayed region.
     this.meowBarFill = this.add.image(
       this.meowBarBounds.left,
       this.meowBarBounds.top + this.meowBarBounds.height / 2,
       AssetKeys.Image.MeowBarFill,
     );
     this.meowBarFill.setOrigin(0, 0.5);
-    this.meowBarFill.displayWidth = this.meowBarBounds.width;
+    this.meowBarFill.displayWidth = 0;
     this.meowBarFill.displayHeight = this.meowBarBounds.height;
-    this.meowBarFill.setCrop(0, 0, 0, this.meowBarFill.frame.height);
 
     // Outline (rounded frame) drawn last so it crisps up the bar edges.
     this.meowBarOutline = this.add.image(w / 2, barY, AssetKeys.Image.MeowBarOutline);
@@ -355,9 +354,7 @@ export class Game extends Scene {
   private updateMeowBar(): void {
     if (!this.meowBarFill) return;
     const pct = this.meow.getProgress() / Balance.meowBarMax;
-    const textureWidth = this.meowBarFill.frame.width;
-    const textureHeight = this.meowBarFill.frame.height;
-    this.meowBarFill.setCrop(0, 0, pct * textureWidth, textureHeight);
+    this.meowBarFill.displayWidth = pct * this.meowBarBounds.width;
   }
 
   // -- HUD ----------------------------------------------------------------
