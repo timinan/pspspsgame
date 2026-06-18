@@ -11,14 +11,19 @@ import { CatSelectionSystem } from '@/systems/cat-selection-system';
 import type { CatAnimationState, CatBreed, CatModel, InteractionType } from '@/types/game';
 
 // Seat coordinates (fractions of canvas width/height). Cats are anchored at
-// origin (0.5, 1) so the y value is where the cat's feet touch.
+// origin (0.5, 1) so the y value is where the cat's feet touch the surface.
 // Order: [0] left ledge, [1] roof, [2] right ledge.
-// Tweak these by eye once you see them in the running game.
+//
+// Tip: set DEBUG_LOG_SEAT_CLICKS below to true, then shift+click anywhere
+// in the running game and the console prints the exact { x, y } at that
+// point — copy/paste it here to dial in seats by eye.
 const CAT_SEAT_POSITIONS: { x: number; y: number }[] = [
-  { x: 0.1, y: 0.62 },  // left ledge — alongside the building
-  { x: 0.5, y: 0.13 },  // roof — top of the central roof peak
-  { x: 0.88, y: 0.62 }, // right ledge — by the mailbox
+  { x: 0.18, y: 0.6 }, // left ledge — on the brick wall section
+  { x: 0.5, y: 0.42 }, // roof — on the central blue-tiled roof peak
+  { x: 0.82, y: 0.6 }, // right ledge — on the brick wall section
 ];
+
+const DEBUG_LOG_SEAT_CLICKS = true;
 
 const CAT_BREEDS_IN_ORDER: CatBreed[] = ['cat1', 'cat2', 'cat3'];
 
@@ -378,7 +383,16 @@ export class Game extends Scene {
   private setupInput(): void {
     this.input.on(
       'pointerdown',
-      (pointer: { x: number; y: number }) => {
+      (pointer: { x: number; y: number; event?: { shiftKey?: boolean } }) => {
+        // Dev helper: shift+click anywhere in the scene prints the click
+        // position as { x, y } canvas fractions. Use it to dial in
+        // CAT_SEAT_POSITIONS (and any future seat coords) by eye.
+        if (DEBUG_LOG_SEAT_CLICKS && pointer.event?.shiftKey) {
+          const x = Number((pointer.x / this.scale.width).toFixed(3));
+          const y = Number((pointer.y / this.scale.height).toFixed(3));
+          console.log(`[seat] { x: ${x}, y: ${y} },`);
+          return;
+        }
         this.startMusicOnFirstGesture();
         const lane = this.findLaneAtY(pointer.y);
         if (lane) this.onLaneTap(lane);
