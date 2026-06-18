@@ -13,9 +13,13 @@ const config: Phaser.Types.Core.GameConfig = {
   parent: 'game-container',
   backgroundColor: '#028af8',
   scale: {
-    // Keep a fixed game resolution but automatically scale it to fit within the available
-    // web-view / device while maintaining aspect ratio.
-    mode: Phaser.Scale.RESIZE,
+    // FIT keeps the internal game resolution pinned at 1024x768 and scales
+    // the visual canvas to fit any container while preserving aspect ratio
+    // (letterboxes top/bottom or sides as needed). RESIZE was causing the
+    // canvas to shrink to the top-left when DevTools opened and pointer
+    // coordinates to drift, since cat positions were calculated against a
+    // canvas size that kept changing under us.
+    mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: 1024,
     height: 768,

@@ -381,30 +381,40 @@ export class Game extends Scene {
   // -- Input + scoring ----------------------------------------------------
 
   private setupInput(): void {
+    // Track shift via Phaser's keyboard system rather than the pointer
+    // event's modifier — more reliable across iframes / browsers.
+    const shiftKey = this.input.keyboard?.addKey('SHIFT');
+
     this.input.on(
       'pointerdown',
-      (pointer: { x: number; y: number; event?: { shiftKey?: boolean } }) => {
-        // Dev helper: shift+click anywhere in the scene prints the click
-        // position as { x, y } canvas fractions AND drops a red dot at
-        // that spot so you can verify visually that the dot lands where
-        // you clicked. If the dot is far from the cursor, the canvas
-        // pointer mapping is off and we need a different fix.
-        if (DEBUG_LOG_SEAT_CLICKS && pointer.event?.shiftKey) {
+      (pointer: { x: number; y: number }) => {
+        const shiftHeld = shiftKey?.isDown ?? false;
+
+        if (DEBUG_LOG_SEAT_CLICKS) {
+          // Always log a pointerdown so we can diagnose what's reaching
+          // the handler. If shift is held, also drop a red dot at the
+          // detected click position to verify the canvas pointer mapping.
           const x = Number((pointer.x / this.scale.width).toFixed(3));
           const y = Number((pointer.y / this.scale.height).toFixed(3));
+          const tag = shiftHeld ? '[seat]' : '[click]';
           console.log(
-            `[seat] { x: ${x}, y: ${y} },  // canvas=${Math.round(this.scale.width)}x${Math.round(this.scale.height)} pointer=${Math.round(pointer.x)},${Math.round(pointer.y)}`,
+            `${tag} { x: ${x}, y: ${y} },  // canvas=${Math.round(this.scale.width)}x${Math.round(this.scale.height)} pointer=${Math.round(pointer.x)},${Math.round(pointer.y)} shift=${shiftHeld}`,
           );
-          const dot = this.add.circle(pointer.x, pointer.y, 8, 0xff3366, 1);
-          dot.setStrokeStyle(2, 0xffffff);
-          this.tweens.add({
-            targets: dot,
-            alpha: 0,
-            duration: 4000,
-            onComplete: () => dot.destroy(),
-          });
-          return;
+
+          if (shiftHeld) {
+            const dot = this.add.circle(pointer.x, pointer.y, 10, 0xff3366, 1);
+            dot.setStrokeStyle(2, 0xffffff);
+            dot.setDepth(1000); // stay on top of everything
+            this.tweens.add({
+              targets: dot,
+              alpha: 0,
+              duration: 4000,
+              onComplete: () => dot.destroy(),
+            });
+            return;
+          }
         }
+
         this.startMusicOnFirstGesture();
         const lane = this.findLaneAtY(pointer.y);
         if (lane) this.onLaneTap(lane);
