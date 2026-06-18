@@ -1,161 +1,77 @@
-import { Scene } from 'phaser';
-import * as Phaser from 'phaser';
-import { IncrementResponse, DecrementResponse, InitResponse } from '../../shared/api';
+import { Scene, Scenes } from 'phaser';
+import { SceneKeys } from '@/constants/scenes';
+import { AssetKeys } from '@/constants/assets';
+import { Balance } from '@/constants/balance';
+import { Cat } from '@/entities/cat';
+import { ScoreSystem } from '@/systems/score-system';
+import { MeowBarSystem } from '@/systems/meow-bar-system';
+import { RhythmSystem } from '@/systems/rhythm-system';
+import { InteractionSystem } from '@/systems/interaction-system';
+import { CatSelectionSystem } from '@/systems/cat-selection-system';
+import type { CatBreed, CatModel } from '@/types/game';
+
+const CAT_SEAT_POSITIONS: { x: number; y: number }[] = [
+  { x: 0.25, y: 0.6 },
+  { x: 0.5, y: 0.5 },
+  { x: 0.75, y: 0.62 },
+];
+
+const CAT_BREEDS_IN_ORDER: CatBreed[] = ['cat1', 'cat2', 'cat3'];
 
 export class Game extends Scene {
-  camera: Phaser.Cameras.Scene2D.Camera;
-  background: Phaser.GameObjects.Image;
-  msg_text: Phaser.GameObjects.Text;
-  count: number = 0;
-  countText: Phaser.GameObjects.Text;
-  incButton: Phaser.GameObjects.Text;
-  decButton: Phaser.GameObjects.Text;
-  goButton: Phaser.GameObjects.Text;
+  private cats: Cat[] = [];
+  private score!: ScoreSystem;
+  private meow!: MeowBarSystem;
+  private rhythm!: RhythmSystem;
+  private interaction!: InteractionSystem;
+  private selector!: CatSelectionSystem;
 
   constructor() {
-    super('Game');
+    super(SceneKeys.Game);
   }
 
   create() {
-    // Configure camera & background
-    this.camera = this.cameras.main;
-    this.camera.setBackgroundColor(0x222222);
+    // Background fills the canvas
+    const bg = this.add.image(0, 0, AssetKeys.Image.GameBackground).setOrigin(0, 0);
+    bg.displayWidth = this.scale.width;
+    bg.displayHeight = this.scale.height;
 
-    // Optional: semi-transparent background image if one has been loaded elsewhere
-    this.background = this.add.image(512, 384, 'background').setAlpha(0.25);
+    // Systems
+    this.score = new ScoreSystem();
+    this.meow = new MeowBarSystem();
+    this.rhythm = new RhythmSystem(this.time.now);
+    this.interaction = new InteractionSystem();
+    this.selector = new CatSelectionSystem();
 
-    /* -------------------------------------------
-     *  UI Elements
-     * ------------------------------------------- */
+    // Spawn the base cats
+    for (let i = 0; i < Balance.baseCatsOnScreen; i++) {
+      const breed = CAT_BREEDS_IN_ORDER[i % CAT_BREEDS_IN_ORDER.length]!;
+      const seat = CAT_SEAT_POSITIONS[i]!;
+      const model: CatModel = {
+        id: `seat-${i}`,
+        breed,
+        animation: 'idle',
+        x: seat.x * 100,
+        y: seat.y * 100,
+      };
+      const cat = new Cat(this, model);
+      cat.setPosition(seat.x * this.scale.width, seat.y * this.scale.height);
+      this.cats.push(cat);
+    }
 
-    // Display the current count
-    this.countText = this.add
-      .text(512, 340, `Count: ${this.count}`, {
-        fontFamily: 'Arial Black',
-        fontSize: 56,
-        color: '#ffd700',
-        stroke: '#000000',
-        strokeThickness: 10,
-      })
-      .setOrigin(0.5);
+    // Touch the systems once so TS sees them as "used" until later tasks wire them in.
+    // (Will be replaced by real input wiring in Task 16.)
+    void this.score;
+    void this.rhythm;
+    void this.interaction;
+    void this.selector;
+    void this.meow;
 
-    // Fetch the initial counter value from server and update UI
-    void (async () => {
-      try {
-        const response = await fetch('/api/init');
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-        const data = (await response.json()) as InitResponse;
-        this.count = data.count;
-        this.updateCountText();
-      } catch (error) {
-        console.error('Failed to fetch initial count:', error);
-      }
-    })();
-
-    // Button styling helper
-    const createButton = (y: number, label: string, color: string, onClick: () => void) => {
-      const button = this.add
-        .text(512, y, label, {
-          fontFamily: 'Arial Black',
-          fontSize: 36,
-          color: color,
-          backgroundColor: '#444444',
-          padding: {
-            x: 25,
-            y: 12,
-          } as Phaser.Types.GameObjects.Text.TextPadding,
-        })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerover', () => button.setStyle({ backgroundColor: '#555555' }))
-        .on('pointerout', () => button.setStyle({ backgroundColor: '#444444' }))
-        .on('pointerdown', onClick);
-      return button;
-    };
-
-    // Increment button
-    this.incButton = createButton(this.scale.height * 0.55, 'Increment', '#00ff00', async () => {
-      try {
-        const response = await fetch('/api/increment', { method: 'POST' });
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-        const data = (await response.json()) as IncrementResponse;
-        this.count = data.count;
-        this.updateCountText();
-      } catch (error) {
-        console.error('Failed to increment count:', error);
-      }
-    });
-
-    // Decrement button
-    this.decButton = createButton(this.scale.height * 0.65, 'Decrement', '#ff5555', async () => {
-      try {
-        const response = await fetch('/api/decrement', { method: 'POST' });
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-        const data = (await response.json()) as DecrementResponse;
-        this.count = data.count;
-        this.updateCountText();
-      } catch (error) {
-        console.error('Failed to decrement count:', error);
-      }
-    });
-
-    // Game Over button – navigates to the GameOver scene
-    this.goButton = createButton(this.scale.height * 0.75, 'Game Over', '#ffffff', () => {
-      this.scene.start('GameOver');
-    });
-
-    // Setup responsive layout
-    this.updateLayout(this.scale.width, this.scale.height);
-    this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
-      const { width, height } = gameSize;
-      this.updateLayout(width, height);
-    });
-
-    // No automatic navigation to GameOver – users can stay in this scene.
+    this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
   }
 
-  updateLayout(width: number, height: number) {
-    // Resize camera viewport to avoid black bars
-    this.cameras.resize(width, height);
-
-    // Center and scale background image to cover screen
-    if (this.background) {
-      this.background.setPosition(width / 2, height / 2);
-      if (this.background.width && this.background.height) {
-        const scale = Math.max(width / this.background.width, height / this.background.height);
-        this.background.setScale(scale);
-      }
-    }
-
-    // Calculate a scale factor relative to a 1024 × 768 reference resolution.
-    // We only shrink on smaller screens – never enlarge above 1×.
-    const scaleFactor = Math.min(Math.min(width / 1024, height / 768), 1);
-
-    if (this.countText) {
-      this.countText.setPosition(width / 2, height * 0.45);
-      this.countText.setScale(scaleFactor);
-    }
-
-    if (this.incButton) {
-      this.incButton.setPosition(width / 2, height * 0.55);
-      this.incButton.setScale(scaleFactor);
-    }
-
-    if (this.decButton) {
-      this.decButton.setPosition(width / 2, height * 0.65);
-      this.decButton.setScale(scaleFactor);
-    }
-
-    if (this.goButton) {
-      this.goButton.setPosition(width / 2, height * 0.75);
-      this.goButton.setScale(scaleFactor);
-    }
-  }
-
-  updateCountText() {
-    this.countText.setText(`Count: ${this.count}`);
+  private cleanup(): void {
+    for (const c of this.cats) c.destroy();
+    this.cats = [];
   }
 }

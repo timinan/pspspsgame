@@ -1,39 +1,45 @@
 import { Scene } from 'phaser';
+import { SceneKeys } from '@/constants/scenes';
+import { AssetKeys } from '@/constants/assets';
 
 export class Preloader extends Scene {
   constructor() {
-    super('Preloader');
+    super(SceneKeys.Preloader);
   }
 
   init() {
-    //  We loaded this image in our Boot Scene, so we can display it here
-    this.add.image(512, 384, 'background');
+    const { width, height } = this.scale;
+    const cx = width / 2;
+    const cy = height / 2;
 
-    //  A simple progress bar. This is the outline of the bar.
-    this.add.rectangle(512, 384, 468, 32).setStrokeStyle(1, 0xffffff);
+    // Loading bar outline
+    this.add.rectangle(cx, cy, 468, 32).setStrokeStyle(1, 0xffffff);
 
-    //  This is the progress bar itself. It will increase in size from the left based on the % of progress.
-    const bar = this.add.rectangle(512 - 230, 384, 4, 28, 0xffffff);
+    // Loading bar fill — anchored left, grows right based on load progress
+    const fill = this.add.rectangle(cx - 230, cy, 4, 28, 0xffffff).setOrigin(0, 0.5);
 
-    //  Use the 'progress' event emitted by the LoaderPlugin to update the loading bar
     this.load.on('progress', (progress: number) => {
-      //  Update the progress bar (our bar is 464px wide, so 100% = 464px)
-      bar.width = 4 + 460 * progress;
+      fill.width = 4 + 460 * progress;
     });
   }
 
   preload() {
-    //  Load the assets for the game - Replace with your own assets
-    this.load.setPath('../assets');
+    this.load.setPath('assets');
 
-    this.load.image('logo', 'logo.png');
+    this.load.atlas(AssetKeys.Atlas.Cats, 'atlas/cats.png', 'atlas/cats.json');
+
+    this.load.image(AssetKeys.Image.GameBackground, 'images/gameBackground.png');
+    this.load.image(AssetKeys.Image.MeowBarFill, 'images/meowBarFill.png');
+    this.load.image(AssetKeys.Image.MeowBarOutline, 'images/meowBarOutline.png');
+    this.load.image(AssetKeys.Image.RhythmBarBackground, 'images/rythmBarBackground.png');
+
+    this.load.audio(AssetKeys.Audio.Background, 'sounds/background.mp3');
+    this.load.audio(AssetKeys.Audio.Pspsps, 'sounds/pspsps.mp3');
   }
 
   create() {
-    //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
-    //  For example, you can define global animations here, so we can use them in other scenes.
-
-    //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
-    this.scene.start('MainMenu');
+    // Phase 1: skip MainMenu and go straight into the game.
+    // Phase 2 will reintroduce MainMenu with adopt/decorate/etc.
+    this.scene.start(SceneKeys.Game);
   }
 }
