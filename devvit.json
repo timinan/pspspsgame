@@ -44,5 +44,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
+  },
+  "dev": {
+    "subreddit": "pspspsgame_dev"
   }
 }

@@ -1,4 +1,4 @@
-import { Scene, Scenes } from 'phaser';
+import { Scene, Scenes, GameObjects, Sound, Time } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
@@ -8,7 +8,7 @@ import { MeowBarSystem } from '@/systems/meow-bar-system';
 import { RhythmSystem } from '@/systems/rhythm-system';
 import { InteractionSystem } from '@/systems/interaction-system';
 import { CatSelectionSystem } from '@/systems/cat-selection-system';
-import type { CatBreed, CatModel } from '@/types/game';
+import type { CatBreed, CatModel, InteractionType } from '@/types/game';
 
 const CAT_SEAT_POSITIONS: { x: number; y: number }[] = [
   { x: 0.25, y: 0.6 },
@@ -18,6 +18,12 @@ const CAT_SEAT_POSITIONS: { x: number; y: number }[] = [
 
 const CAT_BREEDS_IN_ORDER: CatBreed[] = ['cat1', 'cat2', 'cat3'];
 
+const INTERACTION_BUTTON_DEFS: { type: InteractionType; label: string }[] = [
+  { type: 'pet', label: 'Pet' },
+  { type: 'chinScratch', label: 'Chin Scratch' },
+  { type: 'bellyRub', label: 'Belly Rub' },
+];
+
 export class Game extends Scene {
   private cats: Cat[] = [];
   private score!: ScoreSystem;
@@ -25,6 +31,30 @@ export class Game extends Scene {
   private rhythm!: RhythmSystem;
   private interaction!: InteractionSystem;
   private selector!: CatSelectionSystem;
+
+  // Rhythm bar
+  private rhythmBarBg!: GameObjects.Image;
+  private rhythmPlayhead!: GameObjects.Rectangle;
+
+  // Meow bar
+  private meowBarOutline!: GameObjects.Image;
+  private meowBarFill!: GameObjects.Image;
+  private meowBarFillRect!: GameObjects.Rectangle;
+
+  // Interaction state
+  private interactionActive = false;
+  private activeCat: Cat | null = null;
+  private interactionButtons: GameObjects.Container | null = null;
+  private drainTimer: Time.TimerEvent | null = null;
+
+  // HUD
+  private coins = 0;
+  private hudScoreText!: GameObjects.Text;
+  private hudCoinsText!: GameObjects.Text;
+
+  // Music
+  private music: Sound.BaseSound | null = null;
+  private musicStarted = false;
 
   constructor() {
     super(SceneKeys.Game);
@@ -59,18 +89,300 @@ export class Game extends Scene {
       this.cats.push(cat);
     }
 
-    // Touch the systems once so TS sees them as "used" until later tasks wire them in.
-    // (Will be replaced by real input wiring in Task 16.)
-    void this.score;
-    void this.rhythm;
-    void this.interaction;
-    void this.selector;
-    void this.meow;
+    this.createRhythmBar();
+    this.createMeowBar();
+    this.createHud();
+    this.setupInput();
 
     this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
   }
 
+  override update(): void {
+    this.updateRhythmBar();
+    this.updateMeowBar();
+    this.updateHud();
+  }
+
+  // -- Rhythm bar ---------------------------------------------------------
+
+  private createRhythmBar(): void {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const barY = h - 100;
+    const barWidth = w * 0.8;
+
+    this.rhythmBarBg = this.add.image(w / 2, barY, AssetKeys.Image.RhythmBarBackground);
+    this.rhythmBarBg.displayWidth = barWidth;
+    this.rhythmBarBg.displayHeight = 24;
+
+    // Center marker — the "beat zone" the playhead is heading toward (purely visual)
+    this.add.rectangle(w / 2, barY, 16, 40, 0xffffff, 0.6);
+
+    // Yellow playhead — slides across continuously
+    this.rhythmPlayhead = this.add.rectangle(w / 2, barY, 8, 32, 0xffd34d);
+  }
+
+  private updateRhythmBar(): void {
+    if (!this.rhythmPlayhead) return;
+    const w = this.scale.width;
+    const barWidth = w * 0.8;
+    const barX = w / 2 - barWidth / 2;
+    const progress = this.rhythm.beatProgressAt(this.time.now);
+    this.rhythmPlayhead.x = barX + barWidth * progress;
+  }
+
+  // -- Meow bar -----------------------------------------------------------
+
+  private createMeowBar(): void {
+    const w = this.scale.width;
+    const barY = this.scale.height - 150;
+    const barWidth = w * 0.6;
+
+    this.meowBarOutline = this.add.image(w / 2, barY, AssetKeys.Image.MeowBarOutline);
+    this.meowBarOutline.displayWidth = barWidth;
+    this.meowBarOutline.displayHeight = 32;
+
+    this.meowBarFill = this.add.image(w / 2 - barWidth / 2, barY, AssetKeys.Image.MeowBarFill);
+    this.meowBarFill.setOrigin(0, 0.5);
+    this.meowBarFill.displayWidth = barWidth;
+    this.meowBarFill.displayHeight = 32;
+
+    // Invisible rectangle used as a geometry mask to clip the fill image by progress
+    this.meowBarFillRect = this.add
+      .rectangle(w / 2 - barWidth / 2, barY, 0, 40, 0xffffff)
+      .setOrigin(0, 0.5);
+    this.meowBarFillRect.setVisible(false);
+    const mask = this.meowBarFillRect.createGeometryMask();
+    this.meowBarFill.setMask(mask);
+  }
+
+  private updateMeowBar(): void {
+    if (!this.meowBarFillRect) return;
+    const w = this.scale.width;
+    const barWidth = w * 0.6;
+    const pct = this.meow.getProgress() / Balance.meowBarMax;
+    this.meowBarFillRect.width = barWidth * pct;
+  }
+
+  // -- HUD ----------------------------------------------------------------
+
+  private createHud(): void {
+    this.hudScoreText = this.add.text(16, 16, 'Score: 0', {
+      fontFamily: 'sans-serif',
+      fontSize: '18px',
+      color: '#ffffff',
+    });
+    this.hudCoinsText = this.add.text(16, 40, '🪙 0', {
+      fontFamily: 'sans-serif',
+      fontSize: '18px',
+      color: '#ffd34d',
+    });
+  }
+
+  private updateHud(): void {
+    this.hudScoreText?.setText(`Score: ${this.score.get()}`);
+    this.hudCoinsText?.setText(`🪙 ${this.coins}`);
+  }
+
+  // -- Input + scoring ----------------------------------------------------
+
+  private setupInput(): void {
+    const handler = () => {
+      this.startMusicOnFirstGesture();
+      this.onTap();
+    };
+    this.input.on('pointerdown', handler);
+    this.input.keyboard?.on('keydown-SPACE', handler);
+  }
+
+  private onTap(): void {
+    // No taps during interaction — the player resolves the petting prompt via buttons.
+    if (this.interactionActive) return;
+
+    const result = this.rhythm.tap(this.time.now);
+    if (result.kind !== 'miss') {
+      this.score.add(result.pointsAwarded);
+      this.meow.onScoreChanged(this.score.get());
+      this.flashFeedback(result.kind);
+    }
+
+    if (this.meow.isFull()) {
+      this.beginInteraction();
+    }
+  }
+
+  private flashFeedback(kind: 'hit' | 'perfect'): void {
+    const color = kind === 'perfect' ? '#00ff88' : '#ffffff';
+    const text = this.add
+      .text(this.scale.width / 2, this.scale.height / 2 - 40, kind.toUpperCase(), {
+        fontFamily: 'sans-serif',
+        fontSize: '24px',
+        color,
+      })
+      .setOrigin(0.5);
+    this.tweens.add({
+      targets: text,
+      alpha: 0,
+      y: text.y - 30,
+      duration: 500,
+      onComplete: () => text.destroy(),
+    });
+  }
+
+  // -- Petting interaction ------------------------------------------------
+
+  private beginInteraction(): void {
+    if (this.interactionActive) return;
+    this.interactionActive = true;
+
+    const chosenModel = this.selector.pickActive(this.cats.map((c) => c.model));
+    this.activeCat = this.cats.find((c) => c.model.id === chosenModel.id) ?? null;
+    if (!this.activeCat) return;
+
+    // Tween the chosen cat to center-foreground at 2x scale
+    this.tweens.add({
+      targets: this.activeCat.sprite,
+      x: this.scale.width / 2,
+      y: this.scale.height / 2 + 40,
+      scale: 2,
+      duration: 400,
+      ease: 'Quad.easeOut',
+    });
+    this.activeCat.setAnimation('meow');
+
+    this.spawnInteractionButtons();
+
+    // Drain the meow bar each tick during the interaction
+    this.drainTimer = this.time.addEvent({
+      delay: Balance.tickDurationMs,
+      loop: true,
+      callback: () => {
+        this.meow.drainTick();
+        if (this.meow.isEmpty()) {
+          this.endInteraction();
+        }
+      },
+    });
+  }
+
+  private spawnInteractionButtons(): void {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const container = this.add.container(0, 0);
+    this.interactionButtons = container;
+
+    const startX = w / 2 - 160;
+    for (let i = 0; i < INTERACTION_BUTTON_DEFS.length; i++) {
+      const def = INTERACTION_BUTTON_DEFS[i]!;
+      const x = startX + i * 160;
+      const y = h - 80;
+      const chance = InteractionSystem.chanceFor(def.type);
+
+      const bg = this.add.rectangle(x, y, 140, 56, 0x222222, 0.85);
+      bg.setStrokeStyle(2, 0xffffff);
+      bg.setInteractive({ useHandCursor: true });
+
+      const label = this.add
+        .text(x, y - 8, def.label, {
+          fontFamily: 'sans-serif',
+          fontSize: '16px',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5);
+
+      const chanceText = this.add
+        .text(x, y + 14, `${Math.round(chance * 100)}%`, {
+          fontFamily: 'sans-serif',
+          fontSize: '12px',
+          color: '#ffd34d',
+        })
+        .setOrigin(0.5);
+
+      bg.on('pointerdown', () => this.resolveInteraction(def.type));
+      container.add([bg, label, chanceText]);
+    }
+  }
+
+  private resolveInteraction(type: InteractionType): void {
+    if (!this.activeCat) return;
+    const result = this.interaction.resolve(type);
+
+    if (result.outcome === 'success') {
+      this.coins += result.coinsAwarded;
+      this.activeCat.setAnimation('happy');
+    } else {
+      this.activeCat.setAnimation('hiss');
+    }
+
+    const feedback = this.add
+      .text(
+        this.scale.width / 2,
+        this.scale.height / 2 - 100,
+        result.outcome === 'success' ? `+${result.coinsAwarded} coins` : 'Hiss!',
+        {
+          fontFamily: 'sans-serif',
+          fontSize: '24px',
+          color: result.outcome === 'success' ? '#00ff88' : '#ff4444',
+        },
+      )
+      .setOrigin(0.5);
+    this.tweens.add({
+      targets: feedback,
+      alpha: 0,
+      y: feedback.y - 40,
+      duration: 800,
+      onComplete: () => feedback.destroy(),
+    });
+
+    this.time.delayedCall(800, () => this.endInteraction());
+  }
+
+  private endInteraction(): void {
+    if (!this.interactionActive) return;
+    this.interactionActive = false;
+
+    if (this.activeCat) {
+      const cat = this.activeCat;
+      const seatX = (cat.model.x / 100) * this.scale.width;
+      const seatY = (cat.model.y / 100) * this.scale.height;
+      this.tweens.add({
+        targets: cat.sprite,
+        x: seatX,
+        y: seatY,
+        scale: 1,
+        duration: 400,
+        onComplete: () => {
+          cat.setAnimation('idle');
+        },
+      });
+      this.activeCat = null;
+    }
+
+    this.interactionButtons?.destroy(true);
+    this.interactionButtons = null;
+    this.drainTimer?.remove();
+    this.drainTimer = null;
+    this.meow.reset();
+  }
+
+  // -- Music --------------------------------------------------------------
+
+  private startMusicOnFirstGesture(): void {
+    if (this.musicStarted) return;
+    this.musicStarted = true;
+    this.music = this.sound.add(AssetKeys.Audio.Background, { loop: true, volume: 0.4 });
+    this.music.play();
+  }
+
+  // -- Cleanup ------------------------------------------------------------
+
   private cleanup(): void {
+    this.drainTimer?.remove();
+    this.drainTimer = null;
+    this.interactionButtons?.destroy(true);
+    this.interactionButtons = null;
+    this.music?.stop();
+    this.music = null;
     for (const c of this.cats) c.destroy();
     this.cats = [];
   }
