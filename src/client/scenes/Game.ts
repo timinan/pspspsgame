@@ -266,29 +266,42 @@ export class Game extends Scene {
     const w = this.scale.width;
     const h = this.scale.height;
     const barWidth = w * 0.6;
+    const barDisplayHeight = 48; // chunkier so the interior is comfortable
     // Sit above the top-most rhythm lane with a bit of breathing room.
     const topLaneY = h - BOTTOM_LANE_Y_FROM_BOTTOM - (LANE_COUNT - 1) * LANE_SPACING;
     const barY = topLaneY - 50;
 
-    // The bar's INNER pill, inset from the outline so the track + fill both
-    // sit comfortably inside the outline's rounded ends instead of poking
-    // past them.
-    const trackHeight = 22;
-    const trackInset = 6;
-    const trackWidth = barWidth - 2 * trackInset;
+    // The interior of the outline image (where it's transparent inside the
+    // border) measured in pixels: bbox of black pixels is x 6–145, y 8–21 in
+    // a 148×30 image, so the interior is x 8–143, y 10–19. As fractions of
+    // the image: ~5.4% inset on the left, ~2.7% on the right, ~33.3% on the
+    // top, ~33.3% on the bottom. We size the track + fill to that interior
+    // so neither bleeds past the black border at any scale.
+    const interiorLeftFrac = 8 / 148;
+    const interiorRightFrac = 4 / 148;
+    const interiorTopFrac = 10 / 30;
+    const interiorBottomFrac = 10 / 30;
+
+    const interiorWidth = barWidth * (1 - interiorLeftFrac - interiorRightFrac);
+    const interiorHeight =
+      barDisplayHeight * (1 - interiorTopFrac - interiorBottomFrac);
+    const interiorLeft =
+      w / 2 - barWidth / 2 + barWidth * interiorLeftFrac;
+    const interiorTop =
+      barY - barDisplayHeight / 2 + barDisplayHeight * interiorTopFrac;
+
     this.meowBarBounds = {
-      left: w / 2 - trackWidth / 2,
-      top: barY - trackHeight / 2,
-      width: trackWidth,
-      height: trackHeight,
-      radius: trackHeight / 2,
+      left: interiorLeft,
+      top: interiorTop,
+      width: interiorWidth,
+      height: interiorHeight,
+      radius: interiorHeight / 2,
     };
 
-    // White rounded-pill track behind the fill so the empty portion of
-    // the bar reads as a real container instead of the game background
-    // showing through the outline.
+    // White rounded-pill track behind the fill — sized to the outline's
+    // exact interior so it sits cleanly inside the black border.
     const track = this.add.graphics();
-    track.fillStyle(0xffffff, 0.92);
+    track.fillStyle(0xffffff, 0.95);
     track.fillRoundedRect(
       this.meowBarBounds.left,
       this.meowBarBounds.top,
@@ -303,7 +316,7 @@ export class Game extends Scene {
     // Outline (rounded frame) drawn last so it crisps up the bar edges.
     this.meowBarOutline = this.add.image(w / 2, barY, AssetKeys.Image.MeowBarOutline);
     this.meowBarOutline.displayWidth = barWidth;
-    this.meowBarOutline.displayHeight = 32;
+    this.meowBarOutline.displayHeight = barDisplayHeight;
   }
 
   private updateMeowBar(): void {
