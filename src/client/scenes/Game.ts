@@ -108,7 +108,7 @@ export class Game extends Scene {
 
   // Meow bar
   private meowBarOutline!: GameObjects.Image;
-  private meowBarFillGfx!: GameObjects.Graphics;
+  private meowBarFill!: GameObjects.Image;
   private meowBarBounds = { left: 0, top: 0, width: 0, height: 0, radius: 0 };
 
   // Interaction state
@@ -330,8 +330,21 @@ export class Game extends Scene {
       this.meowBarBounds.radius,
     );
 
-    // Fill graphics — redrawn each frame in updateMeowBar() to match progress.
-    this.meowBarFillGfx = this.add.graphics();
+    // Orange fill — uses the textured meowBarFill asset so it matches the
+    // prototype's look (with the bar's natural orange shading), sized to
+    // fill the interior at 100% progress. setCrop in updateMeowBar then
+    // hides the right portion based on current progress; the cropped right
+    // edge stays clean and straight while the rounded LEFT end (baked into
+    // the asset) lines up with the white track's left curve.
+    this.meowBarFill = this.add.image(
+      this.meowBarBounds.left,
+      this.meowBarBounds.top + this.meowBarBounds.height / 2,
+      AssetKeys.Image.MeowBarFill,
+    );
+    this.meowBarFill.setOrigin(0, 0.5);
+    this.meowBarFill.displayWidth = this.meowBarBounds.width;
+    this.meowBarFill.displayHeight = this.meowBarBounds.height;
+    this.meowBarFill.setCrop(0, 0, 0, this.meowBarFill.frame.height);
 
     // Outline (rounded frame) drawn last so it crisps up the bar edges.
     this.meowBarOutline = this.add.image(w / 2, barY, AssetKeys.Image.MeowBarOutline);
@@ -340,22 +353,11 @@ export class Game extends Scene {
   }
 
   private updateMeowBar(): void {
-    if (!this.meowBarFillGfx) return;
+    if (!this.meowBarFill) return;
     const pct = this.meow.getProgress() / Balance.meowBarMax;
-    const fillWidth = this.meowBarBounds.width * pct;
-    this.meowBarFillGfx.clear();
-    if (fillWidth > 0.5) {
-      this.meowBarFillGfx.fillStyle(0xf57c00, 1);
-      this.meowBarFillGfx.fillRoundedRect(
-        this.meowBarBounds.left,
-        this.meowBarBounds.top,
-        fillWidth,
-        this.meowBarBounds.height,
-        // Cap the radius at half the current fill width so the pill stays
-        // visually correct at very low progress instead of going to a circle.
-        Math.min(this.meowBarBounds.radius, fillWidth / 2),
-      );
-    }
+    const textureWidth = this.meowBarFill.frame.width;
+    const textureHeight = this.meowBarFill.frame.height;
+    this.meowBarFill.setCrop(0, 0, pct * textureWidth, textureHeight);
   }
 
   // -- HUD ----------------------------------------------------------------

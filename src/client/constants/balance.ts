@@ -25,7 +25,7 @@ export const Balance = {
 
   // Cats
   baseCatsOnScreen: 3,
-  catAnimationFrameRate: 8,
+  catAnimationFrameRate: 12, // bumped from 8 for smoother loops
 
   // Interaction
   interactionChances: {
