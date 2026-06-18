@@ -42,8 +42,9 @@ export class Game extends Scene {
   // Pspsps track
   private rhythmBarBg!: GameObjects.Image;
   private pspspsTarget!: GameObjects.Image;
+  private targetBaseScale = 1;
   private elementSprites = new Map<string, GameObjects.Image>();
-  private rhythmTickTimer: Time.TimerEvent | null = null;
+  private rhythmSpawnTimer: Time.TimerEvent | null = null;
 
   // Meow bar
   private meowBarOutline!: GameObjects.Image;
@@ -107,18 +108,18 @@ export class Game extends Scene {
     this.createHud();
     this.setupInput();
 
-    // Tick the rhythm system at the game's tick cadence so elements move
-    // smoothly regardless of frame rate.
-    this.rhythmTickTimer = this.time.addEvent({
+    // Spawn-check on a steady cadence; movement happens every frame in update().
+    this.rhythmSpawnTimer = this.time.addEvent({
       delay: Balance.tickDurationMs,
       loop: true,
-      callback: () => this.rhythm.tick(),
+      callback: () => this.rhythm.spawnTick(),
     });
 
     this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
   }
 
-  override update(): void {
+  override update(_time: number, delta: number): void {
+    this.rhythm.advance(delta);
     this.syncPspspsElements();
     this.updateMeowBar();
     this.updateHud();
@@ -142,6 +143,10 @@ export class Game extends Scene {
     const targetX = barLeft + barWidth * this.rhythm.getTargetFraction();
     this.pspspsTarget = this.add.image(targetX, barY, AssetKeys.Image.PspspsTarget);
     this.pspspsTarget.setDisplaySize(PSPSPS_TARGET_DISPLAY_SIZE, PSPSPS_TARGET_DISPLAY_SIZE);
+    // Remember the underlying scale produced by setDisplaySize so the pulse
+    // animation can return the target to its real resting size, not the
+    // texture's natural size.
+    this.targetBaseScale = this.pspspsTarget.scaleX;
   }
 
   private syncPspspsElements(): void {
@@ -178,10 +183,12 @@ export class Game extends Scene {
   private pulseTarget(): void {
     if (!this.pspspsTarget) return;
     this.tweens.killTweensOf(this.pspspsTarget);
-    this.pspspsTarget.setScale(1);
+    // Reset to the resting scale that setDisplaySize produced — NOT 1,
+    // since the underlying texture is much bigger than the display size.
+    this.pspspsTarget.setScale(this.targetBaseScale);
     this.tweens.add({
       targets: this.pspspsTarget,
-      scale: 1.4,
+      scale: this.targetBaseScale * 1.35,
       duration: 120,
       yoyo: true,
       ease: 'Quad.easeOut',
@@ -438,8 +445,8 @@ export class Game extends Scene {
   private cleanup(): void {
     this.drainTimer?.remove();
     this.drainTimer = null;
-    this.rhythmTickTimer?.remove();
-    this.rhythmTickTimer = null;
+    this.rhythmSpawnTimer?.remove();
+    this.rhythmSpawnTimer = null;
     this.interactionButtons?.destroy(true);
     this.interactionButtons = null;
     this.music?.stop();

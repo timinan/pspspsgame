@@ -9,8 +9,12 @@ import type { PspspsElement, PspspsTapResult } from '@/types/game';
  *     of the target is consumed and awards points.
  *   - Elements that pass off the right edge wrap back to the left.
  *
- * All positions are expressed as fractions of the bar width so the renderer
- * can scale them to whatever pixel size it likes.
+ * Movement is time-based via `advance(dtMs)` so the renderer can call it
+ * every frame for smooth motion. Spawning runs on a slower discrete tick
+ * via `spawnTick()` to keep spawn timing deterministic.
+ *
+ * `tick()` is provided for tests and runs one tickDurationMs worth of
+ * advance + a single spawnTick.
  */
 export class RhythmSystem {
   private readonly elements: PspspsElement[] = [];
@@ -22,16 +26,19 @@ export class RhythmSystem {
     this.ticksUntilNextSpawn = this.rollSpawnDelay();
   }
 
-  tick(): void {
-    // Move all elements right; wrap any that pass the right edge
+  /** Move all elements based on elapsed wall-clock time. Called every frame. */
+  advance(dtMs: number): void {
+    const dtSec = dtMs / 1000;
     for (const el of this.elements) {
-      el.fraction += el.speed;
+      el.fraction += el.speed * dtSec;
       if (el.fraction > 1) {
         el.fraction = Balance.pspspsSpawnXFraction;
       }
     }
+  }
 
-    // Spawn a new element if we have room and enough time has passed
+  /** Spawn-check tick. Called on a fixed cadence (e.g. every 100ms). */
+  spawnTick(): void {
     if (
       this.elements.length < Balance.pspspsMaxElements &&
       this.ticksSinceLastSpawn >= this.ticksUntilNextSpawn
@@ -42,6 +49,12 @@ export class RhythmSystem {
     } else {
       this.ticksSinceLastSpawn += 1;
     }
+  }
+
+  /** Convenience for tests: advance one tick's worth of time + run spawn check. */
+  tick(): void {
+    this.advance(Balance.tickDurationMs);
+    this.spawnTick();
   }
 
   tap(): PspspsTapResult {
@@ -67,7 +80,6 @@ export class RhythmSystem {
       }
     }
 
-    // Consume any element we caught
     if (hitIds.length > 0) {
       const consumed = new Set(hitIds);
       const survivors = this.elements.filter((e) => !consumed.has(e.id));
@@ -87,18 +99,16 @@ export class RhythmSystem {
   }
 
   private spawn(): void {
-    const variation =
-      (this.rng() * 2 - 1) * Balance.pspspsSpeedVariation;
+    const variation = (this.rng() * 2 - 1) * Balance.pspspsSpeedVariationPerSecond;
     this.elements.push({
       id: `psps-${this.nextId++}`,
       fraction: Balance.pspspsSpawnXFraction,
-      speed: Balance.pspspsBaseSpeedFractionPerTick + variation,
+      speed: Balance.pspspsBaseSpeedFractionPerSecond + variation,
     });
   }
 
   private rollSpawnDelay(): number {
-    const jitter =
-      (this.rng() * 2 - 1) * Balance.pspspsSpawnDelayVariation;
+    const jitter = (this.rng() * 2 - 1) * Balance.pspspsSpawnDelayVariation;
     return Math.max(1, Math.round(Balance.pspspsBaseSpawnDelayTicks * (1 + jitter)));
   }
 }
