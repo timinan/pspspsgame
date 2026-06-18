@@ -19,7 +19,7 @@ export const Balance = {
 
   // Meow bar
   meowBarMax: 100,
-  pointsPerMeowBarUnit: 5,
+  pointsPerMeowBarUnit: 100, // 100 score points = 1% bar
   meowBarDrainPerTick: 1,
   meowBarSpeedPerExtraCat: 0.1,
 

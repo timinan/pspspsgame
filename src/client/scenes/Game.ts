@@ -271,10 +271,11 @@ export class Game extends Scene {
     const topLaneY = h - BOTTOM_LANE_Y_FROM_BOTTOM - (LANE_COUNT - 1) * LANE_SPACING;
     const barY = topLaneY - 50;
 
-    // Outline is the empty container — drawn first so the fill stacks on top.
-    this.meowBarOutline = this.add.image(w / 2, barY, AssetKeys.Image.MeowBarOutline);
-    this.meowBarOutline.displayWidth = barWidth;
-    this.meowBarOutline.displayHeight = 32;
+    // White track behind the fill so the empty portion of the bar reads as
+    // a real container, not the game background showing through the
+    // outline frame. The rectangle stays managed by the scene's display
+    // list, so we don't need to hold a reference.
+    this.add.rectangle(w / 2, barY, barWidth, 26, 0xffffff, 0.92);
 
     // Fill is anchored to the left edge of the bar and starts at width 0;
     // we resize it directly each frame instead of using a geometry mask
@@ -282,7 +283,12 @@ export class Game extends Scene {
     this.meowBarFill = this.add.image(w / 2 - barWidth / 2, barY, AssetKeys.Image.MeowBarFill);
     this.meowBarFill.setOrigin(0, 0.5);
     this.meowBarFill.displayWidth = 0;
-    this.meowBarFill.displayHeight = 28;
+    this.meowBarFill.displayHeight = 26;
+
+    // Outline (rounded frame) drawn last so it crisps up the bar edges.
+    this.meowBarOutline = this.add.image(w / 2, barY, AssetKeys.Image.MeowBarOutline);
+    this.meowBarOutline.displayWidth = barWidth;
+    this.meowBarOutline.displayHeight = 32;
   }
 
   private updateMeowBar(): void {
@@ -365,15 +371,11 @@ export class Game extends Scene {
       this.flashScore(lane, result.pointsAwarded, result.perfectHits > 0);
     }
 
-    if (this.meow.isFull()) {
-      if (INTERACTION_ENABLED) {
-        this.beginInteraction();
-      } else {
-        // Cycle the meow bar so it keeps showing progress without triggering
-        // the (currently buggy) cat-petting handoff.
-        this.meow.reset();
-      }
+    if (this.meow.isFull() && INTERACTION_ENABLED) {
+      this.beginInteraction();
     }
+    // When the interaction handoff is disabled we just let the bar sit at
+    // 100% until we flip the flag back on — no more cycling.
   }
 
   private flashScore(lane: PspspsLane, points: number, isPerfect: boolean): void {

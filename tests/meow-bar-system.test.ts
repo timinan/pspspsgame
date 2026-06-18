@@ -12,22 +12,21 @@ describe('MeowBarSystem', () => {
 
   it('progresses when score accumulates beyond the threshold', () => {
     const m = new MeowBarSystem();
-    // pointsPerMeowBarUnit = 5 by default. 5 points -> 1% bar.
-    m.onScoreChanged(5);
+    m.onScoreChanged(Balance.pointsPerMeowBarUnit);
     expect(m.getProgress()).toBe(1);
   });
 
   it('does not progress until the threshold is crossed', () => {
     const m = new MeowBarSystem();
-    m.onScoreChanged(4);
+    m.onScoreChanged(Balance.pointsPerMeowBarUnit - 1);
     expect(m.getProgress()).toBe(0);
   });
 
   it('respects extra-cat speed multiplier', () => {
     const m = new MeowBarSystem();
-    // 2 extra cats: speed = 1 + 2*0.1 = 1.2; effective points per unit = 5/1.2 ≈ 4.17
+    // 2 extra cats: speed = 1 + 2*0.1 = 1.2; effective points per unit shrinks
     m.setExtraCats(2);
-    m.onScoreChanged(5);
+    m.onScoreChanged(Balance.pointsPerMeowBarUnit);
     expect(m.getProgress()).toBeGreaterThanOrEqual(1);
   });
 
@@ -52,12 +51,16 @@ describe('MeowBarSystem', () => {
     expect(m.isEmpty()).toBe(true);
   });
 
-  it('reset clears progress and trigger score', () => {
+  it('reset clears progress and re-baselines the trigger score', () => {
     const m = new MeowBarSystem();
-    m.onScoreChanged(50);
+    const halfFull = 50 * Balance.pointsPerMeowBarUnit;
+    m.onScoreChanged(halfFull);
+    expect(m.getProgress()).toBe(50);
     m.reset();
     expect(m.getProgress()).toBe(0);
-    m.onScoreChanged(55);
-    expect(m.getProgress()).toBe(11); // 55 / 5 = 11
+    // Reset re-baselines internally — feeding the same absolute score adds
+    // the same units back, demonstrating the trigger score reset to zero.
+    m.onScoreChanged(halfFull);
+    expect(m.getProgress()).toBe(50);
   });
 });

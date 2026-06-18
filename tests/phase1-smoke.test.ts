@@ -13,8 +13,13 @@ describe('phase 1 — systems composed end-to-end', () => {
     const meow = new MeowBarSystem();
     const rhythm = new RhythmSystem(() => 0.5);
 
-    // Spawn a stream of elements, force each onto the target, tap to consume
-    for (let round = 0; round < 30; round++) {
+    // Round count derived from balance so retunes don't silently break it.
+    const roundsNeeded = Math.ceil(
+      (Balance.meowBarMax * Balance.pointsPerMeowBarUnit) / Balance.pspspsPerfectPoints,
+    );
+    const rounds = roundsNeeded * 2; // headroom
+
+    for (let round = 0; round < rounds; round++) {
       for (let i = 0; i < Balance.pspspsBaseSpawnDelayTicks; i++) rhythm.tick();
       for (const el of rhythm.getElements()) {
         (el as { fraction: number }).fraction = rhythm.getTargetFraction();
