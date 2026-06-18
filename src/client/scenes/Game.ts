@@ -24,6 +24,13 @@ const INTERACTION_BUTTON_DEFS: { type: InteractionType; label: string }[] = [
   { type: 'bellyRub', label: 'Belly Rub' },
 ];
 
+const PSPSPS_BAR_WIDTH_FRACTION = 0.8;
+const PSPSPS_BAR_Y_FROM_BOTTOM = 100;
+const PSPSPS_BAR_HEIGHT = 64;
+const PSPSPS_TARGET_DISPLAY_SIZE = 80;
+const PSPSPS_ELEMENT_DISPLAY_WIDTH = 64;
+const PSPSPS_ELEMENT_DISPLAY_HEIGHT = 56;
+
 export class Game extends Scene {
   private cats: Cat[] = [];
   private score!: ScoreSystem;
@@ -32,9 +39,11 @@ export class Game extends Scene {
   private interaction!: InteractionSystem;
   private selector!: CatSelectionSystem;
 
-  // Rhythm bar
+  // Pspsps track
   private rhythmBarBg!: GameObjects.Image;
-  private rhythmPlayhead!: GameObjects.Rectangle;
+  private pspspsTarget!: GameObjects.Image;
+  private elementSprites = new Map<string, GameObjects.Image>();
+  private rhythmTickTimer: Time.TimerEvent | null = null;
 
   // Meow bar
   private meowBarOutline!: GameObjects.Image;
@@ -52,8 +61,9 @@ export class Game extends Scene {
   private hudScoreText!: GameObjects.Text;
   private hudCoinsText!: GameObjects.Text;
 
-  // Music
+  // Music + sfx
   private music: Sound.BaseSound | null = null;
+  private pspspsSfx: Sound.BaseSound | null = null;
   private musicStarted = false;
 
   constructor() {
@@ -69,9 +79,12 @@ export class Game extends Scene {
     // Systems
     this.score = new ScoreSystem();
     this.meow = new MeowBarSystem();
-    this.rhythm = new RhythmSystem(this.time.now);
+    this.rhythm = new RhythmSystem();
     this.interaction = new InteractionSystem();
     this.selector = new CatSelectionSystem();
+
+    // Pre-create the pspsps sfx instance so we can replay it fast on every hit
+    this.pspspsSfx = this.sound.add(AssetKeys.Audio.Pspsps, { volume: 0.7 });
 
     // Spawn the base cats
     for (let i = 0; i < Balance.baseCatsOnScreen; i++) {
@@ -89,53 +102,97 @@ export class Game extends Scene {
       this.cats.push(cat);
     }
 
-    this.createRhythmBar();
+    this.createPspspsTrack();
     this.createMeowBar();
     this.createHud();
     this.setupInput();
+
+    // Tick the rhythm system at the game's tick cadence so elements move
+    // smoothly regardless of frame rate.
+    this.rhythmTickTimer = this.time.addEvent({
+      delay: Balance.tickDurationMs,
+      loop: true,
+      callback: () => this.rhythm.tick(),
+    });
 
     this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
   }
 
   override update(): void {
-    this.updateRhythmBar();
+    this.syncPspspsElements();
     this.updateMeowBar();
     this.updateHud();
   }
 
-  // -- Rhythm bar ---------------------------------------------------------
+  // -- Pspsps track -------------------------------------------------------
 
-  private createRhythmBar(): void {
+  private createPspspsTrack(): void {
     const w = this.scale.width;
     const h = this.scale.height;
-    const barY = h - 100;
-    const barWidth = w * 0.8;
+    const barWidth = w * PSPSPS_BAR_WIDTH_FRACTION;
+    const barY = h - PSPSPS_BAR_Y_FROM_BOTTOM;
+    const barX = w / 2;
 
-    this.rhythmBarBg = this.add.image(w / 2, barY, AssetKeys.Image.RhythmBarBackground);
+    this.rhythmBarBg = this.add.image(barX, barY, AssetKeys.Image.RhythmBarBackground);
     this.rhythmBarBg.displayWidth = barWidth;
-    this.rhythmBarBg.displayHeight = 24;
+    this.rhythmBarBg.displayHeight = PSPSPS_BAR_HEIGHT;
 
-    // Center marker — the "beat zone" the playhead is heading toward (purely visual)
-    this.add.rectangle(w / 2, barY, 16, 40, 0xffffff, 0.6);
-
-    // Yellow playhead — slides across continuously
-    this.rhythmPlayhead = this.add.rectangle(w / 2, barY, 8, 32, 0xffd34d);
+    // Static target sits at pspspsTargetXFraction of the bar
+    const barLeft = barX - barWidth / 2;
+    const targetX = barLeft + barWidth * this.rhythm.getTargetFraction();
+    this.pspspsTarget = this.add.image(targetX, barY, AssetKeys.Image.PspspsTarget);
+    this.pspspsTarget.setDisplaySize(PSPSPS_TARGET_DISPLAY_SIZE, PSPSPS_TARGET_DISPLAY_SIZE);
   }
 
-  private updateRhythmBar(): void {
-    if (!this.rhythmPlayhead) return;
+  private syncPspspsElements(): void {
     const w = this.scale.width;
-    const barWidth = w * 0.8;
-    const barX = w / 2 - barWidth / 2;
-    const progress = this.rhythm.beatProgressAt(this.time.now);
-    this.rhythmPlayhead.x = barX + barWidth * progress;
+    const h = this.scale.height;
+    const barWidth = w * PSPSPS_BAR_WIDTH_FRACTION;
+    const barLeft = w / 2 - barWidth / 2;
+    const barY = h - PSPSPS_BAR_Y_FROM_BOTTOM;
+
+    const elements = this.rhythm.getElements();
+    const aliveIds = new Set(elements.map((e) => e.id));
+
+    // Remove sprites whose elements no longer exist
+    for (const [id, sprite] of this.elementSprites) {
+      if (!aliveIds.has(id)) {
+        sprite.destroy();
+        this.elementSprites.delete(id);
+      }
+    }
+
+    // Add or move sprites to match elements
+    for (const el of elements) {
+      let sprite = this.elementSprites.get(el.id);
+      if (!sprite) {
+        sprite = this.add.image(0, barY, AssetKeys.Image.PspspsElement);
+        sprite.setDisplaySize(PSPSPS_ELEMENT_DISPLAY_WIDTH, PSPSPS_ELEMENT_DISPLAY_HEIGHT);
+        this.elementSprites.set(el.id, sprite);
+      }
+      sprite.x = barLeft + barWidth * el.fraction;
+      sprite.y = barY;
+    }
+  }
+
+  private pulseTarget(): void {
+    if (!this.pspspsTarget) return;
+    this.tweens.killTweensOf(this.pspspsTarget);
+    this.pspspsTarget.setScale(1);
+    this.tweens.add({
+      targets: this.pspspsTarget,
+      scale: 1.4,
+      duration: 120,
+      yoyo: true,
+      ease: 'Quad.easeOut',
+    });
   }
 
   // -- Meow bar -----------------------------------------------------------
 
   private createMeowBar(): void {
     const w = this.scale.width;
-    const barY = this.scale.height - 150;
+    const barY = this.scale.height - 180;
     const barWidth = w * 0.6;
 
     this.meowBarOutline = this.add.image(w / 2, barY, AssetKeys.Image.MeowBarOutline);
@@ -147,7 +204,6 @@ export class Game extends Scene {
     this.meowBarFill.displayWidth = barWidth;
     this.meowBarFill.displayHeight = 32;
 
-    // Invisible rectangle used as a geometry mask to clip the fill image by progress
     this.meowBarFillRect = this.add
       .rectangle(w / 2 - barWidth / 2, barY, 0, 40, 0xffffff)
       .setOrigin(0, 0.5);
@@ -199,11 +255,13 @@ export class Game extends Scene {
     // No taps during interaction — the player resolves the petting prompt via buttons.
     if (this.interactionActive) return;
 
-    const result = this.rhythm.tap(this.time.now);
-    if (result.kind !== 'miss') {
+    const result = this.rhythm.tap();
+    if (result.pointsAwarded > 0) {
       this.score.add(result.pointsAwarded);
       this.meow.onScoreChanged(this.score.get());
-      this.flashFeedback(result.kind);
+      this.pspspsSfx?.play();
+      this.pulseTarget();
+      this.flashScore(result.pointsAwarded, result.perfectHits > 0);
     }
 
     if (this.meow.isFull()) {
@@ -211,10 +269,11 @@ export class Game extends Scene {
     }
   }
 
-  private flashFeedback(kind: 'hit' | 'perfect'): void {
-    const color = kind === 'perfect' ? '#00ff88' : '#ffffff';
+  private flashScore(points: number, isPerfect: boolean): void {
+    const label = isPerfect ? `PERFECT +${points}` : `+${points}`;
+    const color = isPerfect ? '#00ff88' : '#ffffff';
     const text = this.add
-      .text(this.scale.width / 2, this.scale.height / 2 - 40, kind.toUpperCase(), {
+      .text(this.scale.width / 2, this.scale.height / 2 - 40, label, {
         fontFamily: 'sans-serif',
         fontSize: '24px',
         color,
@@ -379,10 +438,14 @@ export class Game extends Scene {
   private cleanup(): void {
     this.drainTimer?.remove();
     this.drainTimer = null;
+    this.rhythmTickTimer?.remove();
+    this.rhythmTickTimer = null;
     this.interactionButtons?.destroy(true);
     this.interactionButtons = null;
     this.music?.stop();
     this.music = null;
+    for (const sprite of this.elementSprites.values()) sprite.destroy();
+    this.elementSprites.clear();
     for (const c of this.cats) c.destroy();
     this.cats = [];
   }

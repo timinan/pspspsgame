@@ -7,6 +7,8 @@ export const AssetKeys = {
     MeowBarFill: 'meow-bar-fill',
     MeowBarOutline: 'meow-bar-outline',
     RhythmBarBackground: 'rhythm-bar-background',
+    PspspsTarget: 'pspsps-target',
+    PspspsElement: 'pspsps-element',
   },
   Audio: {
     Background: 'background-music',

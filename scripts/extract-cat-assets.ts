@@ -216,6 +216,8 @@ async function copyStaticAssets(): Promise<void> {
     'meowBarFill.png',
     'meowBarOutline.png',
     'rythmBarBackground.png',
+    'PSElement.png',
+    'PSTarget.png',
   ];
   for (const img of images) {
     await copyFile(path.join(PROTOTYPE_ASSETS, img), path.join(OUT_IMAGES, img));

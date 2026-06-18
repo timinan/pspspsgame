@@ -32,6 +32,8 @@ export class Preloader extends Scene {
     this.load.image(AssetKeys.Image.MeowBarFill, 'images/meowBarFill.png');
     this.load.image(AssetKeys.Image.MeowBarOutline, 'images/meowBarOutline.png');
     this.load.image(AssetKeys.Image.RhythmBarBackground, 'images/rythmBarBackground.png');
+    this.load.image(AssetKeys.Image.PspspsTarget, 'images/PSTarget.png');
+    this.load.image(AssetKeys.Image.PspspsElement, 'images/PSElement.png');
 
     this.load.audio(AssetKeys.Audio.Background, 'sounds/background.mp3');
     this.load.audio(AssetKeys.Audio.Pspsps, 'sounds/pspsps.mp3');

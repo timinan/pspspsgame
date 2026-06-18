@@ -8,19 +8,23 @@ import { Balance } from '@/constants/balance';
 import type { CatModel } from '@/types/game';
 
 describe('phase 1 — systems composed end-to-end', () => {
-  it('a streak of perfect taps fills the meow bar', () => {
+  it('catching pspsps elements fills the meow bar', () => {
     const score = new ScoreSystem();
     const meow = new MeowBarSystem();
-    const rhythm = new RhythmSystem(0);
+    const rhythm = new RhythmSystem(() => 0.5);
 
-    // 100 perfect taps -> 100 * rhythmPerfectPoints points
-    for (let beat = 0; beat < 100; beat++) {
-      const result = rhythm.tap(beat * Balance.rhythmIntervalMs);
+    // Spawn a stream of elements, force each onto the target, tap to consume
+    for (let round = 0; round < 30; round++) {
+      for (let i = 0; i < Balance.pspspsBaseSpawnDelayTicks; i++) rhythm.tick();
+      for (const el of rhythm.getElements()) {
+        (el as { fraction: number }).fraction = rhythm.getTargetFraction();
+      }
+      const result = rhythm.tap();
       score.add(result.pointsAwarded);
       meow.onScoreChanged(score.get());
     }
 
-    expect(score.get()).toBe(100 * Balance.rhythmPerfectPoints);
+    expect(score.get()).toBeGreaterThan(0);
     expect(meow.isFull()).toBe(true);
   });
 
