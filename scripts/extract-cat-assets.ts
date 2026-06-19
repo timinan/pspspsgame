@@ -25,7 +25,10 @@ const OUT_SOUNDS = path.join(OUT_PUBLIC, 'sounds');
 const OUT_IMAGES = path.join(OUT_PUBLIC, 'images');
 const OUT_FONTS = path.join(OUT_PUBLIC, 'fonts');
 
-const BREEDS = ['cat1', 'cat2', 'cat3'] as const;
+const BREEDS = ['cat1', 'cat2', 'cat3', 'cat4', 'cat5', 'cat6'] as const;
+
+// Cosmetic accessory folders in the prototype — c1 through c17.
+const COSMETICS = Array.from({ length: 17 }, (_, i) => `c${i + 1}`);
 
 // Map prototype filename suffix -> our CatAnimationState in src/client/types/game.ts
 const ANIMATION_MAP: Record<string, string> = {
@@ -103,6 +106,43 @@ async function extractAllGifs(): Promise<ExtractedFrame[]> {
       for (let i = 0; i < written.length; i++) {
         all.push({ breed, animation, frameIndex: i, srcPath: written[i]! });
       }
+    }
+  }
+  return all;
+}
+
+/**
+ * Walks /cosmetics/c1 .. /cosmetics/c17 in the prototype. Each cosmetic
+ * is a single accessory sprite — c1 happens to have multiple animation
+ * variants but everything else only ships `_idle.gif`. We pull the idle
+ * frame(s) and pack them under names like `cosmetic_c1_00`, sharing the
+ * same atlas as the cats so a single texture covers everything.
+ */
+async function extractCosmeticGifs(): Promise<ExtractedFrame[]> {
+  const all: ExtractedFrame[] = [];
+  for (const cos of COSMETICS) {
+    const srcDir = path.join(PROTOTYPE_ASSETS, 'cosmetics', cos);
+    const outDir = path.join(OUT_RAW, 'cosmetics', cos);
+    await fs.mkdir(outDir, { recursive: true });
+
+    const idle = path.join(srcDir, `${cos}_idle.gif`);
+    try {
+      await fs.access(idle);
+    } catch {
+      console.warn(`[skip cosmetic, no idle] ${idle}`);
+      continue;
+    }
+
+    // breed field gets repurposed as `cosmetic_${cos}` so packAtlas's
+    // naming convention produces frames like `cosmetic_c1_idle_00`.
+    const written = await extractGif(idle, outDir, `cosmetic_${cos}_idle`);
+    for (let i = 0; i < written.length; i++) {
+      all.push({
+        breed: `cosmetic_${cos}`,
+        animation: 'idle',
+        frameIndex: i,
+        srcPath: written[i]!,
+      });
     }
   }
   return all;
@@ -328,8 +368,9 @@ async function trimMeowBarFill(): Promise<void> {
 
 async function main(): Promise<void> {
   await ensureDirs();
-  const frames = await extractAllGifs();
-  await packAtlas(frames);
+  const catFrames = await extractAllGifs();
+  const cosmeticFrames = await extractCosmeticGifs();
+  await packAtlas([...catFrames, ...cosmeticFrames]);
   await copyStaticAssets();
   await splitPsElementIntoBallAndLetters();
   await trimMeowBarFill();
