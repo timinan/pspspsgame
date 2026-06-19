@@ -83,9 +83,10 @@ const LANE_COLORS: LaneColor[] = [
   { bar: 0xffb0c8, element: 0xff6b9d, target: 0xffd6e2 },
 ];
 
-// Temporarily off while we tune the rhythm bar in isolation.
-// When ready, flip this to true to re-enable the cat-petting mini-game.
-const INTERACTION_ENABLED = false;
+// When the meow bar fills, the petting handoff takes over: one cat
+// tweens to center, three buttons (Pet / Chin Scratch / Belly Rub)
+// appear, the player picks one and either wins coins or gets hissed at.
+const INTERACTION_ENABLED = true;
 
 interface PspspsLane {
   index: number;
@@ -119,6 +120,7 @@ export class Game extends Scene {
   private interactionActive = false;
   private activeCat: Cat | null = null;
   private interactionButtons: GameObjects.Container | null = null;
+  private interactionDim: GameObjects.Rectangle | null = null;
   private drainTimer: Time.TimerEvent | null = null;
 
   // HUD
@@ -216,22 +218,25 @@ export class Game extends Scene {
   }
 
   override update(_time: number, delta: number): void {
-    // Difficulty ramp: pspsps speed scales 1x → configured max as the meow
-    // bar fills, so the latter half of each session squeezes the player.
-    const meowPct = this.meow.getProgress() / Balance.meowBarMax;
-    const speedMult =
-      1 + meowPct * (Balance.pspspsSpeedMultiplierAtFullMeow - 1);
-    let missedThisFrame = 0;
-    for (const lane of this.lanes) {
-      lane.system.setSpeedMultiplier(speedMult);
-      missedThisFrame += lane.system.advance(delta);
-      this.syncLaneElements(lane);
-    }
-    // Any ball that slid all the way past the right edge without a tap
-    // counts as a missed catch and breaks the streak — same as a
-    // wrong-lane misclick. Keeps the combo honest.
-    if (missedThisFrame > 0 && this.combo > 0) {
-      this.combo = 0;
+    // While the petting interaction is up the rhythm system pauses entirely
+    // — balls freeze in place, nothing despawns. Otherwise the player
+    // would lose their combo just by reading the buttons.
+    if (!this.interactionActive) {
+      const meowPct = this.meow.getProgress() / Balance.meowBarMax;
+      const speedMult =
+        1 + meowPct * (Balance.pspspsSpeedMultiplierAtFullMeow - 1);
+      let missedThisFrame = 0;
+      for (const lane of this.lanes) {
+        lane.system.setSpeedMultiplier(speedMult);
+        missedThisFrame += lane.system.advance(delta);
+        this.syncLaneElements(lane);
+      }
+      // Any ball that slid all the way past the right edge without a tap
+      // counts as a missed catch and breaks the streak — same as a
+      // wrong-lane misclick. Keeps the combo honest.
+      if (missedThisFrame > 0 && this.combo > 0) {
+        this.combo = 0;
+      }
     }
     this.updateMeowBar();
     this.updateHud();
@@ -811,14 +816,29 @@ export class Game extends Scene {
     this.activeCat = this.cats.find((c) => c.model.id === chosenModel.id) ?? null;
     if (!this.activeCat) return;
 
+    // Dim the rhythm-bar region so the player's focus is unambiguously on
+    // the cat and the petting buttons. Sits between the rhythm UI and the
+    // interaction UI in the z-order.
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const dimTop = h - BOTTOM_LANE_Y_FROM_BOTTOM - LANE_COUNT * LANE_SPACING - 110;
+    this.interactionDim = this.add
+      .rectangle(0, dimTop, w, h - dimTop, 0x000000, 0.55)
+      .setOrigin(0, 0)
+      .setDepth(500);
+
+    // Active cat tweens to the lower-middle of the screen above the dim
+    // overlay so it sits clearly in front of the cat-house art without
+    // crashing into the seated cats above.
     this.tweens.add({
       targets: this.activeCat.sprite,
-      x: this.scale.width / 2,
-      y: this.scale.height / 2 + 40,
-      scale: 2,
-      duration: 400,
+      x: w / 2,
+      y: h * 0.52,
+      scale: 1.7,
+      duration: 380,
       ease: 'Quad.easeOut',
     });
+    this.activeCat.sprite.setDepth(550);
     this.activeCat.setAnimation('meow');
 
     this.spawnInteractionButtons();
@@ -838,30 +858,39 @@ export class Game extends Scene {
   private spawnInteractionButtons(): void {
     const w = this.scale.width;
     const h = this.scale.height;
-    const container = this.add.container(0, 0);
+    const container = this.add.container(0, 0).setDepth(600);
     this.interactionButtons = container;
 
-    const startX = w / 2 - 160;
+    // Three buttons in a horizontal row above the rhythm bar stack so they
+    // never collide with the lanes' tap zones. Sized so they fit
+    // comfortably even on narrow portrait mobile views.
+    const btnW = 110;
+    const btnH = 52;
+    const gap = 14;
+    const totalW = INTERACTION_BUTTON_DEFS.length * btnW + (INTERACTION_BUTTON_DEFS.length - 1) * gap;
+    const startX = w / 2 - totalW / 2 + btnW / 2;
+    const buttonY = h - BOTTOM_LANE_Y_FROM_BOTTOM - LANE_COUNT * LANE_SPACING - 60;
+
     for (let i = 0; i < INTERACTION_BUTTON_DEFS.length; i++) {
       const def = INTERACTION_BUTTON_DEFS[i]!;
-      const x = startX + i * 160;
-      const y = h - 80;
+      const x = startX + i * (btnW + gap);
       const chance = InteractionSystem.chanceFor(def.type);
 
-      const bg = this.add.rectangle(x, y, 140, 56, 0x222222, 0.85);
+      const bg = this.add.rectangle(x, buttonY, btnW, btnH, 0x261540, 0.92);
       bg.setStrokeStyle(2, 0xffffff);
       bg.setInteractive({ useHandCursor: true });
 
       const label = this.add
-        .text(x, y - 8, def.label, {
+        .text(x, buttonY - 8, def.label, {
           fontFamily: 'Pixeloid Sans, sans-serif',
-          fontSize: '16px',
+          fontStyle: 'bold',
+          fontSize: '14px',
           color: '#ffffff',
         })
         .setOrigin(0.5);
 
       const chanceText = this.add
-        .text(x, y + 14, `${Math.round(chance * 100)}%`, {
+        .text(x, buttonY + 12, `${Math.round(chance * 100)}%`, {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontSize: '12px',
           color: '#ffd34d',
@@ -920,9 +949,11 @@ export class Game extends Scene {
         x: seatX,
         y: seatY,
         scale: 1,
-        duration: 400,
+        duration: 380,
         onComplete: () => {
-          // Return to whatever the cat was doing before being picked up.
+          // Return to whatever the cat was doing before being picked up
+          // and drop back into the normal cat-house depth layer.
+          cat.sprite.setDepth(0);
           cat.setAnimation(cat.model.restingAnimation);
         },
       });
@@ -931,6 +962,8 @@ export class Game extends Scene {
 
     this.interactionButtons?.destroy(true);
     this.interactionButtons = null;
+    this.interactionDim?.destroy();
+    this.interactionDim = null;
     this.drainTimer?.remove();
     this.drainTimer = null;
     this.meow.reset();
@@ -954,6 +987,8 @@ export class Game extends Scene {
     this.spawnTimer = null;
     this.interactionButtons?.destroy(true);
     this.interactionButtons = null;
+    this.interactionDim?.destroy();
+    this.interactionDim = null;
     this.music?.stop();
     this.music = null;
     for (const lane of this.lanes) {
