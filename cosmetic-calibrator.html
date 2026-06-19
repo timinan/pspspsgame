@@ -185,13 +185,14 @@
 
         <h2>Save / Load</h2>
         <div class="hint" id="saveHint">
-          Edits autosave to <code>cosmetics.json</code> at the project root via
-          the local dev server. Just edit — no clicks needed. The toast in
-          the bottom-right confirms each save.
+          Every edit autosaves to <code>cosmetics.json</code> at the project root
+          via the local Node server — no picker, no prompts. The toast in
+          the bottom-right confirms each save. On next page load the
+          calibrator reads from the same file.
         </div>
         <div class="row">
-          <button id="save">💾 Force save</button>
-          <button id="load" class="secondary">Load file…</button>
+          <button id="save">💾 Force save now</button>
+          <button id="load" class="secondary">Load other file…</button>
         </div>
         <div class="row">
           <button id="copy" class="secondary">Copy JSON</button>
@@ -295,7 +296,6 @@
       let saveStatusEl = null;
 
       async function autosaveToServer() {
-        if (!serverSaveAvailable) return;
         const body = JSON.stringify(buildOutputArray(), null, 2);
         setSaveStatus('saving…', '#c0a0e6');
         try {
@@ -305,12 +305,19 @@
             body,
           });
           if (!resp.ok) throw new Error(`save failed: ${resp.status}`);
-          setSaveStatus('✓ saved', '#7fdc8a');
+          serverSaveAvailable = true;
+          setSaveStatus('✓ saved to cosmetics.json', '#7fdc8a');
         } catch (e) {
           serverSaveAvailable = false;
-          setSaveStatus('server save off — use 💾 button', '#ffaa55');
-          console.warn('Autosave to server failed, falling back to manual save:', e);
+          setSaveStatus('server offline — start `node cosmetic-server.mjs`', '#ffaa55');
+          console.warn('Save to server failed:', e);
         }
+      }
+
+      async function forceSave() {
+        // Cancel any pending debounced autosave so we don't double-write.
+        clearTimeout(autosaveTimer);
+        await autosaveToServer();
       }
 
       function setSaveStatus(text, color) {
@@ -483,7 +490,7 @@
           }
         });
 
-        document.getElementById('save').addEventListener('click', () => saveToFile(/* manual */ true));
+        document.getElementById('save').addEventListener('click', forceSave);
         document.getElementById('load').addEventListener('click', loadFromFilePicker);
 
         document.getElementById('reset').addEventListener('click', () => {
