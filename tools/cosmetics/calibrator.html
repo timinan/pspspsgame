@@ -493,7 +493,7 @@
         const body = JSON.stringify(buildOutputArray(), null, 2);
         setSaveStatus('saving…', '#c0a0e6');
         try {
-          const resp = await fetch('/save', {
+          const resp = await fetch('/save/cosmetics', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body,

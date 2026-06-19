@@ -10,14 +10,15 @@ in `src/client/entities/cat.ts`.
 From the project root:
 
 ```bash
-node tools/cosmetics/server.mjs
+node tools/server.mjs
 ```
 
-Then open `http://localhost:3000/` (defaults to the calibrator).
+Then open `http://localhost:3000/tools/cosmetics/calibrator.html` (or
+pick "Cosmetic Calibrator" from the tool index at `/`).
 
-The server serves the calibrator HTML plus the project's `public/`
-assets, and accepts a `POST /save` endpoint that writes the JSON body to
-`tools/cosmetics/cosmetics.json`.
+The shared tools server (`tools/server.mjs`) serves the calibrator HTML
+plus the project's `public/` assets, and accepts `POST /save/cosmetics`
+which writes the JSON body to `tools/cosmetics/cosmetics.json`.
 
 ## Workflow
 

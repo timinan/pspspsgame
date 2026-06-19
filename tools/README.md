@@ -7,20 +7,29 @@ none ship to Devvit — they're purely for local content authoring.
 
 ## Index
 
-| Tool | Purpose | Launch | Output |
+Single launch for every tool:
+
+```bash
+node tools/server.mjs
+# → http://localhost:3000/  (tool index page)
+```
+
+| Tool | Purpose | Page | Output |
 | --- | --- | --- | --- |
-| [`cosmetics/`](cosmetics/) | Visual calibrator for the 17 cosmetic sprites — set name, slot, X/Y offset, scale per cosmetic. Edits autosave to disk. | `node tools/cosmetics/server.mjs`, open `http://localhost:3000/` | `tools/cosmetics/cosmetics.json` |
+| [`cosmetics/`](cosmetics/) | Calibrate name / slot / X-Y offset / scale per cosmetic, generate tinted variants. | `/tools/cosmetics/calibrator.html` | `tools/cosmetics/cosmetics.json` |
+| [`cats/`](cats/) | Calibrate name / rarity / scale per cat, preview animations frame-by-frame, generate tinted variants. | `/tools/cats/calibrator.html` | `tools/cats/cats.json` |
 
 ## Adding a new tool
 
-1. Create `tools/<name>/` with whatever the tool needs.
-2. Prefer a self-contained HTML + small Node static server pattern (zero
-   build step, runs anywhere Node runs). The cosmetics tool is a good
-   template.
-3. Have the tool autosave its output to a file inside its own folder so
-   future-you can find it without grep.
-4. Add a row to the table above with name, purpose, launch command, and
-   output path.
+1. Create `tools/<name>/` with whatever the tool needs (typically a
+   `calibrator.html` and a `README.md`).
+2. Register the tool in `tools/server.mjs`'s `TOOLS` table — `label`,
+   `href`, `savePath`, `description`. The shared server picks it up
+   automatically (index page + `POST /save/<name>` endpoint).
+3. Have the HTML autosave via `POST /save/<name>` and auto-load from
+   the absolute path of its output file (so the JSON survives reloads
+   and sessions).
+4. Add a row to the table above with page + output path.
 5. Update `outputs/portfolio/pspsps-session-state.md` so the session
    tracker mentions the tool.
 

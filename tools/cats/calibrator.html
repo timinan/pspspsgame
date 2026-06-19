@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>pspsps — Cat Calibrator</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        --bg: #1a0a2e;
+        --panel: #261540;
+        --accent: #c0a0e6;
+        --text: #ffffff;
+        --primary: #ffd34d;
+        --secondary: #6e4ad1;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .wrap {
+        display: grid;
+        grid-template-columns: minmax(440px, 1fr) 420px;
+        gap: 16px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .panel {
+        background: var(--panel);
+        border-radius: 10px;
+        padding: 16px;
+      }
+      .canvas-panel { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+      canvas {
+        background: #4a3070;
+        border: 2px solid var(--accent);
+        image-rendering: pixelated;
+        display: block;
+        margin: 0 auto;
+      }
+      .controls { display: flex; flex-direction: column; gap: 10px; }
+      .controls label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .controls input[type="text"],
+      .controls input[type="number"],
+      .controls select,
+      .controls textarea {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--accent);
+        padding: 6px 8px;
+        font: inherit;
+        border-radius: 4px;
+      }
+      .controls textarea {
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        min-height: 160px;
+        resize: vertical;
+        line-height: 1.4;
+      }
+      .row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+      .row > * { flex: 1; }
+      button {
+        background: var(--primary);
+        color: var(--bg);
+        border: none;
+        padding: 8px 14px;
+        font: inherit;
+        font-weight: 700;
+        border-radius: 4px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      button:hover { filter: brightness(1.1); }
+      button.secondary { background: var(--secondary); color: var(--text); }
+      .progress-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+      }
+      .progress-row strong { color: var(--primary); font-size: 18px; }
+      h1, h2 { margin: 0; }
+      h1 { font-size: 16px; }
+      h2 { font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 12px; }
+      .hint { font-size: 12px; color: var(--accent); line-height: 1.4; }
+      kbd {
+        background: var(--bg);
+        border: 1px solid var(--accent);
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+      }
+      /* Tabs */
+      .tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--accent);
+        margin-bottom: 4px;
+      }
+      .tab {
+        background: transparent;
+        color: var(--accent);
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 8px 14px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        border-radius: 0;
+      }
+      .tab:hover { color: var(--text); filter: none; }
+      .tab.active {
+        color: var(--text);
+        border-bottom-color: var(--primary);
+      }
+      .pane { display: flex; flex-direction: column; gap: 10px; }
+      .pane.hidden { display: none; }
+      /* Variant rows */
+      .variant-row {
+        display: grid;
+        grid-template-columns: 24px 24px 70px 1fr;
+        gap: 8px;
+        align-items: center;
+        padding: 4px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .variant-row:hover { background: rgba(192, 160, 230, 0.08); }
+      .variant-row.previewing {
+        background: rgba(255, 211, 77, 0.15);
+        outline: 1px solid var(--primary);
+      }
+      .variant-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+      .variant-row .swatch {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+      .variant-row .tint-label {
+        font-size: 12px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .variant-row input[type="text"] {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--accent);
+        padding: 4px 6px;
+        font: inherit;
+        font-size: 12px;
+        border-radius: 4px;
+      }
+      .variant-row input[type="text"]:disabled {
+        opacity: 0.4;
+        background: rgba(0, 0, 0, 0.2);
+      }
+      .anim-bar {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 8px;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="panel canvas-panel">
+        <div class="progress-row">
+          <h1>Cat Calibrator</h1>
+          <strong id="progress">cat1 (1 / 6)</strong>
+        </div>
+        <canvas id="preview" width="480" height="480"></canvas>
+        <div class="row">
+          <button id="prev">← Prev</button>
+          <button id="next">Next →</button>
+        </div>
+        <div class="anim-bar">
+          <label>
+            Animation
+            <select id="animSelect"></select>
+          </label>
+          <button id="playPause" class="secondary">Pause</button>
+          <button id="resetFrame" class="secondary">⟲ 1st frame</button>
+        </div>
+        <div class="hint">
+          <kbd>← →</kbd> step between cats. <kbd>space</kbd> play/pause the
+          current animation. The preview uses the cat's source frames
+          (cat6 if you're previewing a tinted variant of cat6) and applies
+          tints with the same multiply blend Phaser uses.
+        </div>
+      </div>
+
+      <div class="panel controls">
+        <h1 id="curId">cat1</h1>
+
+        <div class="tabs">
+          <button class="tab active" data-tab="base">Base</button>
+          <button class="tab" data-tab="variants">Tint variants</button>
+        </div>
+
+        <div class="pane" id="basePane">
+          <label>
+            Name
+            <input type="text" id="name" placeholder="e.g. Mochi" />
+          </label>
+          <label>
+            Rarity
+            <select id="rarity">
+              <option value="common">common</option>
+              <option value="uncommon">uncommon</option>
+              <option value="rare">rare</option>
+              <option value="legendary">legendary</option>
+            </select>
+          </label>
+          <label>
+            Scale
+            <input type="number" id="scale" value="1" step="0.1" min="0.1" max="4" />
+          </label>
+          <div class="hint">
+            Cats don't have offsets — they're placed by seat in the Game
+            scene. Scale only matters if you want a breed to render bigger
+            or smaller relative to the others.
+          </div>
+        </div>
+
+        <div class="pane hidden" id="variantsPane">
+          <div class="hint">
+            Check the tints to spin off as new cats from
+            <strong id="varBaseName">cat1</strong>. Tap any row to preview that
+            tint live across the current animation. Click <b>Generate</b> to
+            promote each checked variant into a real catalog entry (cat7,
+            cat8, …) — they inherit name template, rarity, scale, and use
+            the parent's animation frames at runtime.
+          </div>
+          <div id="variantList"></div>
+          <button id="generateVariants">⚡ Generate selected as new cats</button>
+        </div>
+
+        <h2>Save / Load</h2>
+        <div class="hint">
+          Every edit autosaves to <code>tools/cats/cats.json</code> via the
+          local Node tools server — no picker, no prompts. The toast in
+          the bottom-right confirms each save.
+        </div>
+        <div class="row">
+          <button id="save">💾 Force save now</button>
+          <button id="reset" class="secondary">Reset all</button>
+        </div>
+        <div class="row">
+          <button id="copy" class="secondary">Copy JSON</button>
+        </div>
+        <textarea id="output" readonly></textarea>
+      </div>
+    </div>
+
+    <script>
+      const ATLAS_IMG_PATH = '/public/assets/atlas/cats.png';
+      const ATLAS_JSON_PATH = '/public/assets/atlas/cats.json';
+      const STORAGE_KEY = 'pspsps:cat-calibrator:v1';
+      const SAVE_URL = '/save/cats';
+      const SAVE_LOAD_URL = '/tools/cats/cats.json';
+      const ZOOM = 4;
+      const ANIM_FPS = 12;
+      const ANIM_FRAME_MS = 1000 / ANIM_FPS;
+
+      const BASE_IDS = ['cat1', 'cat2', 'cat3', 'cat4', 'cat5', 'cat6'];
+      const CAT_ID_RE = /^cat\d+$/;
+      const ANIMATIONS = ['idle', 'lick', 'meow', 'sleep', 'stretch', 'hiss', 'happy'];
+
+      const DEFAULT_NAMES = {
+        cat1: 'Mochi', cat2: 'Biscuit', cat3: 'Pebble',
+        cat4: 'Marble', cat5: 'Saffron', cat6: 'Inkwell',
+      };
+      const DEFAULT_RARITY = {
+        cat1: 'common', cat2: 'common', cat3: 'common',
+        cat4: 'uncommon', cat5: 'rare', cat6: 'rare',
+      };
+
+      const TINT_PALETTE = [
+        { id: 'red',    color: '#ff5555', label: 'Red' },
+        { id: 'blue',   color: '#5588ff', label: 'Blue' },
+        { id: 'green',  color: '#55cc55', label: 'Green' },
+        { id: 'gold',   color: '#ffd34d', label: 'Gold' },
+        { id: 'purple', color: '#c678ff', label: 'Purple' },
+        { id: 'pink',   color: '#ff8fbf', label: 'Pink' },
+      ];
+
+      const frames = {};
+      let atlasImg = null;
+      let state = loadState();
+      let currentIdx = 0;
+      let activeTab = 'base';
+      let previewTintColor = null;
+      let playing = true;
+      let animFrames = [];
+      let animFrameIndex = 0;
+      let animLastTickAt = 0;
+      let autosaveTimer = null;
+      let hasUserEdited = false;
+      function markEdited() { hasUserEdited = true; }
+
+      // --- State + storage -------------------------------------------------
+
+      function catIds() {
+        return Object.keys(state)
+          .filter((k) => CAT_ID_RE.test(k))
+          .sort((a, b) => parseInt(a.slice(3), 10) - parseInt(b.slice(3), 10));
+      }
+
+      function nextFreeId() {
+        const ids = catIds();
+        const nums = ids.map((id) => parseInt(id.slice(3), 10));
+        return `cat${Math.max(0, ...nums) + 1}`;
+      }
+
+      function sourceCatFor(id) {
+        // Generated cats borrow their parent's animation set. Bases
+        // resolve to themselves.
+        return state[id]?.sourceFrame || id;
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) return hydrateState(JSON.parse(raw));
+        } catch (e) {
+          console.warn('Failed to load saved state, starting fresh:', e);
+        }
+        return freshStateBlock();
+      }
+
+      function hydrateState(parsed) {
+        parsed.variants = parsed.variants || {};
+        const ids = new Set(BASE_IDS);
+        for (const k of Object.keys(parsed)) {
+          if (CAT_ID_RE.test(k)) ids.add(k);
+        }
+        for (const id of ids) {
+          parsed[id] = { ...freshEntry(id), ...(parsed[id] || {}) };
+          parsed.variants[id] = parsed.variants[id] || freshVariantEntry();
+        }
+        return parsed;
+      }
+
+      function freshStateBlock() {
+        const blank = { variants: {} };
+        for (const id of BASE_IDS) {
+          blank[id] = freshEntry(id);
+          blank.variants[id] = freshVariantEntry();
+        }
+        return blank;
+      }
+
+      function freshEntry(id) {
+        return {
+          name: DEFAULT_NAMES[id] || id,
+          rarity: DEFAULT_RARITY[id] || 'common',
+          scale: 1,
+        };
+      }
+
+      function freshVariantEntry() {
+        const v = {};
+        for (const tint of TINT_PALETTE) {
+          v[tint.id] = { enabled: false, name: '' };
+        }
+        return v;
+      }
+
+      function defaultVariantName(parentId, tintId) {
+        const baseName = state[parentId]?.name || parentId;
+        const tintLabel = TINT_PALETTE.find((t) => t.id === tintId)?.label || tintId;
+        return `${tintLabel} ${baseName}`;
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (!hasUserEdited) return;
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(autosaveToServer, 400);
+      }
+
+      function buildOutputArray() {
+        const out = [];
+        for (const id of catIds()) {
+          const entry = state[id];
+          const obj = {
+            id,
+            name: entry.name,
+            rarity: entry.rarity,
+            scale: entry.scale,
+          };
+          if (entry.sourceFrame) obj.sourceFrame = entry.sourceFrame;
+          if (entry.tint) obj.tint = entry.tint;
+          out.push(obj);
+        }
+        return out;
+      }
+
+      function arrayToState(arr) {
+        const out = freshStateBlock();
+        for (const entry of arr) {
+          if (!entry || !entry.id || !CAT_ID_RE.test(entry.id)) continue;
+          if (!out[entry.id]) {
+            out[entry.id] = freshEntry(entry.id);
+            out.variants[entry.id] = freshVariantEntry();
+          }
+          out[entry.id] = { ...out[entry.id], ...entry };
+        }
+        return out;
+      }
+
+      // --- Save plumbing ---------------------------------------------------
+
+      let serverSaveAvailable = true;
+      let saveStatusEl = null;
+
+      async function autosaveToServer() {
+        const body = JSON.stringify(buildOutputArray(), null, 2);
+        setSaveStatus('saving…', '#c0a0e6');
+        try {
+          const resp = await fetch(SAVE_URL, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body,
+          });
+          if (!resp.ok) throw new Error(`save failed: ${resp.status}`);
+          serverSaveAvailable = true;
+          setSaveStatus('✓ saved to cats.json', '#7fdc8a');
+        } catch (e) {
+          serverSaveAvailable = false;
+          setSaveStatus('server offline — start `node tools/server.mjs`', '#ffaa55');
+          console.warn('Save to server failed:', e);
+        }
+      }
+
+      async function forceSave() {
+        markEdited();
+        clearTimeout(autosaveTimer);
+        await autosaveToServer();
+      }
+
+      function setSaveStatus(text, color) {
+        if (!saveStatusEl) {
+          saveStatusEl = document.createElement('div');
+          saveStatusEl.style.cssText =
+            'position:fixed;bottom:12px;right:12px;padding:6px 12px;' +
+            'background:rgba(26,10,46,0.9);border:1px solid #c0a0e6;border-radius:6px;' +
+            'font:600 12px system-ui,sans-serif;z-index:100;transition:opacity 0.4s;';
+          document.body.appendChild(saveStatusEl);
+        }
+        saveStatusEl.textContent = text;
+        saveStatusEl.style.color = color;
+        saveStatusEl.style.opacity = '1';
+        clearTimeout(saveStatusEl._fadeT);
+        saveStatusEl._fadeT = setTimeout(() => (saveStatusEl.style.opacity = '0.3'), 1500);
+      }
+
+      async function tryLoadFromServer() {
+        try {
+          const resp = await fetch(SAVE_LOAD_URL, { cache: 'no-store' });
+          if (!resp.ok) return null;
+          return arrayToState(await resp.json());
+        } catch {
+          return null;
+        }
+      }
+
+      // --- Navigation + Variants -------------------------------------------
+
+      function curId() {
+        const ids = catIds();
+        if (currentIdx >= ids.length) currentIdx = 0;
+        return ids[currentIdx];
+      }
+
+      function step(direction) {
+        const ids = catIds();
+        currentIdx = (currentIdx + direction + ids.length) % ids.length;
+        loadCurrent();
+      }
+
+      function setActiveTab(tab) {
+        activeTab = tab;
+        document.querySelectorAll('.tab').forEach((b) => {
+          b.classList.toggle('active', b.dataset.tab === tab);
+        });
+        document.getElementById('basePane').classList.toggle('hidden', tab !== 'base');
+        document.getElementById('variantsPane').classList.toggle('hidden', tab !== 'variants');
+        if (tab !== 'variants') previewTintColor = null;
+      }
+
+      function loadCurrent() {
+        const cur = curId();
+        const entry = state[cur];
+        const total = catIds().length;
+        document.getElementById('curId').textContent = cur;
+        document.getElementById('progress').textContent = `${cur} (${currentIdx + 1} / ${total})`;
+        document.getElementById('name').value = entry.name;
+        document.getElementById('rarity').value = entry.rarity;
+        document.getElementById('scale').value = entry.scale;
+        buildVariantsPane();
+        updateAnimFrames();
+        updateOutput();
+      }
+
+      function buildVariantsPane() {
+        const cur = curId();
+        document.getElementById('varBaseName').textContent = `${cur} — ${state[cur].name}`;
+        const list = document.getElementById('variantList');
+        list.innerHTML = '';
+        const variants = state.variants[cur] || (state.variants[cur] = freshVariantEntry());
+        let previewingTintId = null;
+        TINT_PALETTE.forEach((tint) => {
+          const v = variants[tint.id];
+          const row = document.createElement('div');
+          row.className = 'variant-row';
+          row.dataset.tintId = tint.id;
+
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = !!v.enabled;
+          cb.addEventListener('click', (e) => e.stopPropagation());
+          cb.addEventListener('change', () => {
+            v.enabled = cb.checked;
+            if (cb.checked && !v.name) v.name = defaultVariantName(cur, tint.id);
+            nameInput.disabled = !cb.checked;
+            nameInput.value = v.name;
+            markEdited();
+            saveState();
+            updateOutput();
+          });
+
+          const swatch = document.createElement('span');
+          swatch.className = 'swatch';
+          swatch.style.background = tint.color;
+
+          const label = document.createElement('span');
+          label.className = 'tint-label';
+          label.textContent = tint.label;
+
+          const nameInput = document.createElement('input');
+          nameInput.type = 'text';
+          nameInput.placeholder = defaultVariantName(cur, tint.id);
+          nameInput.value = v.name || '';
+          nameInput.disabled = !v.enabled;
+          nameInput.addEventListener('click', (e) => e.stopPropagation());
+          nameInput.addEventListener('input', () => {
+            v.name = nameInput.value;
+            markEdited();
+            saveState();
+            updateOutput();
+          });
+
+          row.addEventListener('click', () => {
+            previewTintColor = tint.color;
+            list.querySelectorAll('.variant-row').forEach((r) =>
+              r.classList.toggle('previewing', r === row),
+            );
+          });
+
+          row.append(cb, swatch, label, nameInput);
+          list.appendChild(row);
+          if (v.enabled && previewingTintId === null) previewingTintId = tint.id;
+        });
+        if (previewingTintId) {
+          previewTintColor = TINT_PALETTE.find((t) => t.id === previewingTintId).color;
+          list.querySelector(`[data-tint-id="${previewingTintId}"]`)?.classList.add('previewing');
+        } else {
+          previewTintColor = null;
+        }
+      }
+
+      function onGenerate() {
+        const parentId = curId();
+        const parent = state[parentId];
+        const parentSourceCat = sourceCatFor(parentId);
+        const generated = [];
+
+        for (const tint of TINT_PALETTE) {
+          const v = state.variants[parentId]?.[tint.id];
+          if (!v || !v.enabled) continue;
+          const newId = nextFreeId();
+          state[newId] = {
+            name: v.name || defaultVariantName(parentId, tint.id),
+            rarity: parent.rarity,
+            scale: parent.scale,
+            sourceFrame: parentSourceCat,
+            tint: tint.color,
+          };
+          state.variants[newId] = freshVariantEntry();
+          v.enabled = false;
+          v.name = '';
+          generated.push(newId);
+        }
+
+        if (generated.length === 0) {
+          flashButton('generateVariants', 'Check at least one tint first');
+          return;
+        }
+
+        markEdited();
+        saveState();
+        updateOutput();
+
+        const ids = catIds();
+        currentIdx = ids.indexOf(generated[0]);
+        setActiveTab('base');
+        loadCurrent();
+
+        flashButton('generateVariants', `✓ Generated ${generated.length}: ${generated.join(', ')}`);
+      }
+
+      // --- Animation playback ----------------------------------------------
+
+      function updateAnimFrames() {
+        const cur = curId();
+        const source = sourceCatFor(cur);
+        const animSelect = document.getElementById('animSelect');
+        // Filter the animation dropdown to ones that actually exist in
+        // the atlas for this source cat (cat1/2/3 don't have 'happy').
+        const have = ANIMATIONS.filter((anim) =>
+          Object.keys(frames).some((f) => f.startsWith(`${source}_${anim}_`)),
+        );
+        if (have.length === 0) return;
+        // Keep the previous selection if still valid; otherwise default
+        // to idle (or first available).
+        let current = animSelect.value;
+        if (!have.includes(current)) current = have.includes('idle') ? 'idle' : have[0];
+        animSelect.innerHTML = '';
+        for (const a of have) {
+          const opt = document.createElement('option');
+          opt.value = a;
+          opt.textContent = a;
+          if (a === current) opt.selected = true;
+          animSelect.appendChild(opt);
+        }
+        rebuildAnimFrameList();
+      }
+
+      function rebuildAnimFrameList() {
+        const cur = curId();
+        const source = sourceCatFor(cur);
+        const anim = document.getElementById('animSelect').value;
+        const prefix = `${source}_${anim}_`;
+        animFrames = Object.keys(frames)
+          .filter((f) => f.startsWith(prefix))
+          .sort();
+        animFrameIndex = 0;
+        animLastTickAt = 0;
+      }
+
+      // --- Rendering -------------------------------------------------------
+
+      const tintCanvas = document.createElement('canvas');
+      function drawTintedSprite(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh, tintHex) {
+        tintCanvas.width = sw;
+        tintCanvas.height = sh;
+        const tctx = tintCanvas.getContext('2d');
+        tctx.imageSmoothingEnabled = false;
+        tctx.clearRect(0, 0, sw, sh);
+        tctx.globalCompositeOperation = 'source-over';
+        tctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        tctx.globalCompositeOperation = 'multiply';
+        tctx.fillStyle = tintHex;
+        tctx.fillRect(0, 0, sw, sh);
+        tctx.globalCompositeOperation = 'destination-in';
+        tctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        ctx.drawImage(tintCanvas, 0, 0, sw, sh, dx, dy, dw, dh);
+      }
+
+      function tick(now) {
+        if (atlasImg?.complete) drawFrame(now);
+        requestAnimationFrame(tick);
+      }
+
+      function drawFrame(now) {
+        const canvas = document.getElementById('preview');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.fillStyle = '#4a3070';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (animFrames.length === 0) return;
+
+        // Advance the frame index based on elapsed time so the playback
+        // speed stays locked to ANIM_FPS regardless of monitor refresh.
+        if (playing) {
+          if (!animLastTickAt) animLastTickAt = now;
+          while (now - animLastTickAt > ANIM_FRAME_MS) {
+            animFrameIndex = (animFrameIndex + 1) % animFrames.length;
+            animLastTickAt += ANIM_FRAME_MS;
+          }
+        }
+
+        const frameName = animFrames[animFrameIndex];
+        const f = frames[frameName];
+        if (!f) return;
+
+        const entry = state[curId()];
+        const baseScale = entry?.scale ?? 1;
+        const w = f.w * ZOOM * baseScale;
+        const h = f.h * ZOOM * baseScale;
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2 + 40;
+        const dx = cx - w / 2;
+        const dy = cy - h;
+
+        const effectiveTint = previewTintColor || entry?.tint || null;
+        if (effectiveTint) {
+          drawTintedSprite(ctx, atlasImg, f.x, f.y, f.w, f.h, dx, dy, w, h, effectiveTint);
+        } else {
+          ctx.drawImage(atlasImg, f.x, f.y, f.w, f.h, dx, dy, w, h);
+        }
+
+        // Frame counter
+        ctx.fillStyle = 'rgba(192, 160, 230, 0.7)';
+        ctx.font = '12px ui-monospace, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(
+          `${frameName}  ·  ${animFrameIndex + 1}/${animFrames.length}`,
+          12, canvas.height - 12,
+        );
+      }
+
+      function updateOutput() {
+        document.getElementById('output').value = JSON.stringify(buildOutputArray(), null, 2);
+      }
+
+      function flashButton(id, text) {
+        const btn = document.getElementById(id);
+        const original = btn.textContent;
+        btn.textContent = text;
+        setTimeout(() => (btn.textContent = original), 1500);
+      }
+
+      // --- Init ------------------------------------------------------------
+
+      async function init() {
+        const resp = await fetch(ATLAS_JSON_PATH);
+        const data = await resp.json();
+        for (const f of data.frames) frames[f.filename] = f.frame;
+
+        atlasImg = new Image();
+        atlasImg.src = ATLAS_IMG_PATH;
+
+        const loaded = await tryLoadFromServer();
+        if (loaded) {
+          state = loaded;
+          saveState();
+        }
+
+        document.getElementById('prev').addEventListener('click', () => step(-1));
+        document.getElementById('next').addEventListener('click', () => step(1));
+
+        ['name', 'rarity', 'scale'].forEach((field) => {
+          document.getElementById(field).addEventListener('input', () => {
+            const cur = curId();
+            const raw = document.getElementById(field).value;
+            state[cur][field] = field === 'scale' ? Number(raw) : raw;
+            markEdited();
+            saveState();
+            updateOutput();
+          });
+        });
+
+        document.querySelectorAll('.tab').forEach((btn) => {
+          btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+        });
+
+        document.getElementById('animSelect').addEventListener('change', rebuildAnimFrameList);
+        document.getElementById('playPause').addEventListener('click', () => {
+          playing = !playing;
+          document.getElementById('playPause').textContent = playing ? 'Pause' : 'Play';
+        });
+        document.getElementById('resetFrame').addEventListener('click', () => {
+          animFrameIndex = 0;
+          animLastTickAt = 0;
+        });
+
+        document.getElementById('copy').addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(document.getElementById('output').value);
+            flashButton('copy', 'Copied!');
+          } catch {
+            document.getElementById('output').select();
+          }
+        });
+
+        document.getElementById('save').addEventListener('click', forceSave);
+        document.getElementById('generateVariants').addEventListener('click', onGenerate);
+
+        document.getElementById('reset').addEventListener('click', () => {
+          if (!confirm('Reset all cats to defaults? Generated cats and edits will be lost.')) return;
+          state = freshStateBlock();
+          markEdited();
+          saveState();
+          loadCurrent();
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+          if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
+          else if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
+          else if (e.key === ' ') {
+            playing = !playing;
+            document.getElementById('playPause').textContent = playing ? 'Pause' : 'Play';
+            e.preventDefault();
+          }
+        });
+
+        loadCurrent();
+        requestAnimationFrame(tick);
+      }
+
+      init().catch((e) => {
+        document.body.innerHTML = `<pre style="color:#ff8b8b;padding:24px;">Failed to load: ${e.message}\n\nMake sure you're serving via the tools server (node tools/server.mjs).</pre>`;
+      });
+    </script>
+  </body>
+</html>
