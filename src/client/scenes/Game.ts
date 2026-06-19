@@ -8,7 +8,9 @@ import { MeowBarSystem } from '@/systems/meow-bar-system';
 import { RhythmSystem } from '@/systems/rhythm-system';
 import { InteractionSystem } from '@/systems/interaction-system';
 import { CatSelectionSystem } from '@/systems/cat-selection-system';
+import { syncCoins } from '@/services/state-client';
 import type { CatAnimationState, CatBreed, CatModel, InteractionType } from '@/types/game';
+import type { PlayerState } from '@/../shared/state';
 
 // Seat coordinates (fractions of canvas width/height). Cats are anchored at
 // origin (0.5, 1) so the y value is where the cat's feet touch the surface.
@@ -25,7 +27,10 @@ const CAT_SEAT_POSITIONS: { x: number; y: number }[] = [
 
 const DEBUG_LOG_SEAT_CLICKS = true;
 
-const CAT_BREEDS_IN_ORDER: CatBreed[] = ['cat1', 'cat2', 'cat3'];
+// Fallback breeds used only if the player has no owned cats yet (shouldn't
+// normally happen since Welcome guarantees at least one cat). Kept as a
+// safety net so the scene never renders an empty house.
+const FALLBACK_BREEDS: CatBreed[] = ['cat1', 'cat2', 'cat3'];
 
 const RESTING_ANIMATION_POOL: CatAnimationState[] = [
   'idle',
@@ -102,6 +107,8 @@ interface PspspsLane {
 }
 
 export class Game extends Scene {
+  private playerState: PlayerState | null = null;
+
   private cats: Cat[] = [];
   private score!: ScoreSystem;
   private meow!: MeowBarSystem;
@@ -167,6 +174,15 @@ export class Game extends Scene {
     super(SceneKeys.Game);
   }
 
+  init(data: { playerState?: PlayerState | null }): void {
+    // Resume from a paused Game (returning from Boxes/Collection) doesn't
+    // re-fire init — only fresh starts do. So only set playerState here if
+    // we actually got one; otherwise keep whatever the prior session had.
+    if (data?.playerState !== undefined) {
+      this.playerState = data.playerState;
+    }
+  }
+
   create() {
     // Background fills the canvas
     const bg = this.add.image(0, 0, AssetKeys.Image.GameBackground).setOrigin(0, 0);
@@ -183,8 +199,12 @@ export class Game extends Scene {
       pgfx.destroy();
     }
 
-    // Best score persists across sessions via localStorage.
-    this.bestScore = this.loadBestScore();
+    // Best score: prefer the server's value (synced across devices). Fall
+    // back to the legacy localStorage value if we somehow ended up here
+    // without a state, then upgrade to the server's value as soon as we
+    // sync. Coin count is server-authoritative — start from state.
+    this.bestScore = this.playerState?.bestScore ?? this.loadBestScore();
+    this.coins = this.playerState?.coins ?? 0;
 
     // Systems
     this.score = new ScoreSystem();
@@ -195,13 +215,17 @@ export class Game extends Scene {
     // Pre-create the pspsps sfx instance so we can replay it fast on every hit
     this.pspspsSfx = this.sound.add(AssetKeys.Audio.Pspsps, { volume: 0.7 });
 
-    // Spawn the base cats. Shuffle the resting-animation pool so each seated
-    // cat gets a different idle behavior (one might lick, one stretch, etc).
+    // Seat cats from the player's collection. If they own more than the
+    // base number of seats we pick a random subset so the cat house feels
+    // different across runs; if they own fewer (right after onboarding)
+    // we seat what they have and leave the remaining seats empty.
     const shuffledRest = [...RESTING_ANIMATION_POOL].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < Balance.baseCatsOnScreen; i++) {
-      const breed = CAT_BREEDS_IN_ORDER[i % CAT_BREEDS_IN_ORDER.length]!;
+    const seatedBreeds = this.pickSeatedBreeds();
+    for (let i = 0; i < seatedBreeds.length; i++) {
+      const breed = seatedBreeds[i]!;
       const seat = CAT_SEAT_POSITIONS[i]!;
       const resting = shuffledRest[i % shuffledRest.length]!;
+      const equipped = this.playerState?.equippedCosmetics[breed];
       const model: CatModel = {
         id: `seat-${i}`,
         breed,
@@ -209,6 +233,7 @@ export class Game extends Scene {
         restingAnimation: resting,
         x: seat.x * 100,
         y: seat.y * 100,
+        ...(equipped !== undefined ? { equippedCosmetic: equipped } : {}),
       };
       const cat = new Cat(this, model);
       cat.setPosition(seat.x * this.scale.width, seat.y * this.scale.height);
@@ -218,7 +243,21 @@ export class Game extends Scene {
     this.createLanes();
     this.createMeowBar();
     this.createHud();
+    this.createNavButtons();
     this.setupInput();
+
+    // Resuming after a trip to Boxes/Collection: refresh from the state
+    // they handed back so the HUD reflects new coins / freshly equipped
+    // cosmetics. The cats themselves stay seated — only their accessories
+    // refresh — so we don't blow away an in-progress run.
+    this.events.on(Scenes.Events.RESUME, (_scene: Scene, data?: { playerState?: PlayerState | null }) => {
+      if (data?.playerState) {
+        this.playerState = data.playerState;
+        this.coins = data.playerState.coins;
+        this.bestScore = Math.max(this.bestScore, data.playerState.bestScore);
+        this.applyEquippedCosmeticsToSeats();
+      }
+    });
 
     // One spawn check tick fans out to all lanes.
     this.spawnTimer = this.time.addEvent({
@@ -672,6 +711,81 @@ export class Game extends Scene {
         });
       },
     });
+  }
+
+  private pickSeatedBreeds(): CatBreed[] {
+    const owned = this.playerState?.ownedCats ?? [];
+    const seatCount = Math.min(Balance.baseCatsOnScreen, CAT_SEAT_POSITIONS.length);
+    if (owned.length === 0) {
+      return FALLBACK_BREEDS.slice(0, seatCount);
+    }
+    if (owned.length <= seatCount) return [...owned];
+    const shuffled = [...owned].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, seatCount);
+  }
+
+  private applyEquippedCosmeticsToSeats(): void {
+    if (!this.playerState) return;
+    for (const cat of this.cats) {
+      const equipped = this.playerState.equippedCosmetics[cat.model.breed];
+      cat.setCosmetic(equipped ?? null);
+    }
+  }
+
+  private createNavButtons(): void {
+    // Two pill buttons stacked just under the score banner. Tapping pauses
+    // the current run and launches the target scene on top — closing it
+    // resumes Game exactly where it left off (combo, meow meter, lanes
+    // all preserved). The state.coins we earned before navigating is
+    // synced before we leave so the server has an up-to-date picture.
+    const buttons: { label: string; sceneKey: string; accent: number }[] = [
+      { label: 'BOXES', sceneKey: SceneKeys.Boxes, accent: 0xffd34d },
+      { label: 'COLLECTION', sceneKey: SceneKeys.Collection, accent: 0xc678ff },
+    ];
+
+    const startY = 110; // below the existing HUD banner
+    const x = 96;
+    buttons.forEach((cfg, idx) => {
+      const y = startY + idx * 38;
+      const bg = this.add.rectangle(x, y, 144, 32, 0x261540, 0.92);
+      bg.setStrokeStyle(2, cfg.accent);
+      bg.setInteractive({ useHandCursor: true });
+      this.add
+        .text(x, y, cfg.label, {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '14px',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5);
+      bg.on('pointerdown', () => {
+        if (this.interactionActive) return;
+        void this.navigateTo(cfg.sceneKey);
+      });
+    });
+  }
+
+  private async navigateTo(sceneKey: string): Promise<void> {
+    // Best-effort coin sync before leaving so Boxes/Collection see the
+    // most up-to-date balance. We swallow errors — the destination scene
+    // will fetchState() if no state is handed in.
+    const handoffState = await this.syncCoinsToServer();
+    this.scene.launch(sceneKey, { playerState: handoffState });
+    this.scene.pause();
+  }
+
+  private async syncCoinsToServer(): Promise<PlayerState | null> {
+    const baselineCoins = this.playerState?.coins ?? 0;
+    const delta = this.coins - baselineCoins;
+    try {
+      const updated = await syncCoins(delta, this.bestScore);
+      this.playerState = updated;
+      this.coins = updated.coins;
+      return updated;
+    } catch (e) {
+      console.warn('[game] syncCoins failed', e);
+      return this.playerState;
+    }
   }
 
   private loadBestScore(): number {
