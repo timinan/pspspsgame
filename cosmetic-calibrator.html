@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>pspsps — Cosmetic Calibrator</title>
+    <link rel="icon" href="data:," />
     <style>
       :root {
         --bg: #1a0a2e;
@@ -113,7 +114,7 @@
           <h1>Cosmetic Calibrator</h1>
           <strong id="progress">c1 (1 / 17)</strong>
         </div>
-        <canvas id="preview" width="480" height="480"></canvas>
+        <canvas id="preview" width="480" height="560"></canvas>
         <div class="row">
           <button id="prev">← Prev</button>
           <button id="next">Next →</button>
@@ -195,7 +196,7 @@
       const ATLAS_IMG_PATH = 'public/assets/atlas/cats.png';
       const ATLAS_JSON_PATH = 'public/assets/atlas/cats.json';
       const STORAGE_KEY = 'pspsps:cosmetic-calibrator:v1';
-      const ZOOM = 5;
+      const ZOOM = 4;
 
       const COSMETIC_IDS = Array.from({ length: 17 }, (_, i) => `c${i + 1}`);
 
@@ -244,7 +245,11 @@
           slot: 'head',
           rarity: DEFAULT_RARITY[id] || 'common',
           offsetX: 0,
-          offsetY: -46,
+          // Default Y puts the cosmetic right at the top of the cat —
+          // gives a visible starting point you can drag from. (The legacy
+          // game value was -46 but that pushes it well above the head;
+          // we'll re-tune per-cosmetic anyway.)
+          offsetY: -10,
           scale: 1,
         };
       }
@@ -384,9 +389,11 @@
         const catW = catFrame.w * ZOOM;
         const catH = catFrame.h * ZOOM;
         const catX = canvas.width / 2 - catW / 2;
-        // Anchor the cat at center vertically so cosmetics with negative Y
-        // offsets still have room to render above the head.
-        const catY = canvas.height / 2 - catH / 2 + 30;
+        // Cat anchored near the bottom of the canvas so there's plenty of
+        // room above the head for cosmetics with large negative Y offsets
+        // (the game's legacy COSMETIC_OFFSET_Y is -46 cat-source pixels =
+        // 184px at 4× zoom, which needs to land inside the canvas).
+        const catY = canvas.height - catH - 60;
 
         ctx.drawImage(
           atlasImg, catFrame.x, catFrame.y, catFrame.w, catFrame.h,
@@ -428,6 +435,20 @@
         ctx.moveTo(cosCenterX, cosCenterY - 6);
         ctx.lineTo(cosCenterX, cosCenterY + 6);
         ctx.stroke();
+
+        // Warning when the cosmetic is partially or fully off the canvas
+        // so the user knows to drag it back into view.
+        const offCanvas =
+          cosCenterY - cosH / 2 < 0 ||
+          cosCenterY + cosH / 2 > canvas.height ||
+          cosCenterX - cosW / 2 < 0 ||
+          cosCenterX + cosW / 2 > canvas.width;
+        if (offCanvas) {
+          ctx.fillStyle = 'rgba(255, 80, 80, 0.9)';
+          ctx.font = 'bold 14px system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('⚠ cosmetic off-canvas — drag toward the cat', canvas.width / 2, 24);
+        }
       }
 
       function updateOutput() {
