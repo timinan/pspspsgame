@@ -1,6 +1,8 @@
 import { Scene } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
+import { fetchState } from '@/services/state-client';
+import type { PlayerState } from '@/../shared/state';
 
 export class Preloader extends Scene {
   constructor() {
@@ -43,14 +45,28 @@ export class Preloader extends Scene {
 
   async create() {
     // Make sure the Pixeloid Sans face is actually loaded into the browser
-    // before we kick off the game scene, otherwise the first frame of
+    // before we kick off the next scene, otherwise the first frame of
     // Phaser text would render with the system sans-serif and the layout
     // would shift when the font finishes loading.
     await this.loadFontsOrTimeout(2500);
 
-    // Phase 1: skip MainMenu and go straight into the game.
-    // Phase 2 will reintroduce MainMenu with adopt/decorate/etc.
-    this.scene.start(SceneKeys.Game);
+    // Pull the player's persisted state from the server. New users with
+    // `onboardingDone === false` head into the Welcome flow first; everyone
+    // else goes straight to Game. If the fetch fails (server down, no
+    // network) we fall back to Game with a null state so the game is
+    // still playable in some degraded form.
+    let playerState: PlayerState | null = null;
+    try {
+      playerState = await fetchState();
+    } catch (e) {
+      console.warn('[preloader] fetchState failed; starting with no state', e);
+    }
+
+    const goToWelcome = playerState !== null && !playerState.onboardingDone;
+    this.scene.start(
+      goToWelcome ? SceneKeys.Welcome : SceneKeys.Game,
+      { playerState },
+    );
   }
 
   private async loadFontsOrTimeout(timeoutMs: number): Promise<void> {
