@@ -222,10 +222,7 @@ export class Welcome extends Scene {
         : COSMETIC_CATALOG.find((c) => c.id === (pull.itemId as CosmeticId));
       const itemName = entry?.name ?? pull.itemId;
 
-      // Rainbow Whiskers has no dedicated atlas frame yet (Task 14 adds a
-      // tint shader). Show cat1's idle frame tinted gold so the reveal
-      // still reads as "legendary something special" instead of breaking.
-      const { frame, tint } = resolveFrame(pull.itemId, isCat);
+      const { frame, rainbow } = resolveFrame(pull.itemId, isCat);
 
       playBoxOpenAnimation(
         this,
@@ -234,7 +231,7 @@ export class Welcome extends Scene {
           frame,
           itemName,
           rarity: pull.rarity,
-          ...(tint !== undefined ? { tint } : {}),
+          ...(rainbow ? { rainbow: true } : {}),
           duplicate: pull.duplicate,
           refundCoins: pull.refundCoins,
         },
@@ -266,8 +263,8 @@ export class Welcome extends Scene {
 function resolveFrame(
   itemId: CatBreed | CosmeticId,
   isCat: boolean,
-): { frame: string; tint?: number } {
+): { frame: string; rainbow?: boolean } {
   if (!isCat) return { frame: `cosmetic_${itemId}_idle_00` };
-  if (itemId === 'rainbow') return { frame: 'cat1_idle_00', tint: 0xffd34d };
+  if (itemId === 'rainbow') return { frame: 'cat6_idle_00', rainbow: true };
   return { frame: `${itemId}_idle_00` };
 }

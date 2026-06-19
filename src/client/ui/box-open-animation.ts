@@ -1,4 +1,6 @@
+import * as Phaser from 'phaser';
 import { Scene, GameObjects } from 'phaser';
+import { hslToInt } from '@/util/color';
 import type { Rarity } from '@/../shared/state';
 
 const PARTICLE_TEXTURE = 'box-open-particle';
@@ -26,9 +28,13 @@ export interface BoxOpenAnimationOpts {
   itemName: string;
   /** Drives the glow color and rarity badge. */
   rarity: Rarity;
-  /** Optional tint applied to the revealed sprite (used as a stand-in for
-   *  items we don't have dedicated assets for yet, e.g. Rainbow Whiskers). */
+  /** Optional flat tint applied to the revealed sprite (used as a stand-in
+   *  for items we don't have dedicated assets for yet). Ignored when
+   *  `rainbow` is set. */
   tint?: number;
+  /** Hue-cycle the revealed sprite — used for Rainbow Whiskers so the
+   *  reveal animation reads as "this is the legendary you've been chasing." */
+  rainbow?: boolean;
   /** When true and refundCoins > 0, shows a "Duplicate · +N coins" hint. */
   duplicate?: boolean;
   refundCoins?: number;
@@ -124,7 +130,7 @@ export function playBoxOpenAnimation(
       .setOrigin(0.5)
       .setScale(0)
       .setDepth(ITEM_DEPTH);
-    if (opts.tint !== undefined) item.setTint(opts.tint);
+    if (opts.tint !== undefined && !opts.rainbow) item.setTint(opts.tint);
     const naturalMax = Math.max(item.width || 64, item.height || 64);
     const targetScale = Math.min(220 / naturalMax, 4);
     scene.tweens.add({
@@ -133,6 +139,21 @@ export function playBoxOpenAnimation(
       duration: 420,
       ease: 'Back.easeOut',
     });
+
+    let rainbowTween: Phaser.Tweens.Tween | null = null;
+    if (opts.rainbow) {
+      const hueState = { hue: 0 };
+      rainbowTween = scene.tweens.add({
+        targets: hueState,
+        hue: 360,
+        duration: 3000,
+        repeat: -1,
+        ease: 'Linear',
+        onUpdate: () => {
+          item.setTint(hslToInt(hueState.hue, 1, 0.65));
+        },
+      });
+    }
 
     const nameText = scene.add
       .text(cx, cy + 150, opts.itemName, {
@@ -218,6 +239,8 @@ export function playBoxOpenAnimation(
       scene.tweens.killTweensOf(glow);
       scene.tweens.killTweensOf(hint);
       scene.tweens.killTweensOf(labels);
+      rainbowTween?.stop();
+      rainbowTween?.remove();
 
       scene.tweens.add({
         targets: [item, glow, nameText, rarityText, hint, dim, ...(dupText ? [dupText] : [])],

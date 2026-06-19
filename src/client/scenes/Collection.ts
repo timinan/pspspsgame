@@ -1,7 +1,9 @@
+import * as Phaser from 'phaser';
 import { Scene, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { equipCosmetic, fetchState } from '@/services/state-client';
+import { hslToInt } from '@/util/color';
 import {
   CAT_CATALOG,
   COSMETIC_CATALOG,
@@ -51,6 +53,7 @@ export class Collection extends Scene {
   private catTiles = new Map<CatBreed, Tile>();
   private cosmeticTiles: Tile[] = [];
   private pageLabel!: GameObjects.Text;
+  private previewRainbowTween: Phaser.Tweens.Tween | null = null;
 
   constructor() {
     super(SceneKeys.Collection);
@@ -177,11 +180,16 @@ export class Collection extends Scene {
     border.setStrokeStyle(2, baseColor);
     border.setInteractive({ useHandCursor: true });
 
-    const frame = breed === 'rainbow' ? 'cat1_idle_00' : `${breed}_idle_00`;
+    const frame = breed === 'rainbow' ? 'cat6_idle_00' : `${breed}_idle_00`;
     const sprite = this.add
       .image(0, -10, AssetKeys.Atlas.Cats, frame)
       .setOrigin(0.5);
-    if (breed === 'rainbow') sprite.setTint(0xffd34d);
+    if (breed === 'rainbow') {
+      // Static-ish rainbow tile — pick a saturated stand-in color so the
+      // tile reads as "the rainbow cat" without burning CPU on a hue tween
+      // in every thumbnail.
+      sprite.setTint(hslToInt(280, 1, 0.65));
+    }
     fitSpriteIntoTile(sprite, CAT_TILE_W - 16, CAT_TILE_H - 36);
 
     const nameText = this.add
@@ -375,6 +383,9 @@ export class Collection extends Scene {
   }
 
   private refreshPreview(): void {
+    this.previewRainbowTween?.stop();
+    this.previewRainbowTween?.remove();
+    this.previewRainbowTween = null;
     this.previewLayer.removeAll(true);
     if (!this.selectedCat) {
       this.equippedLabel.setText('');
@@ -383,14 +394,25 @@ export class Collection extends Scene {
 
     const breed = this.selectedCat;
     const catEntry = CAT_CATALOG.find((c) => c.id === breed);
-    const catFrame = breed === 'rainbow' ? 'cat1_idle_00' : `${breed}_idle_00`;
+    const catFrame = breed === 'rainbow' ? 'cat6_idle_00' : `${breed}_idle_00`;
     const catSprite = this.add
       .image(0, 0, AssetKeys.Atlas.Cats, catFrame)
       .setOrigin(0.5);
-    if (breed === 'rainbow') catSprite.setTint(0xffd34d);
     const scale = Math.min(220 / Math.max(catSprite.width || 64, catSprite.height || 64), 4);
     catSprite.setScale(scale);
     this.previewLayer.add(catSprite);
+
+    if (breed === 'rainbow') {
+      const hueState = { hue: 0 };
+      this.previewRainbowTween = this.tweens.add({
+        targets: hueState,
+        hue: 360,
+        duration: 3000,
+        repeat: -1,
+        ease: 'Linear',
+        onUpdate: () => catSprite.setTint(hslToInt(hueState.hue, 1, 0.65)),
+      });
+    }
 
     const equippedId = this.playerState?.equippedCosmetics[breed] ?? null;
     if (equippedId) {

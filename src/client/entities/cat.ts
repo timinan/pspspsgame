@@ -1,12 +1,21 @@
+import * as Phaser from 'phaser';
 import { Scene, Scenes, GameObjects } from 'phaser';
 import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
+import { hslToInt } from '@/util/color';
 import type { CatBreed, CatAnimationState, CatModel, CosmeticId } from '@/types/game';
 
 // How far above the sprite's anchor (which sits at the cat's feet, origin
 // (0.5, 1)) to place the cosmetic. Source-pixel space, so it scales with
 // the cat's current scale.
 const COSMETIC_OFFSET_Y = -46;
+
+// We don't have dedicated atlas frames for the legendary 'rainbow' cat —
+// it borrows another breed's frames and cycles its tint through hues. The
+// chosen render breed should have idle/lick/meow/sleep/stretch/hiss/happy
+// since that's what scenes ask for, and cat6 has the most complete set.
+const RAINBOW_RENDER_BREED: CatBreed = 'cat6';
+const RAINBOW_CYCLE_MS = 3000;
 
 /**
  * Phaser sprite wrapper around a CatModel.
@@ -22,6 +31,7 @@ export class Cat {
   readonly sprite: GameObjects.Sprite;
   private cosmeticSprite: GameObjects.Image | null = null;
   private readonly postUpdate: () => void;
+  private rainbowTween: Phaser.Tweens.Tween | null = null;
 
   constructor(
     private readonly scene: Scene,
@@ -39,6 +49,10 @@ export class Cat {
     // type, and callers like Game.ts reach in to set depth on it directly.
     this.postUpdate = () => this.syncCosmeticPosition();
     this.scene.events.on(Scenes.Events.POST_UPDATE, this.postUpdate);
+
+    if (model.breed === 'rainbow') {
+      this.startRainbowCycle();
+    }
 
     if (model.equippedCosmetic) {
       this.setCosmetic(model.equippedCosmetic);
@@ -86,9 +100,26 @@ export class Cat {
 
   destroy(): void {
     this.scene.events.off(Scenes.Events.POST_UPDATE, this.postUpdate);
+    this.rainbowTween?.stop();
+    this.rainbowTween?.remove();
+    this.rainbowTween = null;
     this.cosmeticSprite?.destroy();
     this.cosmeticSprite = null;
     this.sprite.destroy();
+  }
+
+  private startRainbowCycle(): void {
+    const state = { hue: 0 };
+    this.rainbowTween = this.scene.tweens.add({
+      targets: state,
+      hue: 360,
+      duration: RAINBOW_CYCLE_MS,
+      repeat: -1,
+      ease: 'Linear',
+      onUpdate: () => {
+        this.sprite.setTint(hslToInt(state.hue, 1, 0.65));
+      },
+    });
   }
 
   private syncCosmeticPosition(): void {
@@ -119,8 +150,9 @@ export class Cat {
     const key = Cat.animationKey(breed, animation);
     if (this.scene.anims.exists(key)) return;
 
+    const renderBreed = Cat.renderBreed(breed);
     const atlas = this.scene.textures.get(AssetKeys.Atlas.Cats);
-    const prefix = `${breed}_${animation}_`;
+    const prefix = `${renderBreed}_${animation}_`;
     const frameNames = atlas
       .getFrameNames()
       .filter((n) => n.startsWith(prefix))
@@ -148,6 +180,13 @@ export class Cat {
     animation: CatAnimationState,
     frameIndex: number,
   ): string {
-    return `${breed}_${animation}_${String(frameIndex).padStart(2, '0')}`;
+    const renderBreed = Cat.renderBreed(breed);
+    return `${renderBreed}_${animation}_${String(frameIndex).padStart(2, '0')}`;
+  }
+
+  /** Some logical breeds don't have their own atlas frames (rainbow borrows
+   *  cat6's). Anywhere we need to load a frame, use this. */
+  static renderBreed(breed: CatBreed): CatBreed {
+    return breed === 'rainbow' ? RAINBOW_RENDER_BREED : breed;
   }
 }

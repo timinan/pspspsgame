@@ -312,7 +312,7 @@ export class Boxes extends Scene {
         ? CAT_CATALOG.find((c) => c.id === (pull.itemId as CatBreed))
         : COSMETIC_CATALOG.find((c) => c.id === (pull.itemId as CosmeticId));
       const itemName = entry?.name ?? pull.itemId;
-      const { frame, tint } = resolveFrame(pull.itemId, isCat);
+      const { frame, rainbow } = resolveFrame(pull.itemId, isCat);
 
       playBoxOpenAnimation(
         this,
@@ -321,7 +321,7 @@ export class Boxes extends Scene {
           frame,
           itemName,
           rarity: pull.rarity,
-          ...(tint !== undefined ? { tint } : {}),
+          ...(rainbow ? { rainbow: true } : {}),
           duplicate: pull.duplicate,
           refundCoins: pull.refundCoins,
         },
@@ -339,8 +339,8 @@ export class Boxes extends Scene {
 function resolveFrame(
   itemId: CatBreed | CosmeticId,
   isCat: boolean,
-): { frame: string; tint?: number } {
+): { frame: string; rainbow?: boolean } {
   if (!isCat) return { frame: `cosmetic_${itemId}_idle_00` };
-  if (itemId === 'rainbow') return { frame: 'cat1_idle_00', tint: 0xffd34d };
+  if (itemId === 'rainbow') return { frame: 'cat6_idle_00', rainbow: true };
   return { frame: `${itemId}_idle_00` };
 }
