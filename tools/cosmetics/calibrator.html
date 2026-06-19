@@ -185,9 +185,9 @@
 
         <h2>Save / Load</h2>
         <div class="hint" id="saveHint">
-          Every edit autosaves to <code>cosmetics.json</code> at the project root
-          via the local Node server — no picker, no prompts. The toast in
-          the bottom-right confirms each save. On next page load the
+          Every edit autosaves to <code>tools/cosmetics/cosmetics.json</code> via
+          the local Node server — no picker, no prompts. The toast in the
+          bottom-right confirms each save. On next page load the
           calibrator reads from the same file.
         </div>
         <div class="row">
@@ -203,8 +203,10 @@
     </div>
 
     <script>
-      const ATLAS_IMG_PATH = 'public/assets/atlas/cats.png';
-      const ATLAS_JSON_PATH = 'public/assets/atlas/cats.json';
+      // Absolute paths so the page can live under /tools/cosmetics/ and
+      // still pull the atlas from the project's public/ folder.
+      const ATLAS_IMG_PATH = '/public/assets/atlas/cats.png';
+      const ATLAS_JSON_PATH = '/public/assets/atlas/cats.json';
       const STORAGE_KEY = 'pspsps:cosmetic-calibrator:v1';
       const ZOOM = 4;
 
@@ -235,6 +237,10 @@
       let fileHandle = null;
       let autosaveTimer = null;
       const SAVE_FILENAME = 'cosmetics.json';
+      // Absolute path so the auto-load fetch resolves regardless of the
+      // URL the user opens the page at (e.g. /tools/cosmetics, /cosmetics,
+      // root, etc.). The server colocates the saved file with the tool.
+      const SAVE_LOAD_URL = '/tools/cosmetics/cosmetics.json';
 
       function loadState() {
         try {
@@ -338,7 +344,7 @@
 
       async function tryLoadFromServer() {
         try {
-          const resp = await fetch(SAVE_FILENAME, { cache: 'no-store' });
+          const resp = await fetch(SAVE_LOAD_URL, { cache: 'no-store' });
           if (!resp.ok) return null;
           const arr = await resp.json();
           return arrayToState(arr);

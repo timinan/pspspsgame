@@ -13,9 +13,16 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const PROJECT_ROOT = path.dirname(fileURLToPath(import.meta.url));
+// This script lives at tools/cosmetics/server.mjs. The HTTP root is the
+// actual project root two directories up so the calibrator can fetch
+// /public/assets/atlas/ assets directly. The save endpoint writes back
+// next to this script so the tool's output is colocated with the tool.
+const TOOL_DIR = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.resolve(TOOL_DIR, '..', '..');
 const PORT = Number(process.env.PORT) || 3000;
 const SAVE_FILENAME = 'cosmetics.json';
+const SAVE_PATH = path.join(TOOL_DIR, SAVE_FILENAME);
+const DEFAULT_PAGE = '/tools/cosmetics/calibrator.html';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -49,11 +56,10 @@ const server = http.createServer(async (req, res) => {
           // Reject anything that isn't valid JSON so we don't poison the
           // file with a half-written payload from a network hiccup.
           JSON.parse(body);
-          const outPath = path.join(PROJECT_ROOT, SAVE_FILENAME);
-          await fs.writeFile(outPath, body);
+          await fs.writeFile(SAVE_PATH, body);
           res.writeHead(200, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ ok: true, path: SAVE_FILENAME, bytes: body.length }));
-          console.log(`[save] wrote ${body.length}B → ${SAVE_FILENAME}`);
+          res.end(JSON.stringify({ ok: true, path: path.relative(PROJECT_ROOT, SAVE_PATH), bytes: body.length }));
+          console.log(`[save] wrote ${body.length}B → ${path.relative(PROJECT_ROOT, SAVE_PATH)}`);
         } catch (e) {
           res.writeHead(400, { 'content-type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: e.message }));
@@ -70,7 +76,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     let pathname = decodeURIComponent((req.url ?? '/').split('?')[0]);
-    if (pathname === '/') pathname = '/cosmetic-calibrator.html';
+    if (pathname === '/') pathname = DEFAULT_PAGE;
     let filepath = path.join(PROJECT_ROOT, pathname);
 
     // Block directory traversal.
@@ -115,6 +121,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n  Cosmetic calibrator at:\n  → http://localhost:${PORT}/cosmetic-calibrator.html\n`);
-  console.log(`  Saves write to: ${path.join(PROJECT_ROOT, SAVE_FILENAME)}\n`);
+  console.log(`\n  Cosmetic calibrator → http://localhost:${PORT}/`);
+  console.log(`  Saves write to: ${path.relative(PROJECT_ROOT, SAVE_PATH)}\n`);
 });
