@@ -258,12 +258,17 @@
 
         <div class="pane hidden" id="variantsPane">
           <div class="hint">
-            Toggle a tint to ship it as a variant of <strong id="varBaseName">c1</strong>.
-            Click any row to preview that tint on the canvas. Variants
-            inherit slot / offset / rarity from the base; only name + tint
-            differ.
+            Check the tints you want to spin off as new cosmetics from
+            <strong id="varBaseName">c1</strong>. Click anywhere on a row to preview
+            that tint on the canvas. Click <b>Generate</b> to add each
+            checked variant as a real catalog entry (c18, c19, …) — they
+            inherit slot, offset, scale, and rarity from this base, and
+            you can keep editing them like any other cosmetic. Generated
+            entries themselves can be re-tinted from their own Variants
+            tab.
           </div>
           <div id="variantList"></div>
+          <button id="generateVariants">⚡ Generate selected as new cosmetics</button>
         </div>
 
         <h2>Save / Load</h2>
@@ -293,7 +298,27 @@
       const STORAGE_KEY = 'pspsps:cosmetic-calibrator:v2';
       const ZOOM = 4;
 
-      const COSMETIC_IDS = Array.from({ length: 17 }, (_, i) => `c${i + 1}`);
+      // Bases are the 17 original sprites. Generated entries (c18+) are
+      // tinted versions promoted to first-class cosmetics; they get their
+      // own state[id] block and live in the same navigation order.
+      const BASE_IDS = Array.from({ length: 17 }, (_, i) => `c${i + 1}`);
+      const COSMETIC_ID_RE = /^c\d+$/;
+
+      function cosmeticIds() {
+        return Object.keys(state)
+          .filter((k) => COSMETIC_ID_RE.test(k))
+          .sort((a, b) => parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10));
+      }
+
+      function nextFreeId() {
+        const ids = cosmeticIds();
+        const nums = ids.map((id) => parseInt(id.slice(1), 10));
+        return `c${Math.max(0, ...nums) + 1}`;
+      }
+
+      function sourceFrameFor(id) {
+        return state[id]?.sourceFrame || `cosmetic_${id}_idle_00`;
+      }
 
       // Tint variants — each base can have 0+ tinted versions. Variants
       // inherit slot, offset, scale, and rarity from the base; only name
@@ -348,7 +373,9 @@
           if (v1) {
             const migrated = freshStateBlock();
             const parsedV1 = JSON.parse(v1);
-            for (const id of COSMETIC_IDS) {
+            // v1 only had the 17 base entries — generated cosmetics
+            // didn't exist yet.
+            for (const id of BASE_IDS) {
               if (parsedV1[id]) migrated[id] = { ...migrated[id], ...parsedV1[id] };
             }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
@@ -362,11 +389,16 @@
       }
 
       function hydrateState(parsed) {
-        for (const id of COSMETIC_IDS) {
-          parsed[id] = { ...freshEntry(id), ...(parsed[id] || {}) };
-        }
         parsed.variants = parsed.variants || {};
-        for (const id of COSMETIC_IDS) {
+        // Pick up every cosmetic ID present in the parsed object (so c18+
+        // generated entries survive) PLUS make sure the 17 originals
+        // always exist even if the file dropped them.
+        const ids = new Set(BASE_IDS);
+        for (const k of Object.keys(parsed)) {
+          if (COSMETIC_ID_RE.test(k)) ids.add(k);
+        }
+        for (const id of ids) {
+          parsed[id] = { ...freshEntry(id), ...(parsed[id] || {}) };
           parsed.variants[id] = parsed.variants[id] || freshVariantEntry();
         }
         return parsed;
@@ -374,7 +406,7 @@
 
       function freshStateBlock() {
         const blank = { variants: {} };
-        for (const id of COSMETIC_IDS) {
+        for (const id of BASE_IDS) {
           blank[id] = freshEntry(id);
           blank.variants[id] = freshVariantEntry();
         }
@@ -433,33 +465,23 @@
 
       function buildOutputArray() {
         const out = [];
-        for (const id of COSMETIC_IDS) {
-          out.push({
+        for (const id of cosmeticIds()) {
+          const entry = state[id];
+          const obj = {
             id,
-            name: state[id].name,
-            slot: state[id].slot,
-            rarity: state[id].rarity,
-            offsetX: state[id].offsetX,
-            offsetY: state[id].offsetY,
-            scale: state[id].scale,
-          });
-        }
-        // Append enabled tint variants. Each variant inherits its base's
-        // slot / offset / rarity in the game (resolved via tintOf at
-        // render time); we only persist what's different here.
-        for (const id of COSMETIC_IDS) {
-          const baseVariants = state.variants[id] || {};
-          for (const tint of TINT_PALETTE) {
-            const v = baseVariants[tint.id];
-            if (!v || !v.enabled) continue;
-            out.push({
-              id: variantId(id, tint.id),
-              tintOf: id,
-              tint: tint.color,
-              name: v.name || defaultVariantName(id, tint.id),
-              rarity: state[id].rarity,
-            });
-          }
+            name: entry.name,
+            slot: entry.slot,
+            rarity: entry.rarity,
+            offsetX: entry.offsetX,
+            offsetY: entry.offsetY,
+            scale: entry.scale,
+          };
+          // Generated cosmetics carry their source frame + tint forward
+          // so the game can render them as `setTint(tint)` on the parent
+          // sprite. Bases omit both fields (implicit frame, no tint).
+          if (entry.sourceFrame) obj.sourceFrame = entry.sourceFrame;
+          if (entry.tint) obj.tint = entry.tint;
+          out.push(obj);
         }
         return out;
       }
@@ -526,13 +548,14 @@
         const out = freshStateBlock();
         for (const entry of arr) {
           if (!entry || !entry.id) continue;
+          // Legacy: pre-Generate-button format used tintOf to mark a
+          // tint variant of a base. Re-mark them as checked variants
+          // (still selection-only — Generate promotes them).
           if (entry.tintOf) {
-            // Variant entry — figure out which tint id it represents and
-            // flip the corresponding flag back on.
             const baseId = entry.tintOf;
-            if (!COSMETIC_IDS.includes(baseId)) continue;
+            if (!BASE_IDS.includes(baseId)) continue;
             const tintId = String(entry.id).replace(`${baseId}-`, '');
-            if (out.variants[baseId][tintId]) {
+            if (out.variants[baseId]?.[tintId]) {
               out.variants[baseId][tintId] = {
                 enabled: true,
                 name: entry.name || '',
@@ -540,9 +563,13 @@
             }
             continue;
           }
-          if (COSMETIC_IDS.includes(entry.id)) {
-            out[entry.id] = { ...out[entry.id], ...entry };
+          // Any cosmetic id (base c1-c17 or generated c18+).
+          if (!COSMETIC_ID_RE.test(entry.id)) continue;
+          if (!out[entry.id]) {
+            out[entry.id] = freshEntry(entry.id);
+            out.variants[entry.id] = freshVariantEntry();
           }
+          out[entry.id] = { ...out[entry.id], ...entry };
         }
         return out;
       }
@@ -633,7 +660,11 @@
         input.click();
       }
 
-      function curId() { return COSMETIC_IDS[currentIdx]; }
+      function curId() {
+        const ids = cosmeticIds();
+        if (currentIdx >= ids.length) currentIdx = 0;
+        return ids[currentIdx];
+      }
 
       async function init() {
         const resp = await fetch(ATLAS_JSON_PATH);
@@ -687,6 +718,7 @@
         });
 
         document.getElementById('save').addEventListener('click', forceSave);
+        document.getElementById('generateVariants').addEventListener('click', onGenerate);
         document.getElementById('load').addEventListener('click', loadFromFilePicker);
 
         document.getElementById('reset').addEventListener('click', () => {
@@ -748,15 +780,17 @@
       }
 
       function step(direction) {
-        currentIdx = (currentIdx + direction + COSMETIC_IDS.length) % COSMETIC_IDS.length;
+        const ids = cosmeticIds();
+        currentIdx = (currentIdx + direction + ids.length) % ids.length;
         loadCurrent();
       }
 
       function loadCurrent() {
         const cur = curId();
         const entry = state[cur];
+        const total = cosmeticIds().length;
         document.getElementById('curId').textContent = cur;
-        document.getElementById('progress').textContent = `${cur} (${currentIdx + 1} / 17)`;
+        document.getElementById('progress').textContent = `${cur} (${currentIdx + 1} / ${total})`;
         document.getElementById('name').value = entry.name;
         document.getElementById('slot').value = entry.slot;
         document.getElementById('rarity').value = entry.rarity;
@@ -803,9 +837,10 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Cosmetic
+        // Cosmetic — generated entries point at a parent's atlas frame
+        // via sourceFrame, bases use the implicit cosmetic_<id>_idle_00.
         const cur = curId();
-        const cosFrame = frames[`cosmetic_${cur}_idle_00`];
+        const cosFrame = frames[sourceFrameFor(cur)];
         if (!cosFrame) return;
         const entry = state[cur];
         const cosW = cosFrame.w * ZOOM * entry.scale;
@@ -815,16 +850,17 @@
         const cosCenterX = feetX + entry.offsetX * ZOOM;
         const cosCenterY = topY + entry.offsetY * ZOOM;
 
-        // If a tint is being previewed (Variants tab), stamp the sprite
-        // with a multiply-blend tint that mirrors Phaser's setTint(). The
-        // alpha mask is reapplied so transparent pixels don't pick up the
-        // tint color.
-        if (previewTintColor) {
+        // Effective tint priority: an active preview (Variants tab row
+        // click) trumps the entry's persistent tint. The persistent tint
+        // means we're looking at a generated cosmetic (c18+), so it
+        // should always render in its tinted color on every tab.
+        const effectiveTint = previewTintColor || entry.tint || null;
+        if (effectiveTint) {
           drawTintedSprite(
             ctx, atlasImg,
             cosFrame.x, cosFrame.y, cosFrame.w, cosFrame.h,
             cosCenterX - cosW / 2, cosCenterY - cosH / 2, cosW, cosH,
-            previewTintColor,
+            effectiveTint,
           );
         } else {
           ctx.drawImage(
@@ -878,6 +914,52 @@
         // base preview shows the untinted sprite.
         if (tab !== 'variants') previewTintColor = null;
         render();
+      }
+
+      function onGenerate() {
+        const parentId = curId();
+        const parent = state[parentId];
+        const parentSourceFrame = sourceFrameFor(parentId);
+        const generated = [];
+
+        for (const tint of TINT_PALETTE) {
+          const v = state.variants[parentId]?.[tint.id];
+          if (!v || !v.enabled) continue;
+          const newId = nextFreeId();
+          state[newId] = {
+            name: v.name || defaultVariantName(parentId, tint.id),
+            slot: parent.slot,
+            rarity: parent.rarity,
+            offsetX: parent.offsetX,
+            offsetY: parent.offsetY,
+            scale: parent.scale,
+            sourceFrame: parentSourceFrame,
+            tint: tint.color,
+          };
+          state.variants[newId] = freshVariantEntry();
+          // Clear the selection so navigating back doesn't re-generate.
+          v.enabled = false;
+          v.name = '';
+          generated.push(newId);
+        }
+
+        if (generated.length === 0) {
+          flashButton('generateVariants', 'Check at least one tint first');
+          return;
+        }
+
+        markEdited();
+        saveState();
+        updateOutput();
+
+        // Jump to the first new cosmetic on the Base tab so the user can
+        // immediately fine-tune position / rename if they want.
+        const ids = cosmeticIds();
+        currentIdx = ids.indexOf(generated[0]);
+        setActiveTab('base');
+        loadCurrent();
+
+        flashButton('generateVariants', `✓ Generated ${generated.length}: ${generated.join(', ')}`);
       }
 
       function buildVariantsPane() {
