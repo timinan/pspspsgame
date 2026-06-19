@@ -908,7 +908,10 @@ export class Game extends Scene {
 
     if (result.outcome === 'success') {
       this.coins += result.coinsAwarded;
-      this.activeCat.setAnimation('happy');
+      // cat1/2/3 don't have a 'happy' frame set in the atlas (only cat5/6
+      // do). Using 'lick' as the success animation since it reads as
+      // affectionate and works across all breeds we ship with.
+      this.activeCat.setAnimation('lick');
     } else {
       this.activeCat.setAnimation('hiss');
     }
