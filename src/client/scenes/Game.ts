@@ -431,11 +431,11 @@ export class Game extends Scene {
     // real UI element instead of floating text in the corner. Dark purple
     // with a soft white border, sized to comfortably hold score / best /
     // coins stacked vertically.
-    const bannerX = 16;
-    const bannerY = 16;
-    const bannerW = 230;
-    const bannerH = 104;
-    const bannerR = 16;
+    const bannerX = 12;
+    const bannerY = 12;
+    const bannerW = 168;
+    const bannerH = 80;
+    const bannerR = 14;
 
     const banner = this.add.graphics();
     banner.fillStyle(0x261540, 0.85);
@@ -443,24 +443,22 @@ export class Game extends Scene {
     banner.lineStyle(2, 0xffffff, 0.35);
     banner.strokeRoundedRect(bannerX, bannerY, bannerW, bannerH, bannerR);
 
-    this.hudScoreText = this.add.text(bannerX + 16, bannerY + 8, 'Score 0', {
+    this.hudScoreText = this.add.text(bannerX + 12, bannerY + 6, 'Score 0', {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontStyle: 'bold',
-      fontSize: '26px',
+      fontSize: '20px',
       color: '#ffffff',
     });
-    // Origin at (0, 0.5) so pulse-on-hit scaling grows from the left edge
-    // and doesn't shove its neighbors around.
     this.hudScoreText.setOrigin(0, 0);
 
-    this.hudBestText = this.add.text(bannerX + 16, bannerY + 44, `Best ${this.bestScore.toLocaleString()}`, {
+    this.hudBestText = this.add.text(bannerX + 12, bannerY + 34, `Best ${this.bestScore.toLocaleString()}`, {
       fontFamily: 'Pixeloid Sans, sans-serif',
-      fontSize: '14px',
+      fontSize: '12px',
       color: '#c0a0e6',
     });
-    this.hudCoinsText = this.add.text(bannerX + 16, bannerY + 70, '🪙 0', {
+    this.hudCoinsText = this.add.text(bannerX + 12, bannerY + 54, '🪙 0', {
       fontFamily: 'Pixeloid Sans, sans-serif',
-      fontSize: '20px',
+      fontSize: '16px',
       color: '#ffd34d',
     });
 
@@ -468,13 +466,13 @@ export class Game extends Scene {
     // background — so it reads as a status indicator without competing
     // visually with the banner.
     this.hudComboText = this.add
-      .text(bannerX + bannerW / 2, bannerY + bannerH + 12, '', {
+      .text(bannerX + bannerW / 2, bannerY + bannerH + 8, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '26px',
+        fontSize: '20px',
         color: '#ff8fbf',
         stroke: '#000000',
-        strokeThickness: 4,
+        strokeThickness: 3,
       })
       .setOrigin(0.5, 0)
       .setVisible(false);
@@ -547,13 +545,13 @@ export class Game extends Scene {
 
   private showComboMilestone(multiplier: number, lane: PspspsLane): void {
     const text = this.add
-      .text(this.scale.width / 2, this.scale.height / 2, `${multiplier}× COMBO!`, {
+      .text(this.scale.width / 2, this.scale.height * 0.42, `${multiplier}× COMBO!`, {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '72px',
+        fontSize: '42px',
         color: '#ff6b9d',
         stroke: '#000000',
-        strokeThickness: 10,
+        strokeThickness: 6,
       })
       .setOrigin(0.5)
       .setScale(0.3)
@@ -561,23 +559,23 @@ export class Game extends Scene {
 
     this.tweens.add({
       targets: text,
-      scale: 1.15,
-      duration: 220,
+      scale: 1.1,
+      duration: 200,
       ease: 'Back.easeOut',
       onComplete: () => {
         this.tweens.add({
           targets: text,
           alpha: 0,
-          duration: 600,
-          delay: 350,
+          duration: 500,
+          delay: 300,
           ease: 'Cubic.easeIn',
           onComplete: () => text.destroy(),
         });
       },
     });
 
-    this.cameras.main.shake(280, 0.012);
-    this.emitHitParticles(lane.target.x, lane.target.y, lane.color.element, 32);
+    this.cameras.main.shake(180, 0.005);
+    this.emitHitParticles(lane.target.x, lane.target.y, lane.color.element, 24);
   }
 
   private maybeFlashNewBest(): void {
@@ -730,8 +728,8 @@ export class Game extends Scene {
 
       // Tier the shake + particles so PERFECTs and combos feel chunkier.
       const isPerfect = result.perfectHits > 0;
-      const shakeDuration = isPerfect ? 140 : 70;
-      const shakeIntensity = isPerfect ? 0.006 : 0.003;
+      const shakeDuration = isPerfect ? 90 : 50;
+      const shakeIntensity = isPerfect ? 0.0028 : 0.0014;
       this.cameras.main.shake(shakeDuration, shakeIntensity);
       const particleCount = isPerfect ? 18 : 10;
       this.emitHitParticles(
