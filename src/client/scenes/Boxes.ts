@@ -266,11 +266,10 @@ export class Boxes extends Scene {
     container.add([bg, label]);
     bg.on('pointerdown', () => {
       if (this.busy) return;
-      // We were launched on top of a paused Game. Stop ourselves and
-      // resume the Game scene with the latest state so its HUD picks up
-      // any new coins / cats / equipped cosmetics from this session.
-      this.scene.stop();
-      this.scene.resume(SceneKeys.Game, { playerState: this.playerState });
+      // Hard reset to Game so create() re-seats from the latest state
+      // with equipped cosmetics applied. (Pause/resume hand-off wasn't
+      // reliably re-applying cosmetics — revisit once that's understood.)
+      this.scene.start(SceneKeys.Game, { playerState: this.playerState });
     });
   }
 

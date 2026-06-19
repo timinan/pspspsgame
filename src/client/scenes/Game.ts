@@ -215,19 +215,19 @@ export class Game extends Scene {
     // Pre-create the pspsps sfx instance so we can replay it fast on every hit
     this.pspspsSfx = this.sound.add(AssetKeys.Audio.Pspsps, { volume: 0.7 });
 
-    // Seat cats from the player's collection. If they own more than the
-    // base number of seats we pick a random subset so the cat house feels
-    // different across runs; if they own fewer (right after onboarding)
-    // we seat what they have and leave the remaining seats empty.
+    // TEMP — only seat one cat on the right ledge for now. The HUD banner
+    // sits at the top-left and was overlapping the left-ledge cat; we'll
+    // resize / move the banner later and reintroduce the other seats.
     const shuffledRest = [...RESTING_ANIMATION_POOL].sort(() => Math.random() - 0.5);
     const seatedBreeds = this.pickSeatedBreeds();
-    for (let i = 0; i < seatedBreeds.length; i++) {
-      const breed = seatedBreeds[i]!;
-      const seat = CAT_SEAT_POSITIONS[i]!;
-      const resting = shuffledRest[i % shuffledRest.length]!;
+    const breed = seatedBreeds[0];
+    if (breed) {
+      const seatIndex = 2; // right ledge
+      const seat = CAT_SEAT_POSITIONS[seatIndex]!;
+      const resting = shuffledRest[0]!;
       const equipped = this.playerState?.equippedCosmetics[breed];
       const model: CatModel = {
-        id: `seat-${i}`,
+        id: 'seat-0',
         breed,
         animation: resting,
         restingAnimation: resting,
@@ -245,19 +245,6 @@ export class Game extends Scene {
     this.createHud();
     this.createNavButtons();
     this.setupInput();
-
-    // Resuming after a trip to Boxes/Collection: refresh from the state
-    // they handed back so the HUD reflects new coins / freshly equipped
-    // cosmetics. The cats themselves stay seated — only their accessories
-    // refresh — so we don't blow away an in-progress run.
-    this.events.on(Scenes.Events.RESUME, (_scene: Scene, data?: { playerState?: PlayerState | null }) => {
-      if (data?.playerState) {
-        this.playerState = data.playerState;
-        this.coins = data.playerState.coins;
-        this.bestScore = Math.max(this.bestScore, data.playerState.bestScore);
-        this.applyEquippedCosmeticsToSeats();
-      }
-    });
 
     // One spawn check tick fans out to all lanes.
     this.spawnTimer = this.time.addEvent({
@@ -724,14 +711,6 @@ export class Game extends Scene {
     return shuffled.slice(0, seatCount);
   }
 
-  private applyEquippedCosmeticsToSeats(): void {
-    if (!this.playerState) return;
-    for (const cat of this.cats) {
-      const equipped = this.playerState.equippedCosmetics[cat.model.breed];
-      cat.setCosmetic(equipped ?? null);
-    }
-  }
-
   private createNavButtons(): void {
     // Two pill buttons stacked just under the score banner. Tapping pauses
     // the current run and launches the target scene on top — closing it
@@ -766,12 +745,14 @@ export class Game extends Scene {
   }
 
   private async navigateTo(sceneKey: string): Promise<void> {
-    // Best-effort coin sync before leaving so Boxes/Collection see the
-    // most up-to-date balance. We swallow errors — the destination scene
-    // will fetchState() if no state is handed in.
+    // Sync earned coins first so the destination scene's HUD reflects
+    // the right balance. TEMP — using scene.start instead of
+    // launch+pause; the resume hand-off wasn't reliably re-applying
+    // equipped cosmetics. Cost: the in-progress run (combo / meow meter)
+    // resets when shopping. Re-introduce pause/resume once we sort out
+    // why RESUME's data payload wasn't landing in the listener.
     const handoffState = await this.syncCoinsToServer();
-    this.scene.launch(sceneKey, { playerState: handoffState });
-    this.scene.pause();
+    this.scene.start(sceneKey, { playerState: handoffState });
   }
 
   private async syncCoinsToServer(): Promise<PlayerState | null> {

@@ -512,8 +512,7 @@ export class Collection extends Scene {
     container.add([bg, label]);
     bg.on('pointerdown', () => {
       if (this.busy) return;
-      this.scene.stop();
-      this.scene.resume(SceneKeys.Game, { playerState: this.playerState });
+      this.scene.start(SceneKeys.Game, { playerState: this.playerState });
     });
   }
 }
