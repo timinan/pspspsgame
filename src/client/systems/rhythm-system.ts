@@ -36,8 +36,13 @@ export class RhythmSystem {
     this.speedMultiplier = Math.max(0, mult);
   }
 
-  /** Move all elements based on elapsed wall-clock time. Called every frame. */
-  advance(dtMs: number): void {
+  /**
+   * Move all elements based on elapsed wall-clock time. Called every frame.
+   * Returns the number of elements that despawned past the right edge this
+   * frame — the renderer uses that to reset the combo when a ball was
+   * missed (untapped).
+   */
+  advance(dtMs: number): number {
     const dtSec = dtMs / 1000;
     for (const el of this.elements) {
       el.fraction += el.speed * dtSec * this.speedMultiplier;
@@ -45,11 +50,14 @@ export class RhythmSystem {
     // Despawn anything that's slid past the right edge so we never render
     // an element half-outside the bar. New elements will spawn over time
     // via spawnTick().
+    let despawnedCount = 0;
     for (let i = this.elements.length - 1; i >= 0; i--) {
       if (this.elements[i]!.fraction > 1) {
         this.elements.splice(i, 1);
+        despawnedCount += 1;
       }
     }
+    return despawnedCount;
   }
 
   /** Spawn-check tick. Called on a fixed cadence (e.g. every 100ms). */

@@ -198,10 +198,17 @@ export class Game extends Scene {
     const meowPct = this.meow.getProgress() / Balance.meowBarMax;
     const speedMult =
       1 + meowPct * (Balance.pspspsSpeedMultiplierAtFullMeow - 1);
+    let missedThisFrame = 0;
     for (const lane of this.lanes) {
       lane.system.setSpeedMultiplier(speedMult);
-      lane.system.advance(delta);
+      missedThisFrame += lane.system.advance(delta);
       this.syncLaneElements(lane);
+    }
+    // Any ball that slid all the way past the right edge without a tap
+    // counts as a missed catch and breaks the streak — same as a
+    // wrong-lane misclick. Keeps the combo honest.
+    if (missedThisFrame > 0 && this.combo > 0) {
+      this.combo = 0;
     }
     this.updateMeowBar();
     this.updateHud();
@@ -425,18 +432,17 @@ export class Game extends Scene {
       color: '#ffd34d',
     });
 
-    // Combo sits in its own pill below the score banner so it visually
-    // separates as a "bonus" state rather than just another HUD line.
+    // Combo sits below the score banner as plain bold text — no pill
+    // background — so it reads as a status indicator without competing
+    // visually with the banner.
     this.hudComboText = this.add
       .text(bannerX + bannerW / 2, bannerY + bannerH + 14, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '24px',
-        color: '#ffffff',
-        backgroundColor: '#ff5a9c',
-        padding: { x: 14, y: 6 },
+        fontSize: '26px',
+        color: '#ff8fbf',
         stroke: '#000000',
-        strokeThickness: 3,
+        strokeThickness: 4,
       })
       .setOrigin(0.5, 0)
       .setVisible(false);
