@@ -125,11 +125,21 @@ export class Game extends Scene {
   private coins = 0;
   private hudScoreText!: GameObjects.Text;
   private hudCoinsText!: GameObjects.Text;
+  private hudBestText!: GameObjects.Text;
   private hudComboText!: GameObjects.Text;
 
   // Combo streak — consecutive successful taps. Resets to 0 on a tap that
   // earns no points. Drives the score multiplier (see Balance.comboTiers).
   private combo = 0;
+
+  // Best-score persistence (localStorage). When the current run exceeds
+  // it, the HUD flashes a NEW BEST! banner once per session.
+  private bestScore = 0;
+  private bestBeatenThisSession = false;
+
+  // Particle texture key — generated programmatically in create() so we
+  // don't need a real asset file. Used by the per-lane hit emitters.
+  private static readonly PARTICLE_TEXTURE = 'particle-dot';
 
   // Music + sfx
   private music: Sound.BaseSound | null = null;
@@ -145,6 +155,19 @@ export class Game extends Scene {
     const bg = this.add.image(0, 0, AssetKeys.Image.GameBackground).setOrigin(0, 0);
     bg.displayWidth = this.scale.width;
     bg.displayHeight = this.scale.height;
+
+    // Programmatically build a tiny round white texture for hit particles.
+    // setTint() will color it per-lane at emit time so no asset is needed.
+    if (!this.textures.exists(Game.PARTICLE_TEXTURE)) {
+      const pgfx = this.add.graphics();
+      pgfx.fillStyle(0xffffff, 1);
+      pgfx.fillCircle(4, 4, 4);
+      pgfx.generateTexture(Game.PARTICLE_TEXTURE, 8, 8);
+      pgfx.destroy();
+    }
+
+    // Best score persists across sessions via localStorage.
+    this.bestScore = this.loadBestScore();
 
     // Systems
     this.score = new ScoreSystem();
@@ -406,12 +429,12 @@ export class Game extends Scene {
   private createHud(): void {
     // Chunky rounded-pill banner in the top-left so the score reads as a
     // real UI element instead of floating text in the corner. Dark purple
-    // with a soft white border, sized to comfortably hold score + coins
-    // stacked vertically.
+    // with a soft white border, sized to comfortably hold score / best /
+    // coins stacked vertically.
     const bannerX = 16;
     const bannerY = 16;
-    const bannerW = 220;
-    const bannerH = 78;
+    const bannerW = 230;
+    const bannerH = 104;
     const bannerR = 16;
 
     const banner = this.add.graphics();
@@ -426,9 +449,18 @@ export class Game extends Scene {
       fontSize: '26px',
       color: '#ffffff',
     });
-    this.hudCoinsText = this.add.text(bannerX + 16, bannerY + 42, '🪙 0', {
+    // Origin at (0, 0.5) so pulse-on-hit scaling grows from the left edge
+    // and doesn't shove its neighbors around.
+    this.hudScoreText.setOrigin(0, 0);
+
+    this.hudBestText = this.add.text(bannerX + 16, bannerY + 44, `Best ${this.bestScore.toLocaleString()}`, {
       fontFamily: 'Pixeloid Sans, sans-serif',
-      fontSize: '22px',
+      fontSize: '14px',
+      color: '#c0a0e6',
+    });
+    this.hudCoinsText = this.add.text(bannerX + 16, bannerY + 70, '🪙 0', {
+      fontFamily: 'Pixeloid Sans, sans-serif',
+      fontSize: '20px',
       color: '#ffd34d',
     });
 
@@ -436,7 +468,7 @@ export class Game extends Scene {
     // background — so it reads as a status indicator without competing
     // visually with the banner.
     this.hudComboText = this.add
-      .text(bannerX + bannerW / 2, bannerY + bannerH + 14, '', {
+      .text(bannerX + bannerW / 2, bannerY + bannerH + 12, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '26px',
@@ -449,7 +481,8 @@ export class Game extends Scene {
   }
 
   private updateHud(): void {
-    this.hudScoreText?.setText(`Score: ${this.score.get()}`);
+    this.hudScoreText?.setText(`Score ${this.score.get().toLocaleString()}`);
+    this.hudBestText?.setText(`Best ${this.bestScore.toLocaleString()}`);
     this.hudCoinsText?.setText(`🪙 ${this.coins}`);
     const multiplier = this.getComboMultiplier();
     if (multiplier > 1) {
@@ -457,6 +490,150 @@ export class Game extends Scene {
       this.hudComboText.setVisible(true);
     } else {
       this.hudComboText.setVisible(false);
+    }
+  }
+
+  // -- Juice + celebrations -----------------------------------------------
+
+  private pulseScoreText(): void {
+    if (!this.hudScoreText) return;
+    this.tweens.killTweensOf(this.hudScoreText);
+    this.hudScoreText.setScale(1);
+    this.tweens.add({
+      targets: this.hudScoreText,
+      scale: 1.18,
+      duration: 90,
+      yoyo: true,
+      ease: 'Quad.easeOut',
+    });
+  }
+
+  private emitHitParticles(
+    x: number,
+    y: number,
+    color: number,
+    quantity: number,
+  ): void {
+    const emitter = this.add.particles(x, y, Game.PARTICLE_TEXTURE, {
+      speed: { min: 90, max: 240 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 1.4, end: 0 },
+      alpha: { start: 1, end: 0 },
+      lifespan: { min: 280, max: 600 },
+      tint: color,
+      quantity,
+      emitting: false,
+    });
+    emitter.setDepth(900);
+    emitter.explode(quantity);
+    // Particles finish their lifespan on their own; tear down the emitter
+    // after the longest possible lifetime so we don't leak.
+    this.time.delayedCall(800, () => emitter.destroy());
+  }
+
+  private maybeCelebrateComboMilestone(
+    previousCombo: number,
+    nextCombo: number,
+    lane: PspspsLane,
+  ): void {
+    // Trigger when crossing the at-least threshold of any tier going up.
+    for (const tier of Balance.comboTiers) {
+      if (previousCombo < tier.atLeast && nextCombo >= tier.atLeast) {
+        this.showComboMilestone(tier.multiplier, lane);
+        return;
+      }
+    }
+  }
+
+  private showComboMilestone(multiplier: number, lane: PspspsLane): void {
+    const text = this.add
+      .text(this.scale.width / 2, this.scale.height / 2, `${multiplier}× COMBO!`, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '72px',
+        color: '#ff6b9d',
+        stroke: '#000000',
+        strokeThickness: 10,
+      })
+      .setOrigin(0.5)
+      .setScale(0.3)
+      .setDepth(2000);
+
+    this.tweens.add({
+      targets: text,
+      scale: 1.15,
+      duration: 220,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: text,
+          alpha: 0,
+          duration: 600,
+          delay: 350,
+          ease: 'Cubic.easeIn',
+          onComplete: () => text.destroy(),
+        });
+      },
+    });
+
+    this.cameras.main.shake(280, 0.012);
+    this.emitHitParticles(lane.target.x, lane.target.y, lane.color.element, 32);
+  }
+
+  private maybeFlashNewBest(): void {
+    if (this.bestBeatenThisSession) return;
+    if (this.score.get() <= this.bestScore) return;
+    this.bestBeatenThisSession = true;
+    this.showNewBestBanner();
+  }
+
+  private showNewBestBanner(): void {
+    const text = this.add
+      .text(this.scale.width / 2, this.scale.height * 0.36, 'NEW BEST!', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '56px',
+        color: '#ffd34d',
+        stroke: '#000000',
+        strokeThickness: 8,
+      })
+      .setOrigin(0.5)
+      .setScale(0.3)
+      .setDepth(2000);
+
+    this.tweens.add({
+      targets: text,
+      scale: 1.05,
+      duration: 240,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: text,
+          alpha: 0,
+          y: text.y - 50,
+          duration: 700,
+          delay: 850,
+          onComplete: () => text.destroy(),
+        });
+      },
+    });
+  }
+
+  private loadBestScore(): number {
+    try {
+      const stored = window.localStorage.getItem('pspsps:bestScore');
+      const parsed = stored ? parseInt(stored, 10) : 0;
+      return Number.isFinite(parsed) ? parsed : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private saveBestScore(score: number): void {
+    try {
+      window.localStorage.setItem('pspsps:bestScore', score.toString());
+    } catch {
+      // localStorage may be unavailable in some sandboxes — non-fatal.
     }
   }
 
@@ -538,14 +715,42 @@ export class Game extends Scene {
 
     const result = lane.system.tap();
     if (result.pointsAwarded > 0) {
+      const previousCombo = this.combo;
       this.combo += 1;
       const multiplier = this.getComboMultiplier();
       const totalPoints = result.pointsAwarded * multiplier;
       this.score.add(totalPoints);
       this.meow.onScoreChanged(this.score.get());
+
+      // Audio + visual juice for the hit itself.
       this.pspspsSfx?.play();
       this.pulseLaneTarget(lane);
+      this.pulseScoreText();
       this.flashScore(lane, totalPoints, result.perfectHits > 0, multiplier);
+
+      // Tier the shake + particles so PERFECTs and combos feel chunkier.
+      const isPerfect = result.perfectHits > 0;
+      const shakeDuration = isPerfect ? 140 : 70;
+      const shakeIntensity = isPerfect ? 0.006 : 0.003;
+      this.cameras.main.shake(shakeDuration, shakeIntensity);
+      const particleCount = isPerfect ? 18 : 10;
+      this.emitHitParticles(
+        lane.target.x,
+        lane.target.y,
+        lane.color.element,
+        particleCount,
+      );
+
+      // Bigger celebrations on crossing 5×/15×/30× thresholds.
+      this.maybeCelebrateComboMilestone(previousCombo, this.combo, lane);
+
+      // High-score watch: flash NEW BEST! once and persist whenever the
+      // running score crosses the stored best.
+      this.maybeFlashNewBest();
+      if (this.score.get() > this.bestScore) {
+        this.bestScore = this.score.get();
+        this.saveBestScore(this.bestScore);
+      }
     } else {
       // Missed tap (clicked a lane with nothing on the target) — break the
       // streak so the multiplier can't be banked risk-free.
