@@ -184,15 +184,14 @@
         </div>
 
         <h2>Save / Load</h2>
-        <div class="row">
-          <button id="save">💾 Save to cosmetics.json</button>
-          <button id="load" class="secondary">Load file…</button>
-        </div>
         <div class="hint" id="saveHint">
-          Click <b>Save</b> once and pick <code>cosmetics.json</code> at the project
-          root — from then on this session auto-saves on every edit. On
-          next page load the calibrator reads from that same file
-          automatically.
+          Edits autosave to <code>cosmetics.json</code> at the project root via
+          the local dev server. Just edit — no clicks needed. The toast in
+          the bottom-right confirms each save.
+        </div>
+        <div class="row">
+          <button id="save">💾 Force save</button>
+          <button id="load" class="secondary">Load file…</button>
         </div>
         <div class="row">
           <button id="copy" class="secondary">Copy JSON</button>
@@ -272,12 +271,12 @@
 
       function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        // If the user picked a save destination, debounce-write to it too
-        // so the on-disk file stays in sync without spamming the FS API.
-        if (fileHandle) {
-          clearTimeout(autosaveTimer);
-          autosaveTimer = setTimeout(() => saveToFile(/* manual */ false), 600);
-        }
+        // Autosave to the local Node server on every edit (debounced) so
+        // cosmetics.json on disk stays in lock-step with the UI. If the
+        // server isn't reachable we silently fall back to the File System
+        // Access path (manual save only).
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(autosaveToServer, 400);
       }
 
       function buildOutputArray() {
@@ -290,6 +289,44 @@
           offsetY: state[id].offsetY,
           scale: state[id].scale,
         }));
+      }
+
+      let serverSaveAvailable = true;
+      let saveStatusEl = null;
+
+      async function autosaveToServer() {
+        if (!serverSaveAvailable) return;
+        const body = JSON.stringify(buildOutputArray(), null, 2);
+        setSaveStatus('saving…', '#c0a0e6');
+        try {
+          const resp = await fetch('/save', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body,
+          });
+          if (!resp.ok) throw new Error(`save failed: ${resp.status}`);
+          setSaveStatus('✓ saved', '#7fdc8a');
+        } catch (e) {
+          serverSaveAvailable = false;
+          setSaveStatus('server save off — use 💾 button', '#ffaa55');
+          console.warn('Autosave to server failed, falling back to manual save:', e);
+        }
+      }
+
+      function setSaveStatus(text, color) {
+        if (!saveStatusEl) {
+          saveStatusEl = document.createElement('div');
+          saveStatusEl.style.cssText =
+            'position:fixed;bottom:12px;right:12px;padding:6px 12px;' +
+            'background:rgba(26,10,46,0.9);border:1px solid #c0a0e6;border-radius:6px;' +
+            'font:600 12px system-ui,sans-serif;z-index:100;transition:opacity 0.4s;';
+          document.body.appendChild(saveStatusEl);
+        }
+        saveStatusEl.textContent = text;
+        saveStatusEl.style.color = color;
+        saveStatusEl.style.opacity = '1';
+        clearTimeout(saveStatusEl._fadeT);
+        saveStatusEl._fadeT = setTimeout(() => (saveStatusEl.style.opacity = '0.3'), 1500);
       }
 
       async function tryLoadFromServer() {
