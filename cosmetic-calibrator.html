@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>pspsps — Cosmetic Calibrator</title>
+    <style>
+      :root {
+        --bg: #1a0a2e;
+        --panel: #261540;
+        --accent: #c0a0e6;
+        --text: #ffffff;
+        --primary: #ffd34d;
+        --secondary: #6e4ad1;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .wrap {
+        display: grid;
+        grid-template-columns: minmax(440px, 1fr) 420px;
+        gap: 16px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .panel {
+        background: var(--panel);
+        border-radius: 10px;
+        padding: 16px;
+      }
+      .canvas-panel { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+      canvas {
+        background: #4a3070;
+        border: 2px solid var(--accent);
+        image-rendering: pixelated;
+        cursor: grab;
+        display: block;
+        margin: 0 auto;
+      }
+      canvas:active { cursor: grabbing; }
+      .controls { display: flex; flex-direction: column; gap: 10px; }
+      .controls label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .controls input[type="text"],
+      .controls input[type="number"],
+      .controls select,
+      .controls textarea {
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--accent);
+        padding: 6px 8px;
+        font: inherit;
+        border-radius: 4px;
+      }
+      .controls textarea {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 11px;
+        min-height: 160px;
+        resize: vertical;
+        line-height: 1.4;
+      }
+      .row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+      .row > * { flex: 1; }
+      button {
+        background: var(--primary);
+        color: var(--bg);
+        border: none;
+        padding: 8px 14px;
+        font: inherit;
+        font-weight: 700;
+        border-radius: 4px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      button:hover { filter: brightness(1.1); }
+      button.secondary { background: var(--secondary); color: var(--text); }
+      .progress-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+      }
+      .progress-row strong { color: var(--primary); font-size: 18px; }
+      h1, h2 { margin: 0; }
+      h1 { font-size: 16px; }
+      h2 { font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 12px; }
+      .hint { font-size: 12px; color: var(--accent); line-height: 1.4; }
+      kbd {
+        background: var(--bg);
+        border: 1px solid var(--accent);
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="panel canvas-panel">
+        <div class="progress-row">
+          <h1>Cosmetic Calibrator</h1>
+          <strong id="progress">c1 (1 / 17)</strong>
+        </div>
+        <canvas id="preview" width="480" height="480"></canvas>
+        <div class="row">
+          <button id="prev">← Prev</button>
+          <button id="next">Next →</button>
+          <label style="flex: 2">
+            Reference cat
+            <select id="catSelect">
+              <option value="cat1">cat1 — Mochi</option>
+              <option value="cat2">cat2 — Biscuit</option>
+              <option value="cat3">cat3 — Pebble</option>
+              <option value="cat4">cat4 — Marble</option>
+              <option value="cat5">cat5 — Saffron</option>
+              <option value="cat6" selected>cat6 — Inkwell</option>
+            </select>
+          </label>
+        </div>
+        <div class="hint">
+          Drag the cosmetic on the canvas to position it. <kbd>← →</kbd> to step
+          between cosmetics, <kbd>↑ ↓</kbd> to nudge Y by 1px. Progress saves to
+          this browser's localStorage automatically.
+        </div>
+      </div>
+
+      <div class="panel controls">
+        <h1 id="curId">c1</h1>
+        <label>
+          Name
+          <input type="text" id="name" placeholder="e.g. Cowboy Hat" />
+        </label>
+        <label>
+          Slot
+          <select id="slot">
+            <option value="head">head — sits on top of head (hat, crown)</option>
+            <option value="face">face — over the face (mustache, glasses)</option>
+            <option value="neck">neck — at the neck (bandana, bow tie, scarf)</option>
+            <option value="body">body — covers the body (sweater, cape)</option>
+            <option value="held">held — held in paws (toy, ball)</option>
+          </select>
+        </label>
+        <label>
+          Rarity
+          <select id="rarity">
+            <option value="common">common</option>
+            <option value="uncommon">uncommon</option>
+            <option value="rare">rare</option>
+            <option value="legendary">legendary</option>
+          </select>
+        </label>
+        <div class="row">
+          <label>
+            X offset
+            <input type="number" id="offsetX" value="0" step="1" />
+          </label>
+          <label>
+            Y offset
+            <input type="number" id="offsetY" value="-46" step="1" />
+          </label>
+          <label>
+            Scale
+            <input type="number" id="scale" value="1" step="0.1" min="0.1" max="4" />
+          </label>
+        </div>
+        <div class="hint">
+          Offset is measured in cat-source pixels from the cat's vertical
+          midline (X=0) and from the top of the cat sprite (Y=0). Y &lt; 0 sits
+          above the top, Y &gt; 0 sits inside the cat's body. The game uses
+          these numbers directly.
+        </div>
+
+        <h2>Export</h2>
+        <div class="row">
+          <button id="copy">Copy JSON</button>
+          <button id="reset" class="secondary">Reset all</button>
+        </div>
+        <textarea id="output" readonly></textarea>
+      </div>
+    </div>
+
+    <script>
+      const ATLAS_IMG_PATH = 'public/assets/atlas/cats.png';
+      const ATLAS_JSON_PATH = 'public/assets/atlas/cats.json';
+      const STORAGE_KEY = 'pspsps:cosmetic-calibrator:v1';
+      const ZOOM = 5;
+
+      const COSMETIC_IDS = Array.from({ length: 17 }, (_, i) => `c${i + 1}`);
+
+      const DEFAULT_NAMES = {
+        c1: 'Plain Bandana', c2: 'Bow Tie', c3: 'Tiny Scarf', c4: 'Striped Sock',
+        c5: 'Polka Dot', c6: 'Flower Crown', c7: 'Toy Mouse', c8: 'Yarn Ball',
+        c9: 'Cowboy Hat', c10: 'Reading Glasses', c11: 'Mustache', c12: 'Tiny Sweater',
+        c13: 'Feather Boa', c14: 'Pirate Hat', c15: 'Cape', c16: 'Astronaut Helmet',
+        c17: 'Crown of Treats',
+      };
+      const DEFAULT_RARITY = {
+        c1: 'common', c2: 'common', c3: 'common', c4: 'common',
+        c5: 'common', c6: 'common', c7: 'common', c8: 'common',
+        c9: 'uncommon', c10: 'uncommon', c11: 'uncommon', c12: 'uncommon', c13: 'uncommon',
+        c14: 'rare', c15: 'rare', c16: 'rare',
+        c17: 'legendary',
+      };
+
+      const frames = {};
+      let atlasImg = null;
+      let state = loadState();
+      let currentIdx = 0;
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            // Backfill any missing fields if the schema grew.
+            for (const id of COSMETIC_IDS) {
+              parsed[id] = { ...freshEntry(id), ...(parsed[id] || {}) };
+            }
+            return parsed;
+          }
+        } catch (e) {
+          console.warn('Failed to load saved state, starting fresh:', e);
+        }
+        const blank = {};
+        for (const id of COSMETIC_IDS) blank[id] = freshEntry(id);
+        return blank;
+      }
+
+      function freshEntry(id) {
+        return {
+          name: DEFAULT_NAMES[id] || id,
+          slot: 'head',
+          rarity: DEFAULT_RARITY[id] || 'common',
+          offsetX: 0,
+          offsetY: -46,
+          scale: 1,
+        };
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function curId() { return COSMETIC_IDS[currentIdx]; }
+
+      async function init() {
+        const resp = await fetch(ATLAS_JSON_PATH);
+        const data = await resp.json();
+        for (const f of data.frames) frames[f.filename] = f.frame;
+
+        atlasImg = new Image();
+        atlasImg.onload = render;
+        atlasImg.src = ATLAS_IMG_PATH;
+
+        document.getElementById('prev').addEventListener('click', () => step(-1));
+        document.getElementById('next').addEventListener('click', () => step(1));
+
+        ['name', 'slot', 'rarity', 'offsetX', 'offsetY', 'scale'].forEach((field) => {
+          document.getElementById(field).addEventListener('input', () => {
+            const cur = curId();
+            const raw = document.getElementById(field).value;
+            state[cur][field] = ['offsetX', 'offsetY', 'scale'].includes(field)
+              ? Number(raw)
+              : raw;
+            saveState();
+            render();
+            updateOutput();
+          });
+        });
+
+        document.getElementById('catSelect').addEventListener('change', render);
+
+        document.getElementById('copy').addEventListener('click', async () => {
+          const out = document.getElementById('output').value;
+          try {
+            await navigator.clipboard.writeText(out);
+            flashButton('copy', 'Copied!');
+          } catch {
+            document.getElementById('output').select();
+          }
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+          if (!confirm('Reset all 17 cosmetics to defaults? Your edits will be lost.')) return;
+          state = {};
+          for (const id of COSMETIC_IDS) state[id] = freshEntry(id);
+          saveState();
+          loadCurrent();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+          const cur = curId();
+          if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
+          else if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
+          else if (e.key === 'ArrowUp') {
+            state[cur].offsetY -= 1;
+            document.getElementById('offsetY').value = state[cur].offsetY;
+            saveState(); render(); updateOutput(); e.preventDefault();
+          } else if (e.key === 'ArrowDown') {
+            state[cur].offsetY += 1;
+            document.getElementById('offsetY').value = state[cur].offsetY;
+            saveState(); render(); updateOutput(); e.preventDefault();
+          }
+        });
+
+        // Drag-to-position
+        const canvas = document.getElementById('preview');
+        let dragging = false;
+        let dragStart = null;
+        let baseOffset = null;
+        canvas.addEventListener('pointerdown', (e) => {
+          dragging = true;
+          dragStart = { x: e.offsetX, y: e.offsetY };
+          const cur = curId();
+          baseOffset = { x: state[cur].offsetX, y: state[cur].offsetY };
+          canvas.setPointerCapture(e.pointerId);
+        });
+        canvas.addEventListener('pointermove', (e) => {
+          if (!dragging) return;
+          const dx = (e.offsetX - dragStart.x) / ZOOM;
+          const dy = (e.offsetY - dragStart.y) / ZOOM;
+          const cur = curId();
+          state[cur].offsetX = Math.round(baseOffset.x + dx);
+          state[cur].offsetY = Math.round(baseOffset.y + dy);
+          document.getElementById('offsetX').value = state[cur].offsetX;
+          document.getElementById('offsetY').value = state[cur].offsetY;
+          saveState();
+          render();
+          updateOutput();
+        });
+        const endDrag = () => { dragging = false; };
+        canvas.addEventListener('pointerup', endDrag);
+        canvas.addEventListener('pointercancel', endDrag);
+
+        loadCurrent();
+      }
+
+      function step(direction) {
+        currentIdx = (currentIdx + direction + COSMETIC_IDS.length) % COSMETIC_IDS.length;
+        loadCurrent();
+      }
+
+      function loadCurrent() {
+        const cur = curId();
+        const entry = state[cur];
+        document.getElementById('curId').textContent = cur;
+        document.getElementById('progress').textContent = `${cur} (${currentIdx + 1} / 17)`;
+        document.getElementById('name').value = entry.name;
+        document.getElementById('slot').value = entry.slot;
+        document.getElementById('rarity').value = entry.rarity;
+        document.getElementById('offsetX').value = entry.offsetX;
+        document.getElementById('offsetY').value = entry.offsetY;
+        document.getElementById('scale').value = entry.scale;
+        render();
+        updateOutput();
+      }
+
+      function render() {
+        const canvas = document.getElementById('preview');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.fillStyle = '#4a3070';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!atlasImg || !atlasImg.complete) return;
+
+        const breed = document.getElementById('catSelect').value;
+        const catFrame = frames[`${breed}_idle_00`];
+        if (!catFrame) return;
+
+        const catW = catFrame.w * ZOOM;
+        const catH = catFrame.h * ZOOM;
+        const catX = canvas.width / 2 - catW / 2;
+        // Anchor the cat at center vertically so cosmetics with negative Y
+        // offsets still have room to render above the head.
+        const catY = canvas.height / 2 - catH / 2 + 30;
+
+        ctx.drawImage(
+          atlasImg, catFrame.x, catFrame.y, catFrame.w, catFrame.h,
+          catX, catY, catW, catH
+        );
+
+        // Faint horizontal reference line at the top of the cat.
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(0, catY);
+        ctx.lineTo(canvas.width, catY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Cosmetic
+        const cur = curId();
+        const cosFrame = frames[`cosmetic_${cur}_idle_00`];
+        if (!cosFrame) return;
+        const entry = state[cur];
+        const cosW = cosFrame.w * ZOOM * entry.scale;
+        const cosH = cosFrame.h * ZOOM * entry.scale;
+        const feetX = catX + catW / 2;
+        const topY = catY; // top of cat sprite
+        const cosCenterX = feetX + entry.offsetX * ZOOM;
+        const cosCenterY = topY + entry.offsetY * ZOOM;
+
+        ctx.drawImage(
+          atlasImg, cosFrame.x, cosFrame.y, cosFrame.w, cosFrame.h,
+          cosCenterX - cosW / 2, cosCenterY - cosH / 2, cosW, cosH
+        );
+
+        // Crosshair at anchor point
+        ctx.strokeStyle = '#ffd34d';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cosCenterX - 6, cosCenterY);
+        ctx.lineTo(cosCenterX + 6, cosCenterY);
+        ctx.moveTo(cosCenterX, cosCenterY - 6);
+        ctx.lineTo(cosCenterX, cosCenterY + 6);
+        ctx.stroke();
+      }
+
+      function updateOutput() {
+        const out = COSMETIC_IDS.map((id) => ({
+          id,
+          name: state[id].name,
+          slot: state[id].slot,
+          rarity: state[id].rarity,
+          offsetX: state[id].offsetX,
+          offsetY: state[id].offsetY,
+          scale: state[id].scale,
+        }));
+        document.getElementById('output').value = JSON.stringify(out, null, 2);
+      }
+
+      function flashButton(id, text) {
+        const btn = document.getElementById(id);
+        const original = btn.textContent;
+        btn.textContent = text;
+        setTimeout(() => (btn.textContent = original), 1200);
+      }
+
+      init().catch((e) => {
+        document.body.innerHTML = `<pre style="color:#ff8b8b;padding:24px;">Failed to load: ${e.message}\n\nMake sure you ran this from the project root via a static server (see comment at top of HTML).</pre>`;
+      });
+    </script>
+  </body>
+</html>
