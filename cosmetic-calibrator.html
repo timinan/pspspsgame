@@ -183,9 +183,19 @@
           these numbers directly.
         </div>
 
-        <h2>Export</h2>
+        <h2>Save / Load</h2>
         <div class="row">
-          <button id="copy">Copy JSON</button>
+          <button id="save">💾 Save to cosmetics.json</button>
+          <button id="load" class="secondary">Load file…</button>
+        </div>
+        <div class="hint" id="saveHint">
+          Click <b>Save</b> once and pick <code>cosmetics.json</code> at the project
+          root — from then on this session auto-saves on every edit. On
+          next page load the calibrator reads from that same file
+          automatically.
+        </div>
+        <div class="row">
+          <button id="copy" class="secondary">Copy JSON</button>
           <button id="reset" class="secondary">Reset all</button>
         </div>
         <textarea id="output" readonly></textarea>
@@ -219,6 +229,12 @@
       let atlasImg = null;
       let state = loadState();
       let currentIdx = 0;
+      // File System Access handle — once the user picks a save location,
+      // we re-use this handle to silently autosave on every edit within
+      // the session.
+      let fileHandle = null;
+      let autosaveTimer = null;
+      const SAVE_FILENAME = 'cosmetics.json';
 
       function loadState() {
         try {
@@ -256,6 +272,130 @@
 
       function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        // If the user picked a save destination, debounce-write to it too
+        // so the on-disk file stays in sync without spamming the FS API.
+        if (fileHandle) {
+          clearTimeout(autosaveTimer);
+          autosaveTimer = setTimeout(() => saveToFile(/* manual */ false), 600);
+        }
+      }
+
+      function buildOutputArray() {
+        return COSMETIC_IDS.map((id) => ({
+          id,
+          name: state[id].name,
+          slot: state[id].slot,
+          rarity: state[id].rarity,
+          offsetX: state[id].offsetX,
+          offsetY: state[id].offsetY,
+          scale: state[id].scale,
+        }));
+      }
+
+      async function tryLoadFromServer() {
+        try {
+          const resp = await fetch(SAVE_FILENAME, { cache: 'no-store' });
+          if (!resp.ok) return null;
+          const arr = await resp.json();
+          return arrayToState(arr);
+        } catch {
+          return null;
+        }
+      }
+
+      function arrayToState(arr) {
+        const out = {};
+        for (const id of COSMETIC_IDS) out[id] = freshEntry(id);
+        for (const entry of arr) {
+          if (entry && entry.id && COSMETIC_IDS.includes(entry.id)) {
+            out[entry.id] = { ...out[entry.id], ...entry };
+          }
+        }
+        return out;
+      }
+
+      async function saveToFile(manual) {
+        const jsonStr = JSON.stringify(buildOutputArray(), null, 2);
+
+        // Path 1 — File System Access API (Chrome / Edge / most Chromium).
+        // Once granted, the same handle is re-used for silent autosave.
+        if ('showSaveFilePicker' in window) {
+          try {
+            if (!fileHandle) {
+              if (!manual) return; // never prompt mid-edit
+              fileHandle = await window.showSaveFilePicker({
+                suggestedName: SAVE_FILENAME,
+                types: [
+                  { description: 'JSON', accept: { 'application/json': ['.json'] } },
+                ],
+              });
+              document.getElementById('saveHint').innerHTML =
+                'Auto-saving to <code>' +
+                (fileHandle.name || SAVE_FILENAME) +
+                '</code> on every edit.';
+            }
+            const writable = await fileHandle.createWritable();
+            await writable.write(jsonStr);
+            await writable.close();
+            if (manual) flashButton('save', '✓ Saved');
+            return;
+          } catch (e) {
+            if (e.name === 'AbortError') return;
+            console.warn('File System Access failed, falling back to download:', e);
+            fileHandle = null;
+          }
+        }
+
+        // Path 2 — fallback download (Safari / unsupported browsers).
+        if (!manual) return; // never silently download
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = SAVE_FILENAME;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        flashButton('save', '⬇ Downloaded');
+      }
+
+      async function loadFromFilePicker() {
+        if ('showOpenFilePicker' in window) {
+          try {
+            const [handle] = await window.showOpenFilePicker({
+              types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+            });
+            const file = await handle.getFile();
+            const arr = JSON.parse(await file.text());
+            state = arrayToState(arr);
+            fileHandle = handle;
+            saveState();
+            loadCurrent();
+            document.getElementById('saveHint').innerHTML =
+              'Auto-saving to <code>' + (handle.name || SAVE_FILENAME) + '</code> on every edit.';
+          } catch (e) {
+            if (e.name !== 'AbortError') alert('Load failed: ' + e.message);
+          }
+          return;
+        }
+        // Fallback: <input type=file>
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = async () => {
+          const f = input.files[0];
+          if (!f) return;
+          try {
+            const arr = JSON.parse(await f.text());
+            state = arrayToState(arr);
+            saveState();
+            loadCurrent();
+          } catch (e) {
+            alert('Load failed: ' + e.message);
+          }
+        };
+        input.click();
       }
 
       function curId() { return COSMETIC_IDS[currentIdx]; }
@@ -268,6 +408,15 @@
         atlasImg = new Image();
         atlasImg.onload = render;
         atlasImg.src = ATLAS_IMG_PATH;
+
+        // Auto-load cosmetics.json from the project root if it exists.
+        // This makes the tool stateful across sessions: save once, and the
+        // next time you open the calibrator it reads from the same file.
+        const loaded = await tryLoadFromServer();
+        if (loaded) {
+          state = loaded;
+          saveState();
+        }
 
         document.getElementById('prev').addEventListener('click', () => step(-1));
         document.getElementById('next').addEventListener('click', () => step(1));
@@ -296,6 +445,9 @@
             document.getElementById('output').select();
           }
         });
+
+        document.getElementById('save').addEventListener('click', () => saveToFile(/* manual */ true));
+        document.getElementById('load').addEventListener('click', loadFromFilePicker);
 
         document.getElementById('reset').addEventListener('click', () => {
           if (!confirm('Reset all 17 cosmetics to defaults? Your edits will be lost.')) return;
@@ -452,16 +604,7 @@
       }
 
       function updateOutput() {
-        const out = COSMETIC_IDS.map((id) => ({
-          id,
-          name: state[id].name,
-          slot: state[id].slot,
-          rarity: state[id].rarity,
-          offsetX: state[id].offsetX,
-          offsetY: state[id].offsetY,
-          scale: state[id].scale,
-        }));
-        document.getElementById('output').value = JSON.stringify(out, null, 2);
+        document.getElementById('output').value = JSON.stringify(buildOutputArray(), null, 2);
       }
 
       function flashButton(id, text) {
