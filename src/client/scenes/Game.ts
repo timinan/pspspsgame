@@ -913,8 +913,11 @@ export class Game extends Scene {
     this.activeCat.sprite.setDepth(550);
     this.activeCat.setAnimation('meow');
 
-    // Bar + marker start hidden — they appear only while a button is held.
-    this.interactionBarGfx = this.add.graphics().setDepth(550).setVisible(false);
+    // Bar is always visible (red by default — the whole thing reads as
+    // "miss zone" until you press an action and a green window opens up).
+    // Marker only appears while a button is held.
+    this.interactionBarGfx = this.add.graphics().setDepth(550);
+    this.redrawTimingBar(null);
     this.interactionMarker = this.add
       .rectangle(barLeft, barCenterY, 6, barH + 16, 0xffd84a)
       .setDepth(560)
@@ -944,14 +947,14 @@ export class Game extends Scene {
       if (this.interactionHeldType !== null) {
         const type = this.interactionHeldType;
         this.interactionHeldType = null;
-        this.hideTimingBar();
+        this.endActionHold();
         this.resolveInteraction(type);
       }
     };
     this.input.on('pointerup', this.interactionPointerUpHandler);
   }
 
-  private redrawTimingBarForAction(type: InteractionType): void {
+  private redrawTimingBar(activeType: InteractionType | null): void {
     if (!this.interactionBarGfx) return;
     const gfx = this.interactionBarGfx;
     const left = this.interactionBarLeft;
@@ -960,31 +963,21 @@ export class Game extends Scene {
     const top = this.interactionBarCenterY - height / 2;
 
     gfx.clear();
-    // Red everywhere — that's the fail region.
+    // Red everywhere by default — the whole bar reads as "miss zone"
+    // until the player presses an action and the green window opens up
+    // sized to that specific action.
     gfx.fillStyle(0xe53935, 1);
     gfx.fillRoundedRect(left, top, width, height, 6);
-    // Centered green band sized to this action's zone fraction.
-    const zone = Balance.interactionZones[type];
-    const greenW = width * zone;
-    gfx.fillStyle(0x4caf50, 1);
-    gfx.fillRoundedRect(left + (width - greenW) / 2, top + 2, greenW, height - 4, 4);
-    // Outer border.
+
+    if (activeType !== null) {
+      const zone = Balance.interactionZones[activeType];
+      const greenW = width * zone;
+      gfx.fillStyle(0x4caf50, 1);
+      gfx.fillRoundedRect(left + (width - greenW) / 2, top + 2, greenW, height - 4, 4);
+    }
+
     gfx.lineStyle(2, 0xffffff, 0.9);
     gfx.strokeRoundedRect(left, top, width, height, 6);
-  }
-
-  private showTimingBar(type: InteractionType): void {
-    this.redrawTimingBarForAction(type);
-    this.interactionBarGfx?.setVisible(true);
-    if (this.interactionMarker) {
-      this.interactionMarker.setVisible(true);
-      this.interactionMarker.x = this.interactionBarLeft;
-    }
-  }
-
-  private hideTimingBar(): void {
-    this.interactionBarGfx?.setVisible(false);
-    this.interactionMarker?.setVisible(false);
   }
 
   private startActionHold(type: InteractionType): void {
@@ -992,7 +985,16 @@ export class Game extends Scene {
     this.interactionHeldType = type;
     this.interactionMarkerFraction = 0;
     this.interactionMarkerDirection = 1;
-    this.showTimingBar(type);
+    this.redrawTimingBar(type);
+    if (this.interactionMarker) {
+      this.interactionMarker.x = this.interactionBarLeft;
+      this.interactionMarker.setVisible(true);
+    }
+  }
+
+  private endActionHold(): void {
+    this.redrawTimingBar(null);
+    this.interactionMarker?.setVisible(false);
   }
 
   private spawnTimingBarButtons(buttonRowY: number): void {
