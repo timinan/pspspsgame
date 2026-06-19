@@ -341,22 +341,35 @@
       function loadState() {
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            // Backfill any missing fields if the schema grew.
+          if (raw) return hydrateState(JSON.parse(raw));
+          // Migration: if v2 is missing but v1 exists, copy the base
+          // entries forward. v1 had no variants, so those stay empty.
+          const v1 = localStorage.getItem('pspsps:cosmetic-calibrator:v1');
+          if (v1) {
+            const migrated = freshStateBlock();
+            const parsedV1 = JSON.parse(v1);
             for (const id of COSMETIC_IDS) {
-              parsed[id] = { ...freshEntry(id), ...(parsed[id] || {}) };
+              if (parsedV1[id]) migrated[id] = { ...migrated[id], ...parsedV1[id] };
             }
-            parsed.variants = parsed.variants || {};
-            for (const id of COSMETIC_IDS) {
-              parsed.variants[id] = parsed.variants[id] || freshVariantEntry();
-            }
-            return parsed;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+            console.log('[migrate] copied v1 localStorage forward to v2');
+            return migrated;
           }
         } catch (e) {
           console.warn('Failed to load saved state, starting fresh:', e);
         }
         return freshStateBlock();
+      }
+
+      function hydrateState(parsed) {
+        for (const id of COSMETIC_IDS) {
+          parsed[id] = { ...freshEntry(id), ...(parsed[id] || {}) };
+        }
+        parsed.variants = parsed.variants || {};
+        for (const id of COSMETIC_IDS) {
+          parsed.variants[id] = parsed.variants[id] || freshVariantEntry();
+        }
+        return parsed;
       }
 
       function freshStateBlock() {
@@ -403,12 +416,17 @@
         return `${tintLabel} ${baseName}`;
       }
 
+      let hasUserEdited = false;
+      function markEdited() { hasUserEdited = true; }
+
       function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        // Autosave to the local Node server on every edit (debounced) so
-        // cosmetics.json on disk stays in lock-step with the UI. If the
-        // server isn't reachable we silently fall back to the File System
-        // Access path (manual save only).
+        // Safety guard — don't autosave to disk until the user actually
+        // edits something. Otherwise a fresh page load (where state
+        // started as defaults) would clobber the on-disk cosmetics.json
+        // with those same defaults. The Force-save button still works
+        // regardless if you really want to overwrite with defaults.
+        if (!hasUserEdited) return;
         clearTimeout(autosaveTimer);
         autosaveTimer = setTimeout(autosaveToServer, 400);
       }
@@ -469,7 +487,10 @@
       }
 
       async function forceSave() {
-        // Cancel any pending debounced autosave so we don't double-write.
+        // Treat force-save as an explicit user action — bypass the
+        // hasUserEdited guard. Cancel any pending debounced autosave so
+        // we don't double-write.
+        markEdited();
         clearTimeout(autosaveTimer);
         await autosaveToServer();
       }
@@ -582,6 +603,7 @@
             const arr = JSON.parse(await file.text());
             state = arrayToState(arr);
             fileHandle = handle;
+            markEdited();
             saveState();
             loadCurrent();
             document.getElementById('saveHint').innerHTML =
@@ -601,6 +623,7 @@
           try {
             const arr = JSON.parse(await f.text());
             state = arrayToState(arr);
+            markEdited();
             saveState();
             loadCurrent();
           } catch (e) {
@@ -640,6 +663,7 @@
             state[cur][field] = ['offsetX', 'offsetY', 'scale'].includes(field)
               ? Number(raw)
               : raw;
+            markEdited();
             saveState();
             render();
             updateOutput();
@@ -667,8 +691,8 @@
 
         document.getElementById('reset').addEventListener('click', () => {
           if (!confirm('Reset all 17 cosmetics to defaults? Your edits will be lost.')) return;
-          state = {};
-          for (const id of COSMETIC_IDS) state[id] = freshEntry(id);
+          state = freshStateBlock();
+          markEdited();
           saveState();
           loadCurrent();
         });
@@ -682,11 +706,11 @@
           else if (e.key === 'ArrowUp') {
             state[cur].offsetY -= 1;
             document.getElementById('offsetY').value = state[cur].offsetY;
-            saveState(); render(); updateOutput(); e.preventDefault();
+            markEdited(); saveState(); render(); updateOutput(); e.preventDefault();
           } else if (e.key === 'ArrowDown') {
             state[cur].offsetY += 1;
             document.getElementById('offsetY').value = state[cur].offsetY;
-            saveState(); render(); updateOutput(); e.preventDefault();
+            markEdited(); saveState(); render(); updateOutput(); e.preventDefault();
           }
         });
 
@@ -711,6 +735,7 @@
           state[cur].offsetY = Math.round(baseOffset.y + dy);
           document.getElementById('offsetX').value = state[cur].offsetX;
           document.getElementById('offsetY').value = state[cur].offsetY;
+          markEdited();
           saveState();
           render();
           updateOutput();
@@ -877,6 +902,7 @@
             if (cb.checked && !v.name) v.name = defaultVariantName(cur, tint.id);
             nameInput.disabled = !cb.checked;
             nameInput.value = v.name;
+            markEdited();
             saveState();
             updateOutput();
           });
@@ -897,6 +923,7 @@
           nameInput.addEventListener('click', (e) => e.stopPropagation());
           nameInput.addEventListener('input', () => {
             v.name = nameInput.value;
+            markEdited();
             saveState();
             updateOutput();
           });
