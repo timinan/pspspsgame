@@ -9,6 +9,7 @@ import { RhythmSystem } from '@/systems/rhythm-system';
 import { InteractionSystem } from '@/systems/interaction-system';
 import { CatSelectionSystem } from '@/systems/cat-selection-system';
 import { syncCoins } from '@/services/state-client';
+import { TopHud } from '@/ui/top-hud';
 import type { CatAnimationState, CatBreed, CatModel, InteractionType } from '@/types/game';
 import type { PlayerState } from '@/../shared/state';
 
@@ -144,9 +145,7 @@ export class Game extends Scene {
 
   // HUD
   private coins = 0;
-  private hudScoreText!: GameObjects.Text;
-  private hudCoinsText!: GameObjects.Text;
-  private hudBestText!: GameObjects.Text;
+  private topHud!: TopHud;
   private hudComboText!: GameObjects.Text;
 
   // Combo streak — consecutive successful taps. Resets to 0 on a tap that
@@ -240,7 +239,6 @@ export class Game extends Scene {
     this.createLanes();
     this.createMeowBar();
     this.createHud();
-    this.createNavButtons();
     this.setupInput();
 
     // One spawn check tick fans out to all lanes.
@@ -507,61 +505,45 @@ export class Game extends Scene {
   // -- HUD ----------------------------------------------------------------
 
   private createHud(): void {
-    // Chunky rounded-pill banner in the top-left so the score reads as a
-    // real UI element instead of floating text in the corner. Dark purple
-    // with a soft white border, sized to comfortably hold score / best /
-    // coins stacked vertically.
-    const bannerX = 12;
-    const bannerY = 12;
-    const bannerW = 168;
-    const bannerH = 80;
-    const bannerR = 14;
-
-    const banner = this.add.graphics();
-    banner.fillStyle(0x261540, 0.85);
-    banner.fillRoundedRect(bannerX, bannerY, bannerW, bannerH, bannerR);
-    banner.lineStyle(2, 0xffffff, 0.35);
-    banner.strokeRoundedRect(bannerX, bannerY, bannerW, bannerH, bannerR);
-
-    this.hudScoreText = this.add.text(bannerX + 12, bannerY + 6, 'Score 0', {
-      fontFamily: 'Pixeloid Sans, sans-serif',
-      fontStyle: 'bold',
-      fontSize: '20px',
-      color: '#ffffff',
-    });
-    this.hudScoreText.setOrigin(0, 0);
-
-    this.hudBestText = this.add.text(bannerX + 12, bannerY + 34, `Best ${this.bestScore.toLocaleString()}`, {
-      fontFamily: 'Pixeloid Sans, sans-serif',
-      fontSize: '12px',
-      color: '#c0a0e6',
-    });
-    this.hudCoinsText = this.add.text(bannerX + 12, bannerY + 54, '🪙 0', {
-      fontFamily: 'Pixeloid Sans, sans-serif',
-      fontSize: '16px',
-      color: '#ffd34d',
+    // Slim top strip (44px) holds score / coins / best on the left and a
+    // hamburger drawer button on the right. Frees the entire playfield —
+    // no more HUD pill overlapping the left-ledge cat.
+    this.topHud = new TopHud(this, {
+      showStats: true,
+      items: [
+        {
+          label: 'Boxes',
+          description: 'Open mystery crates',
+          icon: '📦',
+          onTap: () => void this.navigateTo(SceneKeys.Boxes),
+        },
+        {
+          label: 'Collection',
+          description: 'Dress up your cats',
+          icon: '👕',
+          onTap: () => void this.navigateTo(SceneKeys.Collection),
+        },
+      ],
     });
 
-    // Combo sits BELOW the two HUD nav pills (BOXES / COLLECTION) so it
-    // doesn't collide with them. Nav pills land at y=110 and y=148; combo
-    // sits at y=176 with a touch of breathing room.
+    // Combo callout floats in the center of the playfield — pops where
+    // the player's eye already is, hides when there's no streak.
     this.hudComboText = this.add
-      .text(bannerX + bannerW / 2, 176, '', {
+      .text(this.scale.width / 2, this.scale.height * 0.42, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '20px',
+        fontSize: '28px',
         color: '#ff8fbf',
         stroke: '#000000',
-        strokeThickness: 3,
+        strokeThickness: 4,
       })
-      .setOrigin(0.5, 0)
+      .setOrigin(0.5)
+      .setDepth(60)
       .setVisible(false);
   }
 
   private updateHud(): void {
-    this.hudScoreText?.setText(`Score ${this.score.get().toLocaleString()}`);
-    this.hudBestText?.setText(`Best ${this.bestScore.toLocaleString()}`);
-    this.hudCoinsText?.setText(`🪙 ${this.coins}`);
+    this.topHud?.setStats(this.score.get(), this.coins, this.bestScore);
     const multiplier = this.getComboMultiplier();
     if (multiplier > 1) {
       this.hudComboText.setText(`${multiplier}× COMBO  (${this.combo})`);
@@ -572,19 +554,6 @@ export class Game extends Scene {
   }
 
   // -- Juice + celebrations -----------------------------------------------
-
-  private pulseScoreText(): void {
-    if (!this.hudScoreText) return;
-    this.tweens.killTweensOf(this.hudScoreText);
-    this.hudScoreText.setScale(1);
-    this.tweens.add({
-      targets: this.hudScoreText,
-      scale: 1.18,
-      duration: 90,
-      yoyo: true,
-      ease: 'Quad.easeOut',
-    });
-  }
 
   private emitHitParticles(
     x: number,
@@ -706,39 +675,6 @@ export class Game extends Scene {
     if (owned.length <= seatCount) return [...owned];
     const shuffled = [...owned].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, seatCount);
-  }
-
-  private createNavButtons(): void {
-    // Two pill buttons stacked just under the score banner. Tapping pauses
-    // the current run and launches the target scene on top — closing it
-    // resumes Game exactly where it left off (combo, meow meter, lanes
-    // all preserved). The state.coins we earned before navigating is
-    // synced before we leave so the server has an up-to-date picture.
-    const buttons: { label: string; sceneKey: string; accent: number }[] = [
-      { label: 'BOXES', sceneKey: SceneKeys.Boxes, accent: 0xffd34d },
-      { label: 'COLLECTION', sceneKey: SceneKeys.Collection, accent: 0xc678ff },
-    ];
-
-    const startY = 110; // below the existing HUD banner
-    const x = 96;
-    buttons.forEach((cfg, idx) => {
-      const y = startY + idx * 38;
-      const bg = this.add.rectangle(x, y, 144, 32, 0x261540, 0.92);
-      bg.setStrokeStyle(2, cfg.accent);
-      bg.setInteractive({ useHandCursor: true });
-      this.add
-        .text(x, y, cfg.label, {
-          fontFamily: 'Pixeloid Sans, sans-serif',
-          fontStyle: 'bold',
-          fontSize: '14px',
-          color: '#ffffff',
-        })
-        .setOrigin(0.5);
-      bg.on('pointerdown', () => {
-        if (this.interactionActive) return;
-        void this.navigateTo(cfg.sceneKey);
-      });
-    });
   }
 
   private async navigateTo(sceneKey: string): Promise<void> {
@@ -872,7 +808,6 @@ export class Game extends Scene {
       // Audio + visual juice for the hit itself.
       this.pspspsSfx?.play();
       this.pulseLaneTarget(lane);
-      this.pulseScoreText();
       this.flashScore(lane, totalPoints, result.perfectHits > 0, multiplier);
 
       // Tier the shake + particles so PERFECTs and combos feel chunkier.
@@ -1269,6 +1204,7 @@ export class Game extends Scene {
     }
     this.music?.stop();
     this.music = null;
+    this.topHud?.destroy();
     for (const lane of this.lanes) {
       for (const sprite of lane.elementSprites.values()) sprite.destroy();
       lane.elementSprites.clear();

@@ -2,6 +2,7 @@ import { Scene, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
+import { TopHud } from '@/ui/top-hud';
 import { openBox, fetchState } from '@/services/state-client';
 import {
   BOX_CATALOG,
@@ -64,7 +65,7 @@ export class Boxes extends Scene {
   private playerState: PlayerState | null = null;
   private busy = false;
 
-  private coinsText!: GameObjects.Text;
+  private topHud!: TopHud;
   private cards: BoxCard[] = [];
 
   constructor() {
@@ -91,12 +92,30 @@ export class Boxes extends Scene {
       );
     }
 
-    // Title scales down at narrow widths so it doesn't crash into the
-    // top-right coin counter. Non-zero lineSpacing so a wrapped title
-    // doesn't render lines on top of each other.
+    // Shared top strip (matches Game / Collection). Drawer offers the
+    // sibling navigation + a "Back to Game" jump.
+    this.topHud = new TopHud(this, {
+      showStats: true,
+      items: [
+        {
+          label: 'Back to Game',
+          description: 'Return to the rhythm scene',
+          icon: '🎮',
+          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
+        },
+        {
+          label: 'Collection',
+          description: 'Dress up your cats',
+          icon: '👕',
+          onTap: () => this.scene.start(SceneKeys.Collection, { playerState: this.playerState }),
+        },
+      ],
+    });
+
+    // Scene title sits below the strip.
     const titleFontSize = width >= 520 ? 32 : width >= 380 ? 22 : 18;
     this.add
-      .text(width / 2, 44, 'Mystery Boxes', {
+      .text(width / 2, TopHud.HEIGHT + 16, 'Mystery Boxes', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: `${titleFontSize}px`,
@@ -109,16 +128,9 @@ export class Boxes extends Scene {
       })
       .setOrigin(0.5, 0);
 
-    this.coinsText = this.add
-      .text(width - 16, 12, '🪙 0', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '22px',
-        color: '#ffd34d',
-        stroke: '#000000',
-        strokeThickness: 4,
-      })
-      .setOrigin(1, 0);
+    // Coins also live in the top strip (next to the 🪙 icon).
+    // The strip doesn't display score in Boxes; coins are written via the
+    // strip's setCoins() method whenever a purchase changes the balance.
 
     // Render grid + back button before the (possibly async) state refresh
     // so the player sees structure immediately and the buttons just enable
@@ -287,7 +299,7 @@ export class Boxes extends Scene {
 
   private refreshCoins(): void {
     const coins = this.playerState?.coins ?? 0;
-    this.coinsText.setText(`🪙 ${coins}`);
+    this.topHud?.setCoins(coins);
   }
 
   private refreshAffordability(): void {

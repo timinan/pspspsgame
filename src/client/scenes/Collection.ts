@@ -4,6 +4,7 @@ import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { equipCosmetic, fetchState } from '@/services/state-client';
 import { hslToInt } from '@/util/color';
+import { TopHud } from '@/ui/top-hud';
 import {
   CAT_CATALOG,
   COSMETIC_CATALOG,
@@ -58,7 +59,7 @@ export class Collection extends Scene {
   private selectedCat: CatBreed | null = null;
   private cosmeticPage = 0;
 
-  private coinsText!: GameObjects.Text;
+  private topHud!: TopHud;
   private previewLayer!: GameObjects.Container;
   private equippedLabel!: GameObjects.Text;
   private catTiles = new Map<CatBreed, Tile>();
@@ -84,10 +85,29 @@ export class Collection extends Scene {
 
     this.add.rectangle(0, 0, width, height, 0x1a0a2e, 1).setOrigin(0, 0);
 
-    // Title shrinks at narrow widths to clear the top-right coin counter.
+    // Shared top strip — coins live here, drawer offers sibling nav.
+    this.topHud = new TopHud(this, {
+      showStats: true,
+      items: [
+        {
+          label: 'Back to Game',
+          description: 'Return to the rhythm scene',
+          icon: '🎮',
+          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
+        },
+        {
+          label: 'Boxes',
+          description: 'Open mystery crates',
+          icon: '📦',
+          onTap: () => this.scene.start(SceneKeys.Boxes, { playerState: this.playerState }),
+        },
+      ],
+    });
+
+    // Scene title sits just below the strip.
     const titleFontSize = width >= 480 ? 28 : width >= 360 ? 22 : 18;
     this.add
-      .text(width / 2, 36, 'Collection', {
+      .text(width / 2, TopHud.HEIGHT + 8, 'Collection', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: `${titleFontSize}px`,
@@ -97,17 +117,6 @@ export class Collection extends Scene {
         lineSpacing: 6,
       })
       .setOrigin(0.5, 0);
-
-    this.coinsText = this.add
-      .text(width - 16, 12, '🪙 0', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '20px',
-        color: '#ffd34d',
-        stroke: '#000000',
-        strokeThickness: 4,
-      })
-      .setOrigin(1, 0);
 
     this.previewLayer = this.add.container(width / 2, height * 0.42);
 
@@ -149,7 +158,7 @@ export class Collection extends Scene {
 
   private refreshCoins(): void {
     const coins = this.playerState?.coins ?? 0;
-    this.coinsText.setText(`🪙 ${coins}`);
+    this.topHud?.setCoins(coins);
   }
 
   // -- Cat strip ---------------------------------------------------------
