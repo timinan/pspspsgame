@@ -280,18 +280,23 @@ async function packAtlas(frames: ExtractedFrame[], atlasName: string): Promise<v
   // shelf height.
   trimmed.sort((a, b) => b.trimH - a.trimH);
 
+  // Padding (gutter) between frames in the atlas. Without it, GPU
+  // texel-sampling at frame edges can read into the neighbouring frame
+  // and produce visible bleed — black lines and stray colored pixels
+  // floating beside sprites. 2px is the conventional minimum.
   const ATLAS_WIDTH = 2048;
-  let x = 0;
-  let y = 0;
+  const PAD = 2;
+  let x = PAD;
+  let y = PAD;
   let shelfHeight = trimmed[0]?.trimH ?? 0;
 
   const placements: AtlasFrame[] = [];
   const composites: sharp.OverlayOptions[] = [];
 
   for (const f of trimmed) {
-    if (x + f.trimW > ATLAS_WIDTH) {
-      x = 0;
-      y += shelfHeight;
+    if (x + f.trimW + PAD > ATLAS_WIDTH) {
+      x = PAD;
+      y += shelfHeight + PAD;
       shelfHeight = f.trimH;
     }
     const filename = `${f.breed}_${f.animation}_${String(f.frameIndex).padStart(2, '0')}`;
@@ -308,10 +313,10 @@ async function packAtlas(frames: ExtractedFrame[], atlasName: string): Promise<v
       .extract({ left: f.trimX, top: f.trimY, width: f.trimW, height: f.trimH })
       .toBuffer();
     composites.push({ input: cropped, left: x, top: y });
-    x += f.trimW;
+    x += f.trimW + PAD;
   }
 
-  const ATLAS_HEIGHT = y + shelfHeight;
+  const ATLAS_HEIGHT = y + shelfHeight + PAD;
 
   const atlasPngBuffer = await sharp({
     create: {
