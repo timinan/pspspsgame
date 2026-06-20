@@ -30,9 +30,9 @@ describe('shared catalog', () => {
     }
   });
 
-  it('cosmetic catalog has 17 unique ids', () => {
-    const ids = new Set(COSMETIC_CATALOG.map((c) => c.id));
-    expect(ids.size).toBe(17);
+  it('cosmetic catalog ids are unique', () => {
+    const ids = COSMETIC_CATALOG.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('every cosmetic rarity has at least one entry', () => {

@@ -12,6 +12,7 @@
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const TOOL_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -62,6 +63,37 @@ async function rotateBackups(filepath) {
 function backupPath(filepath, n) {
   const ext = path.extname(filepath);
   return filepath.slice(0, -ext.length) + `.bak-${n}` + ext;
+}
+
+let catalogSyncTimer = null;
+let catalogSyncRunning = false;
+function scheduleCatalogSync() {
+  clearTimeout(catalogSyncTimer);
+  catalogSyncTimer = setTimeout(() => {
+    if (catalogSyncRunning) {
+      scheduleCatalogSync(); // try again after the in-flight run finishes
+      return;
+    }
+    catalogSyncRunning = true;
+    const child = spawn(
+      'npx',
+      ['tsx', path.join(PROJECT_ROOT, 'scripts', 'sync-catalog.ts')],
+      { cwd: PROJECT_ROOT, stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (b) => { stdout += b.toString(); });
+    child.stderr.on('data', (b) => { stderr += b.toString(); });
+    child.on('close', (code) => {
+      catalogSyncRunning = false;
+      if (code === 0) {
+        const summary = stdout.split('\n').find((l) => l.includes('[sync]')) ?? 'ok';
+        console.log(`[sync-catalog] ${summary.trim()}`);
+      } else {
+        console.warn(`[sync-catalog] exit ${code}\n${stderr}`);
+      }
+    });
+  }, 500);
 }
 
 const MIME = {
@@ -140,6 +172,11 @@ const server = http.createServer(async (req, res) => {
           res.writeHead(200, { 'content-type': 'application/json' });
           res.end(JSON.stringify({ ok: true, path: rel, bytes: body.length }));
           console.log(`[save:${toolName}] wrote ${body.length}B → ${rel}`);
+          // Regenerate src/shared/*-catalog.generated.ts so the game
+          // catalog tracks the calibrators in real time. Debounced + fire
+          // and forget — if it fails we just log; the JSON file is still
+          // correct on disk and the next save retries.
+          scheduleCatalogSync();
         } catch (e) {
           res.writeHead(400, { 'content-type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: e.message }));

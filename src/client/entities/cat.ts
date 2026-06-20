@@ -4,6 +4,7 @@ import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
 import { hslToInt } from '@/util/color';
 import type { CatBreed, CatAnimationState, CatModel, CosmeticId } from '@/types/game';
+import { COSMETIC_CATALOG } from '@/../shared/state';
 
 // Cosmetic sprites are drawn on the same 91×64 canvas as the cats, so
 // when both share origin (0.5, 1) at the same screen position they
@@ -16,6 +17,18 @@ import type { CatBreed, CatAnimationState, CatModel, CosmeticId } from '@/types/
 // since that's what scenes ask for, and cat6 has the most complete set.
 const RAINBOW_RENDER_BREED: CatBreed = 'cat6';
 const RAINBOW_CYCLE_MS = 3000;
+
+/**
+ * Pull the parent cosmetic id out of a tint variant's sourceFrame string
+ * (`cosmetic_<parent>_idle_00`). Returns null for base cosmetics — they
+ * render from their own atlas frames.
+ */
+function parentIdFor(entry: { sourceFrame?: string } | undefined): string | null {
+  const sf = entry?.sourceFrame;
+  if (!sf) return null;
+  const match = sf.match(/^cosmetic_(c\d+)_/);
+  return match ? match[1]! : null;
+}
 
 /**
  * Phaser sprite wrapper around a CatModel.
@@ -88,15 +101,26 @@ export class Cat {
       return;
     }
 
-    // Cosmetic sprite is animated now — uses its OWN atlas (cosmetics)
-    // and plays the cat's current animation (or falls back to idle if the
-    // cosmetic doesn't ship that animation).
-    const idleFrame = `cosmetic_${cosmeticId}_idle_00`;
+    // Catalog entry can be a base (just an id) or a generated tint
+    // variant (with sourceFrame + tint). For variants, we render the
+    // parent's atlas frames and apply the tint via setTint(). The
+    // animation key used here is keyed on the SOURCE id, not the variant
+    // id, so multiple variants share the same animation entry.
+    const entry = COSMETIC_CATALOG.find((c) => c.id === cosmeticId);
+    const renderId = parentIdFor(entry) ?? cosmeticId;
+    const idleFrame = `cosmetic_${renderId}_idle_00`;
     if (!this.cosmeticSprite) {
       this.cosmeticSprite = this.scene.add.sprite(0, 0, AssetKeys.Atlas.Cosmetics, idleFrame);
       this.cosmeticSprite.setOrigin(0.5, 1); // match cat — bottom-center anchor
     } else {
       this.cosmeticSprite.setTexture(AssetKeys.Atlas.Cosmetics, idleFrame);
+    }
+    // Apply the catalog tint (or clear any previous one).
+    if (entry?.tint) {
+      const colorInt = parseInt(entry.tint.replace('#', ''), 16);
+      this.cosmeticSprite.setTint(colorInt);
+    } else {
+      this.cosmeticSprite.clearTint();
     }
     this.playCosmeticAnimation(this.model.animation);
     this.syncCosmeticPosition();
@@ -149,17 +173,20 @@ export class Cat {
 
   private playCosmeticAnimation(animation: CatAnimationState): void {
     if (!this.cosmeticSprite || !this.model.equippedCosmetic) return;
-    const cosId = this.model.equippedCosmetic;
-    const key = Cat.cosmeticAnimationKey(cosId, animation);
-    this.ensureCosmeticAnimation(cosId, animation);
+    // Resolve the render id — for tint variants we play the PARENT's
+    // animation (the tint stays applied across frames).
+    const entry = COSMETIC_CATALOG.find((c) => c.id === this.model.equippedCosmetic);
+    const renderId = parentIdFor(entry) ?? this.model.equippedCosmetic;
+    const key = Cat.cosmeticAnimationKey(renderId, animation);
+    this.ensureCosmeticAnimation(renderId, animation);
     if (this.scene.anims.exists(key)) {
       this.cosmeticSprite.play(key, true);
       return;
     }
     // Cosmetic doesn't ship this animation — fall back to idle. Every
     // cosmetic ships an idle frame so this branch is safe.
-    const idleKey = Cat.cosmeticAnimationKey(cosId, 'idle');
-    this.ensureCosmeticAnimation(cosId, 'idle');
+    const idleKey = Cat.cosmeticAnimationKey(renderId, 'idle');
+    this.ensureCosmeticAnimation(renderId, 'idle');
     if (this.scene.anims.exists(idleKey)) {
       this.cosmeticSprite.play(idleKey, true);
     }

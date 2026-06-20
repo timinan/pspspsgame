@@ -9,18 +9,12 @@
 
 // -- Item identifiers ---------------------------------------------------
 
-export type CatBreed =
-  | 'cat1'
-  | 'cat2'
-  | 'cat3'
-  | 'cat4'
-  | 'cat5'
-  | 'cat6'
-  | 'rainbow';
-
-export type CosmeticId =
-  | 'c1' | 'c2' | 'c3' | 'c4' | 'c5' | 'c6' | 'c7' | 'c8' | 'c9'
-  | 'c10' | 'c11' | 'c12' | 'c13' | 'c14' | 'c15' | 'c16' | 'c17';
+// IDs are typed loosely as strings now that the catalogs are generated
+// from tools/{cosmetics,cats}/*.json. Specific base IDs are still
+// referenced by string literal in places that need to special-case them
+// (e.g. `breed === 'rainbow'` for the hue-cycle shader).
+export type CatBreed = string;
+export type CosmeticId = string;
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
@@ -36,12 +30,28 @@ export interface CatEntry {
   id: CatBreed;
   name: string;
   rarity: Rarity;
+  /** Optional render scale (cats only). Defaults to 1. */
+  scale?: number;
+  /** For generated/tinted cats: the parent breed whose atlas frames are used. */
+  sourceFrame?: string;
+  /** Hex tint (e.g. "#ff5555") applied at render time. */
+  tint?: string;
+  /** Blend mode used at render time. */
+  tintMode?: 'color' | 'hue' | 'multiply' | 'soft-light';
 }
 
 export interface CosmeticEntry {
   id: CosmeticId;
   name: string;
   rarity: Rarity;
+  /** Where the cosmetic sits on the cat (head, face, neck, body, held). */
+  slot?: string;
+  /** For generated/tinted cosmetics: the parent's atlas frame name to render. */
+  sourceFrame?: string;
+  /** Hex tint applied at render time. */
+  tint?: string;
+  /** Blend mode used at render time. */
+  tintMode?: 'color' | 'hue' | 'multiply' | 'soft-light';
 }
 
 export interface BoxConfig {
@@ -53,42 +63,13 @@ export interface BoxConfig {
 }
 
 // -- Cat catalog --------------------------------------------------------
+// Both catalogs are auto-synced from tools/{cats,cosmetics}/*.json by
+// scripts/sync-catalog.ts (runs after every calibrator save). Do not
+// edit the generated arrays by hand — the calibrators are the source
+// of truth.
 
-export const CAT_CATALOG: readonly CatEntry[] = [
-  { id: 'cat1', name: 'Mochi', rarity: 'common' },
-  { id: 'cat2', name: 'Biscuit', rarity: 'common' },
-  { id: 'cat3', name: 'Pebble', rarity: 'common' },
-  { id: 'cat4', name: 'Marble', rarity: 'uncommon' },
-  { id: 'cat5', name: 'Saffron', rarity: 'rare' },
-  { id: 'cat6', name: 'Inkwell', rarity: 'rare' },
-  { id: 'rainbow', name: 'Rainbow Whiskers', rarity: 'legendary' },
-];
-
-// -- Cosmetic catalog ---------------------------------------------------
-
-export const COSMETIC_CATALOG: readonly CosmeticEntry[] = [
-  // 8 common
-  { id: 'c1', name: 'Plain Bandana', rarity: 'common' },
-  { id: 'c2', name: 'Bow Tie', rarity: 'common' },
-  { id: 'c3', name: 'Tiny Scarf', rarity: 'common' },
-  { id: 'c4', name: 'Striped Sock', rarity: 'common' },
-  { id: 'c5', name: 'Polka Dot', rarity: 'common' },
-  { id: 'c6', name: 'Flower Crown', rarity: 'common' },
-  { id: 'c7', name: 'Toy Mouse', rarity: 'common' },
-  { id: 'c8', name: 'Yarn Ball', rarity: 'common' },
-  // 5 uncommon
-  { id: 'c9', name: 'Cowboy Hat', rarity: 'uncommon' },
-  { id: 'c10', name: 'Reading Glasses', rarity: 'uncommon' },
-  { id: 'c11', name: 'Mustache', rarity: 'uncommon' },
-  { id: 'c12', name: 'Tiny Sweater', rarity: 'uncommon' },
-  { id: 'c13', name: 'Feather Boa', rarity: 'uncommon' },
-  // 3 rare
-  { id: 'c14', name: 'Pirate Hat', rarity: 'rare' },
-  { id: 'c15', name: 'Cape', rarity: 'rare' },
-  { id: 'c16', name: 'Astronaut Helmet', rarity: 'rare' },
-  // 1 legendary
-  { id: 'c17', name: 'Crown of Treats', rarity: 'legendary' },
-];
+export { GENERATED_CAT_CATALOG as CAT_CATALOG } from './cats-catalog.generated';
+export { GENERATED_COSMETIC_CATALOG as COSMETIC_CATALOG } from './cosmetics-catalog.generated';
 
 // -- Box catalog --------------------------------------------------------
 

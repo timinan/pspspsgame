@@ -13,6 +13,7 @@
     "login": "devvit login",
     "prettier": "prettier --write .",
     "extract:assets": "tsx scripts/extract-cat-assets.ts",
+    "sync:catalog": "tsx scripts/sync-catalog.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --build"
