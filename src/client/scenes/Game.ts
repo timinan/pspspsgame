@@ -212,19 +212,19 @@ export class Game extends Scene {
     // Pre-create the pspsps sfx instance so we can replay it fast on every hit
     this.pspspsSfx = this.sound.add(AssetKeys.Audio.Pspsps, { volume: 0.7 });
 
-    // TEMP — only seat one cat on the right ledge for now. The HUD banner
-    // sits at the top-left and was overlapping the left-ledge cat; we'll
-    // resize / move the banner later and reintroduce the other seats.
+    // Seat every owned cat (up to baseCatsOnScreen) so equips made in
+    // Collection are visible. Cosmetics are read from playerState's
+    // equippedCosmetics map per-breed at construction time, so the cat
+    // wears whatever you saved.
     const shuffledRest = [...RESTING_ANIMATION_POOL].sort(() => Math.random() - 0.5);
     const seatedBreeds = this.pickSeatedBreeds();
-    const breed = seatedBreeds[0];
-    if (breed) {
-      const seatIndex = 2; // right ledge
-      const seat = CAT_SEAT_POSITIONS[seatIndex]!;
-      const resting = shuffledRest[0]!;
+    for (let i = 0; i < seatedBreeds.length && i < CAT_SEAT_POSITIONS.length; i++) {
+      const breed = seatedBreeds[i]!;
+      const seat = CAT_SEAT_POSITIONS[i]!;
+      const resting = shuffledRest[i % shuffledRest.length]!;
       const equipped = this.playerState?.equippedCosmetics[breed];
       const model: CatModel = {
-        id: 'seat-0',
+        id: `seat-${i}`,
         breed,
         animation: resting,
         restingAnimation: resting,
