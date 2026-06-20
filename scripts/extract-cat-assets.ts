@@ -43,38 +43,33 @@ const BREEDS = ['cat1', 'cat2', 'cat3', 'cat4', 'cat5', 'cat6'] as const;
 // treated as a cosmetic; its GIFs are mapped to animations by suffix.
 const COSMETIC_RAW_DIR = path.join(PROJECT_ROOT, 'assets-raw', 'cosmetic');
 
-// Canonical animation set. Anything not in this list gets dropped at
-// extract time. Add a new canonical name here if a new animation type
-// joins the project (e.g. 'dance').
+// Canonical animation set — front-facing only. sleep / sleep_alt /
+// stretch shipped in the source pack but show the cat curled on its
+// side, which makes cosmetics look detached (the accessory was painted
+// for the upright pose). Skip them at extract time.
 const CANONICAL_ANIM = [
   'idle',
   'lick',
   'meow',
-  'sleep',
-  'sleep_alt',
-  'stretch',
   'hiss',
   'happy',
 ] as const;
 type CanonicalAnim = (typeof CANONICAL_ANIM)[number];
 
-// Cat animation suffix -> canonical name (typo / direction tolerant).
+// Cat animation suffix -> canonical name. sleep_left/sleep_right/
+// stretch_* intentionally absent — anything not listed drops at extract.
 const CAT_ANIM_MAP: Record<string, CanonicalAnim> = {
   idle: 'idle',
   lick: 'lick',
   meow: 'meow',
-  sleep_left: 'sleep',
-  sleep_right: 'sleep',
-  stretch_left: 'stretch',
-  stretch_right: 'stretch',
-  strech_right: 'stretch', // typo present in prototype; normalize
   hiss: 'hiss',
   happy: 'happy',
 };
 
 // Cosmetic animation suffix -> canonical name. Handles the typos that
-// shipped in the source pack: idlet/idlegif → idle, lickt/lickgif → lick,
-// sleep_r → sleep_alt (kept distinct so we can pick later).
+// shipped in the source pack: idlet/idlegif → idle, lickt/lickgif → lick.
+// sleep, sleep_r, stretch are dropped to match the cat side; cosmetic
+// overlays only need to track the front-facing poses.
 const COSMETIC_ANIM_MAP: Record<string, CanonicalAnim> = {
   idle: 'idle',
   idlet: 'idle',
@@ -82,9 +77,6 @@ const COSMETIC_ANIM_MAP: Record<string, CanonicalAnim> = {
   lick: 'lick',
   lickt: 'lick',
   lickgif: 'lick',
-  sleep: 'sleep',
-  sleep_r: 'sleep_alt',
-  stretch: 'stretch',
   hiss: 'hiss',
   happy: 'happy',
 };

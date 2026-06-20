@@ -32,12 +32,9 @@ const DEBUG_LOG_SEAT_CLICKS = true;
 // safety net so the scene never renders an empty house.
 const FALLBACK_BREEDS: CatBreed[] = ['cat1', 'cat2', 'cat3'];
 
-const RESTING_ANIMATION_POOL: CatAnimationState[] = [
-  'idle',
-  'lick',
-  'sleep',
-  'stretch',
-];
+// Front-facing only. sleep / stretch were dropped from the extractor
+// because their side-facing poses make cosmetic overlays look detached.
+const RESTING_ANIMATION_POOL: CatAnimationState[] = ['idle', 'lick'];
 
 const INTERACTION_BUTTON_DEFS: { type: InteractionType; label: string }[] = [
   { type: 'pet', label: 'Pet' },
