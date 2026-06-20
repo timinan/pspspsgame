@@ -1,9 +1,21 @@
 /*
- * Extracts cat GIF animations from the original pspsadopt prototype into
- * Phaser-friendly assets:
- *   - public/assets/atlas/cats.png + cats.json  (texture atlas)
- *   - public/assets/sounds/*.mp3                (background + pspsps sfx)
- *   - public/assets/images/*.png                (background + meow bar + rhythm bar)
+ * Extracts source GIF animations into Phaser-friendly atlases:
+ *   - public/assets/atlas/cats.png + cats.json        (cat sprites only)
+ *   - public/assets/atlas/cosmetics.png + cosmetics.json  (cosmetic sprites only)
+ *   - public/assets/sounds/*.mp3                       (background + sfx)
+ *   - public/assets/images/*.png                       (HUD bits)
+ *
+ * Sources:
+ *   Cats:      <prototype>/src/assets/cat<N>/*.gif
+ *   Cosmetics: assets-raw/cosmetic/<id>/*.gif         (auto-discovered)
+ *
+ * Animations are normalised to the canonical names listed in
+ * CANONICAL_ANIM. Anything matching a known typo (idlet/idlegif/lickt/
+ * lickgif) is mapped back to its canonical form. Unknown suffixes are
+ * skipped with a warning.
+ *
+ * Cosmetic folders are auto-discovered — drop assets-raw/cosmetic/c44/
+ * with whatever GIFs you have and rerun: no code change needed.
  *
  * Run with: npm run extract:assets
  */
@@ -27,11 +39,27 @@ const OUT_FONTS = path.join(OUT_PUBLIC, 'fonts');
 
 const BREEDS = ['cat1', 'cat2', 'cat3', 'cat4', 'cat5', 'cat6'] as const;
 
-// Cosmetic accessory folders in the prototype — c1 through c17.
-const COSMETICS = Array.from({ length: 17 }, (_, i) => `c${i + 1}`);
+// Where the user drops new cosmetic GIFs. Each subfolder named `c<N>` is
+// treated as a cosmetic; its GIFs are mapped to animations by suffix.
+const COSMETIC_RAW_DIR = path.join(PROJECT_ROOT, 'assets-raw', 'cosmetic');
 
-// Map prototype filename suffix -> our CatAnimationState in src/client/types/game.ts
-const ANIMATION_MAP: Record<string, string> = {
+// Canonical animation set. Anything not in this list gets dropped at
+// extract time. Add a new canonical name here if a new animation type
+// joins the project (e.g. 'dance').
+const CANONICAL_ANIM = [
+  'idle',
+  'lick',
+  'meow',
+  'sleep',
+  'sleep_alt',
+  'stretch',
+  'hiss',
+  'happy',
+] as const;
+type CanonicalAnim = (typeof CANONICAL_ANIM)[number];
+
+// Cat animation suffix -> canonical name (typo / direction tolerant).
+const CAT_ANIM_MAP: Record<string, CanonicalAnim> = {
   idle: 'idle',
   lick: 'lick',
   meow: 'meow',
@@ -40,6 +68,23 @@ const ANIMATION_MAP: Record<string, string> = {
   stretch_left: 'stretch',
   stretch_right: 'stretch',
   strech_right: 'stretch', // typo present in prototype; normalize
+  hiss: 'hiss',
+  happy: 'happy',
+};
+
+// Cosmetic animation suffix -> canonical name. Handles the typos that
+// shipped in the source pack: idlet/idlegif → idle, lickt/lickgif → lick,
+// sleep_r → sleep_alt (kept distinct so we can pick later).
+const COSMETIC_ANIM_MAP: Record<string, CanonicalAnim> = {
+  idle: 'idle',
+  idlet: 'idle',
+  idlegif: 'idle',
+  lick: 'lick',
+  lickt: 'lick',
+  lickgif: 'lick',
+  sleep: 'sleep',
+  sleep_r: 'sleep_alt',
+  stretch: 'stretch',
   hiss: 'hiss',
   happy: 'happy',
 };
@@ -78,7 +123,7 @@ async function extractGif(
   return written;
 }
 
-async function extractAllGifs(): Promise<ExtractedFrame[]> {
+async function extractCatGifs(): Promise<ExtractedFrame[]> {
   const all: ExtractedFrame[] = [];
   for (const breed of BREEDS) {
     const breedSrcDir = path.join(PROTOTYPE_ASSETS, breed);
@@ -89,9 +134,9 @@ async function extractAllGifs(): Promise<ExtractedFrame[]> {
     for (const gifPath of gifs) {
       const base = path.basename(gifPath, '.gif');
       const suffix = base.replace(`${breed}_`, '');
-      const animation = ANIMATION_MAP[suffix];
+      const animation = CAT_ANIM_MAP[suffix];
       if (!animation) {
-        console.warn(`[skip unknown anim] ${gifPath}`);
+        console.warn(`[skip unknown cat anim] ${gifPath}`);
         continue;
       }
 
@@ -112,95 +157,169 @@ async function extractAllGifs(): Promise<ExtractedFrame[]> {
 }
 
 /**
- * Walks /cosmetics/c1 .. /cosmetics/c17 in the prototype. Each cosmetic
- * is a single accessory sprite — c1 happens to have multiple animation
- * variants but everything else only ships `_idle.gif`. We pull the idle
- * frame(s) and pack them under names like `cosmetic_c1_00`, sharing the
- * same atlas as the cats so a single texture covers everything.
+ * Walks assets-raw/cosmetic/ and extracts every GIF in every cN/ folder.
+ * Auto-discovery: any directory matching /^c\d+$/ is treated as a
+ * cosmetic. Animation names are normalised via COSMETIC_ANIM_MAP so the
+ * typo'd source filenames (idlet/idlegif, lickt/lickgif) all collapse
+ * back to canonical animation names (idle, lick, …).
+ *
+ * Adding a new cosmetic: drop assets-raw/cosmetic/c44/ with its GIFs and
+ * re-run. No code change.
  */
 async function extractCosmeticGifs(): Promise<ExtractedFrame[]> {
   const all: ExtractedFrame[] = [];
-  for (const cos of COSMETICS) {
-    const srcDir = path.join(PROTOTYPE_ASSETS, 'cosmetics', cos);
-    const outDir = path.join(OUT_RAW, 'cosmetics', cos);
-    await fs.mkdir(outDir, { recursive: true });
+  const entries = await fs.readdir(COSMETIC_RAW_DIR).catch(() => [] as string[]);
+  const folders = entries.filter((e) => /^c\d+$/.test(e)).sort(byCNumber);
 
-    const idle = path.join(srcDir, `${cos}_idle.gif`);
-    try {
-      await fs.access(idle);
-    } catch {
-      console.warn(`[skip cosmetic, no idle] ${idle}`);
-      continue;
-    }
+  for (const cos of folders) {
+    const srcDir = path.join(COSMETIC_RAW_DIR, cos);
+    const stat = await fs.stat(srcDir).catch(() => null);
+    if (!stat?.isDirectory()) continue;
 
-    // breed field gets repurposed as `cosmetic_${cos}` so packAtlas's
-    // naming convention produces frames like `cosmetic_c1_idle_00`.
-    const written = await extractGif(idle, outDir, `cosmetic_${cos}_idle`);
-    for (let i = 0; i < written.length; i++) {
-      all.push({
-        breed: `cosmetic_${cos}`,
-        animation: 'idle',
-        frameIndex: i,
-        srcPath: written[i]!,
-      });
+    const outDir = srcDir; // Co-locate intermediate PNGs with their source GIFs
+    const gifs = await glob(`${srcDir}/*.gif`);
+    // Sort 'idle' first so it wins de-dup ties if multiple suffixes map
+    // to the same canonical animation.
+    gifs.sort((a, b) => {
+      const ai = path.basename(a).includes('idle') ? 0 : 1;
+      const bi = path.basename(b).includes('idle') ? 0 : 1;
+      return ai - bi;
+    });
+
+    for (const gifPath of gifs) {
+      const base = path.basename(gifPath, '.gif');
+      // Tolerate prefix typos (cc18_sleep.gif) by deriving the animation
+      // from the suffix tokens instead of the literal cN_ prefix. Try the
+      // last-2 tokens first (sleep_r), then the last 1 token (sleep).
+      const tokens = base.split('_');
+      let suffix = tokens.slice(-2).join('_');
+      let animation = COSMETIC_ANIM_MAP[suffix];
+      if (!animation && tokens.length >= 1) {
+        suffix = tokens[tokens.length - 1]!;
+        animation = COSMETIC_ANIM_MAP[suffix];
+      }
+      if (!animation) {
+        console.warn(`[skip unknown cosmetic anim] ${gifPath}`);
+        continue;
+      }
+
+      const alreadyHave = all.some(
+        (f) => f.breed === `cosmetic_${cos}` && f.animation === animation,
+      );
+      if (alreadyHave) continue;
+
+      const written = await extractGif(gifPath, outDir, `cosmetic_${cos}_${animation}`);
+      for (let i = 0; i < written.length; i++) {
+        all.push({
+          breed: `cosmetic_${cos}`,
+          animation,
+          frameIndex: i,
+          srcPath: written[i]!,
+        });
+      }
     }
   }
   return all;
+}
+
+function byCNumber(a: string, b: string): number {
+  return parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10);
 }
 
 interface AtlasFrame {
   filename: string;
   frame: { x: number; y: number; w: number; h: number };
   rotated: false;
-  trimmed: false;
-  spriteSourceSize: { x: 0; y: 0; w: number; h: number };
+  trimmed: boolean;
+  spriteSourceSize: { x: number; y: number; w: number; h: number };
   sourceSize: { w: number; h: number };
 }
 
-async function packAtlas(frames: ExtractedFrame[]): Promise<void> {
+async function packAtlas(frames: ExtractedFrame[], atlasName: string): Promise<void> {
   if (frames.length === 0) {
-    throw new Error('No frames extracted — check prototype path / animation map');
+    console.warn(`[atlas:${atlasName}] no frames — skipping`);
+    return;
   }
 
-  // Read dimensions of every frame
+  // Read pixel data and compute the painted bounds of every frame so we
+  // can pack the trimmed crop instead of 91×64 canvases full of empty
+  // pixels (cosmetic frames are ~4-5% opaque, cat frames ~27%). Trimming
+  // shrinks the cosmetic atlas from ~13000 to under 1000px tall.
   const sized = await Promise.all(
     frames.map(async (f) => {
-      const meta = await sharp(f.srcPath).metadata();
-      if (!meta.width || !meta.height) {
-        throw new Error(`Missing dimensions for ${f.srcPath}`);
+      const { data, info } = await sharp(f.srcPath)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      const w = info.width;
+      const h = info.height;
+      let minX = w;
+      let minY = h;
+      let maxX = -1;
+      let maxY = -1;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (data[(y * w + x) * 4 + 3]! > 0) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
       }
-      return { ...f, width: meta.width, height: meta.height };
+      // Fully-transparent frame: skip (no visible pixels = nothing to pack)
+      if (maxX < minX || maxY < minY) return null;
+      return {
+        ...f,
+        origW: w,
+        origH: h,
+        trimX: minX,
+        trimY: minY,
+        trimW: maxX - minX + 1,
+        trimH: maxY - minY + 1,
+      };
     }),
   );
+  const trimmed = sized.filter((f): f is NonNullable<typeof f> => f !== null);
 
-  // Simple shelf packing: rows of uniform-height shelves
-  const SHELF_HEIGHT = Math.max(...sized.map((f) => f.height));
+  // Shelf packing with per-shelf height (next-fit-decreasing-height). Sort
+  // frames by trimmed height desc so each new shelf gets the height of
+  // its first, tallest frame — drastically tighter than a single global
+  // shelf height.
+  trimmed.sort((a, b) => b.trimH - a.trimH);
+
   const ATLAS_WIDTH = 2048;
   let x = 0;
   let y = 0;
+  let shelfHeight = trimmed[0]?.trimH ?? 0;
 
   const placements: AtlasFrame[] = [];
   const composites: sharp.OverlayOptions[] = [];
 
-  for (const f of sized) {
-    if (x + f.width > ATLAS_WIDTH) {
+  for (const f of trimmed) {
+    if (x + f.trimW > ATLAS_WIDTH) {
       x = 0;
-      y += SHELF_HEIGHT;
+      y += shelfHeight;
+      shelfHeight = f.trimH;
     }
     const filename = `${f.breed}_${f.animation}_${String(f.frameIndex).padStart(2, '0')}`;
     placements.push({
       filename,
-      frame: { x, y, w: f.width, h: f.height },
+      frame: { x, y, w: f.trimW, h: f.trimH },
       rotated: false,
-      trimmed: false,
-      spriteSourceSize: { x: 0, y: 0, w: f.width, h: f.height },
-      sourceSize: { w: f.width, h: f.height },
+      trimmed: true,
+      spriteSourceSize: { x: f.trimX, y: f.trimY, w: f.trimW, h: f.trimH },
+      sourceSize: { w: f.origW, h: f.origH },
     });
-    composites.push({ input: f.srcPath, left: x, top: y });
-    x += f.width;
+    // Crop the source image to its painted bounds for the composite.
+    const cropped = await sharp(f.srcPath)
+      .extract({ left: f.trimX, top: f.trimY, width: f.trimW, height: f.trimH })
+      .toBuffer();
+    composites.push({ input: cropped, left: x, top: y });
+    x += f.trimW;
   }
 
-  const ATLAS_HEIGHT = y + SHELF_HEIGHT;
+  const ATLAS_HEIGHT = y + shelfHeight;
 
   const atlasPngBuffer = await sharp({
     create: {
@@ -214,8 +333,8 @@ async function packAtlas(frames: ExtractedFrame[]): Promise<void> {
     .png()
     .toBuffer();
 
-  const atlasPngPath = path.join(OUT_ATLAS_DIR, 'cats.png');
-  const atlasJsonPath = path.join(OUT_ATLAS_DIR, 'cats.json');
+  const atlasPngPath = path.join(OUT_ATLAS_DIR, `${atlasName}.png`);
+  const atlasJsonPath = path.join(OUT_ATLAS_DIR, `${atlasName}.json`);
   await fs.writeFile(atlasPngPath, atlasPngBuffer);
 
   const atlasJson = {
@@ -223,7 +342,7 @@ async function packAtlas(frames: ExtractedFrame[]): Promise<void> {
     meta: {
       app: 'pspspsgame-extractor',
       version: '1',
-      image: 'cats.png',
+      image: `${atlasName}.png`,
       format: 'RGBA8888',
       size: { w: ATLAS_WIDTH, h: ATLAS_HEIGHT },
       scale: '1',
@@ -232,7 +351,7 @@ async function packAtlas(frames: ExtractedFrame[]): Promise<void> {
   await fs.writeFile(atlasJsonPath, JSON.stringify(atlasJson, null, 2));
 
   console.log(
-    `[atlas] ${ATLAS_WIDTH}x${ATLAS_HEIGHT}, ${placements.length} frames -> ${atlasPngPath}`,
+    `[atlas:${atlasName}] ${ATLAS_WIDTH}x${ATLAS_HEIGHT}, ${placements.length} frames -> ${path.relative(PROJECT_ROOT, atlasPngPath)}`,
   );
 }
 
@@ -368,9 +487,10 @@ async function trimMeowBarFill(): Promise<void> {
 
 async function main(): Promise<void> {
   await ensureDirs();
-  const catFrames = await extractAllGifs();
+  const catFrames = await extractCatGifs();
+  await packAtlas(catFrames, 'cats');
   const cosmeticFrames = await extractCosmeticGifs();
-  await packAtlas([...catFrames, ...cosmeticFrames]);
+  await packAtlas(cosmeticFrames, 'cosmetics');
   await copyStaticAssets();
   await splitPsElementIntoBallAndLetters();
   await trimMeowBarFill();

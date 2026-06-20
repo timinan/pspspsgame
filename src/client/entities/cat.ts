@@ -5,10 +5,10 @@ import { Balance } from '@/constants/balance';
 import { hslToInt } from '@/util/color';
 import type { CatBreed, CatAnimationState, CatModel, CosmeticId } from '@/types/game';
 
-// How far above the sprite's anchor (which sits at the cat's feet, origin
-// (0.5, 1)) to place the cosmetic. Source-pixel space, so it scales with
-// the cat's current scale.
-const COSMETIC_OFFSET_Y = -46;
+// Cosmetic sprites are drawn on the same 91×64 canvas as the cats, so
+// when both share origin (0.5, 1) at the same screen position they
+// overlay perfectly. Phaser's trimmed-atlas handling translates each
+// trimmed crop back to its original canvas position internally.
 
 // We don't have dedicated atlas frames for the legendary 'rainbow' cat —
 // it borrows another breed's frames and cycles its tint through hues. The
@@ -29,7 +29,7 @@ const RAINBOW_CYCLE_MS = 3000;
  */
 export class Cat {
   readonly sprite: GameObjects.Sprite;
-  private cosmeticSprite: GameObjects.Image | null = null;
+  private cosmeticSprite: GameObjects.Sprite | null = null;
   private readonly postUpdate: () => void;
   private rainbowTween: Phaser.Tweens.Tween | null = null;
 
@@ -88,13 +88,17 @@ export class Cat {
       return;
     }
 
-    const frame = `cosmetic_${cosmeticId}_idle_00`;
+    // Cosmetic sprite is animated now — uses its OWN atlas (cosmetics)
+    // and plays the cat's current animation (or falls back to idle if the
+    // cosmetic doesn't ship that animation).
+    const idleFrame = `cosmetic_${cosmeticId}_idle_00`;
     if (!this.cosmeticSprite) {
-      this.cosmeticSprite = this.scene.add.image(0, 0, AssetKeys.Atlas.Cats, frame);
-      this.cosmeticSprite.setOrigin(0.5, 0.5);
+      this.cosmeticSprite = this.scene.add.sprite(0, 0, AssetKeys.Atlas.Cosmetics, idleFrame);
+      this.cosmeticSprite.setOrigin(0.5, 1); // match cat — bottom-center anchor
     } else {
-      this.cosmeticSprite.setTexture(AssetKeys.Atlas.Cats, frame);
+      this.cosmeticSprite.setTexture(AssetKeys.Atlas.Cosmetics, idleFrame);
     }
+    this.playCosmeticAnimation(this.model.animation);
     this.syncCosmeticPosition();
   }
 
@@ -124,15 +128,11 @@ export class Cat {
 
   private syncCosmeticPosition(): void {
     if (!this.cosmeticSprite) return;
-    // Sit just above the cat sprite. The cat is anchored at (0.5, 1) so
-    // y is the feet position; we move up by its display height plus a
-    // small offset to land near the top of the head.
-    const scale = this.sprite.scaleX;
-    this.cosmeticSprite.setScale(scale);
-    this.cosmeticSprite.setPosition(
-      this.sprite.x,
-      this.sprite.y - this.sprite.displayHeight + COSMETIC_OFFSET_Y * scale,
-    );
+    // Cosmetic sprite uses the same canvas size + origin as the cat, so
+    // copying the cat's position and scale puts it in lock-step. No more
+    // per-cosmetic offset hack needed.
+    this.cosmeticSprite.setScale(this.sprite.scaleX);
+    this.cosmeticSprite.setPosition(this.sprite.x, this.sprite.y);
     this.cosmeticSprite.setDepth(this.sprite.depth + 1);
   }
 
@@ -143,6 +143,25 @@ export class Cat {
     } else {
       // Hold whatever frame we have — no fallback animation in Phase 1.
       // Phase 2 may map missing animations to 'idle' when we add accessories.
+    }
+    this.playCosmeticAnimation(animation);
+  }
+
+  private playCosmeticAnimation(animation: CatAnimationState): void {
+    if (!this.cosmeticSprite || !this.model.equippedCosmetic) return;
+    const cosId = this.model.equippedCosmetic;
+    const key = Cat.cosmeticAnimationKey(cosId, animation);
+    this.ensureCosmeticAnimation(cosId, animation);
+    if (this.scene.anims.exists(key)) {
+      this.cosmeticSprite.play(key, true);
+      return;
+    }
+    // Cosmetic doesn't ship this animation — fall back to idle. Every
+    // cosmetic ships an idle frame so this branch is safe.
+    const idleKey = Cat.cosmeticAnimationKey(cosId, 'idle');
+    this.ensureCosmeticAnimation(cosId, 'idle');
+    if (this.scene.anims.exists(idleKey)) {
+      this.cosmeticSprite.play(idleKey, true);
     }
   }
 
@@ -171,8 +190,37 @@ export class Cat {
     });
   }
 
+  private ensureCosmeticAnimation(
+    cosmeticId: CosmeticId,
+    animation: CatAnimationState,
+  ): void {
+    const key = Cat.cosmeticAnimationKey(cosmeticId, animation);
+    if (this.scene.anims.exists(key)) return;
+    const atlas = this.scene.textures.get(AssetKeys.Atlas.Cosmetics);
+    const prefix = `cosmetic_${cosmeticId}_${animation}_`;
+    const frameNames = atlas
+      .getFrameNames()
+      .filter((n) => n.startsWith(prefix))
+      .sort();
+    if (frameNames.length === 0) return; // silently — caller falls back to idle
+
+    this.scene.anims.create({
+      key,
+      frames: frameNames.map((frame) => ({ key: AssetKeys.Atlas.Cosmetics, frame })),
+      frameRate: Balance.catAnimationFrameRate,
+      repeat: animation === 'hiss' || animation === 'happy' ? 0 : -1,
+    });
+  }
+
   static animationKey(breed: CatBreed, animation: CatAnimationState): string {
     return `${breed}_${animation}`;
+  }
+
+  static cosmeticAnimationKey(
+    cosmeticId: CosmeticId,
+    animation: CatAnimationState,
+  ): string {
+    return `cosmetic_${cosmeticId}_${animation}`;
   }
 
   static frameName(

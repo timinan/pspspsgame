@@ -29,6 +29,11 @@ export class Preloader extends Scene {
     this.load.setPath('assets');
 
     this.load.atlas(AssetKeys.Atlas.Cats, 'atlas/cats.png', 'atlas/cats.json');
+    this.load.atlas(
+      AssetKeys.Atlas.Cosmetics,
+      'atlas/cosmetics.png',
+      'atlas/cosmetics.json',
+    );
 
     this.load.image(AssetKeys.Image.GameBackground, 'images/gameBackground.png');
     this.load.image(AssetKeys.Image.MeowBarFill, 'images/meowBarFill.png');

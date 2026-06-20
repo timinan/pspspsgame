@@ -301,16 +301,20 @@
 
     <script>
       // Absolute paths so the page can live under /tools/cosmetics/ and
-      // still pull the atlas from the project's public/ folder.
-      const ATLAS_IMG_PATH = '/public/assets/atlas/cats.png';
-      const ATLAS_JSON_PATH = '/public/assets/atlas/cats.json';
+      // still pull the atlases from the project's public/ folder.
+      const ATLAS_CATS_IMG = '/public/assets/atlas/cats.png';
+      const ATLAS_CATS_JSON = '/public/assets/atlas/cats.json';
+      const ATLAS_COSMETICS_IMG = '/public/assets/atlas/cosmetics.png';
+      const ATLAS_COSMETICS_JSON = '/public/assets/atlas/cosmetics.json';
       const STORAGE_KEY = 'pspsps:cosmetic-calibrator:v2';
       const ZOOM = 4;
 
-      // Bases are the 17 original sprites. Generated entries (c18+) are
-      // tinted versions promoted to first-class cosmetics; they get their
-      // own state[id] block and live in the same navigation order.
-      const BASE_IDS = Array.from({ length: 17 }, (_, i) => `c${i + 1}`);
+      // Bases are auto-discovered from the cosmetics atlas at init() time
+      // (any cosmetic_<id>_idle_00 frame is treated as a base). Generated
+      // entries with their own sourceFrame + tint live in the same
+      // navigation order. This array is populated in init() before
+      // anything that references it.
+      let BASE_IDS = [];
       const COSMETIC_ID_RE = /^c\d+$/;
 
       function cosmeticIds() {
@@ -358,7 +362,9 @@
       };
 
       const frames = {};
+      let cosmeticFrames = {};
       let atlasImg = null;
+      let cosmeticAtlasImg = null;
       let state = loadState();
       let currentIdx = 0;
       // File System Access handle — once the user picks a save location,
@@ -684,13 +690,39 @@
       }
 
       async function init() {
-        const resp = await fetch(ATLAS_JSON_PATH);
-        const data = await resp.json();
-        for (const f of data.frames) frames[f.filename] = f.frame;
+        // Cats atlas — needed to render the reference cat behind the
+        // cosmetic preview.
+        const catsResp = await fetch(ATLAS_CATS_JSON);
+        const catsData = await catsResp.json();
+        for (const f of catsData.frames) frames[f.filename] = f.frame;
+
+        // Cosmetics atlas — same map, just on a different image.
+        const cosResp = await fetch(ATLAS_COSMETICS_JSON);
+        const cosData = await cosResp.json();
+        cosmeticFrames = {};
+        for (const f of cosData.frames) cosmeticFrames[f.filename] = f.frame;
 
         atlasImg = new Image();
         atlasImg.onload = render;
-        atlasImg.src = ATLAS_IMG_PATH;
+        atlasImg.src = ATLAS_CATS_IMG;
+        cosmeticAtlasImg = new Image();
+        cosmeticAtlasImg.onload = render;
+        cosmeticAtlasImg.src = ATLAS_COSMETICS_IMG;
+
+        // Auto-discover base IDs from the cosmetics atlas. Any
+        // cosmetic_<id>_idle_00 frame is treated as a base. Adding a new
+        // cosmetic = drop assets-raw/cosmetic/c44/, run extract:assets,
+        // reload — c44 just shows up.
+        BASE_IDS = Object.keys(cosmeticFrames)
+          .map((name) => name.match(/^cosmetic_(c\d+)_idle_00$/)?.[1])
+          .filter(Boolean)
+          .sort((a, b) => parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10));
+        // Backfill state with the discovered IDs so freshStateBlock has
+        // all the right slots.
+        for (const id of BASE_IDS) {
+          if (!state[id]) state[id] = freshEntry(id);
+          if (!state.variants[id]) state.variants[id] = freshVariantEntry();
+        }
 
         // Auto-load cosmetics.json from the project root if it exists.
         // This makes the tool stateful across sessions: save once, and the
@@ -874,11 +906,12 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Cosmetic — generated entries point at a parent's atlas frame
-        // via sourceFrame, bases use the implicit cosmetic_<id>_idle_00.
+        // Cosmetic — looks up the frame in the dedicated cosmetics atlas
+        // now. Generated entries point at a parent's atlas frame via
+        // sourceFrame; bases use the implicit cosmetic_<id>_idle_00.
         const cur = curId();
-        const cosFrame = frames[sourceFrameFor(cur)];
-        if (!cosFrame) return;
+        const cosFrame = cosmeticFrames[sourceFrameFor(cur)];
+        if (!cosFrame || !cosmeticAtlasImg?.complete) return;
         const entry = state[cur];
         const cosW = cosFrame.w * ZOOM * entry.scale;
         const cosH = cosFrame.h * ZOOM * entry.scale;
@@ -889,7 +922,7 @@
 
         // Effective tint priority: an active preview (Variants tab row
         // click) trumps the entry's persistent tint. The persistent tint
-        // means we're looking at a generated cosmetic (c18+), so it
+        // means we're looking at a generated cosmetic (c44+), so it
         // should always render in its tinted color on every tab.
         const effectiveTint = previewTintColor || entry.tint || null;
         const effectiveMode = previewTintColor
@@ -897,14 +930,14 @@
           : (entry.tintMode || 'multiply');
         if (effectiveTint) {
           drawTintedSprite(
-            ctx, atlasImg,
+            ctx, cosmeticAtlasImg,
             cosFrame.x, cosFrame.y, cosFrame.w, cosFrame.h,
             cosCenterX - cosW / 2, cosCenterY - cosH / 2, cosW, cosH,
             effectiveTint, effectiveMode,
           );
         } else {
           ctx.drawImage(
-            atlasImg, cosFrame.x, cosFrame.y, cosFrame.w, cosFrame.h,
+            cosmeticAtlasImg, cosFrame.x, cosFrame.y, cosFrame.w, cosFrame.h,
             cosCenterX - cosW / 2, cosCenterY - cosH / 2, cosW, cosH
           );
         }

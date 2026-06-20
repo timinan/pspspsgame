@@ -1,32 +1,298 @@
 [
-  { "id": "c1", "name": "Red Sunglasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 32, "scale": 0.9 },
-  { "id": "c2", "name": "Grey Glasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 32, "scale": 0.9 },
-  { "id": "c3", "name": "Cool Sunglasses", "slot": "face", "rarity": "uncommon", "offsetX": 0, "offsetY": 32, "scale": 0.9 },
-  { "id": "c4", "name": "Grey Round Glasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 32, "scale": 0.9 },
-  { "id": "c5", "name": "Blue Round Glasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 32, "scale": 0.9 },
-  { "id": "c6", "name": "Flower Crown", "slot": "head", "rarity": "common", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c7", "name": "Toy Mouse", "slot": "head", "rarity": "common", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c8", "name": "Yarn Ball", "slot": "head", "rarity": "common", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c9", "name": "Cowboy Hat", "slot": "head", "rarity": "uncommon", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c10", "name": "Reading Glasses", "slot": "head", "rarity": "uncommon", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c11", "name": "Mustache", "slot": "head", "rarity": "uncommon", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c12", "name": "Tiny Sweater", "slot": "head", "rarity": "uncommon", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c13", "name": "Feather Boa", "slot": "head", "rarity": "uncommon", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c14", "name": "Pirate Hat", "slot": "head", "rarity": "rare", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c15", "name": "Cape", "slot": "head", "rarity": "rare", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c16", "name": "Astronaut Helmet", "slot": "head", "rarity": "rare", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c17", "name": "Crown of Treats", "slot": "head", "rarity": "legendary", "offsetX": 0, "offsetY": -10, "scale": 1 },
-  { "id": "c18", "name": "Brown Red Sunglasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 31, "scale": 0.9, "sourceFrame": "cosmetic_c1_idle_00", "tint": "#ff5555" },
-  { "id": "c19", "name": "Blue Orange Bandana", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 31, "scale": 0.9, "sourceFrame": "cosmetic_c1_idle_00", "tint": "#5588ff" },
-  { "id": "c20", "name": "Green Orange Sunglasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 31, "scale": 0.9, "sourceFrame": "cosmetic_c1_idle_00", "tint": "#55cc55" },
-  { "id": "c21", "name": "Purple Red Sunglasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 31, "scale": 0.9, "sourceFrame": "cosmetic_c1_idle_00", "tint": "#c678ff" },
-  { "id": "c22", "name": "Red Cool Sunglasses", "slot": "face", "rarity": "uncommon", "offsetX": 0, "offsetY": 32, "scale": 0.9, "sourceFrame": "cosmetic_c3_idle_00", "tint": "#ff5555" },
-  { "id": "c23", "name": "Blue Cool Sunglasses", "slot": "face", "rarity": "uncommon", "offsetX": 0, "offsetY": 32, "scale": 0.9, "sourceFrame": "cosmetic_c3_idle_00", "tint": "#5588ff" },
-  { "id": "c24", "name": "Green Cool Sunglasses", "slot": "face", "rarity": "uncommon", "offsetX": 0, "offsetY": 32, "scale": 0.9, "sourceFrame": "cosmetic_c3_idle_00", "tint": "#55cc55" },
-  { "id": "c25", "name": "Gold Cool Sunglasses", "slot": "face", "rarity": "uncommon", "offsetX": 0, "offsetY": 32, "scale": 0.9, "sourceFrame": "cosmetic_c3_idle_00", "tint": "#ffd34d" },
-  { "id": "c26", "name": "Purple Cool Sunglasses", "slot": "face", "rarity": "uncommon", "offsetX": 0, "offsetY": 32, "scale": 0.9, "sourceFrame": "cosmetic_c3_idle_00", "tint": "#c678ff" },
-  { "id": "c27", "name": "Red Round Glasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 32, "scale": 0.9, "sourceFrame": "cosmetic_c5_idle_00", "tint": "#ff5555" },
-  { "id": "c28", "name": "Green Round Glasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 32, "scale": 0.9, "sourceFrame": "cosmetic_c5_idle_00", "tint": "#55cc55" },
-  { "id": "c29", "name": "Yellow Round Glasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 32, "scale": 0.9, "sourceFrame": "cosmetic_c5_idle_00", "tint": "#ffd34d" },
-  { "id": "c30", "name": "Purple Round Glasses", "slot": "face", "rarity": "common", "offsetX": 0, "offsetY": 32, "scale": 0.9, "sourceFrame": "cosmetic_c5_idle_00", "tint": "#c678ff" }
+  {
+    "id": "c1",
+    "name": "Red Sunglasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9
+  },
+  {
+    "id": "c2",
+    "name": "Grey Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9
+  },
+  {
+    "id": "c3",
+    "name": "Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9
+  },
+  {
+    "id": "c4",
+    "name": "Grey Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9
+  },
+  {
+    "id": "c5",
+    "name": "Blue Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9
+  },
+  {
+    "id": "c6",
+    "name": "Flower Crown",
+    "slot": "head",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c7",
+    "name": "Toy Mouse",
+    "slot": "head",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c8",
+    "name": "Yarn Ball",
+    "slot": "head",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c9",
+    "name": "Cowboy Hat",
+    "slot": "head",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c10",
+    "name": "Reading Glasses",
+    "slot": "head",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c11",
+    "name": "Mustache",
+    "slot": "head",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c12",
+    "name": "Tiny Sweater",
+    "slot": "head",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c13",
+    "name": "Feather Boa",
+    "slot": "head",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c14",
+    "name": "Pirate Hat",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c15",
+    "name": "Cape",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c16",
+    "name": "Astronaut Helmet",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c17",
+    "name": "Crown of Treats",
+    "slot": "head",
+    "rarity": "legendary",
+    "offsetX": 0,
+    "offsetY": -10,
+    "scale": 1
+  },
+  {
+    "id": "c44",
+    "name": "Brown Red Sunglasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 31,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c1_idle_00",
+    "tint": "#ff5555"
+  },
+  {
+    "id": "c45",
+    "name": "Blue Orange Bandana",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 31,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c1_idle_00",
+    "tint": "#5588ff"
+  },
+  {
+    "id": "c46",
+    "name": "Green Orange Sunglasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 31,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c1_idle_00",
+    "tint": "#55cc55"
+  },
+  {
+    "id": "c47",
+    "name": "Purple Red Sunglasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 31,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c1_idle_00",
+    "tint": "#c678ff"
+  },
+  {
+    "id": "c48",
+    "name": "Red Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c3_idle_00",
+    "tint": "#ff5555"
+  },
+  {
+    "id": "c49",
+    "name": "Blue Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c3_idle_00",
+    "tint": "#5588ff"
+  },
+  {
+    "id": "c50",
+    "name": "Green Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c3_idle_00",
+    "tint": "#55cc55"
+  },
+  {
+    "id": "c51",
+    "name": "Gold Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c3_idle_00",
+    "tint": "#ffd34d"
+  },
+  {
+    "id": "c52",
+    "name": "Purple Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c3_idle_00",
+    "tint": "#c678ff"
+  },
+  {
+    "id": "c53",
+    "name": "Red Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c5_idle_00",
+    "tint": "#ff5555"
+  },
+  {
+    "id": "c54",
+    "name": "Green Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c5_idle_00",
+    "tint": "#55cc55"
+  },
+  {
+    "id": "c55",
+    "name": "Yellow Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c5_idle_00",
+    "tint": "#ffd34d"
+  },
+  {
+    "id": "c56",
+    "name": "Purple Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 0,
+    "offsetY": 32,
+    "scale": 0.9,
+    "sourceFrame": "cosmetic_c5_idle_00",
+    "tint": "#c678ff"
+  }
 ]
