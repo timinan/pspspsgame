@@ -38,7 +38,7 @@ export const Balance = {
 
   // Cats
   baseCatsOnScreen: 3,
-  catAnimationFrameRate: 12, // bumped from 8 for smoother loops
+  catAnimationFrameRate: 7, // dropped from 12 — cats were feeling jittery at the higher rate
 
   // Petting timing-bar mini-game. Each action gets its own green-zone
   // width (a fraction of the bar centered on 0.5), with smaller zones
