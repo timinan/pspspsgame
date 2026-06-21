@@ -37,9 +37,13 @@ export class HouseEditor extends Scene {
   private confirmModal!: ConfirmModal;
   private placementMode: { kind: 'decor' | 'cat'; itemId: string } | null = null;
   private removeBadges: RemoveBadge[] = [];
-  private decorPage = 0;
-  private catsPage = 0;
-  private readonly ITEMS_PER_PAGE = 10;
+  private decorScrollY = 0;
+  private catsScrollY = 0;
+  private decorMaxScroll = 0;
+  private catsMaxScroll = 0;
+  private scrollMask: Phaser.Display.Masks.GeometryMask | null = null;
+  private scrollMaskGfx: Phaser.GameObjects.Graphics | null = null;
+  private scrollbarThumb: Phaser.GameObjects.Rectangle | null = null;
 
   constructor() {
     super(SceneKeys.HouseEditor);
@@ -120,12 +124,60 @@ export class HouseEditor extends Scene {
     this.contextMenu = new ContextMenu(this);
     this.confirmModal = new ConfirmModal(this);
     this.tabContent = this.add.container(0, this.scale.height - 108).setDepth(82);
+
+    // Set up scroll mask for the tab content viewport
+    const vp = this.getViewport();
+    this.scrollMaskGfx = this.make.graphics({ x: 0, y: 0 }, false);
+    this.scrollMaskGfx.fillStyle(0xffffff);
+    this.scrollMaskGfx.fillRect(0, vp.top, vp.width, vp.height);
+    this.scrollMask = this.scrollMaskGfx.createGeometryMask();
+    this.tabContent.setMask(this.scrollMask);
+
     this.drawTabBar();
     this.renderActiveTab();
 
-    // Scene-level pointerdown to dismiss menu on tap-outside.
-    this.input.on('pointerdown', () => {
+    // Scene-level pointermove for drag-to-scroll (passive — doesn't intercept item taps)
+    let dragStartY = 0;
+    let dragStartScrollY = 0;
+    let dragActive = false;
+    const DRAG_THRESHOLD = 5;
+
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.contextMenu.isOpen()) this.contextMenu.close();
+      const vpArea = this.getViewport();
+      if (pointer.y >= vpArea.top && pointer.y <= vpArea.top + vpArea.height) {
+        dragStartY = pointer.y;
+        dragStartScrollY = this.activeTab === 'decor' ? this.decorScrollY
+          : this.activeTab === 'cats' ? this.catsScrollY : 0;
+        dragActive = false;
+      }
+    });
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.isDown) return;
+      const vpArea = this.getViewport();
+      if (pointer.y < vpArea.top || pointer.y > vpArea.top + vpArea.height) return;
+      if (this.activeTab !== 'decor' && this.activeTab !== 'cats') return;
+
+      const delta = pointer.y - dragStartY;
+      if (Math.abs(delta) < DRAG_THRESHOLD && !dragActive) return;
+      dragActive = true;
+
+      const maxScroll = this.activeTab === 'decor' ? this.decorMaxScroll : this.catsMaxScroll;
+      const newScroll = Phaser.Math.Clamp(dragStartScrollY - delta, 0, maxScroll);
+
+      if (this.activeTab === 'decor') this.decorScrollY = newScroll;
+      else this.catsScrollY = newScroll;
+
+      this.applyTabScroll(this.activeTab);
+
+      // Sync scrollbar thumb
+      if (this.scrollbarThumb && maxScroll > 0) {
+        const contentHeight = vpArea.height + maxScroll;
+        const thumbHeight = Math.max(20, (vpArea.height / contentHeight) * vpArea.height);
+        const thumbScrollRange = vpArea.height - thumbHeight;
+        this.scrollbarThumb.y = vpArea.top + (newScroll / maxScroll) * thumbScrollRange;
+      }
     });
 
     // Listen for ghost taps
@@ -173,8 +225,6 @@ export class HouseEditor extends Scene {
     if (this.placementMode) return; // ignore tab swap while placing
     this.activeTab = key;
     this.contextMenu.close();
-    if (key === 'decor') this.decorPage = 0;
-    if (key === 'cats') this.catsPage = 0;
     this.drawTabBar();
     this.renderActiveTab();
   }
@@ -189,14 +239,14 @@ export class HouseEditor extends Scene {
   private renderDecorTab(): void {
     // TEMP-DEMO: iterate ownedCosmetics instead of ownedDecorations
     // Original code used: const owned = this.playerState.house.ownedDecorations;
-    const ownedAll = this.playerState.ownedCosmetics;
+    const owned = this.playerState.ownedCosmetics;
     const placed = new Set(Object.values(this.playerState.house.decorations));
     const cellW = 48;
     const gap = 6;
+    const cols = 5;
     const startX = 12;
     const startY = 4;
-    const start = this.decorPage * this.ITEMS_PER_PAGE;
-    const owned = ownedAll.slice(start, start + this.ITEMS_PER_PAGE);
+
     owned.forEach((cosId, i) => {
       // TEMP-DEMO: look up in COSMETIC_CATALOG instead of DECORATION_CATALOG
       const entry = COSMETIC_CATALOG.find((c) => c.id === cosId);
@@ -204,8 +254,8 @@ export class HouseEditor extends Scene {
       // TEMP-DEMO: derive frame from parentIdFor (handles both base and tint-variant cosmetics)
       const renderId = parentIdFor(entry) ?? entry.id;
       const frame = `cosmetic_${renderId}_idle_00`;
-      const col = i % 5;
-      const row = Math.floor(i / 5);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
       const x = startX + col * (cellW + gap) + cellW / 2;
       const y = startY + row * (cellW + gap) + cellW / 2;
       const isPlaced = placed.has(cosId);
@@ -239,28 +289,71 @@ export class HouseEditor extends Scene {
       });
     });
 
-    const totalPages = Math.max(1, Math.ceil(ownedAll.length / this.ITEMS_PER_PAGE));
-    if (totalPages > 1) {
-      const arrowY = startY + 2 * (cellW + gap) + 14;
-      const prev = this.add.text(20, arrowY, '◀', {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
-        color: this.decorPage > 0 ? '#ffd34d' : '#444',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      const label = this.add.text(this.scale.width / 2, arrowY, `${this.decorPage + 1} / ${totalPages}`, {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontSize: '11px', color: '#c0a0e6',
-      }).setOrigin(0.5);
-      const next = this.add.text(this.scale.width - 20, arrowY, '▶', {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
-        color: this.decorPage < totalPages - 1 ? '#ffd34d' : '#444',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      prev.on('pointerdown', () => {
-        if (this.decorPage > 0) { this.decorPage--; this.renderActiveTab(); }
-      });
-      next.on('pointerdown', () => {
-        if (this.decorPage < totalPages - 1) { this.decorPage++; this.renderActiveTab(); }
-      });
-      this.tabContent.add([prev, label, next]);
+    // Compute total content height and max scroll
+    const totalRows = Math.ceil(owned.length / cols);
+    const contentHeight = totalRows * (cellW + gap);
+    const vp = this.getViewport();
+    this.decorMaxScroll = Math.max(0, contentHeight - vp.height + 8);
+
+    // Render scrollbar and apply current scroll position
+    this.renderScrollbar('decor', vp);
+    this.applyTabScroll('decor');
+  }
+
+  private getViewport(): { top: number; height: number; width: number } {
+    return {
+      top: this.scale.height - 108,
+      height: 104,
+      width: this.scale.width,
+    };
+  }
+
+  private applyTabScroll(tab: 'decor' | 'cats'): void {
+    const vp = this.getViewport();
+    const scrollY = tab === 'decor' ? this.decorScrollY : this.catsScrollY;
+    this.tabContent.y = vp.top - scrollY;
+  }
+
+  private renderScrollbar(tab: 'decor' | 'cats', vp: { top: number; height: number; width: number }): void {
+    const maxScroll = tab === 'decor' ? this.decorMaxScroll : this.catsMaxScroll;
+    if (maxScroll <= 0) {
+      this.scrollbarThumb?.destroy();
+      this.scrollbarThumb = null;
+      return;
     }
+
+    const sbX = this.scale.width - 8;
+    const sbWidth = 6;
+
+    // Track — added directly to scene (not tabContent) so it isn't masked or scrolled
+    this.add.rectangle(sbX, vp.top, sbWidth, vp.height, 0x000000, 0.25)
+      .setOrigin(0.5, 0)
+      .setDepth(83);
+
+    // Thumb height proportional to content visibility
+    const contentHeight = vp.height + maxScroll;
+    const thumbHeight = Math.max(20, (vp.height / contentHeight) * vp.height);
+    const thumbScrollRange = vp.height - thumbHeight;
+    const scrollY = tab === 'decor' ? this.decorScrollY : this.catsScrollY;
+    const thumbY = vp.top + (scrollY / maxScroll) * thumbScrollRange;
+
+    this.scrollbarThumb?.destroy();
+    this.scrollbarThumb = this.add.rectangle(sbX, thumbY, sbWidth, thumbHeight, 0xc0a0e6, 0.85)
+      .setOrigin(0.5, 0)
+      .setDepth(84)
+      .setInteractive({ useHandCursor: true, draggable: true });
+
+    this.input.setDraggable(this.scrollbarThumb);
+
+    this.scrollbarThumb.on('drag', (_p: unknown, _x: unknown, dragY: number) => {
+      const clampedY = Phaser.Math.Clamp(dragY, vp.top, vp.top + thumbScrollRange);
+      const ratio = (clampedY - vp.top) / thumbScrollRange;
+      const newScroll = ratio * maxScroll;
+      if (tab === 'decor') this.decorScrollY = newScroll;
+      else this.catsScrollY = newScroll;
+      this.scrollbarThumb!.y = clampedY;
+      this.applyTabScroll(tab);
+    });
   }
 
   private openDecorMenu(x: number, y: number, decoId: string, displayName: string, isPlaced: boolean): void {
@@ -284,19 +377,19 @@ export class HouseEditor extends Scene {
   }
 
   private renderCatsTab(): void {
-    const ownedAll = this.playerState.ownedCats;
+    const owned = this.playerState.ownedCats;
     const seated = new Set(Object.values(this.playerState.seatedCats));
     const cellW = 48;
     const gap = 6;
+    const cols = 5;
     const startX = 12;
     const startY = 4;
-    const start = this.catsPage * this.ITEMS_PER_PAGE;
-    const owned = ownedAll.slice(start, start + this.ITEMS_PER_PAGE);
+
     owned.forEach((catId, i) => {
       const entry = CAT_CATALOG.find((c) => c.id === catId);
       if (!entry) return;
-      const col = i % 5;
-      const row = Math.floor(i / 5);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
       const x = startX + col * (cellW + gap) + cellW / 2;
       const y = startY + row * (cellW + gap) + cellW / 2;
       const isSeated = seated.has(catId);
@@ -324,28 +417,15 @@ export class HouseEditor extends Scene {
       });
     });
 
-    const totalPages = Math.max(1, Math.ceil(ownedAll.length / this.ITEMS_PER_PAGE));
-    if (totalPages > 1) {
-      const arrowY = startY + 2 * (cellW + gap) + 14;
-      const prev = this.add.text(20, arrowY, '◀', {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
-        color: this.catsPage > 0 ? '#ffd34d' : '#444',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      const label = this.add.text(this.scale.width / 2, arrowY, `${this.catsPage + 1} / ${totalPages}`, {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontSize: '11px', color: '#c0a0e6',
-      }).setOrigin(0.5);
-      const next = this.add.text(this.scale.width - 20, arrowY, '▶', {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
-        color: this.catsPage < totalPages - 1 ? '#ffd34d' : '#444',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      prev.on('pointerdown', () => {
-        if (this.catsPage > 0) { this.catsPage--; this.renderActiveTab(); }
-      });
-      next.on('pointerdown', () => {
-        if (this.catsPage < totalPages - 1) { this.catsPage++; this.renderActiveTab(); }
-      });
-      this.tabContent.add([prev, label, next]);
-    }
+    // Compute total content height and max scroll
+    const totalRows = Math.ceil(owned.length / cols);
+    const contentHeight = totalRows * (cellW + gap);
+    const vp = this.getViewport();
+    this.catsMaxScroll = Math.max(0, contentHeight - vp.height + 8);
+
+    // Render scrollbar and apply current scroll position
+    this.renderScrollbar('cats', vp);
+    this.applyTabScroll('cats');
   }
 
   private openCatMenu(x: number, y: number, catId: string, displayName: string, isSeated: boolean): void {
@@ -552,6 +632,11 @@ export class HouseEditor extends Scene {
     this.tabsBar?.destroy(true);
     this.tabContent?.destroy(true);
     this.trayContainer?.destroy(true);
+    this.scrollbarThumb?.destroy();
+    this.scrollbarThumb = null;
+    this.scrollMaskGfx?.destroy();
+    this.scrollMaskGfx = null;
+    this.scrollMask = null;
     this.slotGhosts = [];
     this.seatGhosts = [];
     this.removeBadges = [];
