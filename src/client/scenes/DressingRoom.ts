@@ -238,7 +238,7 @@ export class DressingRoom extends Scene {
         this.updateWearingLabel();
         this.renderGrid();
       } else {
-        // Don't reassign — keep the shared reference so HouseEditor sees the update.
+        // Don't reassign — keep the shared reference so Decorate sees the update.
         // The optimistic mutation already wrote to playerState.equippedCosmetics.
         // Sync server-side fields back into our shared object to catch any drift.
         Object.assign(this.playerState, result.state);

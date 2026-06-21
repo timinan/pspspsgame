@@ -5,7 +5,6 @@ export const SceneKeys = {
   Welcome: 'Welcome',
   Game: 'Game',
   Purchase: 'Purchase',
-  GameOver: 'GameOver',
   Decorate: 'Decorate',
   DressingRoom: 'DressingRoom',
   ChartEditor: 'ChartEditor',
