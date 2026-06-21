@@ -19,6 +19,7 @@ export class RoomRenderer {
   private decorations: Decoration[] = [];
   private cats: Cat[] = [];
   private catSpriteBySeat: Map<string, GameObjects.Sprite> = new Map();
+  private destroyed = false;
 
   constructor(private scene: Scene) {
     this.themeManager = new ThemeManager(scene);
@@ -62,6 +63,9 @@ export class RoomRenderer {
         restingAnimation: 'idle' as const,
         x: seat.x,
         y: seat.y,
+        ...(playerState.equippedCosmetics[catId] !== undefined
+          ? { equippedCosmetic: playerState.equippedCosmetics[catId] }
+          : {}),
       };
       const cat = new Cat(this.scene, model);
       cat.setPosition(x, y);
@@ -96,6 +100,8 @@ export class RoomRenderer {
   }
 
   destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
     this.themeManager.destroy();
     for (const d of this.decorations) d.destroy();
     for (const c of this.cats) c.destroy();
