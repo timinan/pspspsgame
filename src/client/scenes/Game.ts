@@ -8,7 +8,7 @@ import * as L from '@/constants/scene-layout';
 import { Balance } from '@/constants/balance';
 import { fetchState, loadChart } from '@/services/state-client';
 import { CAT_CATALOG, emptyChart } from '@/../shared/state';
-import type { PlayerState, LaneId, Chart } from '@/../shared/state';
+import type { PlayerState, LaneId, Chart, CatBreed, SeatId } from '@/../shared/state';
 import type { CatModel } from '@/types/game';
 
 /**
@@ -27,6 +27,7 @@ export class Game extends Scene {
   private playerState: PlayerState | null = null;
   private bg!: BackgroundManager;
   private cats: Cat[] = [];
+  private laneRects: Phaser.GameObjects.Rectangle[] = [];
   private hud!: TopHud;
   private player!: ChartPlayer;
   private spawnCount = 0; // dev counter — replaced by real score in Task 10
@@ -39,6 +40,7 @@ export class Game extends Scene {
     this.playerState = data?.playerState ?? null;
     this.spawnCount = 0;
     this.cats = [];
+    this.laneRects = [];
   }
 
   async create(): Promise<void> {
@@ -85,10 +87,12 @@ export class Game extends Scene {
       // Translucent lane backdrop
       const lane = this.add.rectangle(cx, laneTopY + laneH / 2, colW, laneH, color, 0.12);
       lane.setStrokeStyle(1.5, color, 0.35);
+      this.laneRects.push(lane);
 
       // Solid hit line at the bottom of the lane
       const hitLine = this.add.rectangle(cx, hitLineY, colW - 4, 3, color, 0.9);
       hitLine.setStrokeStyle(0);
+      this.laneRects.push(hitLine);
     }
   }
 
@@ -106,8 +110,12 @@ export class Game extends Scene {
     const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.88) * scaleY;
 
     const seatedCats = this.playerState?.seatedCats ?? {};
-    // Collect the seat values in a stable order, capped at 3.
-    const catIds = Object.values(seatedCats).filter(Boolean).slice(0, 3) as string[];
+    // Collect seated cats in a deterministic left-to-right seat order, capped at 3.
+    const SEAT_ORDER: SeatId[] = ['seat-left', 'seat-center', 'seat-right'];
+    const catIds = SEAT_ORDER
+      .map((seatId) => seatedCats[seatId])
+      .filter((id): id is CatBreed => Boolean(id))
+      .slice(0, 3);
 
     for (let i = 0; i < catIds.length; i++) {
       const catId = catIds[i]!;
@@ -187,6 +195,7 @@ export class Game extends Scene {
       if (host) {
         try {
           chart = await loadChart(host);
+          if (!this.scene.isActive()) return;
         } catch (err) {
           console.warn('[Game] loadChart failed, using empty chart:', err);
         }
@@ -198,6 +207,7 @@ export class Game extends Scene {
       // the player's own chart at minimum.
       try {
         const fresh = await fetchState();
+        if (!this.scene.isActive()) return;
         this.playerState = fresh;
         chart = fresh.chart;
         // Re-seat cats with the freshly loaded state.
@@ -236,6 +246,8 @@ export class Game extends Scene {
     this.input.removeAllListeners();
     this.input.keyboard?.removeAllListeners();
     this.scale.off('resize');
+    for (const r of this.laneRects) r.destroy();
+    this.laneRects = [];
     for (const c of this.cats) c.destroy();
     this.cats = [];
     this.bg?.destroy();
