@@ -72,7 +72,7 @@ interface BoxCard {
 }
 
 /**
- * Shop scene — four box cards in a 2x2 grid, each tappable to open via the
+ * Shop scene — six box cards in a 2x3 grid, each tappable to open via the
  * server. Insufficient-coin cards visibly dim and don't respond. Card taps
  * reuse playBoxOpenAnimation for the reveal, then refresh the coin display
  * from the returned PlayerState. Back button returns to Game.
@@ -170,21 +170,20 @@ export class Boxes extends Scene {
   }
 
   private drawGrid(): void {
-    const { width, height } = this.scale;
-    // Card width derived from canvas width so the 2x2 grid fits on
+    const { width } = this.scale;
+    // Card width derived from canvas width so the 2x3 grid fits on
     // anything from a narrow mobile viewport up to a wide desktop frame.
     // Clamped between a readable minimum (smaller and the present icon
     // dominates) and the original max (any wider and the grid feels
     // sparse).
     const sideMargin = 16;
-    const gapX = 24;
-    const gapY = 24;
+    const gapX = 20;
+    const gapY = 14;
     const cardW = Math.max(140, Math.min(320, (width - sideMargin * 2 - gapX) / 2));
-    const cardH = 180;
+    const cardH = 120;
     const gridW = cardW * 2 + gapX;
-    const gridH = cardH * 3 + gapY * 2;
     const originX = width / 2 - gridW / 2;
-    const originY = height / 2 - gridH / 2 + 20;
+    const originY = 50;
 
     BOX_CARDS.forEach((layout, idx) => {
       const col = idx % 2;
