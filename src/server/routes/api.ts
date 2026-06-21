@@ -6,6 +6,7 @@ import type {
   InitResponse,
 } from '../../shared/api';
 import { state } from './state';
+import { chart } from './chart';
 
 type ErrorResponse = {
   status: 'error';
@@ -17,6 +18,9 @@ export const api = new Hono();
 // Phase 2 player-state routes: /api/state, /api/box/open, /api/coins/sync,
 // /api/cosmetic/equip, /api/onboarding/complete.
 api.route('/', state);
+
+// Phase 5 chart routes: /api/chart/save, /api/chart?author=<username>.
+api.route('/chart', chart);
 
 api.get('/init', async (c) => {
   const { postId } = context;
