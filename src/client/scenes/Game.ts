@@ -318,7 +318,7 @@ export class Game extends Scene {
           label: 'Edit Chart',
           description: 'Compose your beat',
           icon: '🎵',
-          onTap: () => this.scene.start(SceneKeys.Game), // placeholder; Task 12 routes to ChartEditor
+          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
         },
         {
           label: 'Buy Boxes',

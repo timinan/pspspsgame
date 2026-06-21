@@ -1,5 +1,6 @@
 import { Boot } from './scenes/Boot';
 import { Boxes } from './scenes/Boxes';
+import { ChartEditor } from './scenes/ChartEditor';
 import { DressingRoom } from './scenes/DressingRoom';
 import { GameOver } from './scenes/GameOver';
 import { Game as MainGame } from './scenes/Game';
@@ -29,7 +30,7 @@ const config: Phaser.Types.Core.GameConfig = {
     width: 1024,
     height: 768,
   },
-  scene: [Boot, Preloader, MainMenu, Welcome, MainGame, Boxes, GameOver, HouseEditor, DressingRoom],
+  scene: [Boot, Preloader, MainMenu, Welcome, MainGame, Boxes, GameOver, HouseEditor, DressingRoom, ChartEditor],
 };
 
 const StartGame = (parent: string) => {
