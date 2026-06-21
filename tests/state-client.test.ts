@@ -9,8 +9,11 @@ import {
   setSeat,
   sellItem,
   rehomeCat,
+  saveChart,
+  loadChart,
 } from '@/services/state-client';
-import type { PlayerState } from '@/../shared/state';
+import type { PlayerState, Chart } from '@/../shared/state';
+import { emptyChart } from '@/../shared/state';
 
 function makeState(): Partial<PlayerState> {
   return {
@@ -167,5 +170,44 @@ describe('state-client house-editor operations', () => {
 
   it('exposes rehomeCat', () => {
     expect(typeof rehomeCat).toBe('function');
+  });
+});
+
+describe('state-client chart operations', () => {
+  it('saveChart POSTs to /api/chart/save', async () => {
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ ok: true }),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    const c = emptyChart('alice', 'x');
+    await saveChart(c);
+
+    expect(spy).toHaveBeenCalledWith(
+      '/api/chart/save',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('loadChart fetches /api/chart with author', async () => {
+    const chart: Chart = {
+      authorId: 'bob',
+      title: 'test',
+      stepCount: 8,
+      bpm: 120,
+      steps: [],
+      updatedAt: 1,
+    };
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(chart),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    const c = await loadChart('bob');
+
+    expect(spy).toHaveBeenCalledWith('/api/chart?author=bob');
+    expect(c.authorId).toBe('bob');
   });
 });

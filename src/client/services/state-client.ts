@@ -1,6 +1,7 @@
 import type {
   BoxId,
   CatBreed,
+  Chart,
   CosmeticId,
   PlayerState,
   Rarity,
@@ -115,4 +116,19 @@ export async function rehomeCat(catId: CatBreed): Promise<PlayerState> {
   if (!r.ok) throw new Error(`rehomeCat ${r.status}`);
   const data = (await r.json()) as { state: PlayerState };
   return data.state;
+}
+
+export async function saveChart(chart: Chart): Promise<void> {
+  const r = await fetch('/api/chart/save', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(chart),
+  });
+  if (!r.ok) throw new Error(`saveChart ${r.status}`);
+}
+
+export async function loadChart(authorId: string): Promise<Chart> {
+  const r = await fetch(`/api/chart?author=${encodeURIComponent(authorId)}`);
+  if (!r.ok) throw new Error(`loadChart ${r.status}`);
+  return (await r.json()) as Chart;
 }
