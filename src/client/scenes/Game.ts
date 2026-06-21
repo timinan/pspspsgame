@@ -38,6 +38,13 @@ export class Game extends Scene {
   private startTimeMs = 0;
   private roundOver = false;
 
+  // Summary overlay — built once in create(), shown by endRound()
+  private summary: Phaser.GameObjects.Container | null = null;
+  private summaryScoreText!: Phaser.GameObjects.Text;
+  private summaryAccuracyText!: Phaser.GameObjects.Text;
+  private summaryComboText!: Phaser.GameObjects.Text;
+  private summaryMissesText!: Phaser.GameObjects.Text;
+
   constructor() {
     super(SceneKeys.Game);
   }
@@ -65,6 +72,7 @@ export class Game extends Scene {
     this.drawLanes();
     this.seatCats();
     this.buildHud();
+    this.buildSummaryOverlay();
 
     // Pre-warm note pool — avoids allocations during first 12 spawns
     for (let i = 0; i < 12; i++) {
@@ -86,7 +94,7 @@ export class Game extends Scene {
     if (this.roundOver) return;
     this.player.advance(delta);
     this.checkMisses();
-    // Task 11 wires: if (this.player.isFinished()) this.endRound();
+    if (this.player.isFinished()) this.endRound();
   }
 
   // -----------------------------------------------------------------------
@@ -170,6 +178,138 @@ export class Game extends Scene {
     }
   }
 
+  private buildSummaryOverlay(): void {
+    const { width, height } = this.scale;
+    const cx = width / 2;
+    const cy = height / 2;
+
+    const container = this.add.container(0, 0).setDepth(300).setVisible(false);
+
+    // Full-canvas semi-transparent backdrop
+    const backdrop = this.add.rectangle(cx, cy, width, height, 0x000000, 0.7);
+    container.add(backdrop);
+
+    // Centered panel
+    const panelW = Math.min(280, width - 32);
+    const panelH = 300;
+    const panel = this.add.rectangle(cx, cy, panelW, panelH, 0x1a0a2e, 1);
+    panel.setStrokeStyle(2, 0xc678ff, 0.8);
+    container.add(panel);
+
+    const fontBase = { fontFamily: 'Pixeloid Sans, sans-serif' };
+
+    // Title
+    const title = this.add.text(cx, cy - 122, 'CHALLENGE COMPLETE', {
+      ...fontBase,
+      fontStyle: 'bold',
+      fontSize: '13px',
+      color: '#ffd34d',
+    }).setOrigin(0.5, 0);
+    container.add(title);
+
+    // Divider line
+    const divider = this.add.rectangle(cx, cy - 104, panelW - 32, 1, 0xc0a0e6, 0.3);
+    container.add(divider);
+
+    // Final score label + value
+    const scoreLabel = this.add.text(cx, cy - 94, 'FINAL SCORE', {
+      ...fontBase,
+      fontSize: '10px',
+      color: '#c0a0e6',
+    }).setOrigin(0.5, 0);
+    container.add(scoreLabel);
+
+    this.summaryScoreText = this.add.text(cx, cy - 78, '0', {
+      ...fontBase,
+      fontStyle: 'bold',
+      fontSize: '32px',
+      color: '#ffffff',
+    }).setOrigin(0.5, 0);
+    container.add(this.summaryScoreText);
+
+    // Stats row: accuracy / max combo / misses
+    const statsY = cy - 18;
+    const col = panelW / 3;
+    const statLabels = ['ACCURACY', 'MAX COMBO', 'MISSES'];
+    const statXs = [cx - col, cx, cx + col];
+
+    for (let i = 0; i < statLabels.length; i++) {
+      const lbl = this.add.text(statXs[i]!, statsY, statLabels[i]!, {
+        ...fontBase,
+        fontSize: '8px',
+        color: '#c0a0e6',
+      }).setOrigin(0.5, 0);
+      container.add(lbl);
+    }
+
+    this.summaryAccuracyText = this.add.text(statXs[0]!, statsY + 14, '0%', {
+      ...fontBase,
+      fontStyle: 'bold',
+      fontSize: '16px',
+      color: '#4dffb4',
+    }).setOrigin(0.5, 0);
+    container.add(this.summaryAccuracyText);
+
+    this.summaryComboText = this.add.text(statXs[1]!, statsY + 14, 'x0', {
+      ...fontBase,
+      fontStyle: 'bold',
+      fontSize: '16px',
+      color: '#ffd34d',
+    }).setOrigin(0.5, 0);
+    container.add(this.summaryComboText);
+
+    this.summaryMissesText = this.add.text(statXs[2]!, statsY + 14, '0', {
+      ...fontBase,
+      fontStyle: 'bold',
+      fontSize: '16px',
+      color: '#ff6b6b',
+    }).setOrigin(0.5, 0);
+    container.add(this.summaryMissesText);
+
+    // Buttons
+    const btnY = cy + 86;
+    const btnW = 110;
+    const btnH = 38;
+    const btnGap = 12;
+
+    // Skip button
+    const skipBg = this.add.rectangle(
+      cx - btnW / 2 - btnGap / 2, btnY, btnW, btnH, 0x2c1856, 1,
+    ).setInteractive({ useHandCursor: true });
+    skipBg.setStrokeStyle(1, 0xc0a0e6, 0.5);
+    const skipText = this.add.text(
+      cx - btnW / 2 - btnGap / 2, btnY, 'Skip', {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '14px',
+        color: '#c0a0e6',
+      },
+    ).setOrigin(0.5);
+    container.add([skipBg, skipText]);
+    skipBg.on('pointerover', () => skipBg.setFillStyle(0x3d2566, 1));
+    skipBg.on('pointerout', () => skipBg.setFillStyle(0x2c1856, 1));
+    skipBg.on('pointerdown', this.onSkipClicked);
+
+    // Post Comment button
+    const postBg = this.add.rectangle(
+      cx + btnW / 2 + btnGap / 2, btnY, btnW, btnH, 0xffd34d, 1,
+    ).setInteractive({ useHandCursor: true });
+    const postText = this.add.text(
+      cx + btnW / 2 + btnGap / 2, btnY, 'Post Comment', {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '11px',
+        color: '#1a0a2e',
+      },
+    ).setOrigin(0.5);
+    container.add([postBg, postText]);
+    postBg.on('pointerover', () => postBg.setFillStyle(0xffe680, 1));
+    postBg.on('pointerout', () => postBg.setFillStyle(0xffd34d, 1));
+    postBg.on('pointerdown', this.onPostCommentClicked);
+
+    this.summary = container;
+  }
+
   private buildHud(): void {
     this.hud = new TopHud(this, {
       showStats: true,
@@ -215,6 +355,44 @@ export class Game extends Scene {
     this.input.keyboard?.on('keydown-TWO', () => this.registerTap(1));
     this.input.keyboard?.on('keydown-THREE', () => this.registerTap(2));
   }
+
+  // -----------------------------------------------------------------------
+  // Private — round end
+  // -----------------------------------------------------------------------
+
+  private endRound(): void {
+    if (this.roundOver) return;
+    this.roundOver = true;
+    // Disable tap zones individually so the overlay buttons still work.
+    for (const z of this.tapZones) z.disableInteractive();
+    this.input.keyboard?.removeAllListeners();
+    // Recycle all live notes — stops their fall tweens immediately.
+    for (let i = 0; i < this.notes.length; i++) {
+      const n = this.notes[i]!;
+      if (n.active) n.recycle();
+    }
+    this.showSummary();
+  }
+
+  private showSummary(): void {
+    if (!this.summary) return;
+    this.summaryScoreText.setText(String(this.score.get()));
+    const accuracyPct = this.score.getAccuracy();
+    this.summaryAccuracyText.setText(`${accuracyPct.toFixed(0)}%`);
+    this.summaryComboText.setText(`x${this.score.getMaxCombo()}`);
+    this.summaryMissesText.setText(String(this.score.getMisses()));
+    this.summary.setVisible(true);
+  }
+
+  private onSkipClicked = (): void => {
+    this.scene.start(SceneKeys.HouseEditor); // routes to Decorate (Task 13 rename)
+  };
+
+  private onPostCommentClicked = (): void => {
+    console.info('[Game] Post Comment clicked. Score:', this.score.get());
+    // Real Devvit comment post wiring comes later (out of scope for Task 11).
+    this.onSkipClicked();
+  };
 
   // -----------------------------------------------------------------------
   // Private — chart
@@ -389,5 +567,7 @@ export class Game extends Scene {
     this.cats = [];
     this.bg?.destroy();
     this.hud?.destroy();
+    this.summary?.destroy(true);
+    this.summary = null;
   }
 }
