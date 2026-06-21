@@ -10,6 +10,7 @@ import {
   type DecorationId,
   type SlotId,
   type ThemeId,
+  type SeatId,
 } from '../../shared/state';
 
 // DEV ONLY — every GET /api/state wipes the player's record and hands
@@ -134,6 +135,24 @@ state.post('/house/theme', async (c) => {
     return c.json({ ok: false, reason: 'theme_not_owned' }, 400);
   }
   player.house.themeId = themeId;
+  await save(redis, player);
+  return c.json({ ok: true, state: player });
+});
+
+/** POST /api/house/seat — body: { seatId, catId | null }.
+ * Pass null catId to unseat the cat. */
+state.post('/house/seat', async (c) => {
+  const { seatId, catId } = (await c.req.json()) as { seatId: SeatId; catId: CatBreed | null };
+  const username = await currentUsername();
+  const player = await loadOrInit(redis, username);
+  if (catId === null) {
+    delete player.seatedCats[seatId];
+  } else {
+    if (!player.ownedCats.includes(catId)) {
+      return c.json({ ok: false, reason: 'cat_not_owned' }, 400);
+    }
+    player.seatedCats[seatId] = catId;
+  }
   await save(redis, player);
   return c.json({ ok: true, state: player });
 });
