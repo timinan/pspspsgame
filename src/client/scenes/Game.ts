@@ -3,10 +3,7 @@ import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
 import { Cat } from '@/entities/cat';
-import { ThemeManager } from '@/entities/theme-manager';
-import { Decoration } from '@/entities/decoration';
-import { SCENE_SLOTS } from '@/constants/scene-slots';
-import { DECORATION_CATALOG } from '@/../shared/state';
+import { RoomRenderer } from '@/entities/room-renderer';
 import { ScoreSystem } from '@/systems/score-system';
 import { MeowBarSystem } from '@/systems/meow-bar-system';
 import { RhythmSystem } from '@/systems/rhythm-system';
@@ -14,32 +11,10 @@ import { InteractionSystem } from '@/systems/interaction-system';
 import { CatSelectionSystem } from '@/systems/cat-selection-system';
 import { syncCoins } from '@/services/state-client';
 import { TopHud } from '@/ui/top-hud';
-import type { CatAnimationState, CatBreed, CatModel, InteractionType } from '@/types/game';
+import type { InteractionType } from '@/types/game';
 import type { PlayerState } from '@/../shared/state';
 
-// Seat coordinates (fractions of canvas width/height). Cats are anchored at
-// origin (0.5, 1) so the y value is where the cat's feet touch the surface.
-// Order: [0] left ledge, [1] roof, [2] right ledge.
-//
-// Tip: set DEBUG_LOG_SEAT_CLICKS below to true, then shift+click anywhere
-// in the running game and the console prints the exact { x, y } at that
-// point — copy/paste it here to dial in seats by eye.
-const CAT_SEAT_POSITIONS: { x: number; y: number }[] = [
-  { x: 0.134, y: 0.305 }, // left ledge
-  { x: 0.445, y: 0.243 }, // roof
-  { x: 0.756, y: 0.4 },   // right ledge
-];
-
 const DEBUG_LOG_SEAT_CLICKS = true;
-
-// Fallback breeds used only if the player has no owned cats yet (shouldn't
-// normally happen since Welcome guarantees at least one cat). Kept as a
-// safety net so the scene never renders an empty house.
-const FALLBACK_BREEDS: CatBreed[] = ['cat1', 'cat2', 'cat3'];
-
-// Front-facing only. sleep / stretch were dropped from the extractor
-// because their side-facing poses make cosmetic overlays look detached.
-const RESTING_ANIMATION_POOL: CatAnimationState[] = ['idle', 'lick'];
 
 const INTERACTION_BUTTON_DEFS: { type: InteractionType; label: string }[] = [
   { type: 'pet', label: 'Pet' },
@@ -111,9 +86,8 @@ interface PspspsLane {
 export class Game extends Scene {
   private playerState: PlayerState | null = null;
 
-  private themeManager!: ThemeManager;
+  private roomRenderer!: RoomRenderer;
   private cats: Cat[] = [];
-  private decorations: Decoration[] = [];
   private score!: ScoreSystem;
   private meow!: MeowBarSystem;
   private interaction!: InteractionSystem;
@@ -217,51 +191,13 @@ export class Game extends Scene {
     // Pre-create the pspsps sfx instance so we can replay it fast on every hit
     this.pspspsSfx = this.sound.add(AssetKeys.Audio.Pspsps, { volume: 0.7 });
 
-    // Reset on every create() — survives scene restarts cleanly.
-    this.decorations = [];
-
-    // Apply the player's active theme (backdrop + music) before cats so the
-    // backdrop sits behind all house content.
-    this.themeManager = new ThemeManager(this);
-    if (this.playerState?.house?.themeId) {
-      this.themeManager.applyTheme(this.playerState.house.themeId);
+    // Render room (theme + decorations + cats from seatedCats). Empty
+    // seatedCats means an empty house — no cats auto-seated from ownedCats.
+    this.roomRenderer = new RoomRenderer(this);
+    if (this.playerState) {
+      this.roomRenderer.renderFrom(this.playerState);
     }
-
-    // Place decoration sprites for each filled slot in the player's house.
-    for (const slot of SCENE_SLOTS) {
-      const decorationId = this.playerState?.house?.decorations[slot.id];
-      if (!decorationId) continue;
-      const entry = DECORATION_CATALOG.find((d) => d.id === decorationId);
-      if (!entry) continue;
-      const deco = new Decoration(this, slot, entry);
-      this.add.existing(deco);
-      this.decorations.push(deco);
-    }
-
-    // Seat every owned cat (up to baseCatsOnScreen) so equips made in
-    // Collection are visible. Cosmetics are read from playerState's
-    // equippedCosmetics map per-breed at construction time, so the cat
-    // wears whatever you saved.
-    const shuffledRest = [...RESTING_ANIMATION_POOL].sort(() => Math.random() - 0.5);
-    const seatedBreeds = this.pickSeatedBreeds();
-    for (let i = 0; i < seatedBreeds.length && i < CAT_SEAT_POSITIONS.length; i++) {
-      const breed = seatedBreeds[i]!;
-      const seat = CAT_SEAT_POSITIONS[i]!;
-      const resting = shuffledRest[i % shuffledRest.length]!;
-      const equipped = this.playerState?.equippedCosmetics[breed];
-      const model: CatModel = {
-        id: `seat-${i}`,
-        breed,
-        animation: resting,
-        restingAnimation: resting,
-        x: seat.x * 100,
-        y: seat.y * 100,
-        ...(equipped !== undefined ? { equippedCosmetic: equipped } : {}),
-      };
-      const cat = new Cat(this, model);
-      cat.setPosition(seat.x * this.scale.width, seat.y * this.scale.height);
-      this.cats.push(cat);
-    }
+    this.cats = this.roomRenderer.getCats();
 
     this.createLanes();
     this.createMeowBar();
@@ -691,17 +627,6 @@ export class Game extends Scene {
         });
       },
     });
-  }
-
-  private pickSeatedBreeds(): CatBreed[] {
-    const owned = this.playerState?.ownedCats ?? [];
-    const seatCount = Math.min(Balance.baseCatsOnScreen, CAT_SEAT_POSITIONS.length);
-    if (owned.length === 0) {
-      return FALLBACK_BREEDS.slice(0, seatCount);
-    }
-    if (owned.length <= seatCount) return [...owned];
-    const shuffled = [...owned].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, seatCount);
   }
 
   private async navigateTo(sceneKey: string): Promise<void> {
@@ -1239,16 +1164,13 @@ export class Game extends Scene {
     }
     this.music?.stop();
     this.music = null;
-    this.themeManager?.destroy();
-    for (const d of this.decorations) d.destroy();
-    this.decorations = [];
+    this.roomRenderer?.destroy();
+    this.cats = [];
     this.topHud?.destroy();
     for (const lane of this.lanes) {
       for (const sprite of lane.elementSprites.values()) sprite.destroy();
       lane.elementSprites.clear();
     }
     this.lanes = [];
-    for (const c of this.cats) c.destroy();
-    this.cats = [];
   }
 }
