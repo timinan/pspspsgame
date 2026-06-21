@@ -242,24 +242,62 @@ export class HouseEditor extends Scene {
     const totalPages = Math.max(1, Math.ceil(ownedAll.length / this.ITEMS_PER_PAGE));
     if (totalPages > 1) {
       const arrowY = startY + 2 * (cellW + gap) + 14;
-      const prev = this.add.text(20, arrowY, '◀', {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
-        color: this.decorPage > 0 ? '#ffd34d' : '#444',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      const label = this.add.text(this.scale.width / 2, arrowY, `${this.decorPage + 1} / ${totalPages}`, {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontSize: '11px', color: '#c0a0e6',
-      }).setOrigin(0.5);
-      const next = this.add.text(this.scale.width - 20, arrowY, '▶', {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
-        color: this.decorPage < totalPages - 1 ? '#ffd34d' : '#444',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      prev.on('pointerdown', () => {
-        if (this.decorPage > 0) { this.decorPage--; this.renderActiveTab(); }
-      });
-      next.on('pointerdown', () => {
-        if (this.decorPage < totalPages - 1) { this.decorPage++; this.renderActiveTab(); }
-      });
-      this.tabContent.add([prev, label, next]);
+      const btnW = 56;
+      const btnH = 24;
+      const prevEnabled = this.decorPage > 0;
+      const nextEnabled = this.decorPage < totalPages - 1;
+
+      // PREV button
+      const prevBg = this.add
+        .rectangle(20 + btnW / 2, arrowY, btnW, btnH, prevEnabled ? 0x2c1856 : 0x1a0a2e, prevEnabled ? 1 : 0.5)
+        .setStrokeStyle(1, prevEnabled ? 0xffd34d : 0x444444, prevEnabled ? 0.8 : 0.3);
+      const prevLabel = this.add
+        .text(20 + btnW / 2, arrowY, '◀ Prev', {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '11px',
+          color: prevEnabled ? '#ffd34d' : '#666',
+        })
+        .setOrigin(0.5);
+      if (prevEnabled) {
+        prevBg.setInteractive({ useHandCursor: true });
+        prevBg.on('pointerdown', () => {
+          this.decorPage--;
+          this.renderActiveTab();
+        });
+      }
+
+      // Page label
+      const label = this.add
+        .text(this.scale.width / 2, arrowY, `${this.decorPage + 1} / ${totalPages}`, {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '12px',
+          color: '#ffd34d',
+        })
+        .setOrigin(0.5);
+
+      // NEXT button
+      const nextBg = this.add
+        .rectangle(this.scale.width - 20 - btnW / 2, arrowY, btnW, btnH, nextEnabled ? 0x2c1856 : 0x1a0a2e, nextEnabled ? 1 : 0.5)
+        .setStrokeStyle(1, nextEnabled ? 0xffd34d : 0x444444, nextEnabled ? 0.8 : 0.3);
+      const nextLabel = this.add
+        .text(this.scale.width - 20 - btnW / 2, arrowY, 'Next ▶', {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '11px',
+          color: nextEnabled ? '#ffd34d' : '#666',
+        })
+        .setOrigin(0.5);
+      if (nextEnabled) {
+        nextBg.setInteractive({ useHandCursor: true });
+        nextBg.on('pointerdown', () => {
+          this.decorPage++;
+          this.renderActiveTab();
+        });
+      }
+
+      this.tabContent.add([prevBg, prevLabel, label, nextBg, nextLabel]);
     }
   }
 
@@ -327,24 +365,62 @@ export class HouseEditor extends Scene {
     const totalPages = Math.max(1, Math.ceil(ownedAll.length / this.ITEMS_PER_PAGE));
     if (totalPages > 1) {
       const arrowY = startY + 2 * (cellW + gap) + 14;
-      const prev = this.add.text(20, arrowY, '◀', {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
-        color: this.catsPage > 0 ? '#ffd34d' : '#444',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      const label = this.add.text(this.scale.width / 2, arrowY, `${this.catsPage + 1} / ${totalPages}`, {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontSize: '11px', color: '#c0a0e6',
-      }).setOrigin(0.5);
-      const next = this.add.text(this.scale.width - 20, arrowY, '▶', {
-        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
-        color: this.catsPage < totalPages - 1 ? '#ffd34d' : '#444',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      prev.on('pointerdown', () => {
-        if (this.catsPage > 0) { this.catsPage--; this.renderActiveTab(); }
-      });
-      next.on('pointerdown', () => {
-        if (this.catsPage < totalPages - 1) { this.catsPage++; this.renderActiveTab(); }
-      });
-      this.tabContent.add([prev, label, next]);
+      const btnW = 56;
+      const btnH = 24;
+      const prevEnabled = this.catsPage > 0;
+      const nextEnabled = this.catsPage < totalPages - 1;
+
+      // PREV button
+      const prevBg = this.add
+        .rectangle(20 + btnW / 2, arrowY, btnW, btnH, prevEnabled ? 0x2c1856 : 0x1a0a2e, prevEnabled ? 1 : 0.5)
+        .setStrokeStyle(1, prevEnabled ? 0xffd34d : 0x444444, prevEnabled ? 0.8 : 0.3);
+      const prevLabel = this.add
+        .text(20 + btnW / 2, arrowY, '◀ Prev', {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '11px',
+          color: prevEnabled ? '#ffd34d' : '#666',
+        })
+        .setOrigin(0.5);
+      if (prevEnabled) {
+        prevBg.setInteractive({ useHandCursor: true });
+        prevBg.on('pointerdown', () => {
+          this.catsPage--;
+          this.renderActiveTab();
+        });
+      }
+
+      // Page label
+      const label = this.add
+        .text(this.scale.width / 2, arrowY, `${this.catsPage + 1} / ${totalPages}`, {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '12px',
+          color: '#ffd34d',
+        })
+        .setOrigin(0.5);
+
+      // NEXT button
+      const nextBg = this.add
+        .rectangle(this.scale.width - 20 - btnW / 2, arrowY, btnW, btnH, nextEnabled ? 0x2c1856 : 0x1a0a2e, nextEnabled ? 1 : 0.5)
+        .setStrokeStyle(1, nextEnabled ? 0xffd34d : 0x444444, nextEnabled ? 0.8 : 0.3);
+      const nextLabel = this.add
+        .text(this.scale.width - 20 - btnW / 2, arrowY, 'Next ▶', {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '11px',
+          color: nextEnabled ? '#ffd34d' : '#666',
+        })
+        .setOrigin(0.5);
+      if (nextEnabled) {
+        nextBg.setInteractive({ useHandCursor: true });
+        nextBg.on('pointerdown', () => {
+          this.catsPage++;
+          this.renderActiveTab();
+        });
+      }
+
+      this.tabContent.add([prevBg, prevLabel, label, nextBg, nextLabel]);
     }
   }
 
