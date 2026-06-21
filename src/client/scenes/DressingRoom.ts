@@ -5,7 +5,7 @@ import { AssetKeys } from '@/constants/assets';
 import { equipCosmetic } from '@/services/state-client';
 import type { PlayerState, CatBreed } from '@/../shared/state';
 
-const COSMETICS_PER_PAGE = 20;
+const COSMETICS_PER_PAGE = 19;
 
 export class DressingRoom extends Scene {
   private catId!: CatBreed;
