@@ -914,24 +914,34 @@ export class Collection extends Scene {
   }
 
   private async applyTheme(themeId: ThemeId): Promise<void> {
-    if (!this.playerState) return;
+    if (!this.playerState || this.busy) return;
     if (themeId === this.playerState.house.themeId) return;
-    this.playerState = await setTheme(themeId);
-    this.renderThemeTab();
+    this.busy = true;
+    try {
+      this.playerState = await setTheme(themeId);
+      this.renderThemeTab();
+    } finally {
+      this.busy = false;
+    }
   }
 
   private async placeSelectedInSlot(slotId: SlotId): Promise<void> {
-    if (!this.playerState) return;
+    if (!this.playerState || this.busy) return;
     const current = this.playerState.house.decorations[slotId];
-    if (!this.selectedDecorationId && current) {
-      // Tap filled slot with nothing selected → clear it.
-      this.playerState = await setDecorationInSlot(slotId, null);
-    } else if (this.selectedDecorationId) {
-      // Place selected decoration in slot.
-      this.playerState = await setDecorationInSlot(slotId, this.selectedDecorationId);
-      this.selectedDecorationId = null;
+    this.busy = true;
+    try {
+      if (!this.selectedDecorationId && current) {
+        // Tap filled slot with nothing selected → clear it.
+        this.playerState = await setDecorationInSlot(slotId, null);
+      } else if (this.selectedDecorationId) {
+        // Place selected decoration in slot.
+        this.playerState = await setDecorationInSlot(slotId, this.selectedDecorationId);
+        this.selectedDecorationId = null;
+      }
+      this.renderDecorTab();
+    } finally {
+      this.busy = false;
     }
-    this.renderDecorTab();
   }
 
   // -- Save / Back buttons --------------------------------------------
