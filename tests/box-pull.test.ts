@@ -5,6 +5,7 @@ import {
   COSMETIC_CATALOG,
   DUPLICATE_REFUND,
   STARTER_COINS,
+  BOX_CATALOG,
   type PlayerState,
 } from '../src/shared/state';
 
@@ -123,5 +124,28 @@ describe('box-pull', () => {
     });
     expect(state.coins).toBe(startCoins + DUPLICATE_REFUND);
     expect(state.ownedCats).toEqual(['cat1']); // unchanged
+  });
+});
+
+describe('Phase 3 box catalog', () => {
+  it('includes a Decor Crate at 50 coins for decorations', () => {
+    const box = BOX_CATALOG.decorCrate;
+    expect(box).toBeDefined();
+    expect(box.cost).toBe(50);
+    expect(box.rewardKind).toBe('decoration');
+  });
+
+  it('includes a Theme Pack at 50 coins for themes', () => {
+    const box = BOX_CATALOG.themePack;
+    expect(box).toBeDefined();
+    expect(box.cost).toBe(50);
+    expect(box.rewardKind).toBe('theme');
+  });
+
+  it('drop weights sum to 100 for new boxes', () => {
+    for (const id of ['decorCrate', 'themePack'] as const) {
+      const total = Object.values(BOX_CATALOG[id].rates).reduce((a, b) => a + b, 0);
+      expect(total).toBe(100);
+    }
   });
 });

@@ -22,7 +22,9 @@ export type BoxId =
   | 'catCrate'
   | 'premiumCatCrate'
   | 'stylePack'
-  | 'premiumStylePack';
+  | 'premiumStylePack'
+  | 'decorCrate'
+  | 'themePack';
 
 // -- Catalog entries ----------------------------------------------------
 
@@ -81,7 +83,7 @@ export interface ThemeEntry {
 export interface BoxConfig {
   id: BoxId;
   cost: number;
-  rewardKind: 'cat' | 'cosmetic';
+  rewardKind: 'cat' | 'cosmetic' | 'decoration' | 'theme';
   /** Drop weights by rarity. Must sum to 100 (enforced by tests). */
   rates: Record<Rarity, number>;
 }
@@ -121,6 +123,18 @@ export const BOX_CATALOG: Record<BoxId, BoxConfig> = {
     cost: 250,
     rewardKind: 'cosmetic',
     rates: { common: 0, uncommon: 40, rare: 50, legendary: 10 },
+  },
+  decorCrate: {
+    id: 'decorCrate',
+    cost: 50,
+    rewardKind: 'decoration',
+    rates: { common: 70, uncommon: 25, rare: 5, legendary: 0 },
+  },
+  themePack: {
+    id: 'themePack',
+    cost: 50,
+    rewardKind: 'theme',
+    rates: { common: 70, uncommon: 25, rare: 5, legendary: 0 },
   },
 };
 
