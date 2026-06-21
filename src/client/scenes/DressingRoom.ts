@@ -66,14 +66,16 @@ export class DressingRoom extends Scene {
     // Hero shot — match Collection.ts frame pattern
     const heroFrame =
       this.catId === 'rainbow' ? 'cat6_idle_00' : `${this.catId}_idle_00`;
+    const heroY = Math.max(120, height * 0.25);
+    const heroScale = Math.min(2.5, width / 200);
     this.heroSprite = this.add
-      .image(width / 2, 150, AssetKeys.Atlas.Cats, heroFrame)
-      .setScale(2.5);
+      .image(width / 2, heroY, AssetKeys.Atlas.Cats, heroFrame)
+      .setScale(heroScale);
     this.renderEquippedCosmetic();
 
     // Wearing label
     this.wearingLabel = this.add
-      .text(width / 2, 240, '', {
+      .text(width / 2, this.heroSprite.y + 80, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontSize: '10px',
         color: '#c0a0e6',
@@ -82,19 +84,20 @@ export class DressingRoom extends Scene {
     this.updateWearingLabel();
 
     // Grid container
-    this.gridContainer = this.add.container(0, 270);
+    this.gridContainer = this.add.container(0, this.heroSprite.y + 110);
     this.renderGrid();
 
     // Pagination
+    const paginationY = height - 32;
     this.pageLabel = this.add
-      .text(width / 2, height - 22, '', {
+      .text(width / 2, paginationY, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontSize: '10px',
         color: '#c0a0e6',
       })
       .setOrigin(0.5);
-    this.prevBtn = this.makeArrow(40, height - 22, '◀', () => this.changePage(-1));
-    this.nextBtn = this.makeArrow(width - 40, height - 22, '▶', () => this.changePage(1));
+    this.prevBtn = this.makeArrow(40, paginationY, '◀', () => this.changePage(-1));
+    this.nextBtn = this.makeArrow(width - 40, paginationY, '▶', () => this.changePage(1));
     this.updatePagination();
   }
 
@@ -130,8 +133,8 @@ export class DressingRoom extends Scene {
     const cos = COSMETIC_CATALOG.find((c) => c.id === cosId);
     if (!cos || !cos.sourceFrame) return;
     this.heroCosmetic = this.add
-      .sprite(this.heroSprite.x, this.heroSprite.y - 30, AssetKeys.Atlas.Cosmetics, cos.sourceFrame)
-      .setScale(2.5);
+      .sprite(this.heroSprite.x, this.heroSprite.y - this.heroSprite.displayHeight * 0.25, AssetKeys.Atlas.Cosmetics, cos.sourceFrame)
+      .setScale(this.heroSprite.scaleX);
   }
 
   private updateWearingLabel(): void {
@@ -193,12 +196,36 @@ export class DressingRoom extends Scene {
   }
 
   private async equip(cosId: string | null): Promise<void> {
-    const result = await equipCosmetic(this.catId, cosId);
-    if (!result.ok) return;
-    this.playerState = result.state;
+    // Optimistic: apply immediately so the tap feels instant
+    const previousCos = this.playerState.equippedCosmetics[this.catId];
+    if (cosId === null) {
+      delete this.playerState.equippedCosmetics[this.catId];
+    } else {
+      this.playerState.equippedCosmetics[this.catId] = cosId;
+    }
     this.renderEquippedCosmetic();
     this.updateWearingLabel();
     this.renderGrid();
+
+    // Server sync in background
+    try {
+      const result = await equipCosmetic(this.catId, cosId);
+      if (!result.ok) {
+        // Revert optimistic change
+        if (previousCos === undefined) {
+          delete this.playerState.equippedCosmetics[this.catId];
+        } else {
+          this.playerState.equippedCosmetics[this.catId] = previousCos;
+        }
+        this.renderEquippedCosmetic();
+        this.updateWearingLabel();
+        this.renderGrid();
+      } else {
+        this.playerState = result.state;
+      }
+    } catch (e) {
+      console.warn('[DressingRoom] equip failed:', e);
+    }
   }
 
   private changePage(delta: number): void {

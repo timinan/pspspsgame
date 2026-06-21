@@ -230,19 +230,11 @@ export class HouseEditor extends Scene {
         .rectangle(x, y, cellW, cellW, isSeated ? 0x1a0a2e : 0x0b041a, isSeated ? 1 : 0.6)
         .setStrokeStyle(1, isSeated ? 0xffd34d : 0xc0a0e6, isSeated ? 1 : 0.3)
         .setInteractive({ useHandCursor: true });
-      // Cat icon: use the cat name as text since CatEntry lacks a static frame.
-      // This is a v1 simplification; real cat sprites will come from Cat entity
-      // scaled to thumbnail size in a follow-up.
-      const label = this.add
-        .text(x, y, entry.name, {
-          fontFamily: 'Pixeloid Sans, sans-serif',
-          fontSize: '10px',
-          color: '#ffffff',
-          align: 'center',
-          wordWrap: { width: cellW - 4 },
-        })
-        .setOrigin(0.5);
-      this.tabContent.add([bg, label]);
+      const frame = catId === 'rainbow' ? 'cat6_idle_00' : `${catId}_idle_00`;
+      const sprite = this.add
+        .sprite(x, y, AssetKeys.Atlas.Cats, frame)
+        .setScale(0.6);
+      this.tabContent.add([bg, sprite]);
       if (isSeated) {
         const tick = this.add.circle(x + cellW / 2 - 4, y - cellW / 2 + 4, 7, 0xffd34d, 1);
         const tickText = this.add
