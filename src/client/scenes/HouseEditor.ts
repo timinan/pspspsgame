@@ -8,7 +8,6 @@ export class HouseEditor extends Scene {
     super(SceneKeys.HouseEditor);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   init(_data: { playerState?: PlayerState }): void {
     // TODO Phase 5: init rewritten in Task 13
   }

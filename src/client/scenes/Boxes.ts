@@ -8,12 +8,10 @@ import {
   BOX_CATALOG,
   CAT_CATALOG,
   COSMETIC_CATALOG,
-  // TODO Phase 5: DECORATION_CATALOG removed with decoration system
   THEME_CATALOG,
   type BoxId,
   type CatBreed,
   type CosmeticId,
-  // TODO Phase 5: DecorationId removed with decoration system
   type ThemeId,
   type PlayerState,
 } from '@/../shared/state';
@@ -185,7 +183,9 @@ export class Boxes extends Scene {
     const originX = width / 2 - gridW / 2;
     const originY = 50;
 
-    BOX_CARDS.forEach((layout, idx) => {
+    // TODO Phase 5: decorCrate hidden until decoration system is rebuilt
+    const visibleCards = BOX_CARDS.filter((c) => c.boxId !== 'decorCrate');
+    visibleCards.forEach((layout, idx) => {
       const col = idx % 2;
       const row = Math.floor(idx / 2);
       const cx = originX + col * (cardW + gapX) + cardW / 2;

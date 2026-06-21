@@ -6,7 +6,7 @@ import type { SeatId } from '@/../shared/state';
 export interface SeatPosition {
   id: SeatId;
   label: string;
-  /** Pixel coordinates relative to scene top-left (320x480 design space) */
+  /** Pixel coordinates relative to scene top-left (320×480 design space) */
   x: number;
   y: number;
   anchor: { x: number; y: number };

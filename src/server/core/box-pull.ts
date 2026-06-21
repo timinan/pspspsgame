@@ -85,6 +85,9 @@ export function pullBox(
     };
   }
   if (box.rewardKind === 'decoration') {
+    throw new Error('Phase 5 WIP: decoration boxes removed in cleanup, decorCrate should not be openable');
+    // TODO Phase 5 Task 2: delete entire decoration branch
+    // @ts-ignore -- unreachable dead code preserved for Task 2 deletion
     const ownedDecorations = new Set(state.house.ownedDecorations);
     let decorPool = DECORATION_CATALOG.filter(
       (d) => d.rarity === rarity && !ownedDecorations.has(d.id),

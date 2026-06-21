@@ -8,7 +8,6 @@ export class Game extends Scene {
     super(SceneKeys.Game);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   init(_data: { playerState?: PlayerState | null }): void {
     // TODO Phase 5: init rewritten in Tasks 9-11
   }
