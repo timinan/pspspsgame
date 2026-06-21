@@ -167,7 +167,30 @@ export class Decorate extends Scene {
   // ---------------------------------------------------------------------------
 
   private buildHud(): void {
-    this.hud = new TopHud(this, { showStats: false, items: [] });
+    this.hud = new TopHud(this, {
+      showStats: false,
+      items: [
+        {
+          label: 'PLAY',
+          description: "This post's beat",
+          icon: '🎵',
+          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
+        },
+        // DECORATE (self) is omitted
+        {
+          label: 'POST',
+          description: 'Build a beat',
+          icon: '🎼',
+          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
+        },
+        {
+          label: 'PURCHASE',
+          description: 'Boxes',
+          icon: '🛒',
+          onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
+        },
+      ],
+    });
 
     const { width } = this.scale;
 
@@ -179,9 +202,9 @@ export class Decorate extends Scene {
       color: '#ffd34d',
     }).setOrigin(0.5).setDepth(101);
 
-    // Coins in top-right
+    // Coins in top-right (sits to the left of the hamburger)
     const coins = this.playerState?.coins ?? 0;
-    this.add.text(width - 10, TopHud.HEIGHT / 2, `🪙 ${coins}`, {
+    this.add.text(width - 66, TopHud.HEIGHT / 2, `🪙 ${coins}`, {
       fontFamily: '"Courier New", monospace',
       fontStyle: 'bold',
       fontSize: '10px',

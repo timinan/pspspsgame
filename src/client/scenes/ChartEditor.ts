@@ -132,10 +132,23 @@ export class ChartEditor extends Scene {
       showStats: false,
       items: [
         {
-          label: 'Back to Game',
-          description: 'Discard and return',
-          icon: '🎮',
+          label: 'PLAY',
+          description: "This post's beat",
+          icon: '🎵',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
+        },
+        {
+          label: 'DECORATE',
+          description: 'Cats & background',
+          icon: '😺',
+          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
+        },
+        // POST (self) is omitted
+        {
+          label: 'PURCHASE',
+          description: 'Boxes',
+          icon: '🛒',
+          onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
         },
       ],
     });

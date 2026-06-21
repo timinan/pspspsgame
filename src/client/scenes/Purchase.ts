@@ -59,17 +59,24 @@ export class Purchase extends Scene {
       showStats: true,
       items: [
         {
-          label: 'Back to Game',
-          description: 'Return to the rhythm scene',
-          icon: '🎮',
+          label: 'PLAY',
+          description: "This post's beat",
+          icon: '🎵',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
         {
-          label: 'Edit Home',
-          description: 'Decorate, seat, dress up',
-          icon: '🏠',
+          label: 'DECORATE',
+          description: 'Cats & background',
+          icon: '😺',
           onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
         },
+        {
+          label: 'POST',
+          description: 'Build a beat',
+          icon: '🎼',
+          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
+        },
+        // PURCHASE (self) is omitted
       ],
     });
 
@@ -308,6 +315,7 @@ export class Purchase extends Scene {
 
   shutdown(): void {
     this.tweens.killAll();
+    this.topHud?.destroy();
     this.uiRoot?.destroy();
   }
 }

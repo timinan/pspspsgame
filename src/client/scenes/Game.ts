@@ -314,16 +314,23 @@ export class Game extends Scene {
     this.hud = new TopHud(this, {
       showStats: true,
       items: [
+        // PLAY (self) is omitted — no point reloading the current scene
         {
-          label: 'Edit Chart',
-          description: 'Compose your beat',
-          icon: '🎵',
+          label: 'DECORATE',
+          description: 'Cats & background',
+          icon: '😺',
+          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
+        },
+        {
+          label: 'POST',
+          description: 'Build a beat',
+          icon: '🎼',
           onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
         },
         {
-          label: 'Buy Boxes',
-          description: 'Unlock cats and cosmetics',
-          icon: '📦',
+          label: 'PURCHASE',
+          description: 'Boxes',
+          icon: '🛒',
           onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
         },
       ],
