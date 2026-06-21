@@ -28,21 +28,22 @@ export class HouseEditor extends Scene {
     super(SceneKeys.HouseEditor);
   }
 
-  async init(data: { playerState?: PlayerState }): Promise<void> {
-    // Reset state arrays for restart safety
+  init(data: { playerState?: PlayerState }): void {
     this.slotGhosts = [];
     this.seatGhosts = [];
     if (data?.playerState) {
       this.playerState = data.playerState;
-    } else {
-      this.playerState = await fetchState();
     }
   }
 
-  create(): void {
+  async create(): Promise<void> {
     this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
 
-    // TopHud in edit mode (no drawer items; navigation is via DONE button)
+    if (!this.playerState) {
+      this.playerState = await fetchState();
+    }
+
+    // TopHud in edit mode
     this.topHud = new TopHud(this, { items: [], showStats: true });
     this.topHud.setMode('edit', { onDone: () => this.exitToGame() });
 
@@ -81,6 +82,7 @@ export class HouseEditor extends Scene {
 
   private cleanup(): void {
     this.topHud?.destroy();
+    this.roomRenderer?.destroy();
     for (const g of this.slotGhosts) g.destroy();
     for (const g of this.seatGhosts) g.destroy();
     this.trayContainer?.destroy(true);
