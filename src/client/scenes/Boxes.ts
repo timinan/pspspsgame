@@ -119,12 +119,6 @@ export class Boxes extends Scene {
           icon: '🎮',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
-        {
-          label: 'Collection',
-          description: 'Dress up your cats',
-          icon: '👕',
-          onTap: () => this.scene.start(SceneKeys.Collection, { playerState: this.playerState }),
-        },
       ],
     });
 

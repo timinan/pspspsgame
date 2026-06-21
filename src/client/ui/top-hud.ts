@@ -36,6 +36,7 @@ export class TopHud {
   private drawerScrim: GameObjects.Rectangle | null = null;
   private drawerPanel: GameObjects.Container | null = null;
   private items: DrawerItem[] = [];
+  private modeContainer: GameObjects.Container | null = null;
 
   constructor(private scene: Scene, options: TopHudOptions = {}) {
     this.items = options.items ?? [];
@@ -111,6 +112,79 @@ export class TopHud {
   /** Just the coins — handy for Boxes where score isn't tracked. */
   setCoins(coins: number): void {
     this.coinsText?.setText(`🪙 ${coins}`);
+  }
+
+  /** Switch TopHud into one of three modes:
+   *   - 'default': stats + hamburger drawer
+   *   - 'edit':    "🏠 EDITING HOME" + green DONE button
+   *   - 'placing': "📍 PLACING [item]" + grey CANCEL button
+   */
+  setMode(
+    mode: 'default' | 'edit' | 'placing',
+    opts?: { itemName?: string; onDone?: () => void; onCancel?: () => void }
+  ): void {
+    this.modeContainer?.destroy(true);
+    this.modeContainer = null;
+
+    if (mode === 'default') {
+      this.scoreText?.setVisible(true);
+      this.coinsText?.setVisible(true);
+      this.bestText?.setVisible(true);
+      this.hamburgerBg?.setVisible(true);
+      this.hamburgerText?.setVisible(true);
+      return;
+    }
+
+    // Hide normal HUD
+    this.scoreText?.setVisible(false);
+    this.coinsText?.setVisible(false);
+    this.bestText?.setVisible(false);
+    this.hamburgerBg?.setVisible(false);
+    this.hamburgerText?.setVisible(false);
+
+    const w = this.scene.scale.width;
+    this.modeContainer = this.scene.add.container(0, 0).setDepth(100);
+
+    const labelText = mode === 'edit'
+      ? '🏠 EDITING HOME'
+      : `📍 PLACING ${opts?.itemName ?? 'item'}`;
+
+    const label = this.scene.add
+      .text(14, TopHud.HEIGHT / 2, labelText, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0, 0.5);
+    this.modeContainer.add(label);
+
+    const btnText = mode === 'edit' ? 'DONE' : 'CANCEL';
+    const btnColor = mode === 'edit' ? 0x4dffb4 : 0x2c1856;
+    const btnTextColor = mode === 'edit' ? '#0b041a' : '#c0a0e6';
+    const btnW = mode === 'edit' ? 48 : 60;
+
+    const btnBg = this.scene.add
+      .rectangle(w - btnW / 2 - 12, TopHud.HEIGHT / 2, btnW, 26, btnColor, 1)
+      .setInteractive({ useHandCursor: true });
+    if (mode === 'placing') {
+      btnBg.setStrokeStyle(1, 0xc0a0e6, 0.4);
+    }
+    const btnLabel = this.scene.add
+      .text(w - btnW / 2 - 12, TopHud.HEIGHT / 2, btnText, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '11px',
+        color: btnTextColor,
+      })
+      .setOrigin(0.5);
+
+    this.modeContainer.add([btnBg, btnLabel]);
+
+    const handler = mode === 'edit' ? opts?.onDone : opts?.onCancel;
+    if (handler) {
+      btnBg.on('pointerdown', handler);
+    }
   }
 
   isDrawerOpen(): boolean { return this.drawerOpen; }
@@ -255,6 +329,7 @@ export class TopHud {
 
   destroy(): void {
     this.closeDrawer();
+    this.modeContainer?.destroy(true);
     this.scene.tweens.killTweensOf(this.container);
     this.container.destroy(true);
   }

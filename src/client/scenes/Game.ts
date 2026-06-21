@@ -480,12 +480,6 @@ export class Game extends Scene {
           icon: '📦',
           onTap: () => void this.navigateTo(SceneKeys.Boxes),
         },
-        {
-          label: 'Collection',
-          description: 'Dress up your cats',
-          icon: '👕',
-          onTap: () => void this.navigateTo(SceneKeys.Collection),
-        },
       ],
     });
 
