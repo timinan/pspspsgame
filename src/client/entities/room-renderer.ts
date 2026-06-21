@@ -43,10 +43,12 @@ export class RoomRenderer {
         // TEMP-DEMO: derive frame from parentIdFor (handles both base and tint-variant cosmetics)
         const renderId = parentIdFor(cosEntry) ?? cosEntry.id;
         const frame = `cosmetic_${renderId}_idle_00`;
+        const renderX = (slot.x / 320) * this.scene.scale.width;
+        const renderY = (slot.y / 480) * this.scene.scale.height;
         const cosmeticSprite = this.scene.add
-          .sprite(slot.x, slot.y, AssetKeys.Atlas.Cosmetics, frame)
+          .sprite(renderX, renderY, AssetKeys.Atlas.Cosmetics, frame)
           .setOrigin(slot.anchor.x, slot.anchor.y)
-          .setDepth(slot.y);
+          .setDepth(renderY);
         if (cosEntry.tint) {
           const colorInt = parseInt(cosEntry.tint.replace('#', ''), 16);
           cosmeticSprite.setTint(colorInt);

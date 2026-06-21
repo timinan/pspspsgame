@@ -117,8 +117,11 @@ state.post('/house/decoration', async (c) => {
   if (decorationId === null) {
     delete player.house.decorations[slotId];
   } else {
-    if (!player.house.ownedDecorations.includes(decorationId)) {
-      return c.json({ ok: false, reason: 'decoration_not_owned' }, 400);
+    // TEMP-DEMO: accept cosmetic ids as decoration placements for testing
+    const isOwnedDecoration = player.house.ownedDecorations.includes(decorationId);
+    const isOwnedCosmetic = player.ownedCosmetics.includes(decorationId as CosmeticId);
+    if (!isOwnedDecoration && !isOwnedCosmetic) {
+      return c.json({ ok: false, reason: 'item_not_owned' }, 400);
     }
     player.house.decorations[slotId] = decorationId;
   }

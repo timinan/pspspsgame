@@ -19,7 +19,9 @@ export class SlotGhost extends GameObjects.Container {
   private readonly _height: number;
 
   constructor(scene: Scene, slot: SceneSlot, width = 50, height = 50) {
-    super(scene, slot.x, slot.y);
+    const renderX = (slot.x / 320) * scene.scale.width;
+    const renderY = (slot.y / 480) * scene.scale.height;
+    super(scene, renderX, renderY);
     this.slotId = slot.id;
     this._width = width;
     this._height = height;

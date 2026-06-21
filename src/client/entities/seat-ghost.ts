@@ -16,7 +16,9 @@ export class SeatGhost extends GameObjects.Container {
   private radius = 24;
 
   constructor(scene: Scene, seat: SeatPosition) {
-    super(scene, seat.x, seat.y);
+    const renderX = (seat.x / 320) * scene.scale.width;
+    const renderY = (seat.y / 480) * scene.scale.height;
+    super(scene, renderX, renderY);
     this.seatId = seat.id;
 
     this.graphics = scene.add.graphics();

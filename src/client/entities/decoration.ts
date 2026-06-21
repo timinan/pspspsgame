@@ -17,10 +17,12 @@ export class Decoration extends GameObjects.Sprite {
   readonly entry: DecorationEntry;
 
   constructor(scene: Scene, slot: SceneSlot, entry: DecorationEntry) {
-    super(scene, slot.x, slot.y, AssetKeys.Atlas.Decorations, entry.frame);
+    const renderX = (slot.x / 320) * scene.scale.width;
+    const renderY = (slot.y / 480) * scene.scale.height;
+    super(scene, renderX, renderY, AssetKeys.Atlas.Decorations, entry.frame);
     this.slotId = slot.id;
     this.entry = entry;
     this.setOrigin(slot.anchor.x, slot.anchor.y);
-    this.setDepth(slot.y); // simple y-sort so closer decor draws over farther
+    this.setDepth(renderY); // simple y-sort so closer decor draws over farther
   }
 }

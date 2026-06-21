@@ -82,9 +82,9 @@ export class HouseEditor extends Scene {
     this.roomRenderer.renderFrom(this.playerState);
 
     // TEMP-DEMO: visualize floor line where seats anchor
-    const floorY = 370; // matches SCENE_SEATS y
+    const floorY = (370 / 480) * this.scale.height;
     this.add.line(0, 0, 0, floorY, this.scale.width, floorY, 0xff5050, 0.5).setOrigin(0, 0);
-    this.add.text(this.scale.width - 8, floorY - 12, 'floor (y=370)', {
+    this.add.text(this.scale.width - 8, floorY - 12, 'floor (design y=370)', {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontSize: '9px',
       color: '#ff5050',
@@ -226,7 +226,9 @@ export class HouseEditor extends Scene {
       }
       bg.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        this.openDecorMenu(x, y - cellW / 2, cosId, entry.name, isPlaced);
+        const worldX = this.tabContent.x + x;
+        const worldY = this.tabContent.y + y - cellW / 2;
+        this.openDecorMenu(worldX, worldY, cosId, entry.name, isPlaced);
       });
     });
   }
@@ -284,7 +286,9 @@ export class HouseEditor extends Scene {
       }
       bg.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        this.openCatMenu(x, y - cellW / 2, catId, entry.name, isSeated);
+        const worldX = this.tabContent.x + x;
+        const worldY = this.tabContent.y + y - cellW / 2;
+        this.openCatMenu(worldX, worldY, catId, entry.name, isSeated);
       });
     });
   }
