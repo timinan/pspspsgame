@@ -166,15 +166,38 @@ describe('box-pull: decoration + theme', () => {
   it('themePack pulls a theme not already owned', () => {
     const state = createFreshPlayerState();
     state.coins = 100;
-    // Use rng=0.75 to land in the uncommon bucket (>70) so we pick 'cozy',
-    // which is not in the default ownedThemes list ('default' only).
-    const uncommonRng = () => 0.75;
-    const result = pullBox('themePack', state, uncommonRng);
+    // rng=0.42 lands in the common bucket (roll=42, cumulative common=70).
+    // Fresh player owns 'default' (the only common theme), so the fix falls
+    // through to any unowned theme and returns cozy or spooky.
+    const result = pullBox('themePack', state, () => 0.42);
     expect(result.kind).toBe('theme');
     expect(THEME_CATALOG.find((t) => t.id === result.itemId)).toBeDefined();
     expect(result.duplicate).toBe(false);
+    expect(['cozy', 'spooky']).toContain(result.itemId);
     applyPullToState(state, result);
     expect(state.house.ownedThemes).toContain(result.itemId);
+  });
+
+  it('themePack falls back to unowned theme when common bucket is empty', () => {
+    const state = createFreshPlayerState();
+    state.house.ownedThemes = ['default'];
+    // rng=0.42 → common bucket → pool empty (owns default) → fallback to any unowned
+    const result = pullBox('themePack', state, () => 0.42);
+    expect(result.kind).toBe('theme');
+    expect(result.duplicate).toBe(false);
+    expect(['cozy', 'spooky']).toContain(result.itemId);
+  });
+
+  it('decorCrate falls back to unowned decoration when common bucket is empty', () => {
+    const state = createFreshPlayerState();
+    // Own all three common decorations; uncommon and rare remain unowned.
+    state.house.ownedDecorations = ['d1', 'd2', 'd3'];
+    // rng=0.42 → common bucket (cumulative common=70 for decorCrate) → pool empty
+    // → fallback to any unowned → should pick an uncommon or rare decoration.
+    const result = pullBox('decorCrate', state, () => 0.42);
+    expect(result.kind).toBe('decoration');
+    expect(result.duplicate).toBe(false);
+    expect(['d4', 'd5', 'd6']).toContain(result.itemId);
   });
 });
 

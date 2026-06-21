@@ -85,27 +85,59 @@ export function pullBox(
     };
   }
   if (box.rewardKind === 'decoration') {
-    const pool = DECORATION_CATALOG.filter((d) => d.rarity === rarity);
-    const pick = pool[Math.floor(rng() * pool.length)]!;
-    const duplicate = state.house.ownedDecorations.includes(pick.id);
+    const ownedDecorations = new Set(state.house.ownedDecorations);
+    let decorPool = DECORATION_CATALOG.filter(
+      (d) => d.rarity === rarity && !ownedDecorations.has(d.id),
+    );
+    if (decorPool.length === 0) {
+      decorPool = DECORATION_CATALOG.filter((d) => !ownedDecorations.has(d.id));
+    }
+    if (decorPool.length === 0) {
+      // Player owns the entire catalog — legitimate duplicate-refund.
+      const fallbackPick = DECORATION_CATALOG[Math.floor(rng() * DECORATION_CATALOG.length)]!;
+      return {
+        kind: 'decoration',
+        itemId: fallbackPick.id,
+        rarity: fallbackPick.rarity,
+        duplicate: true,
+        refundCoins: DUPLICATE_REFUND,
+      };
+    }
+    const decorPick = decorPool[Math.floor(rng() * decorPool.length)]!;
     return {
       kind: 'decoration',
-      itemId: pick.id,
-      rarity,
-      duplicate,
-      refundCoins: duplicate ? DUPLICATE_REFUND : 0,
+      itemId: decorPick.id,
+      rarity: decorPick.rarity,
+      duplicate: false,
+      refundCoins: 0,
     };
   }
   // theme
-  const pool = THEME_CATALOG.filter((t) => t.rarity === rarity);
-  const pick = pool[Math.floor(rng() * pool.length)]!;
-  const duplicate = state.house.ownedThemes.includes(pick.id);
+  const ownedThemes = new Set(state.house.ownedThemes);
+  let themePool = THEME_CATALOG.filter(
+    (t) => t.rarity === rarity && !ownedThemes.has(t.id),
+  );
+  if (themePool.length === 0) {
+    themePool = THEME_CATALOG.filter((t) => !ownedThemes.has(t.id));
+  }
+  if (themePool.length === 0) {
+    // Player owns the entire catalog — legitimate duplicate-refund.
+    const fallbackPick = THEME_CATALOG[Math.floor(rng() * THEME_CATALOG.length)]!;
+    return {
+      kind: 'theme',
+      itemId: fallbackPick.id,
+      rarity: fallbackPick.rarity,
+      duplicate: true,
+      refundCoins: DUPLICATE_REFUND,
+    };
+  }
+  const themePick = themePool[Math.floor(rng() * themePool.length)]!;
   return {
     kind: 'theme',
-    itemId: pick.id,
-    rarity,
-    duplicate,
-    refundCoins: duplicate ? DUPLICATE_REFUND : 0,
+    itemId: themePick.id,
+    rarity: themePick.rarity,
+    duplicate: false,
+    refundCoins: 0,
   };
 }
 
