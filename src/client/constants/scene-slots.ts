@@ -1,4 +1,4 @@
-import type { SlotId } from '@/../shared/state';
+import type { SlotId, SeatId } from '@/../shared/state';
 
 export interface SceneSlot {
   id: SlotId;
@@ -22,3 +22,20 @@ export const SCENE_SLOTS: readonly SceneSlot[] = [
 ] as const;
 
 export const SLOT_IDS: readonly SlotId[] = SCENE_SLOTS.map((s) => s.id);
+
+export interface SeatPosition {
+  id: SeatId;
+  label: string;
+  /** Pixel coordinates relative to scene top-left (320x480 design space) */
+  x: number;
+  y: number;
+  anchor: { x: number; y: number };
+}
+
+export const SCENE_SEATS: readonly SeatPosition[] = [
+  { id: 'seat-left',   label: 'Left Seat',   x: 80,  y: 410, anchor: { x: 0.5, y: 1.0 } },
+  { id: 'seat-center', label: 'Center Seat', x: 160, y: 410, anchor: { x: 0.5, y: 1.0 } },
+  { id: 'seat-right',  label: 'Right Seat',  x: 240, y: 410, anchor: { x: 0.5, y: 1.0 } },
+] as const;
+
+export const SEAT_IDS: readonly SeatId[] = SCENE_SEATS.map((s) => s.id);
