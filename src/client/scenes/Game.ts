@@ -1,8 +1,10 @@
 import { Scene, Scenes } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { Cat } from '@/entities/cat';
+import { Note } from '@/entities/note';
 import { BackgroundManager } from '@/entities/background-manager';
 import { ChartPlayer } from '@/systems/chart-player';
+import { ScoreSystem } from '@/systems/score-system';
 import { TopHud } from '@/ui/top-hud';
 import * as L from '@/constants/scene-layout';
 import { Balance } from '@/constants/balance';
@@ -28,9 +30,13 @@ export class Game extends Scene {
   private bg!: BackgroundManager;
   private cats: Cat[] = [];
   private laneRects: Phaser.GameObjects.Rectangle[] = [];
+  private tapZones: Phaser.GameObjects.Rectangle[] = [];
+  private notes: Note[] = [];
   private hud!: TopHud;
   private player!: ChartPlayer;
-  private spawnCount = 0; // dev counter — replaced by real score in Task 10
+  private score!: ScoreSystem;
+  private startTimeMs = 0;
+  private roundOver = false;
 
   constructor() {
     super(SceneKeys.Game);
@@ -38,12 +44,18 @@ export class Game extends Scene {
 
   init(data: { playerState?: PlayerState | null }): void {
     this.playerState = data?.playerState ?? null;
-    this.spawnCount = 0;
     this.cats = [];
     this.laneRects = [];
+    this.tapZones = [];
+    this.notes = [];
+    this.roundOver = false;
+    this.startTimeMs = 0;
   }
 
   async create(): Promise<void> {
+    // Reset score per round
+    this.score = new ScoreSystem();
+
     // Background
     this.bg = new BackgroundManager(this);
     this.bg.create();
@@ -53,15 +65,28 @@ export class Game extends Scene {
     this.drawLanes();
     this.seatCats();
     this.buildHud();
-    this.bindInput();
+
+    // Pre-warm note pool — avoids allocations during first 12 spawns
+    for (let i = 0; i < 12; i++) {
+      const n = new Note(this);
+      this.add.existing(n);
+      this.notes.push(n);
+    }
+
     await this.initChartPlayer();
+
+    this.bindInput();
+
+    this.startTimeMs = this.time.now;
 
     this.events.on(Scenes.Events.SHUTDOWN, () => this.cleanup());
   }
 
   override update(_time: number, delta: number): void {
+    if (this.roundOver) return;
     this.player.advance(delta);
-    // Task 10: checkMisses, endRound when player.isFinished()
+    this.checkMisses();
+    // Task 11 wires: if (this.player.isFinished()) this.endRound();
   }
 
   // -----------------------------------------------------------------------
@@ -166,9 +191,29 @@ export class Game extends Scene {
   }
 
   private bindInput(): void {
-    // Task 10 wires tap zones per lane. Nothing live here yet.
-    // Input listeners are registered in SHUTDOWN-safe pattern:
-    // they will be removed in cleanup() via input.removeAllListeners().
+    const { width, height } = this.scale;
+    const scaleY = height / L.DESIGN_H;
+    const laneTopY = L.LANE_TOP_Y * scaleY;
+    const laneBottomY = L.LANE_BOTTOM_Y * scaleY;
+    const laneH = laneBottomY - laneTopY;
+    const midY = laneTopY + laneH / 2;
+
+    const inner = width - L.LANE_GUTTER_PX * 2;
+    const colW = (inner - L.LANE_GAP_PX * (L.LANE_COUNT - 1)) / L.LANE_COUNT;
+
+    for (let i = 0; i < L.LANE_COUNT; i++) {
+      const laneId = i as LaneId;
+      const cx = L.laneCenterX(laneId, width);
+      const zone = this.add.rectangle(cx, midY, colW, laneH, 0x000000, 0);
+      zone.setInteractive();
+      zone.on('pointerdown', () => this.registerTap(laneId));
+      this.tapZones.push(zone);
+    }
+
+    // Keyboard mirrors: 1/2/3 keys map to lanes 0/1/2
+    this.input.keyboard?.on('keydown-ONE', () => this.registerTap(0));
+    this.input.keyboard?.on('keydown-TWO', () => this.registerTap(1));
+    this.input.keyboard?.on('keydown-THREE', () => this.registerTap(2));
   }
 
   // -----------------------------------------------------------------------
@@ -220,7 +265,13 @@ export class Game extends Scene {
     }
 
     if (!chart) {
-      chart = emptyChart('dev', 'dev');
+      // dev fallback chart — gives the player something to hit during local dev
+      const dev = emptyChart('dev', 'test');
+      dev.steps[0] = { lanes: [0] };
+      dev.steps[2] = { lanes: [1] };
+      dev.steps[4] = { lanes: [2] };
+      dev.steps[6] = { lanes: [0, 2] };
+      chart = dev;
     }
 
     this.player = new ChartPlayer(chart, {
@@ -228,12 +279,94 @@ export class Game extends Scene {
       noteFallMs: Balance.noteFallMs,
     });
 
-    this.player.onSpawn((lane, hitAt) => this.spawnNoteStub(lane, hitAt));
+    this.player.onSpawn((lane, hitAt) => this.spawnNote(lane, hitAt));
   }
 
-  private spawnNoteStub(_lane: LaneId, _hitAt: number): void {
-    // Task 10 replaces this with real note pool spawning.
-    this.spawnCount++;
+  // -----------------------------------------------------------------------
+  // Private — note pool
+  // -----------------------------------------------------------------------
+
+  private spawnNote(laneId: LaneId, hitAtMs: number): void {
+    const note = this.acquireNote();
+    const x = L.laneCenterX(laneId, this.scale.width);
+    const scaleY = this.scale.height / L.DESIGN_H;
+    note.configure(
+      laneId,
+      x,
+      L.LANE_TOP_Y * scaleY,
+      L.HIT_LINE_Y * scaleY,
+      Balance.noteFallMs,
+      hitAtMs,
+    );
+  }
+
+  /** Hot path: scan pre-allocated pool for an inactive note. Allocates only
+   *  when pool is exhausted (shouldn't happen after pre-warm). */
+  private acquireNote(): Note {
+    for (let i = 0; i < this.notes.length; i++) {
+      const n = this.notes[i]!;
+      if (!n.active) return n;
+    }
+    const n = new Note(this);
+    this.add.existing(n);
+    this.notes.push(n);
+    return n;
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — hit / miss detection
+  // -----------------------------------------------------------------------
+
+  private registerTap(laneId: LaneId): void {
+    if (this.roundOver) return;
+    const now = this.time.now - this.startTimeMs;
+    const note = this.activeNoteInLane(laneId, now);
+    if (!note) return; // mistaps don't reset combo in v1
+    const dt = Math.abs(now - note.hitAtMs);
+    if (dt <= Balance.perfectWindowMs) {
+      this.score.registerHit('perfect');
+      this.cats[laneId]?.playHappy(Balance.catReactionMs);
+    } else if (dt <= Balance.greatWindowMs) {
+      this.score.registerHit('great');
+      this.cats[laneId]?.playHappy(Balance.catReactionMs);
+    } else {
+      return; // out of window — leave the note for miss detection
+    }
+    note.consumed = true;
+    note.recycle();
+  }
+
+  /** Hot path: find the closest active, unconsumed note in the given lane.
+   *  Iterates the pre-allocated pool — no allocation. */
+  private activeNoteInLane(laneId: LaneId, now: number): Note | undefined {
+    let best: Note | undefined;
+    let bestDt = Infinity;
+    for (let i = 0; i < this.notes.length; i++) {
+      const n = this.notes[i]!;
+      if (!n.active || n.consumed || n.laneId !== laneId) continue;
+      const dt = Math.abs(now - n.hitAtMs);
+      if (dt < bestDt) {
+        bestDt = dt;
+        best = n;
+      }
+    }
+    return best;
+  }
+
+  /** Called every update — detects notes that have passed the hit window
+   *  without being tapped. No allocation. */
+  private checkMisses(): void {
+    if (this.roundOver) return;
+    const now = this.time.now - this.startTimeMs;
+    for (let i = 0; i < this.notes.length; i++) {
+      const n = this.notes[i]!;
+      if (!n.active || n.consumed) continue;
+      if (now - n.hitAtMs > Balance.greatWindowMs) {
+        this.score.registerHit('miss');
+        this.cats[n.laneId]?.playAngry(Balance.catReactionMs);
+        n.recycle();
+      }
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -248,6 +381,10 @@ export class Game extends Scene {
     this.scale.off('resize');
     for (const r of this.laneRects) r.destroy();
     this.laneRects = [];
+    for (const z of this.tapZones) z.destroy();
+    this.tapZones = [];
+    for (const n of this.notes) n.recycle();
+    this.notes = [];
     for (const c of this.cats) c.destroy();
     this.cats = [];
     this.bg?.destroy();
