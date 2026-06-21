@@ -34,6 +34,7 @@ export class Preloader extends Scene {
       'atlas/cosmetics.png',
       'atlas/cosmetics.json',
     );
+    this.load.atlas(AssetKeys.Atlas.Decorations, 'decorations.png', 'decorations.json');
 
     this.load.image(AssetKeys.Image.GameBackground, 'images/gameBackground.png');
     this.load.image(AssetKeys.Image.MeowBarFill, 'images/meowBarFill.png');
@@ -43,9 +44,15 @@ export class Preloader extends Scene {
     this.load.image(AssetKeys.Image.PspspsElement, 'images/PSElement.png');
     this.load.image(AssetKeys.Image.PspspsElementBall, 'images/PSElement_ball.png');
     this.load.image(AssetKeys.Image.PspspsElementLetters, 'images/PSElement_letters.png');
+    this.load.image(AssetKeys.Image.ThemeDefaultBg, 'themes/default-bg.png');
+    this.load.image(AssetKeys.Image.ThemeCozyBg, 'themes/cozy-bg.png');
+    this.load.image(AssetKeys.Image.ThemeSpookyBg, 'themes/spooky-bg.png');
 
-    this.load.audio(AssetKeys.Audio.Background, 'sounds/background.mp3');
-    this.load.audio(AssetKeys.Audio.Pspsps, 'sounds/pspsps.mp3');
+    this.load.audio(AssetKeys.Audio.Background, ['sounds/background.mp3']);
+    this.load.audio(AssetKeys.Audio.Pspsps, ['sounds/pspsps.mp3']);
+    this.load.audio(AssetKeys.Audio.ThemeDefaultMusic, ['themes/default-music.mp3']);
+    this.load.audio(AssetKeys.Audio.ThemeCozyMusic, ['themes/cozy-music.mp3']);
+    this.load.audio(AssetKeys.Audio.ThemeSpookyMusic, ['themes/spooky-music.mp3']);
   }
 
   async create() {
