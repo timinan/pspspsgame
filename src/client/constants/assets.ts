@@ -2,7 +2,6 @@ export const AssetKeys = {
   Atlas: {
     Cats: 'cats-atlas',
     Cosmetics: 'cosmetics-atlas',
-    Decorations: 'decorations',
   },
   Image: {
     GameBackground: 'game-background',

@@ -120,8 +120,6 @@ describe('box-pull', () => {
 });
 
 describe('box-pull: theme', () => {
-  // TODO Phase 5: decorCrate tests removed with decoration system
-
   it('themePack pulls a theme not already owned', () => {
     const state = createFreshPlayerState();
     state.coins = 100;
@@ -147,12 +145,9 @@ describe('box-pull: theme', () => {
     expect(['cozy', 'spooky']).toContain(result.itemId);
   });
 
-  // TODO Phase 5: decorCrate fallback test removed with decoration system
 });
 
 describe('Phase 3 box catalog', () => {
-  // TODO Phase 5: decorCrate test removed with decoration system
-
   it('includes a Theme Pack at 50 coins for themes', () => {
     const box = BOX_CATALOG.themePack;
     expect(box).toBeDefined();

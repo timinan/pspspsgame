@@ -348,8 +348,6 @@ export class Boxes extends Scene {
 
       const pull = result.pull;
 
-      // TODO Phase 5: decoration pull branch removed with decoration system
-
       if (pull.kind === 'theme') {
         const entry = THEME_CATALOG.find((t) => t.id === (pull.itemId as ThemeId));
         playBoxOpenAnimation(

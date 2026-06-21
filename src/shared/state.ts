@@ -7,6 +7,8 @@
  * them to render names, rarity badges, and shop UI.
  */
 
+import { BACKGROUND_CATALOG } from './themes-catalog.generated';
+
 // -- Item identifiers ---------------------------------------------------
 
 // IDs are typed loosely as strings now that the catalogs are generated
@@ -151,7 +153,7 @@ export interface Chart {
   updatedAt: number;
 }
 
-export type BackgroundId = 'default' | 'cozy' | 'spooky';
+export type BackgroundId = keyof typeof BACKGROUND_CATALOG;
 
 export function emptyChart(authorId: string, title: string): Chart {
   return {
@@ -165,6 +167,7 @@ export function emptyChart(authorId: string, title: string): Chart {
 }
 
 export function validateChart(c: Chart): { ok: true } | { ok: false; reason: string } {
+  if (!c.authorId) return { ok: false, reason: 'authorId required' };
   if (c.stepCount !== 8) return { ok: false, reason: 'stepCount must be 8' };
   if (c.bpm < 60 || c.bpm > 200) return { ok: false, reason: 'bpm out of range' };
   if (c.steps.length !== 8) return { ok: false, reason: 'steps length must equal stepCount' };

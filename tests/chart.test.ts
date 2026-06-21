@@ -27,4 +27,15 @@ describe('Chart', () => {
     c.steps[0] = { lanes: [3 as unknown as 0] };
     expect(validateChart(c)).toMatchObject({ ok: false });
   });
+
+  it('validateChart returns ok:true for a clean emptyChart', () => {
+    const c = emptyChart('alice', 'x');
+    expect(validateChart(c)).toEqual({ ok: true });
+  });
+
+  it('validateChart rejects steps.length !== 8 when stepCount is right', () => {
+    const c = emptyChart('alice', 'x');
+    c.steps.pop();
+    expect(validateChart(c)).toMatchObject({ ok: false });
+  });
 });

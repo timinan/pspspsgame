@@ -103,8 +103,6 @@ state.post('/onboarding/complete', async (c) => {
   return c.json({ state: player });
 });
 
-// TODO Phase 5: /house/decoration handler removed with decoration system
-
 /** POST /api/house/theme — body: { themeId }. */
 state.post('/house/theme', async (c) => {
   const { themeId } = (await c.req.json()) as { themeId: ThemeId };
@@ -137,10 +135,9 @@ state.post('/house/seat', async (c) => {
 });
 
 // POST /inventory/sell — { kind, id }
-// TODO Phase 5: decoration branch removed; only cosmetic sells remain
 state.post('/inventory/sell', async (c) => {
   const { id } = await c.req.json() as {
-    kind: 'cosmetic'; // TODO Phase 5: kind check removed; decoration branch gone
+    kind: 'cosmetic';
     id: CosmeticId;
   };
   const player = await loadOrInit(redis, await currentUsername());
