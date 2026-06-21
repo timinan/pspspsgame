@@ -2,17 +2,21 @@ import {
   BOX_CATALOG,
   CAT_CATALOG,
   COSMETIC_CATALOG,
+  DECORATION_CATALOG,
+  THEME_CATALOG,
   DUPLICATE_REFUND,
   type BoxId,
   type CatBreed,
   type CosmeticId,
+  type DecorationId,
+  type ThemeId,
   type PlayerState,
   type Rarity,
 } from '../../shared/state';
 
 export interface PullResult {
-  kind: 'cat' | 'cosmetic';
-  itemId: CatBreed | CosmeticId;
+  kind: 'cat' | 'cosmetic' | 'decoration' | 'theme';
+  itemId: CatBreed | CosmeticId | DecorationId | ThemeId;
   rarity: Rarity;
   /** True if the player already owned this item — refundCoins will be > 0. */
   duplicate: boolean;
@@ -68,11 +72,36 @@ export function pullBox(
       refundCoins: duplicate ? DUPLICATE_REFUND : 0,
     };
   }
-  const pool = COSMETIC_CATALOG.filter((c) => c.rarity === rarity);
+  if (box.rewardKind === 'cosmetic') {
+    const pool = COSMETIC_CATALOG.filter((c) => c.rarity === rarity);
+    const pick = pool[Math.floor(rng() * pool.length)]!;
+    const duplicate = state.ownedCosmetics.includes(pick.id);
+    return {
+      kind: 'cosmetic',
+      itemId: pick.id,
+      rarity,
+      duplicate,
+      refundCoins: duplicate ? DUPLICATE_REFUND : 0,
+    };
+  }
+  if (box.rewardKind === 'decoration') {
+    const pool = DECORATION_CATALOG.filter((d) => d.rarity === rarity);
+    const pick = pool[Math.floor(rng() * pool.length)]!;
+    const duplicate = state.house.ownedDecorations.includes(pick.id);
+    return {
+      kind: 'decoration',
+      itemId: pick.id,
+      rarity,
+      duplicate,
+      refundCoins: duplicate ? DUPLICATE_REFUND : 0,
+    };
+  }
+  // theme
+  const pool = THEME_CATALOG.filter((t) => t.rarity === rarity);
   const pick = pool[Math.floor(rng() * pool.length)]!;
-  const duplicate = state.ownedCosmetics.includes(pick.id);
+  const duplicate = state.house.ownedThemes.includes(pick.id);
   return {
-    kind: 'cosmetic',
+    kind: 'theme',
     itemId: pick.id,
     rarity,
     duplicate,
@@ -91,7 +120,11 @@ export function applyPullToState(state: PlayerState, pull: PullResult): void {
   }
   if (pull.kind === 'cat') {
     state.ownedCats.push(pull.itemId as CatBreed);
-  } else {
+  } else if (pull.kind === 'cosmetic') {
     state.ownedCosmetics.push(pull.itemId as CosmeticId);
+  } else if (pull.kind === 'decoration') {
+    state.house.ownedDecorations.push(pull.itemId as DecorationId);
+  } else {
+    state.house.ownedThemes.push(pull.itemId as ThemeId);
   }
 }

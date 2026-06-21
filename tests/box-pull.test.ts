@@ -3,9 +3,12 @@ import { pullBox, applyPullToState } from '../src/server/core/box-pull';
 import {
   CAT_CATALOG,
   COSMETIC_CATALOG,
+  DECORATION_CATALOG,
+  THEME_CATALOG,
   DUPLICATE_REFUND,
   STARTER_COINS,
   BOX_CATALOG,
+  createFreshPlayerState,
   type PlayerState,
 } from '../src/shared/state';
 
@@ -19,6 +22,12 @@ function emptyState(): PlayerState {
     bestScore: 0,
     onboardingDone: false,
     updatedAt: 0,
+    house: {
+      themeId: 'default',
+      decorations: {},
+      ownedDecorations: [],
+      ownedThemes: ['default'],
+    },
   };
 }
 
@@ -124,6 +133,48 @@ describe('box-pull', () => {
     });
     expect(state.coins).toBe(startCoins + DUPLICATE_REFUND);
     expect(state.ownedCats).toEqual(['cat1']); // unchanged
+  });
+});
+
+describe('box-pull: decoration + theme', () => {
+  const seededRng = () => 0.42; // deterministic
+
+  it('decorCrate pulls a decoration the player does not own', () => {
+    const state = createFreshPlayerState();
+    state.coins = 100;
+    const result = pullBox('decorCrate', state, seededRng);
+    expect(result.kind).toBe('decoration');
+    expect(DECORATION_CATALOG.find((d) => d.id === result.itemId)).toBeDefined();
+    expect(result.duplicate).toBe(false);
+    expect(result.refundCoins).toBe(0);
+    applyPullToState(state, result);
+    expect(state.house.ownedDecorations).toContain(result.itemId);
+  });
+
+  it('decorCrate returns a duplicate refund if all decorations owned', () => {
+    const state = createFreshPlayerState();
+    state.coins = 100;
+    state.house.ownedDecorations = DECORATION_CATALOG.map((d) => d.id);
+    const result = pullBox('decorCrate', state, seededRng);
+    expect(result.kind).toBe('decoration');
+    expect(result.duplicate).toBe(true);
+    expect(result.refundCoins).toBe(DUPLICATE_REFUND);
+    applyPullToState(state, result);
+    expect(state.coins).toBe(100 + DUPLICATE_REFUND);
+  });
+
+  it('themePack pulls a theme not already owned', () => {
+    const state = createFreshPlayerState();
+    state.coins = 100;
+    // Use rng=0.75 to land in the uncommon bucket (>70) so we pick 'cozy',
+    // which is not in the default ownedThemes list ('default' only).
+    const uncommonRng = () => 0.75;
+    const result = pullBox('themePack', state, uncommonRng);
+    expect(result.kind).toBe('theme');
+    expect(THEME_CATALOG.find((t) => t.id === result.itemId)).toBeDefined();
+    expect(result.duplicate).toBe(false);
+    applyPullToState(state, result);
+    expect(state.house.ownedThemes).toContain(result.itemId);
   });
 });
 
