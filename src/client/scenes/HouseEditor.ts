@@ -315,7 +315,6 @@ export class HouseEditor extends Scene {
         bg.on('pointerdown', async () => {
           this.playerState = await setTheme(themeId);
           this.refreshRoom();
-          this.renderActiveTab();
         });
       }
     });
