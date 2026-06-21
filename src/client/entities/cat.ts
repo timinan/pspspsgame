@@ -45,6 +45,7 @@ export class Cat {
   private cosmeticSprite: GameObjects.Sprite | null = null;
   private readonly postUpdate: () => void;
   private rainbowTween: Phaser.Tweens.Tween | null = null;
+  private revertTimer: Phaser.Time.TimerEvent | undefined;
 
   constructor(
     private readonly scene: Scene,
@@ -55,6 +56,16 @@ export class Cat {
     this.sprite.setOrigin(0.5, 1);
     this.ensureAnimation(model.breed, model.animation);
     this.playAnimation(model.animation);
+
+    // Guard: verify all three reactive animation keys exist so missing-anim
+    // bugs surface at scene-creation time rather than silently at first hit/miss.
+    for (const anim of ['idle', 'happy', 'hiss'] as const) {
+      const key = `${model.breed}_${anim}`;
+      if (!this.scene.anims.exists(key)) {
+        // eslint-disable-next-line no-console
+        console.error(`[Cat] missing animation: ${key} — playback will be silent until Boot registers it`);
+      }
+    }
 
     // Cosmetic follows the cat sprite each frame so tweens on `sprite` (e.g.
     // the petting handoff slide-to-center) carry the accessory along. We
@@ -126,7 +137,47 @@ export class Cat {
     this.syncCosmeticPosition();
   }
 
+  playHappy(durationMs = 500): void {
+    this.cancelRevert();
+    const key = `${this.model.breed}_happy`;
+    if (this.scene.anims.exists(key)) {
+      this.sprite.play({ key, repeat: 0 });
+    }
+    this.scene.tweens.add({ targets: this.sprite, scaleX: 1.1, scaleY: 1.1, duration: 120, yoyo: false });
+    this.sprite.setTint(0x9fffd4);
+    this.revertTimer = this.scene.time.delayedCall(durationMs, () => this.playIdle());
+  }
+
+  playAngry(durationMs = 500): void {
+    this.cancelRevert();
+    const key = `${this.model.breed}_hiss`;
+    if (this.scene.anims.exists(key)) {
+      this.sprite.play({ key, repeat: 0 });
+    }
+    this.scene.tweens.add({ targets: this.sprite, scaleX: 0.95, scaleY: 0.95, duration: 120, yoyo: false });
+    this.sprite.setTint(0xff9aa0);
+    this.revertTimer = this.scene.time.delayedCall(durationMs, () => this.playIdle());
+  }
+
+  playIdle(): void {
+    this.cancelRevert();
+    const key = `${this.model.breed}_idle`;
+    if (this.scene.anims.exists(key)) {
+      this.sprite.play({ key });
+    }
+    this.scene.tweens.add({ targets: this.sprite, scaleX: 1, scaleY: 1, duration: 120 });
+    this.sprite.clearTint();
+  }
+
+  private cancelRevert(): void {
+    if (this.revertTimer) {
+      this.revertTimer.remove(false);
+      this.revertTimer = undefined;
+    }
+  }
+
   destroy(): void {
+    this.cancelRevert();
     this.scene.events.off(Scenes.Events.POST_UPDATE, this.postUpdate);
     this.rainbowTween?.stop();
     this.rainbowTween?.remove();
