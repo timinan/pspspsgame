@@ -4,7 +4,7 @@ import {
   save,
   type RedisLike,
 } from '../src/server/core/player-state';
-import { STARTER_COINS, createFreshPlayerState } from '../src/shared/state';
+import { STARTER_COINS, createFreshPlayerState, type SeatId } from '../src/shared/state';
 
 class FakeRedis implements RedisLike {
   private store = new Map<string, string>();
@@ -127,5 +127,25 @@ describe('PlayerState.house', () => {
     expect(fresh.house.ownedDecorations.length).toBe(0);
     expect(Array.isArray(fresh.house.ownedThemes)).toBe(true);
     expect(fresh.house.ownedThemes).toEqual(['default']);
+  });
+});
+
+describe('PlayerState.seatedCats', () => {
+  it('SeatId is a string', () => {
+    const id: SeatId = 'seat-left';
+    expect(typeof id).toBe('string');
+  });
+
+  it('fresh state has empty seatedCats map', () => {
+    const fresh = createFreshPlayerState();
+    expect(fresh.seatedCats).toBeDefined();
+    expect(typeof fresh.seatedCats).toBe('object');
+    expect(Object.keys(fresh.seatedCats).length).toBe(0);
+  });
+
+  it('seatedCats key is SeatId and value is CatBreed', () => {
+    const fresh = createFreshPlayerState();
+    fresh.seatedCats['seat-left'] = 'tabby';
+    expect(fresh.seatedCats['seat-left']).toBe('tabby');
   });
 });

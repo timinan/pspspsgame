@@ -61,6 +61,7 @@ export interface CosmeticEntry {
 export type DecorationId = string;
 export type ThemeId = string;
 export type SlotId = string;
+export type SeatId = string;
 
 export interface DecorationEntry {
   id: DecorationId;
@@ -176,6 +177,9 @@ export interface PlayerState {
   /** Unix-ms of last write. */
   updatedAt: number;
   house: PlayerHouseState;
+  /** Map of seat id → seated cat breed. Empty entries mean unseated.
+   *  Players explicitly choose who sits where; no auto-seating fallback. */
+  seatedCats: Partial<Record<SeatId, CatBreed>>;
 }
 
 /**
@@ -198,5 +202,6 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
       ownedDecorations: [],
       ownedThemes: ['default'],
     },
+    seatedCats: {},
   };
 }
