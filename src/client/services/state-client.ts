@@ -2,8 +2,11 @@ import type {
   BoxId,
   CatBreed,
   CosmeticId,
+  DecorationId,
   PlayerState,
   Rarity,
+  SlotId,
+  ThemeId,
 } from '../../shared/state';
 
 export interface PullResult {
@@ -67,6 +70,31 @@ export async function equipCosmetic(
 export async function completeOnboarding(): Promise<PlayerState> {
   const r = await fetch('/api/onboarding/complete', { method: 'POST' });
   if (!r.ok) throw new Error(`completeOnboarding ${r.status}`);
+  const data = (await r.json()) as { state: PlayerState };
+  return data.state;
+}
+
+export async function setDecorationInSlot(
+  slotId: SlotId,
+  decorationId: DecorationId | null,
+): Promise<PlayerState> {
+  const r = await fetch('/api/house/decoration', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ slotId, decorationId }),
+  });
+  if (!r.ok) throw new Error(`setDecorationInSlot ${r.status}`);
+  const data = (await r.json()) as { state: PlayerState };
+  return data.state;
+}
+
+export async function setTheme(themeId: ThemeId): Promise<PlayerState> {
+  const r = await fetch('/api/house/theme', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ themeId }),
+  });
+  if (!r.ok) throw new Error(`setTheme ${r.status}`);
   const data = (await r.json()) as { state: PlayerState };
   return data.state;
 }

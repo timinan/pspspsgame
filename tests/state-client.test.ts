@@ -5,6 +5,8 @@ import {
   syncCoins,
   equipCosmetic,
   completeOnboarding,
+  setDecorationInSlot,
+  setTheme,
 } from '@/services/state-client';
 import type { PlayerState } from '@/../shared/state';
 
@@ -130,6 +132,59 @@ describe('state-client', () => {
     expect(spy).toHaveBeenCalledWith(
       '/api/onboarding/complete',
       expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('setDecorationInSlot POSTs the slotId + decorationId and returns the new state', async () => {
+    const state = makeState();
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ state }),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    await setDecorationInSlot('slot-1', 'dec-5');
+    expect(spy).toHaveBeenCalledWith(
+      '/api/house/decoration',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ slotId: 'slot-1', decorationId: 'dec-5' }),
+      }),
+    );
+  });
+
+  it('setDecorationInSlot sends decorationId: null when removing', async () => {
+    const state = makeState();
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ state }),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    await setDecorationInSlot('slot-1', null);
+    expect(spy).toHaveBeenCalledWith(
+      '/api/house/decoration',
+      expect.objectContaining({
+        body: JSON.stringify({ slotId: 'slot-1', decorationId: null }),
+      }),
+    );
+  });
+
+  it('setTheme POSTs the themeId and returns the new state', async () => {
+    const state = makeState();
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ state }),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    await setTheme('theme-forest');
+    expect(spy).toHaveBeenCalledWith(
+      '/api/house/theme',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ themeId: 'theme-forest' }),
+      }),
     );
   });
 });
