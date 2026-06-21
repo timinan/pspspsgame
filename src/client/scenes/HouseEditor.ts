@@ -37,6 +37,9 @@ export class HouseEditor extends Scene {
   private confirmModal!: ConfirmModal;
   private placementMode: { kind: 'decor' | 'cat'; itemId: string } | null = null;
   private removeBadges: RemoveBadge[] = [];
+  private decorPage = 0;
+  private catsPage = 0;
+  private readonly ITEMS_PER_PAGE = 10;
 
   constructor() {
     super(SceneKeys.HouseEditor);
@@ -116,7 +119,7 @@ export class HouseEditor extends Scene {
 
     this.contextMenu = new ContextMenu(this);
     this.confirmModal = new ConfirmModal(this);
-    this.tabContent = this.add.container(0, this.scale.height - 90).setDepth(82);
+    this.tabContent = this.add.container(0, this.scale.height - 108).setDepth(82);
     this.drawTabBar();
     this.renderActiveTab();
 
@@ -170,6 +173,8 @@ export class HouseEditor extends Scene {
     if (this.placementMode) return; // ignore tab swap while placing
     this.activeTab = key;
     this.contextMenu.close();
+    if (key === 'decor') this.decorPage = 0;
+    if (key === 'cats') this.catsPage = 0;
     this.drawTabBar();
     this.renderActiveTab();
   }
@@ -184,12 +189,14 @@ export class HouseEditor extends Scene {
   private renderDecorTab(): void {
     // TEMP-DEMO: iterate ownedCosmetics instead of ownedDecorations
     // Original code used: const owned = this.playerState.house.ownedDecorations;
-    const owned = this.playerState.ownedCosmetics;
+    const ownedAll = this.playerState.ownedCosmetics;
     const placed = new Set(Object.values(this.playerState.house.decorations));
     const cellW = 48;
     const gap = 6;
     const startX = 12;
-    const startY = 12;
+    const startY = 4;
+    const start = this.decorPage * this.ITEMS_PER_PAGE;
+    const owned = ownedAll.slice(start, start + this.ITEMS_PER_PAGE);
     owned.forEach((cosId, i) => {
       // TEMP-DEMO: look up in COSMETIC_CATALOG instead of DECORATION_CATALOG
       const entry = COSMETIC_CATALOG.find((c) => c.id === cosId);
@@ -231,6 +238,29 @@ export class HouseEditor extends Scene {
         this.openDecorMenu(worldX, worldY, cosId, entry.name, isPlaced);
       });
     });
+
+    const totalPages = Math.max(1, Math.ceil(ownedAll.length / this.ITEMS_PER_PAGE));
+    if (totalPages > 1) {
+      const arrowY = startY + 2 * (cellW + gap) + 14;
+      const prev = this.add.text(20, arrowY, '◀', {
+        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
+        color: this.decorPage > 0 ? '#ffd34d' : '#444',
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      const label = this.add.text(this.scale.width / 2, arrowY, `${this.decorPage + 1} / ${totalPages}`, {
+        fontFamily: 'Pixeloid Sans, sans-serif', fontSize: '11px', color: '#c0a0e6',
+      }).setOrigin(0.5);
+      const next = this.add.text(this.scale.width - 20, arrowY, '▶', {
+        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
+        color: this.decorPage < totalPages - 1 ? '#ffd34d' : '#444',
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      prev.on('pointerdown', () => {
+        if (this.decorPage > 0) { this.decorPage--; this.renderActiveTab(); }
+      });
+      next.on('pointerdown', () => {
+        if (this.decorPage < totalPages - 1) { this.decorPage++; this.renderActiveTab(); }
+      });
+      this.tabContent.add([prev, label, next]);
+    }
   }
 
   private openDecorMenu(x: number, y: number, decoId: string, displayName: string, isPlaced: boolean): void {
@@ -254,12 +284,14 @@ export class HouseEditor extends Scene {
   }
 
   private renderCatsTab(): void {
-    const owned = this.playerState.ownedCats;
+    const ownedAll = this.playerState.ownedCats;
     const seated = new Set(Object.values(this.playerState.seatedCats));
     const cellW = 48;
     const gap = 6;
     const startX = 12;
-    const startY = 12;
+    const startY = 4;
+    const start = this.catsPage * this.ITEMS_PER_PAGE;
+    const owned = ownedAll.slice(start, start + this.ITEMS_PER_PAGE);
     owned.forEach((catId, i) => {
       const entry = CAT_CATALOG.find((c) => c.id === catId);
       if (!entry) return;
@@ -291,6 +323,29 @@ export class HouseEditor extends Scene {
         this.openCatMenu(worldX, worldY, catId, entry.name, isSeated);
       });
     });
+
+    const totalPages = Math.max(1, Math.ceil(ownedAll.length / this.ITEMS_PER_PAGE));
+    if (totalPages > 1) {
+      const arrowY = startY + 2 * (cellW + gap) + 14;
+      const prev = this.add.text(20, arrowY, '◀', {
+        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
+        color: this.catsPage > 0 ? '#ffd34d' : '#444',
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      const label = this.add.text(this.scale.width / 2, arrowY, `${this.catsPage + 1} / ${totalPages}`, {
+        fontFamily: 'Pixeloid Sans, sans-serif', fontSize: '11px', color: '#c0a0e6',
+      }).setOrigin(0.5);
+      const next = this.add.text(this.scale.width - 20, arrowY, '▶', {
+        fontFamily: 'Pixeloid Sans, sans-serif', fontStyle: 'bold', fontSize: '14px',
+        color: this.catsPage < totalPages - 1 ? '#ffd34d' : '#444',
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      prev.on('pointerdown', () => {
+        if (this.catsPage > 0) { this.catsPage--; this.renderActiveTab(); }
+      });
+      next.on('pointerdown', () => {
+        if (this.catsPage < totalPages - 1) { this.catsPage++; this.renderActiveTab(); }
+      });
+      this.tabContent.add([prev, label, next]);
+    }
   }
 
   private openCatMenu(x: number, y: number, catId: string, displayName: string, isSeated: boolean): void {
@@ -327,7 +382,7 @@ export class HouseEditor extends Scene {
     const cellW = (this.scale.width - 32) / 3;
     const cellH = 64;
     const startX = 12;
-    const startY = 12;
+    const startY = 4;
     owned.forEach((themeId, i) => {
       const entry = THEME_CATALOG.find((t) => t.id === themeId);
       if (!entry) return;
@@ -433,8 +488,9 @@ export class HouseEditor extends Scene {
   private openDressingRoom(catId: string): void {
     this.scene.pause();
     this.scene.launch(SceneKeys.DressingRoom, { catId, playerState: this.playerState });
-    this.events.once(Scenes.Events.RESUME, async () => {
-      this.playerState = await fetchState();
+    this.events.once(Scenes.Events.RESUME, () => {
+      // playerState was mutated in-place by DressingRoom (shared reference).
+      // Just refresh — no network round-trip needed.
       this.refreshRoom();
     });
   }
