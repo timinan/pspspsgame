@@ -1,5 +1,5 @@
 import type { PlayerState } from '../../shared/state';
-import { STARTER_COINS } from '../../shared/state';
+import { STARTER_COINS, createFreshPlayerState } from '../../shared/state';
 
 /**
  * Minimal interface to Redis — the only operations player-state needs.
@@ -42,16 +42,9 @@ export async function loadOrInit(
 }
 
 function freshState(username: string): PlayerState {
-  return {
-    username,
-    coins: STARTER_COINS,
-    ownedCats: [],
-    ownedCosmetics: [],
-    equippedCosmetics: {},
-    bestScore: 0,
-    onboardingDone: false,
-    updatedAt: Date.now(),
-  };
+  const fresh = createFreshPlayerState(username);
+  fresh.updatedAt = Date.now();
+  return fresh;
 }
 
 /**

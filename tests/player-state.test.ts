@@ -4,7 +4,7 @@ import {
   save,
   type RedisLike,
 } from '../src/server/core/player-state';
-import { STARTER_COINS } from '../src/shared/state';
+import { STARTER_COINS, createFreshPlayerState } from '../src/shared/state';
 
 class FakeRedis implements RedisLike {
   private store = new Map<string, string>();
@@ -100,5 +100,32 @@ describe('player-state', () => {
     const state = await loadOrInit(redis, 'dave');
     expect(state.coins).toBe(42);
     expect(state.equippedCosmetics).toEqual({});
+  });
+});
+
+describe('PlayerState.house', () => {
+  it('house has decorations map keyed by SlotId', () => {
+    const fresh = createFreshPlayerState();
+    expect(fresh.house).toBeDefined();
+    expect(fresh.house.decorations).toBeDefined();
+    expect(typeof fresh.house.decorations).toBe('object');
+  });
+
+  it('house has themeId defaulting to "default"', () => {
+    const fresh = createFreshPlayerState();
+    expect(fresh.house.themeId).toBe('default');
+  });
+
+  it('house starts with empty slot map', () => {
+    const fresh = createFreshPlayerState();
+    expect(Object.keys(fresh.house.decorations).length).toBe(0);
+  });
+
+  it('house has ownedDecorations and ownedThemes arrays starting empty', () => {
+    const fresh = createFreshPlayerState();
+    expect(Array.isArray(fresh.house.ownedDecorations)).toBe(true);
+    expect(fresh.house.ownedDecorations.length).toBe(0);
+    expect(Array.isArray(fresh.house.ownedThemes)).toBe(true);
+    expect(fresh.house.ownedThemes).toEqual(['default']);
   });
 });

@@ -151,6 +151,17 @@ export const DUPLICATE_REFUND = 50;
 
 // -- Player state -------------------------------------------------------
 
+export interface PlayerHouseState {
+  /** Active theme — 'default' for fresh players */
+  themeId: ThemeId;
+  /** Map of slot id → placed decoration id. Empty entries mean unfilled. */
+  decorations: Partial<Record<SlotId, DecorationId>>;
+  /** All decoration ids the player owns (in inventory) */
+  ownedDecorations: DecorationId[];
+  /** All theme ids the player owns. Always includes 'default'. */
+  ownedThemes: ThemeId[];
+}
+
 export interface PlayerState {
   /** Reddit username — the key under which this lives in Redis. */
   username: string;
@@ -164,4 +175,28 @@ export interface PlayerState {
   onboardingDone: boolean;
   /** Unix-ms of last write. */
   updatedAt: number;
+  house: PlayerHouseState;
+}
+
+/**
+ * Create a fresh PlayerState with all fields initialized to defaults.
+ * Used by tests and the server-side state initializer.
+ */
+export function createFreshPlayerState(username: string = ''): PlayerState {
+  return {
+    username,
+    coins: STARTER_COINS,
+    ownedCats: [],
+    ownedCosmetics: [],
+    equippedCosmetics: {},
+    bestScore: 0,
+    onboardingDone: false,
+    updatedAt: Date.now(),
+    house: {
+      themeId: 'default',
+      decorations: {},
+      ownedDecorations: [],
+      ownedThemes: ['default'],
+    },
+  };
 }
