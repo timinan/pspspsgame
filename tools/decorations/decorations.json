@@ -1,0 +1,8 @@
+{
+  "d1": { "displayName": "Cozy Lamp",    "frame": "d1", "rarity": "common" },
+  "d2": { "displayName": "House Plant",  "frame": "d2", "rarity": "common" },
+  "d3": { "displayName": "Food Bowl",    "frame": "d3", "rarity": "common" },
+  "d4": { "displayName": "Photo Frame",  "frame": "d4", "rarity": "uncommon" },
+  "d5": { "displayName": "Scratch Post", "frame": "d5", "rarity": "uncommon" },
+  "d6": { "displayName": "Yarn Ball",    "frame": "d6", "rarity": "rare" }
+}

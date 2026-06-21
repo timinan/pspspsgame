@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>pspsps — Decoration Calibrator</title>
+<link rel="icon" href="data:," />
+<style>
+  :root {
+    --bg: #1a0a2e;
+    --panel: #261540;
+    --accent: #c0a0e6;
+    --text: #ffffff;
+    --primary: #ffd34d;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
+  h1 { margin-top: 0; color: var(--primary); }
+  p { color: var(--accent); font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 8px; overflow: hidden; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #3a2060; }
+  th { background: #2c1856; color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #2c1856; }
+  input, select {
+    padding: 5px 7px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid #555;
+    border-radius: 4px;
+    font: inherit;
+  }
+  input:focus, select:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+  .preview {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+    display: inline-block;
+    background: var(--bg);
+    border: 1px solid #3a2060;
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+  .status { margin-top: 16px; color: var(--accent); font-size: 12px; }
+  .status.saved { color: #7fdc8a; }
+  .status.error { color: #ff6b6b; }
+</style>
+</head>
+<body>
+<h1>Decoration Calibrator</h1>
+<p>Edit decoration display names, frame keys, and rarity. Autosaves on change.</p>
+<table id="tbl">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Preview</th>
+      <th>Display Name</th>
+      <th>Frame Key</th>
+      <th>Rarity</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<div class="status" id="status">loading…</div>
+
+<script>
+let decorations = {};
+let atlasFrames = {};
+let saveTimer = null;
+
+async function load() {
+  try {
+    const [decRes, atlasRes] = await Promise.all([
+      fetch('/tools/decorations/decorations.json'),
+      fetch('/assets/decorations.json').catch(() => ({ ok: false })),
+    ]);
+    decorations = await decRes.json();
+    if (atlasRes.ok) {
+      const atlas = await atlasRes.json();
+      atlasFrames = atlas.frames || {};
+    }
+    render();
+    setStatus('loaded from disk', 'saved');
+  } catch (e) {
+    setStatus('load failed: ' + e.message, 'error');
+  }
+}
+
+function previewStyle(frameKey) {
+  const f = atlasFrames[frameKey]?.frame;
+  if (!f) return '';
+  return `background-image: url('/assets/decorations.png'); background-position: -${f.x}px -${f.y}px; background-size: auto; width: ${f.w}px; height: ${f.h}px;`;
+}
+
+function render() {
+  const tbody = document.querySelector('#tbl tbody');
+  tbody.innerHTML = '';
+  for (const [id, v] of Object.entries(decorations)) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><code style="color:var(--accent)">${id}</code></td>
+      <td><span class="preview" style="${previewStyle(v.frame)}"></span></td>
+      <td><input data-field="displayName" data-id="${id}" value="${escAttr(v.displayName)}" style="width:180px"></td>
+      <td><input data-field="frame" data-id="${id}" value="${escAttr(v.frame)}" size="8"></td>
+      <td>
+        <select data-field="rarity" data-id="${id}">
+          ${['common','uncommon','rare','legendary'].map(r =>
+            `<option value="${r}"${r === v.rarity ? ' selected' : ''}>${r}</option>`
+          ).join('')}
+        </select>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+  tbody.addEventListener('input', onInput, { passive: true });
+  tbody.addEventListener('change', onInput, { passive: true });
+}
+
+function escAttr(s) {
+  return String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function onInput(e) {
+  const el = e.target;
+  const id = el.dataset.id;
+  const field = el.dataset.field;
+  if (!id || !field) return;
+  decorations[id][field] = el.value;
+  if (field === 'frame') render();
+  scheduleSave();
+}
+
+function scheduleSave() {
+  setStatus('unsaved…', '');
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 400);
+}
+
+async function save() {
+  setStatus('saving…', '');
+  try {
+    const res = await fetch('/save/decorations', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(decorations),
+    });
+    if (res.ok) {
+      setStatus('saved ' + new Date().toLocaleTimeString(), 'saved');
+    } else {
+      setStatus('save FAILED: ' + res.status, 'error');
+    }
+  } catch (e) {
+    setStatus('save error: ' + e.message, 'error');
+  }
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+load();
+</script>
+</body>
+</html>

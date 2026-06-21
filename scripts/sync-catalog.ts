@@ -2,8 +2,9 @@
  * Reads the calibrator's JSON output and regenerates the catalogs that
  * the game's shared state imports:
  *
- *   tools/cosmetics/cosmetics.json  →  src/shared/cosmetics-catalog.generated.ts
- *   tools/cats/cats.json            →  src/shared/cats-catalog.generated.ts
+ *   tools/cosmetics/cosmetics.json      →  src/shared/cosmetics-catalog.generated.ts
+ *   tools/cats/cats.json                →  src/shared/cats-catalog.generated.ts
+ *   tools/decorations/decorations.json  →  src/shared/decorations-catalog.generated.ts
  *
  * The tools server runs this after every successful POST /save so the
  * game's catalog stays in lock-step with the calibrators without any
@@ -15,6 +16,7 @@ import path from 'node:path';
 const PROJECT_ROOT = path.resolve(import.meta.dirname, '..');
 const COSMETICS_JSON = path.join(PROJECT_ROOT, 'tools', 'cosmetics', 'cosmetics.json');
 const CATS_JSON = path.join(PROJECT_ROOT, 'tools', 'cats', 'cats.json');
+const DECORATIONS_JSON = path.join(PROJECT_ROOT, 'tools', 'decorations', 'decorations.json');
 const OUT_DIR = path.join(PROJECT_ROOT, 'src', 'shared');
 
 interface CosmeticJsonEntry {
@@ -38,6 +40,12 @@ interface CatJsonEntry {
   sourceFrame?: string;
   tint?: string;
   tintMode?: string;
+}
+
+interface DecorationJsonEntry {
+  displayName: string;
+  frame: string;
+  rarity: string;
 }
 
 const BANNER =
@@ -139,10 +147,45 @@ async function genCats(): Promise<number> {
   return entries.length;
 }
 
+async function genDecorations(): Promise<number> {
+  let raw: Record<string, DecorationJsonEntry> = {};
+  try {
+    const text = await fs.readFile(DECORATIONS_JSON, 'utf8');
+    raw = JSON.parse(text) as Record<string, DecorationJsonEntry>;
+  } catch {
+    // file not found — write an empty catalog
+  }
+  const lines: string[] = [
+    BANNER,
+    `import type { DecorationEntry } from './state';`,
+    '',
+    `export const GENERATED_DECORATION_CATALOG: readonly DecorationEntry[] = [`,
+  ];
+  for (const [id, v] of Object.entries(raw)) {
+    lines.push('  {');
+    lines.push(
+      ...fieldLines({
+        id,
+        displayName: v.displayName,
+        frame: v.frame,
+        rarity: v.rarity,
+      }),
+    );
+    lines.push('  },');
+  }
+  lines.push('];');
+  lines.push('');
+  await fs.writeFile(
+    path.join(OUT_DIR, 'decorations-catalog.generated.ts'),
+    lines.join('\n'),
+  );
+  return Object.keys(raw).length;
+}
+
 async function main(): Promise<void> {
   await fs.mkdir(OUT_DIR, { recursive: true });
-  const [cosCount, catCount] = await Promise.all([genCosmetics(), genCats()]);
-  console.log(`[sync] cosmetics=${cosCount} cats=${catCount}`);
+  const [cosCount, catCount, decCount] = await Promise.all([genCosmetics(), genCats(), genDecorations()]);
+  console.log(`[sync] cosmetics=${cosCount} cats=${catCount} decorations=${decCount}`);
 }
 
 main().catch((err) => {

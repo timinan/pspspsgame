@@ -36,6 +36,18 @@ const TOOLS = {
     savePath: path.join(TOOL_DIR, 'cats', 'cats.json'),
     description: 'Name, rarity, scale, animation preview, and tint variants for the 6 base cats.',
   },
+  decorations: {
+    label: 'Decoration Calibrator',
+    href: '/tools/decorations/calibrator.html',
+    savePath: path.join(TOOL_DIR, 'decorations', 'decorations.json'),
+    description: 'Display name, frame key, and rarity for the 6 room decorations.',
+  },
+  themes: {
+    label: 'Theme Calibrator',
+    href: '/tools/themes/calibrator.html',
+    savePath: path.join(TOOL_DIR, 'themes', 'themes.json'),
+    description: 'Display name, frame key, and rarity for room themes.',
+  },
 };
 
 const MAX_BACKUPS = 5;
