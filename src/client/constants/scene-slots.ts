@@ -1,0 +1,24 @@
+import type { SlotId } from '@/../shared/state';
+
+export interface SceneSlot {
+  id: SlotId;
+  /** Display label shown in the Collection decor tab */
+  label: string;
+  /** Pixel coordinates relative to scene top-left (320x480 design space) */
+  x: number;
+  y: number;
+  /** Phaser origin for the placed sprite. 0.5/1.0 = bottom-center. */
+  anchor: { x: number; y: number };
+}
+
+export const SCENE_SLOTS: readonly SceneSlot[] = [
+  { id: 'window-sill',  label: 'Window Sill',  x: 60,  y: 130, anchor: { x: 0.5, y: 1.0 } },
+  { id: 'side-table',   label: 'Side Table',   x: 260, y: 280, anchor: { x: 0.5, y: 1.0 } },
+  { id: 'floor-left',   label: 'Floor (Left)', x: 80,  y: 420, anchor: { x: 0.5, y: 1.0 } },
+  { id: 'floor-right',  label: 'Floor (Right)',x: 240, y: 420, anchor: { x: 0.5, y: 1.0 } },
+  { id: 'wall-hook',    label: 'Wall Hook',    x: 160, y: 90,  anchor: { x: 0.5, y: 0.5 } },
+  { id: 'shelf-top',    label: 'Shelf (Top)',  x: 230, y: 170, anchor: { x: 0.5, y: 1.0 } },
+  { id: 'corner-back',  label: 'Back Corner',  x: 30,  y: 360, anchor: { x: 0.5, y: 1.0 } },
+] as const;
+
+export const SLOT_IDS: readonly SlotId[] = SCENE_SLOTS.map((s) => s.id);
