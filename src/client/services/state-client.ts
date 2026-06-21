@@ -5,6 +5,7 @@ import type {
   DecorationId,
   PlayerState,
   Rarity,
+  SeatId,
   SlotId,
   ThemeId,
 } from '../../shared/state';
@@ -95,6 +96,39 @@ export async function setTheme(themeId: ThemeId): Promise<PlayerState> {
     body: JSON.stringify({ themeId }),
   });
   if (!r.ok) throw new Error(`setTheme ${r.status}`);
+  const data = (await r.json()) as { state: PlayerState };
+  return data.state;
+}
+
+export async function setSeat(seatId: SeatId, catId: CatBreed | null): Promise<PlayerState> {
+  const r = await fetch('/api/house/seat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ seatId, catId }),
+  });
+  if (!r.ok) throw new Error(`setSeat ${r.status}`);
+  const data = (await r.json()) as { state: PlayerState };
+  return data.state;
+}
+
+export async function sellItem(kind: 'decoration' | 'cosmetic', id: string): Promise<PlayerState> {
+  const r = await fetch('/api/inventory/sell', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ kind, id }),
+  });
+  if (!r.ok) throw new Error(`sellItem ${r.status}`);
+  const data = (await r.json()) as { state: PlayerState };
+  return data.state;
+}
+
+export async function rehomeCat(catId: CatBreed): Promise<PlayerState> {
+  const r = await fetch('/api/cats/rehome', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ catId }),
+  });
+  if (!r.ok) throw new Error(`rehomeCat ${r.status}`);
   const data = (await r.json()) as { state: PlayerState };
   return data.state;
 }

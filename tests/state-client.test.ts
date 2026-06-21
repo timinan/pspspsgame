@@ -7,6 +7,9 @@ import {
   completeOnboarding,
   setDecorationInSlot,
   setTheme,
+  setSeat,
+  sellItem,
+  rehomeCat,
 } from '@/services/state-client';
 import type { PlayerState } from '@/../shared/state';
 
@@ -186,5 +189,19 @@ describe('state-client', () => {
         body: JSON.stringify({ themeId: 'theme-forest' }),
       }),
     );
+  });
+});
+
+describe('state-client house-editor operations', () => {
+  it('exposes setSeat', () => {
+    expect(typeof setSeat).toBe('function');
+  });
+
+  it('exposes sellItem', () => {
+    expect(typeof sellItem).toBe('function');
+  });
+
+  it('exposes rehomeCat', () => {
+    expect(typeof rehomeCat).toBe('function');
   });
 });
