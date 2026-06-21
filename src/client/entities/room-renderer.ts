@@ -3,7 +3,8 @@ import { ThemeManager } from '@/entities/theme-manager';
 import { Decoration } from '@/entities/decoration';
 import { Cat } from '@/entities/cat';
 import { SCENE_SLOTS, SCENE_SEATS } from '@/constants/scene-slots';
-import { DECORATION_CATALOG, CAT_CATALOG } from '@/../shared/state';
+import { AssetKeys } from '@/constants/assets'; // TEMP-DEMO: for cosmetics atlas in cosmetics-as-decor fallback
+import { DECORATION_CATALOG, CAT_CATALOG, COSMETIC_CATALOG } from '@/../shared/state'; // TEMP-DEMO: COSMETIC_CATALOG for cosmetics-as-decor fallback
 import type { PlayerState } from '@/../shared/state';
 
 /**
@@ -36,6 +37,18 @@ export class RoomRenderer {
     for (const slot of SCENE_SLOTS) {
       const decorationId = playerState.house?.decorations[slot.id];
       if (!decorationId) continue;
+      // TEMP-DEMO: try COSMETIC_CATALOG first; render directly as a sprite using cosmetics atlas
+      const cosEntry = COSMETIC_CATALOG.find((c) => c.id === decorationId);
+      if (cosEntry && cosEntry.sourceFrame) {
+        const cosmeticSprite = this.scene.add
+          .sprite(slot.x, slot.y, AssetKeys.Atlas.Cosmetics, cosEntry.sourceFrame)
+          .setOrigin(slot.anchor.x, slot.anchor.y)
+          .setDepth(slot.y);
+        // Track as a Decoration-like object — but cast to any since types differ
+        // TEMP-DEMO: revert to proper decoration rendering when scenario testing done
+        this.decorations.push(cosmeticSprite as unknown as Decoration);
+        continue;
+      }
       const entry = DECORATION_CATALOG.find((d) => d.id === decorationId);
       if (!entry) continue;
       const deco = new Decoration(this.scene, slot, entry);

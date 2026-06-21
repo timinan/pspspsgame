@@ -9,6 +9,7 @@ import { fetchState, setDecorationInSlot, setSeat, sellItem, rehomeCat, setTheme
 import { ContextMenu, buildDecorMenu, buildCatMenu } from '@/ui/context-menu';
 import { ConfirmModal } from '@/ui/confirm-modal';
 import { DECORATION_CATALOG, CAT_CATALOG, THEME_CATALOG } from '@/../shared/state';
+import { COSMETIC_CATALOG } from '@/../shared/state'; // TEMP-DEMO: for cosmetics-as-decor test
 import { AssetKeys } from '@/constants/assets';
 import type { PlayerState } from '@/../shared/state';
 import { RemoveBadge } from '@/entities/remove-badge';
@@ -62,6 +63,15 @@ export class HouseEditor extends Scene {
     // Room (theme + decorations + seated cats)
     this.roomRenderer = new RoomRenderer(this);
     this.roomRenderer.renderFrom(this.playerState);
+
+    // TEMP-DEMO: visualize floor line where seats anchor
+    const floorY = 370; // matches SCENE_SEATS y
+    this.add.line(0, 0, 0, floorY, this.scale.width, floorY, 0xff5050, 0.5).setOrigin(0, 0);
+    this.add.text(this.scale.width - 8, floorY - 12, 'floor (y=370)', {
+      fontFamily: 'Pixeloid Sans, sans-serif',
+      fontSize: '9px',
+      color: '#ff5050',
+    }).setOrigin(1, 0);
 
     // Slot ghosts (only for empty slots)
     for (const slot of SCENE_SLOTS) {
@@ -155,38 +165,44 @@ export class HouseEditor extends Scene {
   }
 
   private renderDecorTab(): void {
-    const owned = this.playerState.house.ownedDecorations;
+    // TEMP-DEMO: iterate ownedCosmetics instead of ownedDecorations
+    // Original code used: const owned = this.playerState.house.ownedDecorations;
+    const owned = this.playerState.ownedCosmetics;
     const placed = new Set(Object.values(this.playerState.house.decorations));
     const cellW = 48;
     const gap = 6;
     const startX = 12;
     const startY = 12;
-    owned.forEach((decoId, i) => {
-      const entry = DECORATION_CATALOG.find((d) => d.id === decoId);
-      if (!entry) return;
+    owned.forEach((cosId, i) => {
+      // TEMP-DEMO: look up in COSMETIC_CATALOG instead of DECORATION_CATALOG
+      const entry = COSMETIC_CATALOG.find((c) => c.id === cosId);
+      if (!entry || !entry.sourceFrame) return;
       const col = i % 5;
       const row = Math.floor(i / 5);
       const x = startX + col * (cellW + gap) + cellW / 2;
       const y = startY + row * (cellW + gap) + cellW / 2;
-      const isPlaced = placed.has(decoId);
+      const isPlaced = placed.has(cosId);
       const bg = this.add
         .rectangle(x, y, cellW, cellW, isPlaced ? 0x1a0a2e : 0x0b041a, isPlaced ? 1 : 0.6)
         .setStrokeStyle(1, isPlaced ? 0xffd34d : 0xc0a0e6, isPlaced ? 1 : 0.3)
         .setInteractive({ useHandCursor: true });
+      // TEMP-DEMO: use Cosmetics atlas instead of Decorations atlas
       const sprite = this.add
-        .sprite(x, y, AssetKeys.Atlas.Decorations, entry.frame)
+        .sprite(x, y, AssetKeys.Atlas.Cosmetics, entry.sourceFrame)
         .setScale(0.5);
       this.tabContent.add([bg, sprite]);
       if (isPlaced) {
         const tick = this.add.circle(x + cellW / 2 - 4, y - cellW / 2 + 4, 7, 0xffd34d, 1);
         const tickText = this.add
-          .text(x + cellW / 2 - 4, y - cellW / 2 + 4, '✓', { fontSize: '10px', fontStyle: 'bold', color: '#1a0a2e' })
+          .text(x + cellW / 2 - 4, y - cellW / 2 + 4, '✓', {
+            fontSize: '10px', fontStyle: 'bold', color: '#1a0a2e',
+          })
           .setOrigin(0.5);
         this.tabContent.add([tick, tickText]);
       }
       bg.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        this.openDecorMenu(x, y - cellW / 2, decoId, entry.displayName, isPlaced);
+        this.openDecorMenu(x, y - cellW / 2, cosId, entry.name, isPlaced);
       });
     });
   }
