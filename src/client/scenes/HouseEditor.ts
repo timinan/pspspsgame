@@ -11,6 +11,7 @@ import { ConfirmModal } from '@/ui/confirm-modal';
 import { DECORATION_CATALOG, CAT_CATALOG, THEME_CATALOG } from '@/../shared/state';
 import { AssetKeys } from '@/constants/assets';
 import type { PlayerState } from '@/../shared/state';
+import { RemoveBadge } from '@/entities/remove-badge';
 
 /**
  * Edit-mode scene. Shares room rendering with the Game scene via
@@ -33,6 +34,7 @@ export class HouseEditor extends Scene {
   private contextMenu!: ContextMenu;
   private confirmModal!: ConfirmModal;
   private placementMode: { kind: 'decor' | 'cat'; itemId: string } | null = null;
+  private removeBadges: RemoveBadge[] = [];
 
   constructor() {
     super(SceneKeys.HouseEditor);
@@ -99,6 +101,9 @@ export class HouseEditor extends Scene {
     // Listen for ghost taps
     this.events.on('slot:tap', (slotId: string) => this.onSlotTap(slotId));
     this.events.on('seat:tap', (seatId: string) => this.onSeatTap(seatId));
+
+    this.wireSeatedCatTaps();
+    this.wireRemoveBadges();
   }
 
   private drawTabBar(): void {
@@ -266,8 +271,7 @@ export class HouseEditor extends Scene {
       this.playerState = await setSeat(seatEntry[0], null);
       this.refreshRoom();
     } else if (action === 'dressup') {
-      // Dressing room implementation lands in Task 16 + 17. For now, no-op placeholder.
-      console.warn('[HouseEditor] dressup action: DressingRoom scene not yet wired');
+      this.openDressingRoom(catId);
     } else if (action === 'rehome') {
       this.confirmModal.open({
         title: 'Rehome ' + displayName + '?',
@@ -343,6 +347,8 @@ export class HouseEditor extends Scene {
       this.seatGhosts.push(ghost);
     }
     this.renderActiveTab();
+    this.wireSeatedCatTaps();
+    this.wireRemoveBadges();
   }
 
   private startPlacement(kind: 'decor' | 'cat', itemId: string): void {
@@ -388,6 +394,61 @@ export class HouseEditor extends Scene {
     this.scene.start(SceneKeys.Game, { playerState: this.playerState });
   }
 
+  private openDressingRoom(catId: string): void {
+    this.scene.pause();
+    this.scene.launch(SceneKeys.DressingRoom, { catId, playerState: this.playerState });
+    this.events.once(Scenes.Events.RESUME, async () => {
+      this.playerState = await fetchState();
+      this.refreshRoom();
+    });
+  }
+
+  private wireSeatedCatTaps(): void {
+    const sprites = this.roomRenderer.getSeatedCatSprites();
+    for (const [seatId, sprite] of sprites) {
+      const catId = this.playerState.seatedCats[seatId];
+      if (!catId) continue;
+      sprite.setInteractive({ useHandCursor: true });
+      sprite.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
+        this.openDressingRoom(catId);
+      });
+    }
+  }
+
+  private wireRemoveBadges(): void {
+    for (const badge of this.removeBadges) badge.destroy(true);
+    this.removeBadges = [];
+
+    // Badges for placed decorations
+    const decoSprites = this.roomRenderer.getDecorationSprites();
+    for (const [slotId, deco] of decoSprites) {
+      const badgeX = deco.x + (deco.width * (1 - deco.originX)) - 4;
+      const badgeY = deco.y - (deco.height * deco.originY) + 4;
+      const badge = new RemoveBadge(this, 0, 0, async () => {
+        this.playerState = await setDecorationInSlot(slotId, null);
+        this.refreshRoom();
+      });
+      badge.setPosition(badgeX, badgeY).setDepth(30);
+      this.add.existing(badge);
+      this.removeBadges.push(badge);
+    }
+
+    // Badges for seated cats
+    const catSprites = this.roomRenderer.getSeatedCatSprites();
+    for (const [seatId, sprite] of catSprites) {
+      const badgeX = sprite.x + (sprite.width * (1 - sprite.originX)) - 4;
+      const badgeY = sprite.y - (sprite.height * sprite.originY) + 4;
+      const badge = new RemoveBadge(this, 0, 0, async () => {
+        this.playerState = await setSeat(seatId, null);
+        this.refreshRoom();
+      });
+      badge.setPosition(badgeX, badgeY).setDepth(30);
+      this.add.existing(badge);
+      this.removeBadges.push(badge);
+    }
+  }
+
   private cleanup(): void {
     this.topHud?.destroy();
     this.contextMenu?.destroy();
@@ -395,10 +456,12 @@ export class HouseEditor extends Scene {
     this.roomRenderer?.destroy();
     for (const g of this.slotGhosts) g.destroy();
     for (const g of this.seatGhosts) g.destroy();
+    for (const b of this.removeBadges) b.destroy(true);
     this.tabsBar?.destroy(true);
     this.tabContent?.destroy(true);
     this.trayContainer?.destroy(true);
     this.slotGhosts = [];
     this.seatGhosts = [];
+    this.removeBadges = [];
   }
 }
