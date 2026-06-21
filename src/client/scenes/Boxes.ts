@@ -8,9 +8,13 @@ import {
   BOX_CATALOG,
   CAT_CATALOG,
   COSMETIC_CATALOG,
+  DECORATION_CATALOG,
+  THEME_CATALOG,
   type BoxId,
   type CatBreed,
   type CosmeticId,
+  type DecorationId,
+  type ThemeId,
   type PlayerState,
 } from '@/../shared/state';
 
@@ -45,6 +49,18 @@ const BOX_CARDS: BoxCardLayout[] = [
     title: 'Premium Style Pack',
     tagline: 'Rare cosmetics — the\nCrown of Treats lives here.',
     accent: 0xffd34d,
+  },
+  {
+    boxId: 'decorCrate',
+    title: 'Decor Crate',
+    tagline: 'A new room prop to\ndress up your space.',
+    accent: 0x4dffb4,
+  },
+  {
+    boxId: 'themePack',
+    title: 'Theme Pack',
+    tagline: 'A new look and\nsoundtrack for your house.',
+    accent: 0xff8c4d,
   },
 ];
 
@@ -164,9 +180,9 @@ export class Boxes extends Scene {
     const gapX = 24;
     const gapY = 24;
     const cardW = Math.max(140, Math.min(320, (width - sideMargin * 2 - gapX) / 2));
-    const cardH = 220;
+    const cardH = 180;
     const gridW = cardW * 2 + gapX;
-    const gridH = cardH * 2 + gapY;
+    const gridH = cardH * 3 + gapY * 2;
     const originX = width / 2 - gridW / 2;
     const originY = height / 2 - gridH / 2 + 20;
 
@@ -340,6 +356,41 @@ export class Boxes extends Scene {
       this.refreshAffordability();
 
       const pull = result.pull;
+
+      if (pull.kind === 'decoration') {
+        const entry = DECORATION_CATALOG.find((d) => d.id === (pull.itemId as DecorationId));
+        playBoxOpenAnimation(
+          this,
+          {
+            textureKey: AssetKeys.Atlas.Decorations,
+            frame: entry?.frame ?? pull.itemId,
+            itemName: entry?.displayName ?? pull.itemId,
+            rarity: pull.rarity,
+            duplicate: pull.duplicate,
+            refundCoins: pull.refundCoins,
+          },
+          () => { this.busy = false; },
+        );
+        return;
+      }
+
+      if (pull.kind === 'theme') {
+        const entry = THEME_CATALOG.find((t) => t.id === (pull.itemId as ThemeId));
+        playBoxOpenAnimation(
+          this,
+          {
+            textureKey: entry?.backdropKey ?? AssetKeys.Image.ThemeDefaultBg,
+            frame: '',
+            itemName: entry?.displayName ?? pull.itemId,
+            rarity: pull.rarity,
+            duplicate: pull.duplicate,
+            refundCoins: pull.refundCoins,
+          },
+          () => { this.busy = false; },
+        );
+        return;
+      }
+
       const isCat = pull.kind === 'cat';
       const entry = isCat
         ? CAT_CATALOG.find((c) => c.id === (pull.itemId as CatBreed))

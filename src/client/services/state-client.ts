@@ -10,8 +10,8 @@ import type {
 } from '../../shared/state';
 
 export interface PullResult {
-  kind: 'cat' | 'cosmetic';
-  itemId: CatBreed | CosmeticId;
+  kind: 'cat' | 'cosmetic' | 'decoration' | 'theme';
+  itemId: CatBreed | CosmeticId | DecorationId | ThemeId;
   rarity: Rarity;
   duplicate: boolean;
   refundCoins: number;
