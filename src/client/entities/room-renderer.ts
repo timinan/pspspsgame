@@ -61,8 +61,8 @@ export class RoomRenderer {
         breed: catId,
         animation: 'idle' as const,
         restingAnimation: 'idle' as const,
-        x: seat.x,
-        y: seat.y,
+        x: (seat.x / 320) * 100,
+        y: (seat.y / 480) * 100,
         ...(playerState.equippedCosmetics[catId] !== undefined
           ? { equippedCosmetic: playerState.equippedCosmetics[catId] }
           : {}),
