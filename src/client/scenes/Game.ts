@@ -482,6 +482,12 @@ export class Game extends Scene {
       showStats: true,
       items: [
         {
+          label: 'Edit Home',
+          description: 'Decorate, seat, dress up',
+          icon: '🏠',
+          onTap: () => void this.navigateTo(SceneKeys.HouseEditor),
+        },
+        {
           label: 'Boxes',
           description: 'Open mystery crates',
           icon: '📦',

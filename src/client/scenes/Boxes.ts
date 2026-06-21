@@ -114,6 +114,12 @@ export class Boxes extends Scene {
       showStats: true,
       items: [
         {
+          label: 'Edit Home',
+          description: 'Decorate, seat, dress up',
+          icon: '🏠',
+          onTap: () => this.scene.start(SceneKeys.HouseEditor, { playerState: this.playerState }),
+        },
+        {
           label: 'Back to Game',
           description: 'Return to the rhythm scene',
           icon: '🎮',
