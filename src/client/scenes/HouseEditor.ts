@@ -37,6 +37,7 @@ export class HouseEditor extends Scene {
   private confirmModal!: ConfirmModal;
   private placementMode: { kind: 'decor' | 'cat'; itemId: string } | null = null;
   private removeBadges: RemoveBadge[] = [];
+  private replaceGhosts: (SlotGhost | SeatGhost)[] = [];
   private decorPage = 0;
   private catsPage = 0;
   private readonly ITEMS_PER_PAGE = 10;
@@ -110,16 +111,16 @@ export class HouseEditor extends Scene {
     }
 
     // Tray placeholder — filled in by tabs below
-    this.trayContainer = this.add.container(0, this.scale.height - 140).setDepth(80);
+    this.trayContainer = this.add.container(0, this.scale.height - 170).setDepth(80);
     const trayBg = this.add
-      .rectangle(0, 0, this.scale.width, 140, 0x2c1856, 0.95)
+      .rectangle(0, 0, this.scale.width, 170, 0x2c1856, 0.95)
       .setOrigin(0, 0);
     trayBg.setStrokeStyle(2, 0xc0a0e6, 0.4);
     this.trayContainer.add(trayBg);
 
     this.contextMenu = new ContextMenu(this);
     this.confirmModal = new ConfirmModal(this);
-    this.tabContent = this.add.container(0, this.scale.height - 108).setDepth(82);
+    this.tabContent = this.add.container(0, this.scale.height - 138).setDepth(82);
     this.drawTabBar();
     this.renderActiveTab();
 
@@ -138,7 +139,7 @@ export class HouseEditor extends Scene {
 
   private drawTabBar(): void {
     this.tabsBar?.destroy(true);
-    const trayY = this.scale.height - 140;
+    const trayY = this.scale.height - 170;
     this.tabsBar = this.add.container(0, trayY + 4).setDepth(82);
     const tabs: { key: 'decor' | 'cats' | 'themes'; label: string }[] = [
       { key: 'decor',  label: 'DECOR' },
@@ -529,8 +530,28 @@ export class HouseEditor extends Scene {
     });
     if (kind === 'decor') {
       for (const g of this.slotGhosts) g.startPulse(0xffd34d);
+      // Create replace ghosts for occupied slots
+      for (const slot of SCENE_SLOTS) {
+        const occupied = !!this.playerState.house.decorations[slot.id];
+        if (!occupied) continue;
+        const ghost = new SlotGhost(this, slot);
+        this.add.existing(ghost);
+        ghost.startPulse(0xffd34d);
+        ghost.setDepth(50);
+        this.replaceGhosts.push(ghost);
+      }
     } else {
       for (const g of this.seatGhosts) g.startPulse(0x4dffb4);
+      // Create replace ghosts for occupied seats
+      for (const seat of SCENE_SEATS) {
+        const occupied = !!this.playerState.seatedCats[seat.id];
+        if (!occupied) continue;
+        const ghost = new SeatGhost(this, seat);
+        this.add.existing(ghost);
+        ghost.startPulse(0x4dffb4);
+        ghost.setDepth(50);
+        this.replaceGhosts.push(ghost);
+      }
     }
   }
 
@@ -539,6 +560,8 @@ export class HouseEditor extends Scene {
     this.topHud.setMode('edit', { onDone: () => this.exitToGame() });
     for (const g of this.slotGhosts) g.stopPulse();
     for (const g of this.seatGhosts) g.stopPulse();
+    for (const g of this.replaceGhosts) g.destroy();
+    this.replaceGhosts = [];
   }
 
   private async onSlotTap(slotId: string): Promise<void> {
@@ -624,12 +647,14 @@ export class HouseEditor extends Scene {
     this.roomRenderer?.destroy();
     for (const g of this.slotGhosts) g.destroy();
     for (const g of this.seatGhosts) g.destroy();
+    for (const g of this.replaceGhosts) g.destroy();
     for (const b of this.removeBadges) b.destroy(true);
     this.tabsBar?.destroy(true);
     this.tabContent?.destroy(true);
     this.trayContainer?.destroy(true);
     this.slotGhosts = [];
     this.seatGhosts = [];
+    this.replaceGhosts = [];
     this.removeBadges = [];
   }
 }

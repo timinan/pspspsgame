@@ -59,7 +59,7 @@ export const SEAT_IDS: readonly SeatId[] = SCENE_SEATS.map((s) => s.id);
 const DESIGN_W = 320;
 const DESIGN_H = 480;
 const TOP_BAR = 44;
-export const TRAY_HEIGHT = 140;
+export const TRAY_HEIGHT = 170;
 
 /**
  * Convert design-space coords (320×480) to canvas-space coords mapped onto
