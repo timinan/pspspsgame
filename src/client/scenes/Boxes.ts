@@ -109,7 +109,7 @@ export class Boxes extends Scene {
           label: 'Edit Home',
           description: 'Decorate, seat, dress up',
           icon: '🏠',
-          onTap: () => this.scene.start(SceneKeys.HouseEditor, { playerState: this.playerState }),
+          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
         },
         {
           label: 'Back to Game',

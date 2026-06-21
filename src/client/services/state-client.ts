@@ -1,4 +1,5 @@
 import type {
+  BackgroundId,
   BoxId,
   CatBreed,
   Chart,
@@ -131,4 +132,15 @@ export async function loadChart(authorId: string): Promise<Chart> {
   const r = await fetch(`/api/chart?author=${encodeURIComponent(authorId)}`);
   if (!r.ok) throw new Error(`loadChart ${r.status}`);
   return (await r.json()) as Chart;
+}
+
+export async function setBackground(backgroundId: BackgroundId): Promise<PlayerState> {
+  const r = await fetch('/api/background/set', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ backgroundId }),
+  });
+  if (!r.ok) throw new Error(`setBackground ${r.status}`);
+  const data = (await r.json()) as { state: PlayerState };
+  return data.state;
 }

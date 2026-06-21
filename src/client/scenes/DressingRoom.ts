@@ -269,10 +269,9 @@ export class DressingRoom extends Scene {
   }
 
   private exit(): void {
-    // Resume HouseEditor first, then stop ourselves.
-    // (scene.stop alone doesn't auto-resume a paused parent scene.)
-    this.scene.resume(SceneKeys.HouseEditor);
-    this.scene.stop();
+    // Phase 5: navigation = scene.start() only — never pause+resume.
+    // Pass playerState back so Decorate re-reads latest equippedCosmetics.
+    this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
   }
 
   private cleanup(): void {

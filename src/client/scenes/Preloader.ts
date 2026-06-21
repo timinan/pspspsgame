@@ -78,7 +78,7 @@ export class Preloader extends Scene {
     } else {
       const hasSeatedCat = Object.values(playerState?.seatedCats ?? {}).some((c) => !!c);
       this.scene.start(
-        hasSeatedCat ? SceneKeys.Game : SceneKeys.HouseEditor,
+        hasSeatedCat ? SceneKeys.Game : SceneKeys.Decorate,
         { playerState },
       );
     }

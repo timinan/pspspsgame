@@ -385,7 +385,7 @@ export class Game extends Scene {
   }
 
   private onSkipClicked = (): void => {
-    this.scene.start(SceneKeys.HouseEditor); // routes to Decorate (Task 13 rename)
+    this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
   };
 
   private onPostCommentClicked = (): void => {

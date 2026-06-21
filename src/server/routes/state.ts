@@ -3,7 +3,9 @@ import { redis, reddit } from '@devvit/web/server';
 import { loadOrInit, resetState, save } from '../core/player-state';
 import { pullBox, applyPullToState } from '../core/box-pull';
 import {
+  BACKGROUND_CATALOG,
   BOX_CATALOG,
+  type BackgroundId,
   type BoxId,
   type CatBreed,
   type CosmeticId,
@@ -156,6 +158,23 @@ state.post('/inventory/sell', async (c) => {
 
   await save(redis, player);
   return c.json({ ok: true, state: player });
+});
+
+/** POST /api/background/set — body: { backgroundId }.
+ * Sets the player's active background. Must be owned. */
+state.post('/background/set', async (c) => {
+  const { backgroundId } = (await c.req.json()) as { backgroundId: BackgroundId };
+  if (!(backgroundId in BACKGROUND_CATALOG)) {
+    return c.json({ ok: false, reason: 'unknown_background' }, 400);
+  }
+  const username = await currentUsername();
+  const player = await loadOrInit(redis, username);
+  if (!player.ownedBackgrounds.includes(backgroundId)) {
+    return c.json({ ok: false, reason: 'background_not_owned' }, 400);
+  }
+  player.activeBackground = backgroundId;
+  await save(redis, player);
+  return c.json({ state: player });
 });
 
 // POST /cats/rehome — { catId }
