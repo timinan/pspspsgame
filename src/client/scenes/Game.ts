@@ -155,13 +155,15 @@ export class Game extends Scene {
     const seatedCats = this.playerState?.seatedCats ?? {};
     // seatedCats maps seatId → cat instance id.
     const SEAT_ORDER: SeatId[] = ['seat-left', 'seat-center', 'seat-right'];
-    const seatedInstanceIds = SEAT_ORDER
-      .map((seatId) => seatedCats[seatId])
-      .filter((id): id is string => Boolean(id))
-      .slice(0, 3);
 
-    for (let i = 0; i < seatedInstanceIds.length; i++) {
-      const instanceId = seatedInstanceIds[i]!;
+    // Iterate SEAT_ORDER directly so each cat renders in the lane that
+    // matches its seat position. Filtering empty seats first and using the
+    // filtered array index would put a lone 'seat-right' cat into lane 0.
+    for (let i = 0; i < SEAT_ORDER.length; i++) {
+      const seatId = SEAT_ORDER[i]!;
+      const instanceId = seatedCats[seatId];
+      if (!instanceId) continue;
+
       const catInstance = this.playerState?.ownedCats.find((cat) => cat.id === instanceId);
       if (!catInstance) continue;
       const catEntry = CAT_CATALOG.find((c) => c.id === catInstance.breed);

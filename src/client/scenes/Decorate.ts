@@ -173,23 +173,23 @@ export class Decorate extends Scene {
     const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.88) * scaleY;
 
     const seatedCats = this.playerState?.seatedCats ?? {};
-    // Collect seated instances in seat order. seatedCats maps seatId → cat instance id.
-    const seatedInstanceIds = SEAT_ORDER
-      .map((seatId) => seatedCats[seatId])
-      .filter((id): id is string => Boolean(id))
-      .slice(0, 3);
 
     const inner = width - L.LANE_GUTTER_PX * 2;
     const colW = (inner - L.LANE_GAP_PX * (L.LANE_COUNT - 1)) / L.LANE_COUNT;
     const stageH = L.CAT_STAGE_H * scaleY;
     const stageMidY = (L.TOP_HUD_H + L.CAT_STAGE_H / 2) * scaleY;
 
-    for (let i = 0; i < seatedInstanceIds.length; i++) {
-      const instanceId = seatedInstanceIds[i]!;
-      const seatId = SEAT_ORDER.find((sid) => seatedCats[sid] === instanceId)!;
+    // Iterate SEAT_ORDER directly so the lane index matches the seat
+    // position. Filtering empty seats out FIRST and using the filtered
+    // array index would let a single cat seated in 'seat-right' render
+    // in the leftmost lane (i=0) — the bug Tim caught.
+    for (let i = 0; i < SEAT_ORDER.length; i++) {
+      const seatId = SEAT_ORDER[i]!;
+      const instanceId = seatedCats[seatId];
+      if (!instanceId) continue;
+
       const catInstance = this.playerState?.ownedCats.find((cat) => cat.id === instanceId);
       if (!catInstance) continue;
-      // Guard: breed must exist in the catalog for rendering.
       if (!CAT_CATALOG.some((c) => c.id === catInstance.breed)) continue;
 
       const laneIndex = i as 0 | 1 | 2;
