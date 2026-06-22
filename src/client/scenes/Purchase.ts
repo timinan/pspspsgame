@@ -317,7 +317,7 @@ export class Purchase extends Scene {
         playBoxOpenAnimation(
           this,
           {
-            textureKey: bgEntry?.backdropKey ?? 'theme-default-bg',
+            textureKey: bgEntry?.backdropKey ?? 'theme-stage-bg',
             frame: '',
             itemName: bgEntry?.displayName ?? bgId,
             rarity: pull.rarity,

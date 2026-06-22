@@ -292,7 +292,7 @@ export interface PlayerState {
   seatedCats: Partial<Record<SeatId, string>>;
   /** The player's current rhythm chart. */
   chart: Chart;
-  /** Background ids the player owns. Always includes 'default'. */
+  /** Background ids the player owns. Always includes 'stage' (the default). */
   ownedBackgrounds: BackgroundId[];
   /** Currently active background. */
   activeBackground: BackgroundId;
@@ -349,9 +349,9 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
     chart: emptyChart(username, 'Untitled'),
     // DEV: grant all catalog backgrounds so playtests can swap freely
     // without pulling from the background box every time. Revert to
-    // ['default'] before shipping (alongside DEV_RESET_ON_LOAD = false).
+    // ['stage'] before shipping (alongside DEV_RESET_ON_LOAD = false).
     ownedBackgrounds: Object.keys(BACKGROUND_CATALOG) as BackgroundId[],
-    activeBackground: 'default',
+    activeBackground: 'stage',
   };
 }
 

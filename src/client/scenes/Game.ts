@@ -117,7 +117,7 @@ export class Game extends Scene {
     // so the player saw two different backgrounds across screens.
     this.bg = new BackgroundManager(this);
     this.bg.create();
-    const activeBg = this.playerState?.activeBackground ?? 'default';
+    const activeBg = this.playerState?.activeBackground ?? 'stage';
     this.bg.setBackground(activeBg);
 
     this.drawLanes();

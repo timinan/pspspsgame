@@ -41,8 +41,8 @@ function truncateName(name: string): string {
  * Layout (design space 320×580):
  *   0–36      TopHud ("DECORATE" + coins)
  *   36–226    Cat stage — BackgroundManager + 3 seated cats (same positions as Game)
- *   232       Hint line: "Tap a seated cat to dress them up"
- *   252–580   Bottom panel — tabs (CATS / BACKGROUNDS) + 2×4 thumbnail tray
+ *   226–580   Bottom panel — tabs (CATS / BACKGROUNDS) + 2×4 thumbnail tray
+ *             (starts at LANE_TOP_Y so the eye line matches Game's play lanes)
  *
  * Tap a seated cat in the preview → open cat context menu
  * Tap a cat thumb (CATS tab)      → seat / unseat / dress up
@@ -113,7 +113,7 @@ export class Decorate extends Scene {
     // Background (depth -100, renders behind everything)
     this.bg = new BackgroundManager(this);
     this.bg.create();
-    const activeBg: BackgroundId = (this.playerState?.activeBackground ?? 'default') as BackgroundId;
+    const activeBg: BackgroundId = (this.playerState?.activeBackground ?? 'stage') as BackgroundId;
     this.bg.setBackground(activeBg);
 
     // Hint line at design-y 232
@@ -256,18 +256,20 @@ export class Decorate extends Scene {
           event: Phaser.Types.Input.EventData,
         ) => {
           event.stopPropagation();
-          this.openCatMenu(catInstance, seatId, cx, catY);
+          // Anchor the menu so its TOP edge lands at the lane-top row —
+          // menu opens into the empty play-bars band below the cats,
+          // never covering the sprite. `vAlign: 'top'` flips ContextMenu's
+          // default-centered behavior so y === menu top.
+          this.openCatMenu(catInstance, seatId, cx, L.LANE_TOP_Y * scaleY, 'top');
         },
       );
       this.catZones.push(zone);
 
-      // Red ✕ badge top-right of the cat for quick-unseat.
-      // Badge offset tuned for 1.4× scaled cats. At native scale (1×) the cat
-      // is 91×64 (origin 0.5, 1) so it reaches catY - 64. At 1.4× it reaches
-      // catY - 90, and (cx + 22, catY - 56) would put the ✕ over the cat's
-      // upper body. Push it to the head/right shoulder so the cat stays
-      // visible underneath.
-      const badge = new RemoveBadge(this, cx + 36, catY - 100, () => {
+      // Red ✕ badge top-right of the cat for quick-unseat. Sits over the
+      // upper body / shoulder so it reads as "this belongs to the cat" not
+      // "this is floating above". Tuned in canvas px against a 1.4×-scaled
+      // 91×64 native cat sprite that reaches (catY - 90) at the head top.
+      const badge = new RemoveBadge(this, cx + 36, catY - 40, () => {
         this.unseatCat(seatId);
       });
       this.add.existing(badge);
@@ -278,21 +280,31 @@ export class Decorate extends Scene {
   /**
    * Show the cat context menu (Dress up / Move / Take to bench, etc).
    * `seatId` is undefined when invoked from a tray thumb (cat is not yet placed).
+   * `vAlign='top'` means anchorY is the menu's TOP edge (used by seated-cat
+   * taps to land the menu at the lane-top row); default is centered on
+   * anchorY (used by tray-thumb taps).
    */
   private openCatMenu(
     catInstance: OwnedCat,
     seatId: SeatId | undefined,
     anchorX: number,
     anchorY: number,
+    vAlign: 'center' | 'top' = 'center',
   ): void {
     if (this.placingCatInstanceId) return;
     const rows = buildCatMenu({
       isSeated: Boolean(seatId),
       displayName: catInstance.name,
     });
-    this.contextMenu.open(anchorX, anchorY, rows, (action) => {
-      this.onCatMenuAction(action, catInstance, seatId);
-    });
+    this.contextMenu.open(
+      anchorX,
+      anchorY,
+      rows,
+      (action) => {
+        this.onCatMenuAction(action, catInstance, seatId);
+      },
+      { vAlign },
+    );
   }
 
   /** Handle the action the player picked from the cat menu. */
@@ -487,7 +499,10 @@ export class Decorate extends Scene {
   private buildPanel(): void {
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
-    const panelTop = 252 * scaleY;
+    // Bottom panel + tabs (CATS / BACKGROUNDS) start at the same row as
+    // where the play lanes begin in Game scene — keeps the eye line
+    // consistent across scenes.
+    const panelTop = L.LANE_TOP_Y * scaleY;
     const panelH = height - panelTop;
 
     this.root = this.add.container(0, panelTop).setDepth(50);
@@ -831,8 +846,8 @@ export class Decorate extends Scene {
     const thumbW = (width - padding * 2 - gapX * (THUMB_COLS - 1)) / THUMB_COLS;
     const thumbH = (gridH - padding * 2 - gapY * (THUMB_ROWS - 1)) / THUMB_ROWS;
 
-    const ownedBgs = this.playerState?.ownedBackgrounds ?? (['default'] as BackgroundId[]);
-    const activeBg = this.playerState?.activeBackground ?? ('default' as BackgroundId);
+    const ownedBgs = this.playerState?.ownedBackgrounds ?? (['stage'] as BackgroundId[]);
+    const activeBg = this.playerState?.activeBackground ?? ('stage' as BackgroundId);
 
     const allBgs = Object.values(BACKGROUND_CATALOG).filter((entry) =>
       ownedBgs.includes(entry.id as BackgroundId),
@@ -903,7 +918,7 @@ export class Decorate extends Scene {
 
   private onBgThumbTap(bgId: BackgroundId): void {
     if (!this.playerState) return;
-    const ownedBgs = this.playerState.ownedBackgrounds ?? (['default'] as BackgroundId[]);
+    const ownedBgs = this.playerState.ownedBackgrounds ?? (['stage'] as BackgroundId[]);
     if (!ownedBgs.includes(bgId)) return;
 
     this.playerState.activeBackground = bgId;

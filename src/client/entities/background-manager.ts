@@ -19,7 +19,7 @@ const KNOWN_IDS = Object.keys(BACKGROUND_CATALOG) as BackgroundId[];
  * internals for atlas keys once backdrop art lands.
  */
 export class BackgroundManager {
-  active: BackgroundId = 'default';
+  active: BackgroundId = 'stage';
   private container: GameObjects.Container | undefined;
 
   constructor(private scene: Scene) {}
@@ -32,7 +32,7 @@ export class BackgroundManager {
   }
 
   setBackground(id: BackgroundId): void {
-    this.active = KNOWN_IDS.includes(id) ? id : 'default';
+    this.active = KNOWN_IDS.includes(id) ? id : 'stage';
     this.draw();
   }
 
@@ -56,11 +56,27 @@ export class BackgroundManager {
     const entry = BACKGROUND_CATALOG[this.active];
 
     if (entry && this.scene.textures.exists(entry.backdropKey)) {
+      // Per-bg vertical shift + scale read from the calibrator-driven
+      // catalog. shiftUp moves the image up in design pixels so the
+      // source's platforms land at the cat-seat row. bgScale zooms the
+      // image (anchored at center) — > 1 crops in on the platforms,
+      // < 1 leaves empty space at the edges.
+      const e = entry as typeof entry & { bgShiftUp?: number; bgScale?: number };
+      const shiftDesign = e.bgShiftUp ?? 0;
+      const bgScale = e.bgScale ?? 1;
+      const scaleY = h / 580;
+      const shift = shiftDesign * scaleY;
+      const scaledW = w * bgScale;
+      const scaledH = drawH * bgScale;
+      // Center horizontally; center vertically inside the original draw box,
+      // then apply the upward shift.
+      const x = (w - scaledW) / 2;
+      const y = offsetY + (drawH - scaledH) / 2 - shift;
       const img = this.scene.add
-        .image(0, offsetY, entry.backdropKey)
+        .image(x, y, entry.backdropKey)
         .setOrigin(0, 0);
-      img.displayWidth = w;
-      img.displayHeight = drawH;
+      img.displayWidth = scaledW;
+      img.displayHeight = scaledH;
       this.container.add(img);
       return;
     }

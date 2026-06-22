@@ -51,6 +51,13 @@ interface ThemeJsonEntry {
   backdropKey: string;
   musicKey: string;
   rarity: string;
+  // Per-bg vertical shift in DESIGN pixels — positive shifts the bg image
+  // UP so platforms in the source PNG align with the cat seats at design
+  // y=184. Calibrated via tools/themes/calibrator.html. Default 0.
+  bgShiftUp?: number;
+  // Per-bg uniform scale multiplier — > 1 crops the edges (zoom in on
+  // the platforms), < 1 leaves empty space around the edges. Default 1.
+  bgScale?: number;
 }
 
 const BANNER =
@@ -165,8 +172,12 @@ async function genThemes(): Promise<number> {
   const entries = Object.entries(raw);
   const catalogLines: string[] = [];
   for (const [id, v] of entries) {
+    const optional: string[] = [];
+    if (typeof v.bgShiftUp === 'number') optional.push(`bgShiftUp: ${v.bgShiftUp}`);
+    if (typeof v.bgScale === 'number') optional.push(`bgScale: ${v.bgScale}`);
+    const optionalStr = optional.length > 0 ? `, ${optional.join(', ')}` : '';
     catalogLines.push(
-      `  ${id}: { id: ${JSON.stringify(id)}, displayName: ${JSON.stringify(v.displayName)}, backdropKey: ${JSON.stringify(v.backdropKey)}, musicKey: ${JSON.stringify(v.musicKey)}, rarity: ${JSON.stringify(v.rarity)} as const },`,
+      `  ${id}: { id: ${JSON.stringify(id)}, displayName: ${JSON.stringify(v.displayName)}, backdropKey: ${JSON.stringify(v.backdropKey)}, musicKey: ${JSON.stringify(v.musicKey)}, rarity: ${JSON.stringify(v.rarity)} as const${optionalStr} },`,
     );
   }
   const arrayItems = entries.map(([id]) => `  BACKGROUND_CATALOG.${id},`);

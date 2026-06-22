@@ -4,37 +4,21 @@
 
 
 export const BACKGROUND_CATALOG = {
-  default: { id: "default", displayName: "Default Room", backdropKey: "theme-default-bg", musicKey: "theme-default-music", rarity: "common" as const },
-  cozy: { id: "cozy", displayName: "Cozy Cabin", backdropKey: "theme-cozy-bg", musicKey: "theme-cozy-music", rarity: "uncommon" as const },
-  spooky: { id: "spooky", displayName: "Spooky Attic", backdropKey: "theme-spooky-bg", musicKey: "theme-spooky-music", rarity: "rare" as const },
-  stage: { id: "stage", displayName: "Meow Live", backdropKey: "theme-stage-bg", musicKey: "theme-default-music", rarity: "rare" as const },
-  forest: { id: "forest", displayName: "Moonlit Wood", backdropKey: "theme-forest-bg", musicKey: "theme-default-music", rarity: "rare" as const },
-  bedroom: { id: "bedroom", displayName: "Cozy Loft", backdropKey: "theme-bedroom-bg", musicKey: "theme-default-music", rarity: "uncommon" as const },
-  beach: { id: "beach", displayName: "Sunset Beach", backdropKey: "theme-beach-bg", musicKey: "theme-default-music", rarity: "uncommon" as const },
-  blossom: { id: "blossom", displayName: "Sakura Garden", backdropKey: "theme-blossom-bg", musicKey: "theme-default-music", rarity: "rare" as const },
-  cyberpunk: { id: "cyberpunk", displayName: "Neon Alley", backdropKey: "theme-cyberpunk-bg", musicKey: "theme-default-music", rarity: "rare" as const },
-  cabin: { id: "cabin", displayName: "Snowy Lodge", backdropKey: "theme-cabin-bg", musicKey: "theme-default-music", rarity: "uncommon" as const },
-  arcade: { id: "arcade", displayName: "Neon Arcade", backdropKey: "theme-arcade-bg", musicKey: "theme-default-music", rarity: "rare" as const },
-  wizard: { id: "wizard", displayName: "Wizard's Tower", backdropKey: "theme-wizard-bg", musicKey: "theme-default-music", rarity: "rare" as const },
-  islands: { id: "islands", displayName: "Sky Islands", backdropKey: "theme-islands-bg", musicKey: "theme-default-music", rarity: "rare" as const },
-  mushroom: { id: "mushroom", displayName: "Mushroom Grove", backdropKey: "theme-mushroom-bg", musicKey: "theme-default-music", rarity: "rare" as const },
+  stage: { id: "stage", displayName: "Meow Live", backdropKey: "theme-stage-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 30, bgScale: 1.19 },
+  arcade: { id: "arcade", displayName: "Neon Arcade", backdropKey: "theme-arcade-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 50, bgScale: 1 },
+  wizard: { id: "wizard", displayName: "Wizard's Tower", backdropKey: "theme-wizard-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 64, bgScale: 1.09 },
+  pirate: { id: "pirate", displayName: "Pirate Galleon", backdropKey: "theme-pirate-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 48, bgScale: 1.17 },
+  mushroomgrove: { id: "mushroomgrove", displayName: "Mushroom Grove", backdropKey: "theme-mushroomgrove-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: -26, bgScale: 1.23 },
+  cattemple: { id: "cattemple", displayName: "Cat Temple", backdropKey: "theme-cattemple-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: -38, bgScale: 1 },
 } as const;
 
 // Legacy alias — keep so existing THEME_CATALOG consumers compile without a rename sweep.
 // TODO Phase 5 Task 15: remove this alias once all consumers migrate to BACKGROUND_CATALOG.
 export const GENERATED_THEME_CATALOG = [
-  BACKGROUND_CATALOG.default,
-  BACKGROUND_CATALOG.cozy,
-  BACKGROUND_CATALOG.spooky,
   BACKGROUND_CATALOG.stage,
-  BACKGROUND_CATALOG.forest,
-  BACKGROUND_CATALOG.bedroom,
-  BACKGROUND_CATALOG.beach,
-  BACKGROUND_CATALOG.blossom,
-  BACKGROUND_CATALOG.cyberpunk,
-  BACKGROUND_CATALOG.cabin,
   BACKGROUND_CATALOG.arcade,
   BACKGROUND_CATALOG.wizard,
-  BACKGROUND_CATALOG.islands,
-  BACKGROUND_CATALOG.mushroom,
+  BACKGROUND_CATALOG.pirate,
+  BACKGROUND_CATALOG.mushroomgrove,
+  BACKGROUND_CATALOG.cattemple,
 ] as const;

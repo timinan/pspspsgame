@@ -160,8 +160,59 @@ function indexHtml() {
 </body></html>`;
 }
 
+const BG_UPLOAD_DIR = path.join(PROJECT_ROOT, 'public', 'assets', 'themes');
+
+/**
+ * Accepts raw image bytes from the themes calibrator and writes them to
+ * public/assets/themes/<slug>-bg.png. The slug is validated against a
+ * conservative charset because it becomes a filename + a code identifier.
+ * On success the devvit playtest watcher should re-upload + the
+ * Preloader picks the new file up on next reload.
+ */
+async function handleBgUpload(req, res, slug) {
+  if (!/^[a-z][a-z0-9_-]{0,30}$/.test(slug)) {
+    res.writeHead(400, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: `bad slug: ${slug}` }));
+    return;
+  }
+  const chunks = [];
+  req.on('data', (chunk) => chunks.push(chunk));
+  req.on('end', async () => {
+    try {
+      const buf = Buffer.concat(chunks);
+      if (buf.length < 100) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'empty upload' }));
+        return;
+      }
+      await fs.mkdir(BG_UPLOAD_DIR, { recursive: true });
+      const outPath = path.join(BG_UPLOAD_DIR, `${slug}-bg.png`);
+      await fs.writeFile(outPath, buf);
+      const rel = path.relative(PROJECT_ROOT, outPath);
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, path: rel, bytes: buf.length }));
+      console.log(`[upload-bg:${slug}] wrote ${buf.length}B → ${rel}`);
+      // vite doesn't watch public/ so a fresh PNG alone won't trigger
+      // a re-upload. Re-running sync:catalog rewrites the typed catalog
+      // (idempotent if nothing changed) which IS a source file, so vite
+      // sees it and devvit playtest re-uploads with the new image.
+      scheduleCatalogSync();
+    } catch (e) {
+      res.writeHead(500, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   try {
+    // --- POST /upload-bg/<slug> ----------------------------------------
+    if (req.method === 'POST' && req.url?.startsWith('/upload-bg/')) {
+      const slug = req.url.replace(/^\/upload-bg\//, '').split('?')[0];
+      await handleBgUpload(req, res, slug);
+      return;
+    }
+
     // --- POST /save/<tool> ---------------------------------------------
     if (req.method === 'POST' && req.url?.startsWith('/save')) {
       const toolName = req.url.replace(/^\/save\/?/, '');

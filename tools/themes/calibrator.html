@@ -1,160 +1,616 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>pspsps — Theme Calibrator</title>
+<meta charset="utf-8" />
+<title>Theme Calibrator · pspsps</title>
 <link rel="icon" href="data:," />
 <style>
   :root {
     --bg: #1a0a2e;
     --panel: #261540;
-    --accent: #c0a0e6;
-    --text: #ffffff;
-    --primary: #ffd34d;
+    --panel-2: #341c5a;
+    --accent: #ffd34d;
+    --accent-2: #c678ff;
+    --text: #fff;
+    --muted: #c0a0e6;
+    --ok: #7fdc8a;
+    --err: #ff7a7a;
   }
   * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
-  h1 { margin-top: 0; color: var(--primary); }
-  p { color: var(--accent); font-size: 13px; }
-  table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 8px; overflow: hidden; }
-  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #3a2060; }
-  th { background: #2c1856; color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #2c1856; }
-  input, select {
-    padding: 5px 7px;
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid #555;
-    border-radius: 4px;
-    font: inherit;
+  body {
+    margin: 0; font-family: system-ui, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    display: grid; grid-template-columns: 260px 1fr; gap: 0;
   }
-  input:focus, select:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
-  .preview {
-    width: 60px;
-    height: 90px;
-    image-rendering: pixelated;
-    display: inline-block;
-    background: var(--bg);
-    background-size: cover;
-    background-position: center;
-    border: 1px solid #3a2060;
-    border-radius: 3px;
-    vertical-align: middle;
+  .sidebar {
+    background: var(--panel); padding: 18px 14px; overflow-y: auto;
+    border-right: 1px solid #0d041b; min-height: 100vh;
   }
-  .status { margin-top: 16px; color: var(--accent); font-size: 12px; }
-  .status.saved { color: #7fdc8a; }
-  .status.error { color: #ff6b6b; }
+  .sidebar h1 { margin: 0 0 14px; color: var(--accent); font-size: 18px; }
+  .sidebar a.back { font-size: 12px; color: var(--muted); text-decoration: none; }
+  .sidebar a.back:hover { color: var(--accent); }
+  .bg-list { list-style: none; padding: 0; margin: 14px 0; }
+  .bg-list li {
+    padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 4px;
+    font-size: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .bg-list li:hover { background: var(--panel-2); }
+  .bg-list li.active { background: var(--panel-2); border-left: 3px solid var(--accent); padding-left: 7px; }
+  .bg-list .rarity { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-left: auto; }
+  .new-btn {
+    width: 100%; padding: 10px; background: var(--accent-2); color: #1a0a2e;
+    border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px;
+  }
+  .new-btn:hover { background: var(--accent); }
+
+  .main {
+    padding: 24px 28px; display: grid;
+    grid-template-columns: minmax(360px, 480px) 1fr; gap: 28px; align-items: start;
+  }
+  .preview-panel { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .preview-frame {
+    position: relative; background: #000;
+    border: 2px solid var(--panel-2); border-radius: 8px; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  #preview-canvas { display: block; }
+  .preview-legend { font-size: 11px; color: var(--muted); display: flex; gap: 16px; }
+  .preview-legend span::before {
+    content: ''; display: inline-block; width: 10px; height: 10px;
+    margin-right: 5px; border-radius: 2px; vertical-align: middle;
+  }
+  .preview-legend .hud::before { background: #00000080; border: 1px solid #fff8; }
+  .preview-legend .cat::before { background: #ffd34d; }
+  .preview-legend .lane::before { background: #6fbcff40; border: 1px dashed #6fbcff; }
+
+  .controls { background: var(--panel); padding: 22px; border-radius: 10px; }
+  .controls h2 { margin: 0 0 4px; font-size: 22px; color: var(--accent); }
+  .controls .slug { color: var(--muted); font-family: ui-monospace, monospace; font-size: 12px; margin-bottom: 18px; word-break: break-all; }
+
+  .field { margin-bottom: 18px; }
+  .field label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--muted); }
+  .field input[type="range"] { width: 100%; }
+  .field-row { display: flex; align-items: center; gap: 10px; }
+  .field-row input[type="range"] { flex: 1; }
+  .field-row output { width: 56px; text-align: right; font-family: ui-monospace, monospace; color: var(--accent); }
+  .field input[type="text"], .field select {
+    width: 100%; padding: 8px 10px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--panel-2); border-radius: 4px; font-size: 14px;
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--panel-2); padding: 22px; text-align: center;
+    border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 13px;
+    transition: all 0.15s;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent); background: var(--panel-2); color: var(--text);
+  }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+  .btn {
+    flex: 1; padding: 10px; border: none; border-radius: 6px;
+    font-weight: 600; cursor: pointer; font-size: 13px;
+  }
+  .btn-secondary { background: var(--panel-2); color: var(--text); }
+  .btn-danger { background: #4a1a1a; color: var(--err); }
+  .btn:hover { filter: brightness(1.2); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .status { margin-top: 14px; font-size: 12px; min-height: 18px; }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--err); }
+  .status.pending { color: var(--accent); }
+
+  dialog {
+    background: var(--panel); color: var(--text); border: 1px solid var(--panel-2);
+    border-radius: 10px; padding: 24px; min-width: 360px;
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.65); }
+  dialog h3 { margin: 0 0 16px; color: var(--accent); }
+  dialog .field { margin-bottom: 14px; }
+  dialog .btn-row { margin-top: 18px; }
 </style>
 </head>
 <body>
-<h1>Theme Calibrator</h1>
-<p>Edit theme display names, asset keys, and rarity. Autosaves on change.</p>
-<table id="tbl">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Preview</th>
-      <th>Display Name</th>
-      <th>Backdrop Key</th>
-      <th>Music Key</th>
-      <th>Rarity</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-<div class="status" id="status">loading…</div>
+
+<div class="sidebar">
+  <h1>Themes</h1>
+  <a class="back" href="/">← all tools</a>
+  <ul class="bg-list" id="bg-list"></ul>
+  <button class="new-btn" id="add-new">+ Add background</button>
+</div>
+
+<div class="main">
+  <div class="preview-panel">
+    <div class="preview-frame">
+      <canvas id="preview-canvas" width="480" height="870"></canvas>
+    </div>
+    <div class="preview-legend">
+      <span class="hud">TopHud strip</span>
+      <span class="cat">Cat seat</span>
+      <span class="lane">Lane region</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <h2 id="active-name">— select a background</h2>
+    <div class="slug" id="active-slug"></div>
+
+    <div class="field">
+      <label for="shift">Shift up (design pixels)</label>
+      <div class="field-row">
+        <input type="range" id="shift" min="-100" max="200" step="1" value="0" />
+        <output id="shift-out">0</output>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="scale">Scale (zoom)</label>
+      <div class="field-row">
+        <input type="range" id="scale" min="0.5" max="2.0" step="0.01" value="1.0" />
+        <output id="scale-out">1.00×</output>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Display name</label>
+      <input type="text" id="display-name" />
+    </div>
+
+    <div class="field">
+      <label>Rarity</label>
+      <select id="rarity">
+        <option value="common">common</option>
+        <option value="uncommon">uncommon</option>
+        <option value="rare">rare</option>
+        <option value="legendary">legendary</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Replace background image</label>
+      <div class="upload-zone" id="upload-zone">
+        Drop a PNG here, or click to choose a file
+        <input type="file" id="file-input" accept="image/png,image/jpeg" hidden />
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="reset-btn">Reset shift + scale</button>
+      <button class="btn btn-danger" id="delete-btn">Delete</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<dialog id="new-modal">
+  <h3>Add a new background</h3>
+  <form id="new-form">
+    <div class="field">
+      <label>Slug (lowercase, used as filename + id)</label>
+      <input type="text" name="slug" required pattern="[a-z][a-z0-9_-]{0,30}" placeholder="e.g. pirate" />
+    </div>
+    <div class="field">
+      <label>Display name</label>
+      <input type="text" name="displayName" required placeholder="e.g. Pirate Galleon" />
+    </div>
+    <div class="field">
+      <label>Rarity</label>
+      <select name="rarity">
+        <option value="common">common</option>
+        <option value="uncommon">uncommon</option>
+        <option value="rare" selected>rare</option>
+        <option value="legendary">legendary</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Background PNG (1024 × 1536 portrait)</label>
+      <input type="file" name="image" accept="image/png,image/jpeg" required />
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-secondary" id="new-cancel">Cancel</button>
+      <button type="submit" class="btn" style="background: var(--accent); color: #1a0a2e;">Create</button>
+    </div>
+  </form>
+</dialog>
 
 <script>
+// =====================================================================
+// State
+// =====================================================================
 let themes = {};
-let saveTimer = null;
+let activeSlug = null;
+let activeImage = null;
 
-function escAttr(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-}
+const DESIGN_W = 320;
+const DESIGN_H = 580;
+const TOP_HUD_H = 36;
+const CAT_STAGE_H = 190;
+const CAT_Y = TOP_HUD_H + CAT_STAGE_H * 0.78;
+const LANE_TOP_Y = TOP_HUD_H + CAT_STAGE_H;
+const LANE_BOTTOM_Y = DESIGN_H;
+const PREVIEW_SCALE = 1.5;
 
-async function load() {
-  try {
-    const res = await fetch('/tools/themes/themes.json');
-    themes = await res.json();
-    render();
-    setStatus('loaded from disk', 'saved');
-  } catch (e) {
-    setStatus('load failed: ' + e.message, 'error');
-  }
-}
+const canvas = document.getElementById('preview-canvas');
+const ctx = canvas.getContext('2d');
 
-function previewStyle(backdropKey) {
-  return `background-image: url('/assets/themes/${escAttr(backdropKey)}.png');`;
-}
-
+// =====================================================================
+// Render
+// =====================================================================
 function render() {
-  const tbody = document.querySelector('#tbl tbody');
-  tbody.innerHTML = '';
-  for (const [id, v] of Object.entries(themes)) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><code style="color:var(--accent)">${escAttr(id)}</code></td>
-      <td><div class="preview" style="${previewStyle(v.backdropKey)}"></div></td>
-      <td><input data-field="displayName" data-id="${escAttr(id)}" value="${escAttr(v.displayName)}" style="width:160px"></td>
-      <td><input data-field="backdropKey" data-id="${escAttr(id)}" value="${escAttr(v.backdropKey)}" style="width:180px"></td>
-      <td><input data-field="musicKey" data-id="${escAttr(id)}" value="${escAttr(v.musicKey)}" style="width:180px"></td>
-      <td>
-        <select data-field="rarity" data-id="${escAttr(id)}">
-          ${['common','uncommon','rare','legendary'].map(r =>
-            `<option value="${r}"${r === v.rarity ? ' selected' : ''}>${r}</option>`
-          ).join('')}
-        </select>
-      </td>`;
-    tbody.appendChild(tr);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const entry = activeSlug ? themes[activeSlug] : null;
+  if (!entry) {
+    ctx.fillStyle = '#888';
+    ctx.font = '16px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Select a background on the left', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
+  const shiftUp = entry.bgShiftUp ?? 0;
+  const bgScale = entry.bgScale ?? 1;
+  const s = PREVIEW_SCALE;
+
+  // Mirror BackgroundManager.draw: scaled bg centered inside (offsetY, drawH),
+  // then shifted up by `shiftUp` design pixels.
+  const drawH = DESIGN_H - TOP_HUD_H;
+  const scaledW = DESIGN_W * bgScale;
+  const scaledH = drawH * bgScale;
+  const bgX = ((DESIGN_W - scaledW) / 2) * s;
+  const bgY = (TOP_HUD_H + (drawH - scaledH) / 2 - shiftUp) * s;
+  const bgW = scaledW * s;
+  const bgH = scaledH * s;
+
+  if (activeImage && activeImage.complete && activeImage.naturalWidth > 0) {
+    ctx.drawImage(activeImage, bgX, bgY, bgW, bgH);
+  } else {
+    ctx.fillStyle = '#3b2a5c';
+    ctx.fillRect(bgX, bgY, bgW, bgH);
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('no image — upload one below', canvas.width / 2, canvas.height / 2);
+  }
+
+  // TopHud strip overlay
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, canvas.width, TOP_HUD_H * s);
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, canvas.width - 1, TOP_HUD_H * s - 1);
+  ctx.fillStyle = '#fff';
+  ctx.font = '11px system-ui';
+  ctx.textAlign = 'left';
+  ctx.fillText('TopHud', 6, 14);
+
+  // Lane region (covered in-game by rhythm bars)
+  ctx.fillStyle = 'rgba(111, 188, 255, 0.18)';
+  ctx.fillRect(0, LANE_TOP_Y * s, canvas.width, (LANE_BOTTOM_Y - LANE_TOP_Y) * s);
+  ctx.strokeStyle = 'rgba(111, 188, 255, 0.6)';
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.moveTo(0, LANE_TOP_Y * s);
+  ctx.lineTo(canvas.width, LANE_TOP_Y * s);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#6fbcff';
+  ctx.font = '11px system-ui';
+  ctx.fillText('Lane region', 6, LANE_TOP_Y * s + 14);
+
+  // 3 cat seats — feet at design y=184, x at lane centers 53/160/267
+  const seatX = [53, 160, 267];
+  for (const x of seatX) drawCatSeat(x * s, CAT_Y * s);
+
+  // Cat-feet reference line
+  ctx.strokeStyle = 'rgba(255, 211, 77, 0.5)';
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(0, CAT_Y * s);
+  ctx.lineTo(canvas.width, CAT_Y * s);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#ffd34d';
+  ctx.font = '10px ui-monospace, monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('cat feet y=' + CAT_Y, canvas.width - 6, CAT_Y * s - 4);
+}
+
+// Cat silhouette with origin at FEET (bottom center) — matches the
+// in-game cat sprite anchor so calibration eyeball is honest.
+function drawCatSeat(cx, feetY) {
+  const w = 60;
+  const h = 70;
+  const headR = 22;
+  ctx.fillStyle = 'rgba(255, 211, 77, 0.92)';
+  ctx.strokeStyle = '#7a5a00';
+  ctx.lineWidth = 1.5;
+  roundRect(cx - w / 2, feetY - h, w, h - 8, 18);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, feetY - h + 4, headR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx - 16, feetY - h - 6);
+  ctx.lineTo(cx - 8,  feetY - h + 8);
+  ctx.lineTo(cx - 22, feetY - h + 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx + 16, feetY - h - 6);
+  ctx.lineTo(cx + 8,  feetY - h + 8);
+  ctx.lineTo(cx + 22, feetY - h + 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// =====================================================================
+// Image loading
+// =====================================================================
+function loadImageFor(slug) {
+  activeImage = null;
+  if (!slug) { render(); return; }
+  // Cache-bust so a fresh upload shows immediately.
+  const url = '/public/assets/themes/' + slug + '-bg.png?ts=' + Date.now();
+  const img = new Image();
+  img.onload = () => { activeImage = img; render(); };
+  img.onerror = () => { activeImage = null; render(); };
+  img.src = url;
+}
+
+// =====================================================================
+// Sidebar
+// =====================================================================
+function renderSidebar() {
+  const list = document.getElementById('bg-list');
+  list.innerHTML = '';
+  for (const slug of Object.keys(themes)) {
+    const entry = themes[slug];
+    const li = document.createElement('li');
+    li.dataset.slug = slug;
+    if (slug === activeSlug) li.classList.add('active');
+    const name = document.createElement('span');
+    name.textContent = entry.displayName || slug;
+    const rar = document.createElement('span');
+    rar.className = 'rarity';
+    rar.textContent = entry.rarity || '';
+    li.appendChild(name);
+    li.appendChild(rar);
+    li.addEventListener('click', () => setActive(slug));
+    list.appendChild(li);
   }
 }
 
-function onInput(e) {
-  const el = e.target;
-  const id = el.dataset.id;
-  const field = el.dataset.field;
-  if (!id || !field) return;
-  themes[id][field] = el.value;
-  if (field === 'backdropKey') render(); // refresh preview
-  scheduleSave();
+function setActive(slug) {
+  activeSlug = slug;
+  const entry = themes[slug];
+  if (!entry) return;
+  document.getElementById('active-name').textContent = entry.displayName || slug;
+  document.getElementById('active-slug').textContent =
+    'slug: ' + slug + '  ·  backdropKey: ' + entry.backdropKey;
+  const shift = entry.bgShiftUp ?? 0;
+  const scale = entry.bgScale ?? 1;
+  document.getElementById('shift').value = shift;
+  document.getElementById('shift-out').textContent = shift;
+  document.getElementById('scale').value = scale;
+  document.getElementById('scale-out').textContent = scale.toFixed(2) + '×';
+  document.getElementById('display-name').value = entry.displayName || '';
+  document.getElementById('rarity').value = entry.rarity || 'rare';
+  loadImageFor(slug);
+  renderSidebar();
 }
 
+// =====================================================================
+// Save (debounced)
+// =====================================================================
+let saveTimer = null;
 function scheduleSave() {
-  setStatus('unsaved…', '');
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(save, 400);
+  clearTimeout(saveTimer);
+  setStatus('pending', 'unsaved…');
+  saveTimer = setTimeout(doSave, 500);
+}
+async function doSave() {
+  try {
+    const r = await fetch('/save/themes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(themes, null, 2),
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'save failed');
+    setStatus('ok', 'saved → ' + j.path + ' (' + j.bytes + 'B)');
+  } catch (e) {
+    setStatus('err', 'save failed: ' + e.message);
+  }
+}
+function setStatus(kind, msg) {
+  const el = document.getElementById('status');
+  el.className = 'status ' + kind;
+  el.textContent = msg;
 }
 
-async function save() {
-  setStatus('saving…', '');
+// =====================================================================
+// Field wiring
+// =====================================================================
+const shiftIn = document.getElementById('shift');
+const scaleIn = document.getElementById('scale');
+const nameIn = document.getElementById('display-name');
+const rarityIn = document.getElementById('rarity');
+
+shiftIn.addEventListener('input', () => {
+  if (!activeSlug) return;
+  const v = Number(shiftIn.value);
+  themes[activeSlug].bgShiftUp = v;
+  document.getElementById('shift-out').textContent = v;
+  render();
+  scheduleSave();
+});
+scaleIn.addEventListener('input', () => {
+  if (!activeSlug) return;
+  const v = Number(scaleIn.value);
+  themes[activeSlug].bgScale = v;
+  document.getElementById('scale-out').textContent = v.toFixed(2) + '×';
+  render();
+  scheduleSave();
+});
+nameIn.addEventListener('input', () => {
+  if (!activeSlug) return;
+  themes[activeSlug].displayName = nameIn.value;
+  scheduleSave();
+  renderSidebar();
+});
+rarityIn.addEventListener('change', () => {
+  if (!activeSlug) return;
+  themes[activeSlug].rarity = rarityIn.value;
+  scheduleSave();
+  renderSidebar();
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (!activeSlug) return;
+  themes[activeSlug].bgShiftUp = 0;
+  themes[activeSlug].bgScale = 1;
+  setActive(activeSlug);
+  scheduleSave();
+});
+
+document.getElementById('delete-btn').addEventListener('click', () => {
+  if (!activeSlug) return;
+  if (!confirm('Delete background "' + activeSlug + '"? (image file is left on disk)')) return;
+  delete themes[activeSlug];
+  activeSlug = Object.keys(themes)[0] || null;
+  if (activeSlug) setActive(activeSlug);
+  else { renderSidebar(); render(); }
+  scheduleSave();
+});
+
+// =====================================================================
+// Upload — replace existing bg image
+// =====================================================================
+const uploadZone = document.getElementById('upload-zone');
+const fileIn = document.getElementById('file-input');
+uploadZone.addEventListener('click', () => fileIn.click());
+uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault(); uploadZone.classList.add('dragover');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length > 0) handleUpload(e.dataTransfer.files[0]);
+});
+fileIn.addEventListener('change', () => {
+  if (fileIn.files.length > 0) handleUpload(fileIn.files[0]);
+});
+
+async function handleUpload(file) {
+  if (!activeSlug) {
+    setStatus('err', 'pick a background first');
+    return;
+  }
+  setStatus('pending', 'uploading ' + file.name + '…');
   try {
-    const res = await fetch('/save/themes', {
+    const r = await fetch('/upload-bg/' + activeSlug, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(themes),
+      headers: { 'Content-Type': 'image/png' },
+      body: file,
     });
-    if (res.ok) {
-      setStatus('saved ' + new Date().toLocaleTimeString(), 'saved');
-    } else {
-      setStatus('save FAILED: ' + res.status, 'error');
-    }
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'upload failed');
+    setStatus('ok', 'uploaded → ' + j.path);
+    loadImageFor(activeSlug);
   } catch (e) {
-    setStatus('save error: ' + e.message, 'error');
+    setStatus('err', 'upload failed: ' + e.message);
   }
 }
 
-function setStatus(msg, cls) {
-  const el = document.getElementById('status');
-  el.textContent = msg;
-  el.className = 'status' + (cls ? ' ' + cls : '');
+// =====================================================================
+// New-bg modal
+// =====================================================================
+const modal = document.getElementById('new-modal');
+document.getElementById('add-new').addEventListener('click', () => modal.showModal());
+document.getElementById('new-cancel').addEventListener('click', () => modal.close());
+
+document.getElementById('new-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const slug = fd.get('slug').toString().trim().toLowerCase();
+  const displayName = fd.get('displayName').toString().trim();
+  const rarity = fd.get('rarity').toString();
+  const image = fd.get('image');
+
+  if (themes[slug]) {
+    alert('slug "' + slug + '" already exists');
+    return;
+  }
+  if (!/^[a-z][a-z0-9_-]{0,30}$/.test(slug)) {
+    alert('slug must start with a letter; chars a-z 0-9 _ -');
+    return;
+  }
+
+  setStatus('pending', 'uploading ' + slug + '-bg.png…');
+  try {
+    const r = await fetch('/upload-bg/' + slug, {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/png' },
+      body: image,
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'upload failed');
+
+    themes[slug] = {
+      displayName,
+      backdropKey: 'theme-' + slug + '-bg',
+      musicKey: 'theme-default-music',
+      rarity,
+      bgShiftUp: 0,
+      bgScale: 1,
+    };
+    await doSave();
+    modal.close();
+    e.target.reset();
+    setActive(slug);
+    setStatus('ok', 'created ' + slug);
+  } catch (err) {
+    setStatus('err', 'create failed: ' + err.message);
+  }
+});
+
+// =====================================================================
+// Bootstrap
+// =====================================================================
+async function init() {
+  try {
+    const r = await fetch('/tools/themes/themes.json?ts=' + Date.now());
+    themes = await r.json();
+  } catch (e) {
+    setStatus('err', 'failed to load themes.json: ' + e.message);
+    themes = {};
+  }
+  renderSidebar();
+  const firstSlug = Object.keys(themes)[0];
+  if (firstSlug) setActive(firstSlug);
+  else render();
 }
-
-// Attach listeners ONCE — not inside render() — so re-renders don't stack duplicate handlers
-document.querySelector('#tbl tbody').addEventListener('input', onInput, { passive: true });
-document.querySelector('#tbl tbody').addEventListener('change', onInput, { passive: true });
-
-load();
+init();
 </script>
+
 </body>
 </html>

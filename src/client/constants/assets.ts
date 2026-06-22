@@ -12,20 +12,9 @@ export const AssetKeys = {
     PspspsElement: 'pspsps-element',
     PspspsElementBall: 'pspsps-element-ball',
     PspspsElementLetters: 'pspsps-element-letters',
-    ThemeDefaultBg: 'theme-default-bg',
-    ThemeCozyBg: 'theme-cozy-bg',
-    ThemeSpookyBg: 'theme-spooky-bg',
-    ThemeStageBg: 'theme-stage-bg',
-    ThemeForestBg: 'theme-forest-bg',
-    ThemeBedroomBg: 'theme-bedroom-bg',
-    ThemeBeachBg: 'theme-beach-bg',
-    ThemeBlossomBg: 'theme-blossom-bg',
-    ThemeCyberpunkBg: 'theme-cyberpunk-bg',
-    ThemeCabinBg: 'theme-cabin-bg',
-    ThemeArcadeBg: 'theme-arcade-bg',
-    ThemeWizardBg: 'theme-wizard-bg',
-    ThemeIslandsBg: 'theme-islands-bg',
-    ThemeMushroomBg: 'theme-mushroom-bg',
+    // Background textures load via Preloader.ts iteration over
+    // BACKGROUND_CATALOG — keys live on the catalog entries themselves
+    // (`entry.backdropKey`), no per-bg AssetKey needed.
   },
   Audio: {
     Background: 'background-music',

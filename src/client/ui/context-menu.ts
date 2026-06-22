@@ -61,7 +61,8 @@ export class ContextMenu {
     x: number,
     y: number,
     rows: MenuRow[],
-    onSelect: (action: string) => void
+    onSelect: (action: string) => void,
+    opts: { vAlign?: 'center' | 'top' } = {}
   ): void {
     this.close();
 
@@ -74,12 +75,13 @@ export class ContextMenu {
 
     // Anchor the menu BESIDE the tap point — to the right by default, or to
     // the left if it would clip the right edge of the canvas. Vertically
-    // center on the anchor, then clamp into screen.
+    // anchor either centered on `y` (default) or with the menu's TOP at `y`
+    // when `opts.vAlign === 'top'`. Then clamp into screen.
     let leftX = x + margin;
     if (leftX + w > sceneW - 6) leftX = x - margin - w;
     if (leftX < 6) leftX = 6;
 
-    let topY = y - h / 2;
+    let topY = opts.vAlign === 'top' ? y : y - h / 2;
     if (topY < 50) topY = 50;
     if (topY + h > sceneH - 8) topY = sceneH - 8 - h;
 

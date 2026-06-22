@@ -3,6 +3,7 @@ import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
 import { fetchState } from '@/services/state-client';
+import { BACKGROUND_CATALOG } from '@/../shared/state';
 import type { PlayerState } from '@/../shared/state';
 
 // All logical cat breeds. 'rainbow' has no atlas frames of its own — it borrows
@@ -49,20 +50,12 @@ export class Preloader extends Scene {
     this.load.image(AssetKeys.Image.PspspsElement, 'images/PSElement.png');
     this.load.image(AssetKeys.Image.PspspsElementBall, 'images/PSElement_ball.png');
     this.load.image(AssetKeys.Image.PspspsElementLetters, 'images/PSElement_letters.png');
-    this.load.image(AssetKeys.Image.ThemeDefaultBg, 'themes/default-bg.png');
-    this.load.image(AssetKeys.Image.ThemeCozyBg, 'themes/cozy-bg.png');
-    this.load.image(AssetKeys.Image.ThemeSpookyBg, 'themes/spooky-bg.png');
-    this.load.image(AssetKeys.Image.ThemeStageBg, 'themes/stage-bg.png');
-    this.load.image(AssetKeys.Image.ThemeForestBg, 'themes/forest-bg.png');
-    this.load.image(AssetKeys.Image.ThemeBedroomBg, 'themes/bedroom-bg.png');
-    this.load.image(AssetKeys.Image.ThemeBeachBg, 'themes/beach-bg.png');
-    this.load.image(AssetKeys.Image.ThemeBlossomBg, 'themes/blossom-bg.png');
-    this.load.image(AssetKeys.Image.ThemeCyberpunkBg, 'themes/cyberpunk-bg.png');
-    this.load.image(AssetKeys.Image.ThemeCabinBg, 'themes/cabin-bg.png');
-    this.load.image(AssetKeys.Image.ThemeArcadeBg, 'themes/arcade-bg.png');
-    this.load.image(AssetKeys.Image.ThemeWizardBg, 'themes/wizard-bg.png');
-    this.load.image(AssetKeys.Image.ThemeIslandsBg, 'themes/islands-bg.png');
-    this.load.image(AssetKeys.Image.ThemeMushroomBg, 'themes/mushroom-bg.png');
+    // Backgrounds loaded straight from the catalog so adding a new bg via
+    // the themes calibrator (which writes themes.json → regens the catalog)
+    // gets picked up automatically. No per-bg AssetKeys entry needed.
+    for (const bg of Object.values(BACKGROUND_CATALOG)) {
+      this.load.image(bg.backdropKey, `themes/${bg.id}-bg.png`);
+    }
 
     this.load.audio(AssetKeys.Audio.Background, ['sounds/background.mp3']);
     this.load.audio(AssetKeys.Audio.Pspsps, ['sounds/pspsps.mp3']);

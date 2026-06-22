@@ -16,23 +16,23 @@ Living tracker for end-to-end testing of the Phase 5 redesign. Each flow gets te
 | 1 — Purchase (boxes → inventory) | ✅ GREEN (in passing) | `f5e5578` | Box reveals work, debug panel shows inventory deltas; cleared as a side-effect of Flow 2 testing |
 | 2 — Decorate + DressingRoom + Effects | ✅ GREEN | `f5e5578` → `e964f65` | Per-instance cats + cosmetics, validated naming, multi-slot dressing room, 16 effect cosmetics, seat→lane mapping fix |
 | 3 — Play (random fallback chart) | ✅ GREEN | `7e1bc00` → `edd40c7` | Position-based hit/miss, multi-touch doubles, 16fps reactions, off-screen fall, effect reveal fix — random chart limits round depth so closing out and moving to Flow 4 for real-song playtest |
-| 4 — Editor (author chart) | 🟡 NEXT | — | Authoring real charts so Flow 3 can be retested with real songs. **Audio added 2026-06-22 night** (`ee6e8cf`) — Editor's ▶ PLAY now also fires pitched meows (C/E/G triad), Game's first lane tap starts the same meow melody synced to the round. Procedural Tone.Synth fallback until real meow WAVs land in `public/assets/audio/meows/`. |
+| 4 — Editor (author chart) | 🟡 NEXT | — | Authoring real charts so Flow 3 can be retested with real songs. **Audio shipped + tuned end-to-end** — real meow sample + lofi backing track loop under the round (A minor, tap-driven, miss taps muted, lookAhead tightened). Editor's ▶ PLAY fires meows too. **Ready modal + 5 difficulty presets** now gate round start and preload audio in the background. |
 
 ---
 
 ## Where we are right now
 
-**Flows 0, 1, 2 green. Moving to Flow 3 (Play).** Flow 2 closed with the per-instance ownership refactor + the 16-effect EFFECT slot + the seat→lane rendering fix. Next setup: wire a `RandomChartSource` so the Game scene spawns notes even without an authored chart, so Flow 3 can be tested without first going through Flow 4.
+**Flows 0–3 green. Audio shipped + tuned. Ready modal + 5 difficulty presets shipped. Moving to Flow 4 (Editor end-to-end).** Flow 3 closed with position-based hit/miss, multi-touch doubles, 16fps reactions, off-screen fall, the random-chart fallback for shape testing, AND a full audio layer (real meow sample + lofi backing loop, A minor, tap-driven, miss taps muted, loops via `Tone.Part` for full round). Ready modal (`0f1fbd5`) now gates round start + preloads audio so the first tap doesn't hit decode latency; 5 difficulty presets (`db721de`) selectable on the modal change BPM + density + hit window.
 
-**Open design decisions before Flow 2 can be marked DONE:**
+**Flow 4 is the active gate.** Authoring a real chart, saving it, exiting, returning, and playing it back with the real audio under it is the last unblocked end-to-end loop before the pre-ship cleanup checklist.
 
-1. **Per-instance cats** — each owned cat should be its own instance with a unique id + custom name. Currently `ownedCats: CatBreed[]` only stores breed ids, so a player can't own two "Mochi"s. Refactor needed: `ownedCats: OwnedCat[]` where `OwnedCat = { id, breed, name }`. Cascades through `seatedCats` and `equippedCosmetics` (both keyed by instance id instead of breed).
-2. **Per-instance cosmetics** — same shape for cosmetics: `ownedCosmetics: OwnedCosmetic[]` with `{ id, type }`. Duplicates allowed.
-3. **Equip removes from inventory** — equipping a cosmetic on a cat removes that instance from `ownedCosmetics`. Unequip puts it back.
-4. **Box reveal naming flow** — on cat box open, show rarity ("you got a COMMON cat"), then prompt "What would you like to name your cat?". User-typed name attaches to the new owned-cat instance.
-5. **Thumbnail label length** — when names can be arbitrary, truncate at the two-line capacity of the thumb cell. Show ellipsis when overflow.
+**Resolved design decisions** (from the earlier Flow 2 list — all merged):
 
-Scope estimate: ~9 files touched + tests. Should be one coordinated commit because halfway state would be broken.
+1. ✅ **Per-instance cats** — `ownedCats: OwnedCat[]` with `{ id, breed, name }`. Custom naming on box pull with HTML overlay input + profanity filter + 20-char cap + no-duplicate validation.
+2. ✅ **Per-instance cosmetics** — `ownedCosmetics: OwnedCosmetic[]` with `{ id, type }`.
+3. ✅ **Equip removes from inventory** — equip pulls from `ownedCosmetics`, unequip puts back.
+4. ✅ **Box reveal naming flow** — rarity reveal → naming overlay → save.
+5. ✅ **Thumbnail label truncation** — names truncate to thumb cell with ellipsis on overflow.
 
 ---
 
@@ -176,19 +176,23 @@ See "Open design decisions" at the top of this doc.
 
 ## Flow 4 — Editor (author a chart)
 
-**Prereq:** Flows 1-3 done.
+**Prereq:** Flows 1-3 done. ✅
+
+**Editor state going in:** 32 steps shown in a paged 8-row window with prev/next nav. Preview scan line auto-scrolls to follow the play head across pages. Editor's ▶ PLAY fires pitched meows via SongPlayer so you can hear what you're writing as you write it.
 
 ### What to test
 
 1. Open ChartEditor via hamburger (Post tab)
-2. 3×8 grid, lane labels in lane colors
-3. Tap a cell → toggles note; tap again → un-toggles
-4. ▶ Play preview → scan line scrolls; lit cells flash
-5. Clear → all cells reset
-6. BPM cycle → restarts preview at new tempo
-7. POST → saves chart, routes back to Game
-8. Game plays your authored chart (not the random one)
-9. Reload → chart persists from server
+2. 3-lane × 32-step grid (paged in 8-row windows), lane labels in lane colors
+3. Prev / Next nav cycles through pages 1–4
+4. Tap a cell → toggles note; tap again → un-toggles
+5. ▶ Play preview → scan line scrolls, auto-pages across windows, lit cells flash, **pitched meows fire on lit steps** (A minor)
+6. Clear → all cells reset
+7. BPM cycle → restarts preview at new tempo
+8. POST → saves chart, routes back to Game
+9. Game's Ready modal appears → pick difficulty → tap START
+10. Game plays your authored chart with real audio under it (meows on your lit steps + lofi backing loop)
+11. Reload → chart persists from server (DEV_RESET_ON_LOAD is on, so this will be wiped each refresh until ship cleanup)
 
 ### Defer
 
@@ -198,6 +202,7 @@ See "Open design decisions" at the top of this doc.
 ### Done bar
 
 - [ ] Author a chart, save it, exit, come back, play your own beat
+- [ ] Audio plays correctly under the authored chart (meows on lit steps, backing track loops, both stop cleanly on round end)
 - [ ] End-to-end loop complete
 
 ---
@@ -213,6 +218,22 @@ See "Open design decisions" at the top of this doc.
 - [ ] HTML title input in ChartEditor (or accept the read-only fallback for v1)
 
 ---
+
+## Audio + Ready modal (added 2026-06-22, ref only)
+
+Lives in Flow 3 conceptually but worth a quick callout since it landed
+across 13 commits past the Flow 3 close-out and reshapes the round-start
+UX. See `outputs/portfolio/pspsps-session-state.md` "Phase 5 audio —
+shipped + tuned" and "Ready modal + 5 difficulty presets" sections for
+the full commit log. Highlights:
+
+- Real meow sample + lofi backing track wired into SongPlayer
+- A minor retune, shorter envelope, leading silence trimmed
+- `Tone.Part` loops meows for the full round
+- Tap-driven on lane taps (responsiveness), miss taps muted (clarity)
+- `Tone.Transport.unsync()` before stop so backing track actually stops
+- Ready modal gates round start + preloads audio in the background
+- 5 difficulty presets (Easy / Normal / Hard / Expert / Insane)
 
 ## Phaser best-practice notes applied
 
