@@ -112,8 +112,40 @@ export interface BoxConfig {
 // of truth.
 
 export { GENERATED_CAT_CATALOG as CAT_CATALOG } from './cats-catalog.generated';
-export { GENERATED_COSMETIC_CATALOG as COSMETIC_CATALOG } from './cosmetics-catalog.generated';
 export { GENERATED_THEME_CATALOG as THEME_CATALOG, BACKGROUND_CATALOG } from './themes-catalog.generated';
+
+import { GENERATED_COSMETIC_CATALOG } from './cosmetics-catalog.generated';
+
+/**
+ * Effect cosmetics — pure code-driven visual flair (glow, bobbing, particles)
+ * that lives in the 'effect' slot. Each entry carries `iconEmoji` instead of
+ * an atlas frame; the DressingRoom renders the emoji as the thumbnail.
+ *
+ * Implementations and per-effect apply() functions live in
+ * `src/client/effects/cat-effects.ts`. This catalog is the SOURCE list — the
+ * client maps id → apply() at render time.
+ */
+export const EFFECT_COSMETIC_CATALOG: CosmeticEntry[] = [
+  { id: 'effect-red-glow',    name: 'Red Glow',    rarity: 'common',    slot: 'effect' },
+  { id: 'effect-blue-glow',   name: 'Blue Glow',   rarity: 'common',    slot: 'effect' },
+  { id: 'effect-gold-glow',   name: 'Gold Glow',   rarity: 'rare',      slot: 'effect' },
+  { id: 'effect-green-glow',  name: 'Green Glow',  rarity: 'uncommon',  slot: 'effect' },
+  { id: 'effect-purple-glow', name: 'Purple Glow', rarity: 'uncommon',  slot: 'effect' },
+  { id: 'effect-pink-glow',   name: 'Pink Glow',   rarity: 'common',    slot: 'effect' },
+  { id: 'effect-bob',         name: 'Bobbing',     rarity: 'common',    slot: 'effect' },
+  { id: 'effect-pulse',       name: 'Pulsing',     rarity: 'common',    slot: 'effect' },
+  { id: 'effect-spin',        name: 'Spinning',    rarity: 'rare',      slot: 'effect' },
+  { id: 'effect-wobble',      name: 'Wobble',      rarity: 'common',    slot: 'effect' },
+  { id: 'effect-ghost',       name: 'Ghost',       rarity: 'rare',      slot: 'effect' },
+  { id: 'effect-sparkle',     name: 'Sparkles',    rarity: 'uncommon',  slot: 'effect' },
+  { id: 'effect-hearts',      name: 'Hearts',      rarity: 'rare',      slot: 'effect' },
+];
+
+/** Merged cosmetic catalog: generated atlas-backed cosmetics + effect cosmetics. */
+export const COSMETIC_CATALOG: CosmeticEntry[] = [
+  ...GENERATED_COSMETIC_CATALOG,
+  ...EFFECT_COSMETIC_CATALOG,
+];
 
 // -- Box catalog --------------------------------------------------------
 
@@ -253,7 +285,13 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
     username,
     coins: STARTER_COINS,
     ownedCats: [],
-    ownedCosmetics: [],
+    // Auto-grant one instance of each EFFECT cosmetic so the player can test
+    // them in the DressingRoom EFFECT tab without going through the
+    // cosmetic-box RNG. Atlas-backed cosmetics still come from box pulls.
+    ownedCosmetics: EFFECT_COSMETIC_CATALOG.map((e) => ({
+      id: makeInstanceId(),
+      type: e.id,
+    })),
     equippedCosmetics: {},
     equippedCosmeticTypes: {},
     bestScore: 0,

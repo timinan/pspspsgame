@@ -5,6 +5,7 @@ import { Balance } from '@/constants/balance';
 import { hslToInt } from '@/util/color';
 import type { CatBreed, CatAnimationState, CatModel, CosmeticId } from '@/types/game';
 import { COSMETIC_CATALOG } from '@/../shared/state';
+import { CAT_EFFECT_BY_ID, type EffectHandle } from '@/effects/cat-effects';
 
 // Cosmetic sprites are drawn on the same 91×64 canvas as the cats, so
 // when both share origin (0.5, 1) at the same screen position they
@@ -49,6 +50,9 @@ export class Cat {
    * via POST_UPDATE keeps working without an extra parent.
    */
   private cosmeticSprites: Record<string, GameObjects.Sprite> = {};
+  /** Active effect-cosmetic handles keyed by slot. Effects don't render a
+   *  sprite — they hold tweens, preFX, or particle timers. */
+  private activeEffects: Record<string, EffectHandle> = {};
   private readonly postUpdate: () => void;
   private rainbowTween: Phaser.Tweens.Tween | null = null;
   private revertTimer: Phaser.Time.TimerEvent | undefined;
@@ -108,14 +112,27 @@ export class Cat {
   setCosmetic(slot: string, cosmeticId: CosmeticId | null): void {
     if (!this.model.equippedCosmetics) this.model.equippedCosmetics = {};
 
+    // Always tear down whatever currently occupies this slot first — either
+    // a sprite-based cosmetic or an effect handle.
+    this.cosmeticSprites[slot]?.destroy();
+    delete this.cosmeticSprites[slot];
+    this.activeEffects[slot]?.destroy();
+    delete this.activeEffects[slot];
+
     if (!cosmeticId) {
       delete this.model.equippedCosmetics[slot];
-      this.cosmeticSprites[slot]?.destroy();
-      delete this.cosmeticSprites[slot];
       return;
     }
 
     this.model.equippedCosmetics[slot] = cosmeticId;
+
+    // EFFECT cosmetics are code-driven flair, not atlas sprites. Apply via
+    // the registered handler and stash the handle.
+    const effect = CAT_EFFECT_BY_ID[cosmeticId];
+    if (effect) {
+      this.activeEffects[slot] = effect.apply(this.scene, this.sprite);
+      return;
+    }
 
     // Tint variants (sourceFrame + tint) render the parent's atlas frames
     // and apply the tint via setTint(). Animation keys are keyed on the
@@ -144,7 +161,12 @@ export class Cat {
   /** Replace ALL cosmetics in one shot — clears anything not in the map. */
   setCosmetics(map: Partial<Record<string, CosmeticId>>): void {
     const incomingSlots = new Set(Object.keys(map));
-    for (const slot of Object.keys(this.cosmeticSprites)) {
+    // Both sprite-based AND effect-based slots need clearing when absent.
+    const liveSlots = new Set([
+      ...Object.keys(this.cosmeticSprites),
+      ...Object.keys(this.activeEffects),
+    ]);
+    for (const slot of liveSlots) {
       if (!incomingSlots.has(slot)) this.setCosmetic(slot, null);
     }
     for (const [slot, cosId] of Object.entries(map)) {
@@ -201,6 +223,10 @@ export class Cat {
       this.cosmeticSprites[slot]?.destroy();
     }
     this.cosmeticSprites = {};
+    for (const slot of Object.keys(this.activeEffects)) {
+      this.activeEffects[slot]?.destroy();
+    }
+    this.activeEffects = {};
     this.sprite.destroy();
   }
 

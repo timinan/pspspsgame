@@ -8,6 +8,7 @@ import { TopHud } from '@/ui/top-hud';
 import { ContextMenu, buildCatMenu } from '@/ui/context-menu';
 import * as L from '@/constants/scene-layout';
 import { CAT_CATALOG, COSMETIC_CATALOG, BACKGROUND_CATALOG } from '@/../shared/state';
+import { CAT_EFFECT_BY_ID } from '@/effects/cat-effects';
 import { fetchState, setSeat, setBackground } from '@/services/state-client';
 import type {
   PlayerState,
@@ -634,6 +635,11 @@ export class Decorate extends Scene {
         if (!cosInstanceId) continue;
         // Resolve catalog type from equippedCosmeticTypes sidecar.
         const cosTypeId = equippedTypes[cosInstanceId] ?? cosInstanceId;
+        // Effect cosmetics are code-driven (glow / bobbing / particles) — they
+        // can't render as a static thumbnail overlay. Skip them silently here;
+        // the tray still indicates the cat is wearing one via the cat sprite
+        // itself in the preview stage.
+        if (CAT_EFFECT_BY_ID[cosTypeId]) continue;
         const cos = COSMETIC_CATALOG.find((c) => c.id === cosTypeId);
         if (!cos) continue;
         const cosParent = cos.sourceFrame?.match(/^cosmetic_(c\d+)_/)?.[1] ?? cos.id;

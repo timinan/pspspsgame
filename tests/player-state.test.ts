@@ -30,7 +30,11 @@ describe('player-state', () => {
     expect(state.username).toBe('alice');
     expect(state.coins).toBe(STARTER_COINS);
     expect(state.ownedCats).toEqual([]);
-    expect(state.ownedCosmetics).toEqual([]);
+    // Fresh state auto-grants one of each EFFECT cosmetic so the player can
+    // immediately test glow / particle / tween cosmetics in the DressingRoom.
+    // Atlas-backed cosmetics still come from box pulls.
+    expect(state.ownedCosmetics.length).toBeGreaterThan(0);
+    expect(state.ownedCosmetics.every((c) => c.type.startsWith('effect-'))).toBe(true);
     expect(state.equippedCosmetics).toEqual({});
     expect(state.equippedCosmeticTypes).toEqual({});
     expect(state.bestScore).toBe(0);

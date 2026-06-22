@@ -4,6 +4,7 @@ import { CAT_CATALOG, COSMETIC_CATALOG } from '@/../shared/state';
 import { AssetKeys } from '@/constants/assets';
 import { equipCosmetic } from '@/services/state-client';
 import { parentIdFor } from '@/entities/cat';
+import { CAT_EFFECT_BY_ID } from '@/effects/cat-effects';
 import type { PlayerState, OwnedCosmetic } from '@/../shared/state';
 
 const COSMETICS_PER_PAGE = 19;
@@ -11,6 +12,7 @@ const SLOT_TABS: { key: string; label: string }[] = [
   { key: 'head', label: 'HEAD' },
   { key: 'face', label: 'FACE' },
   { key: 'neck', label: 'NECK' },
+  { key: 'effect', label: 'EFFECT' },
 ];
 
 export class DressingRoom extends Scene {
@@ -199,6 +201,10 @@ export class DressingRoom extends Scene {
       if (!cosInstanceId) continue;
       // Resolve the catalog type via the sidecar.
       const cosTypeId = equippedTypes[cosInstanceId] ?? cosInstanceId;
+      // Effect cosmetics have no atlas frame to render in the hero preview;
+      // the player will see them when the modal closes (Cat entity applies
+      // them in the Decorate stage). Skip silently here.
+      if (CAT_EFFECT_BY_ID[cosTypeId]) continue;
       const cos = COSMETIC_CATALOG.find((c) => c.id === cosTypeId);
       if (!cos) continue;
       const renderId = parentIdFor(cos) ?? cos.id;
@@ -290,25 +296,43 @@ export class DressingRoom extends Scene {
     slice.forEach((cosItem, i) => {
       const cos = COSMETIC_CATALOG.find((c) => c.id === cosItem.type);
       if (!cos) return;
-      const renderId = parentIdFor(cos) ?? cos.id;
-      const frame = `cosmetic_${renderId}_idle_00`;
       const col = i % cols;
       const row = Math.floor(i / cols);
       const x = gridStartX + col * (cellSize + gap) + cellSize / 2;
       const y = row * (cellSize + gap) + cellSize / 2;
-      // isEquipped shouldn't happen (equipped are removed from ownedCosmetics) but guard anyway.
       const isEquipped = equippedInstanceId === cosItem.id;
       const bg = this.add
         .rectangle(x, y, cellSize, cellSize, 0x0b041a, 0.6)
         .setStrokeStyle(2, isEquipped ? 0xffd34d : 0xc0a0e6, isEquipped ? 1 : 0.3)
         .setInteractive({ useHandCursor: true });
-      const sprite = this.add
-        .sprite(x, y, AssetKeys.Atlas.Cosmetics, frame)
-        .setScale(0.7);
-      if (cos.tint) {
-        sprite.setTint(parseInt(cos.tint.replace('#', ''), 16));
+      this.gridContainer.add(bg);
+
+      // Effect cosmetics don't have atlas frames — render an emoji thumb.
+      const effect = CAT_EFFECT_BY_ID[cosItem.type];
+      if (effect) {
+        const icon = this.add
+          .text(x, y - 6, effect.iconEmoji, { fontSize: '22px' })
+          .setOrigin(0.5);
+        const label = this.add
+          .text(x, y + 14, effect.name, {
+            fontFamily: '"Courier New", monospace',
+            fontSize: '7px',
+            color: '#ffffff',
+          })
+          .setOrigin(0.5);
+        this.gridContainer.add([icon, label]);
+      } else {
+        const renderId = parentIdFor(cos) ?? cos.id;
+        const frame = `cosmetic_${renderId}_idle_00`;
+        const sprite = this.add
+          .sprite(x, y, AssetKeys.Atlas.Cosmetics, frame)
+          .setScale(0.7);
+        if (cos.tint) {
+          sprite.setTint(parseInt(cos.tint.replace('#', ''), 16));
+        }
+        this.gridContainer.add(sprite);
       }
-      this.gridContainer.add([bg, sprite]);
+
       bg.on('pointerdown', () => this.equipInSlot(cosItem));
     });
 

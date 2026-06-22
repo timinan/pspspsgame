@@ -123,6 +123,7 @@ describe('box-pull', () => {
 
   it('applyPullToState adds a new OwnedCosmetic instance', () => {
     const state = emptyState();
+    const before = state.ownedCosmetics.length;
     applyPullToState(state, {
       kind: 'cosmetic',
       itemId: 'c5',
@@ -131,9 +132,11 @@ describe('box-pull', () => {
       refundCoins: 0,
       instanceId: 'cos-inst-1',
     });
-    expect(state.ownedCosmetics).toHaveLength(1);
-    expect(state.ownedCosmetics[0]!.id).toBe('cos-inst-1');
-    expect(state.ownedCosmetics[0]!.type).toBe('c5');
+    expect(state.ownedCosmetics).toHaveLength(before + 1);
+    // The new instance is appended at the end of the array.
+    const added = state.ownedCosmetics[state.ownedCosmetics.length - 1]!;
+    expect(added.id).toBe('cos-inst-1');
+    expect(added.type).toBe('c5');
   });
 
   it('catBox distribution covers all breeds over many pulls', () => {
