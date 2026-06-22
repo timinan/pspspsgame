@@ -317,16 +317,29 @@ export class SongPlayer {
 
   /** Stop Transport, unwind the chart Part, leave the audio nodes alive
    *  for a potential future start() (round restart). Use destroy() for
-   *  full teardown. */
+   *  full teardown.
+   *
+   *  Order matters: the backing Player is sync'd to Transport, so its
+   *  `.stop()` is normally scheduled THROUGH Transport. If we stop and
+   *  cancel Transport first, that stop event gets wiped and the buffer
+   *  source keeps playing audio to destination. Unsync first, stop the
+   *  Player explicitly, then tear down Transport. */
   stop(): void {
     if (!this.started) return;
-    Tone.Transport.stop();
-    Tone.Transport.cancel();
+    this.started = false;
+
     this.part?.stop();
     this.part?.dispose();
     this.part = null;
-    this.backing?.stop();
-    this.started = false;
+
+    if (this.backing) {
+      this.backing.unsync();
+      this.backing.stop();
+    }
+
+    Tone.Transport.stop();
+    Tone.Transport.cancel();
+    Tone.Transport.position = 0;
   }
 
   /** Full teardown — kill scheduled events, dispose audio nodes. Safe to
