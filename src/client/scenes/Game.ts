@@ -35,6 +35,10 @@ export class Game extends Scene {
   private laneRects: Phaser.GameObjects.Rectangle[] = [];
   /** Hit targets per lane — kept separate so we can flash them on hit/miss. */
   private hitTargets: Phaser.GameObjects.Image[] = [];
+  /** Base scale of each hit target so flashTarget can always reset to it
+   *  instead of compounding off whatever the previous (possibly killed mid-yoyo)
+   *  tween left behind. setDisplaySize sets a non-1 scale, so we capture it. */
+  private hitTargetBaseScale: number[] = [];
   private tapZones: Phaser.GameObjects.Rectangle[] = [];
   private notes: Note[] = [];
   private hud!: TopHud;
@@ -67,6 +71,7 @@ export class Game extends Scene {
     this.seatedNameLabels = [];
     this.laneRects = [];
     this.hitTargets = [];
+    this.hitTargetBaseScale = [];
     this.tapZones = [];
     this.notes = [];
     this.hitFeedbackTexts = [];
@@ -154,6 +159,9 @@ export class Game extends Scene {
       target.setDisplaySize(48, 48);
       target.setTint(color);
       this.hitTargets[i] = target;
+      // Snapshot the base scale after setDisplaySize so flash tweens always
+      // start from the same value instead of compounding off prior inflations.
+      this.hitTargetBaseScale[i] = target.scaleX;
     }
   }
 
@@ -447,24 +455,32 @@ export class Game extends Scene {
   }
 
   /** Punch the lane's hit target on a tap so the player sees their action
-   *  registered even if no note was present. Grade controls the tint flash. */
+   *  registered even if no note was present. Grade controls the tint flash.
+   *  Always reads from `hitTargetBaseScale` so back-to-back taps that kill
+   *  a mid-yoyo tween don't compound the scale. */
   private flashTarget(laneId: LaneId, grade: 'perfect' | 'great' | 'miss'): void {
     const target = this.hitTargets[laneId];
-    if (!target) return;
+    const base = this.hitTargetBaseScale[laneId];
+    if (!target || base === undefined) return;
     const baseTint = L.LANE_COLORS[laneId]!;
     const flashTint =
       grade === 'perfect' ? 0xffffff : grade === 'great' ? 0xffd34d : 0xff6b6b;
     target.setTint(flashTint);
     this.tweens.killTweensOf(target);
-    target.setScale(target.scaleX); // anchor current scale
+    // Reset to the captured base scale BEFORE tweening so a killed mid-yoyo
+    // can't leave the target permanently inflated.
+    target.setScale(base);
     this.tweens.add({
       targets: target,
-      scaleX: target.scaleX * 1.25,
-      scaleY: target.scaleY * 1.25,
+      scaleX: base * 1.25,
+      scaleY: base * 1.25,
       yoyo: true,
       duration: 110,
       ease: 'Quad.easeOut',
-      onComplete: () => target.setTint(baseTint),
+      onComplete: () => {
+        target.setTint(baseTint);
+        target.setScale(base);
+      },
     });
   }
 
