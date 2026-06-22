@@ -721,12 +721,12 @@ export class Game extends Scene {
       try {
         this.songPlayer = new SongPlayer({
           chart: playChart,
-          // Sample declared at A4 (one octave above lane 0's A3). The
-          // mixkit clip's natural pitch is closer to E5–A5, so labelling
-          // it A4 makes Tone.Sampler pitch every lane DOWN from its real
-          // pitch (A3 = -12 semitones, C4 = -9, E4 = -5) — deeper, softer
-          // meows with no chipmunk artefacts on the high lane.
-          meowSamples: { A4: 'assets/audio/meows/meow.wav' },
+          // Sample declared at E4 — matches the highest lane note. Tone
+          // plays the source clip at natural pitch on lane 2 (zero
+          // shift, full cuteness preserved) and pitches the other lanes
+          // mildly DOWN (C4 = -4 semitones, A3 = -7). C4 declaration was
+          // chipmunky on E4; A4 was too deep across the board.
+          meowSamples: { E4: 'assets/audio/meows/meow.wav' },
           // Drive meows from the tap handler instead of the chart beat
           // so the audio tracks the player's input. The chart still
           // dictates note spawn timing visually + for scoring; the
@@ -786,10 +786,6 @@ export class Game extends Scene {
     // every lane tap counts. After the first call this is cheap (early
     // returns inside SongPlayer.start).
     void this.ensureSongStarted();
-    // Fire the meow synchronously on the tap — bypasses the chart's
-    // scheduled beat so the meow lands at the input moment, not on
-    // the next chart step. Removes the perceived input → audio delay.
-    this.songPlayer?.playMeow(laneId);
     const now = this.time.now - this.startTimeMs;
     const note = this.activeNoteInLane(laneId, now);
 
@@ -810,6 +806,13 @@ export class Game extends Scene {
       const dy = Math.abs(note.y - targetY);
       if (dy <= perfectDistance) grade = 'perfect';
       else if (dy <= maxHitDistance) grade = 'great';
+    }
+
+    // Only meow on a real hit — missed taps shouldn't reward the player
+    // with a cat sound. Fire the meow before grading-side effects so
+    // the audio lands as close to the tap moment as possible.
+    if (grade !== 'miss') {
+      this.songPlayer?.playMeow(laneId);
     }
 
     this.score.registerHit(grade);

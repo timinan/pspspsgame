@@ -157,9 +157,16 @@ export class SongPlayer {
 
   /** Tone.start() requires a user gesture (tap / click / key press). The
    *  Game scene calls this from the FIRST lane tap, before any meow is
-   *  scheduled to fire. Safe to call repeatedly. */
+   *  scheduled to fire. Safe to call repeatedly.
+   *
+   *  Also tightens lookAhead from Tone's 100ms default down to 30ms —
+   *  every scheduled event normally fires lookAhead ms in the future for
+   *  safety. 100ms is the dominant source of perceived input → meow
+   *  delay and bg-music-start delay. 30ms is the sweet spot for tight
+   *  rhythm games without underrun risk on a busy main thread. */
   async unlock(): Promise<void> {
     if (this.unlocked || this.destroyed) return;
+    Tone.context.lookAhead = 0.03;
     await Tone.start();
     this.unlocked = true;
   }
