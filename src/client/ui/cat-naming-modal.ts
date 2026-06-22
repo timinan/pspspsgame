@@ -1,23 +1,23 @@
 import { Scene } from 'phaser';
+import { validateCatName, NAME_MAX_LENGTH } from './name-validation';
 
 export interface CatNamingModalOpts {
   /** Default name pre-filled in the input (e.g. the catalog breed name). */
   defaultName: string;
-  /** Called with the final name when the player confirms. */
+  /** Existing owned cats (so we can reject duplicate names). */
+  existingCats: Array<{ id: string; name: string }>;
+  /** Called with the validated final name when the player confirms. */
   onSubmit: (name: string) => void;
 }
 
 /**
- * A centered modal panel with an HTML text input for naming a new cat.
+ * Centered modal panel with a native <input> for naming a new cat.
  *
- * Rendered using an overlay HTML <input> element (same pattern as the Welcome
- * scene) since Phaser's text objects don't support editable input. The modal
- * sits on top of whatever scene is active.
- *
- * Usage:
- *   const modal = new CatNamingModal(scene, { defaultName: 'Mochi', onSubmit });
- *   // To remove:
- *   modal.destroy();
+ * The player MUST provide a valid name — there is no skip / cancel path.
+ * Validation runs on every keystroke; the Save button stays disabled until
+ * the name passes (non-empty, ≤ NAME_MAX_LENGTH, no profanity, not a
+ * duplicate of an existing owned cat's name). Errors render in a small
+ * red line directly above the Save button.
  */
 export class CatNamingModal {
   private overlay: HTMLDivElement;
@@ -26,8 +26,6 @@ export class CatNamingModal {
   constructor(scene: Scene, opts: CatNamingModalOpts) {
     const { width } = scene.scale;
 
-    // Build a full-screen semi-transparent HTML overlay so we can embed a
-    // native <input> without fighting Phaser's canvas input handling.
     const overlay = document.createElement('div');
     overlay.style.cssText = [
       'position:fixed',
@@ -39,7 +37,6 @@ export class CatNamingModal {
       'z-index:9999',
     ].join(';');
 
-    // Panel
     const panel = document.createElement('div');
     panel.style.cssText = [
       'background:#1a0a2e',
@@ -49,12 +46,11 @@ export class CatNamingModal {
       'display:flex',
       'flex-direction:column',
       'align-items:center',
-      'gap:14px',
+      'gap:12px',
       `max-width:${Math.min(width - 32, 320)}px`,
       'width:90%',
     ].join(';');
 
-    // Title
     const title = document.createElement('div');
     title.textContent = 'Name your new cat!';
     title.style.cssText = [
@@ -65,11 +61,12 @@ export class CatNamingModal {
       'text-align:center',
     ].join(';');
 
-    // Input
     const input = document.createElement('input');
     input.type = 'text';
     input.value = opts.defaultName;
-    input.maxLength = 20;
+    // Intentionally no maxLength — we WANT users to be able to type past
+    // the limit so they see the "max length" error instead of having the
+    // browser silently swallow keystrokes.
     input.placeholder = 'Enter a name…';
     input.style.cssText = [
       'width:100%',
@@ -85,14 +82,28 @@ export class CatNamingModal {
       'outline:none',
     ].join(';');
 
-    // Select all on focus so the default name is easy to replace.
-    input.addEventListener('focus', () => input.select());
-    // Enter key confirms.
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') confirm();
-    });
+    // Error line — hidden until validation reports a problem.
+    const errorLine = document.createElement('div');
+    errorLine.style.cssText = [
+      'color:#ff7a7a',
+      'font-family:"Pixeloid Sans",monospace',
+      'font-size:11px',
+      'text-align:center',
+      'min-height:14px',
+      'line-height:14px',
+    ].join(';');
 
-    // Confirm button
+    // Char count helper so the player can see they're getting close to the
+    // limit before they hit it.
+    const charCount = document.createElement('div');
+    charCount.style.cssText = [
+      'color:#8a78b8',
+      'font-family:"Pixeloid Sans",monospace',
+      'font-size:10px',
+      'text-align:right',
+      'width:100%',
+    ].join(';');
+
     const btn = document.createElement('button');
     btn.textContent = 'Save name';
     btn.style.cssText = [
@@ -105,44 +116,56 @@ export class CatNamingModal {
       'font-weight:bold',
       'font-size:14px',
       'cursor:pointer',
+      'transition:opacity 0.15s',
     ].join(';');
 
-    // Skip link
-    const skip = document.createElement('a');
-    skip.textContent = 'Skip (keep default name)';
-    skip.href = '#';
-    skip.style.cssText = [
-      'color:#c0a0e6',
-      'font-family:"Pixeloid Sans",monospace',
-      'font-size:11px',
-      'text-decoration:underline',
-      'cursor:pointer',
-    ].join(';');
+    const updateButtonState = (enabled: boolean): void => {
+      if (enabled) {
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.disabled = false;
+      } else {
+        btn.style.opacity = '0.45';
+        btn.style.cursor = 'not-allowed';
+        btn.disabled = true;
+      }
+    };
+
+    const runValidation = (): boolean => {
+      const v = validateCatName(input.value, opts.existingCats);
+      errorLine.textContent = v.error;
+      charCount.textContent = `${input.value.length} / ${NAME_MAX_LENGTH}`;
+      updateButtonState(v.ok);
+      // Border color cue too — red on error, accent on valid.
+      input.style.borderColor = v.ok ? '#c0a0e6' : '#ff7a7a';
+      return v.ok;
+    };
 
     const confirm = (): void => {
       if (this.destroyed) return;
-      const name = (input.value || '').trim() || opts.defaultName;
+      if (!runValidation()) return;
+      const name = input.value.trim();
       this.destroy();
       opts.onSubmit(name);
     };
 
-    const cancel = (e: Event): void => {
-      e.preventDefault();
-      if (this.destroyed) return;
-      this.destroy();
-      opts.onSubmit(opts.defaultName);
-    };
-
+    input.addEventListener('focus', () => input.select());
+    input.addEventListener('input', () => runValidation());
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') confirm();
+    });
     btn.addEventListener('click', confirm);
-    skip.addEventListener('click', cancel);
 
-    panel.append(title, input, btn, skip);
+    panel.append(title, input, charCount, errorLine, btn);
     overlay.append(panel);
     document.body.append(overlay);
 
     this.overlay = overlay;
 
-    // Focus the input after a brief tick so virtual keyboards open correctly.
+    // Run validation once for the initial default name (mostly to set the
+    // char counter and button state).
+    runValidation();
+
     scene.time.delayedCall(80, () => {
       if (!this.destroyed) input.focus();
     });

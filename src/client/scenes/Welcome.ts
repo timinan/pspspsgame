@@ -260,8 +260,14 @@ export class Welcome extends Scene {
             // Prompt the player to name the new cat before advancing.
             const defaultName = entry?.name ?? (pull.itemId as string);
             const instanceId = pull.instanceId;
+            // Exclude the just-pulled instance from the duplicate check so
+            // the default name doesn't false-positive against itself.
+            const existingCats = (this.playerState?.ownedCats ?? []).filter(
+              (c) => c.id !== instanceId,
+            );
             const modal = new CatNamingModal(this, {
               defaultName,
+              existingCats,
               onSubmit: (name) => {
                 // Update local state optimistically.
                 const catInState = this.playerState?.ownedCats.find((c) => c.id === instanceId);

@@ -351,8 +351,13 @@ export class Purchase extends Scene {
           if (isCat && pull.instanceId) {
             const defaultName = catEntry?.name ?? (pull.itemId as string);
             const instanceId = pull.instanceId;
+            // Exclude the just-pulled instance from the duplicate check.
+            const existingCats = (this.playerState?.ownedCats ?? []).filter(
+              (c) => c.id !== instanceId,
+            );
             const modal = new CatNamingModal(this, {
               defaultName,
+              existingCats,
               onSubmit: (name) => {
                 const catInState = this.playerState?.ownedCats.find((c) => c.id === instanceId);
                 if (catInState) catInState.name = name;
