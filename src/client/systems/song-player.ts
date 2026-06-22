@@ -75,7 +75,7 @@ export class SongPlayer {
   private synth: Tone.PolySynth | null = null;
   private sampler: Tone.Sampler | null = null;
   private backing: Tone.Player | null = null;
-  private scheduledIds: number[] = [];
+  private part: Tone.Part | null = null;
   private started = false;
   private unlocked = false;
   private destroyed = false;
@@ -149,15 +149,24 @@ export class SongPlayer {
     // looks wired up.
     await Tone.loaded();
 
-    // Schedule every active meow in advance. Transport runs the callbacks
-    // at sample-accurate times — far tighter than scene.time delays.
+    // Wrap the chart in a Tone.Part so it loops as long as Transport
+    // runs. Transport.schedule fires each callback once — that left
+    // SongPlayer silent after the first chart pass (~8s) while
+    // ChartPlayer kept looping the visual notes 80 times for the full
+    // round. Tone.Part with loopEnd = chart duration re-fires every step
+    // on every loop.
     const schedule = buildSchedule(this.chart);
-    for (const { timeSec, note } of schedule) {
-      const id = Tone.Transport.schedule((time) => {
-        this.triggerMeow(note, time);
-      }, timeSec);
-      this.scheduledIds.push(id);
-    }
+    const msPerStep = 60000 / (this.chart.bpm * 2);
+    const chartDurSec = (msPerStep * this.chart.steps.length) / 1000;
+    this.part = new Tone.Part(
+      (time, value: { note: MeowNote }) => {
+        this.triggerMeow(value.note, time);
+      },
+      schedule.map(({ timeSec, note }) => ({ time: timeSec, note })),
+    );
+    this.part.loop = true;
+    this.part.loopEnd = chartDurSec;
+    this.part.start(0);
 
     // Sync the backing track to Transport so play/pause stays locked.
     if (this.backing) {
@@ -178,14 +187,16 @@ export class SongPlayer {
     }
   }
 
-  /** Stop Transport, unwind every scheduled meow, leave the audio nodes
-   *  alive for a potential future start() (round restart). Use destroy()
-   *  for full teardown. */
+  /** Stop Transport, unwind the chart Part, leave the audio nodes alive
+   *  for a potential future start() (round restart). Use destroy() for
+   *  full teardown. */
   stop(): void {
     if (!this.started) return;
     Tone.Transport.stop();
     Tone.Transport.cancel();
-    this.scheduledIds = [];
+    this.part?.stop();
+    this.part?.dispose();
+    this.part = null;
     this.backing?.stop();
     this.started = false;
   }
