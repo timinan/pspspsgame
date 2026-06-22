@@ -4,6 +4,7 @@ import {
   COSMETIC_CATALOG,
   BACKGROUND_CATALOG,
   DUPLICATE_REFUND,
+  makeInstanceId,
   type BoxId,
   type CatBreed,
   type CosmeticId,
@@ -14,11 +15,14 @@ import {
 
 export interface PullResult {
   kind: 'cat' | 'cosmetic' | 'background';
+  /** For cats: the breed id. For cosmetics: the catalog cosmetic id. For backgrounds: the background id. */
   itemId: CatBreed | CosmeticId | BackgroundId;
   rarity: Rarity;
-  /** True if the player already owned this item — refundCoins will be > 0. */
+  /** True only for backgrounds when all are already owned. Cats + cosmetics are never duplicates. */
   duplicate: boolean;
   refundCoins: number;
+  /** Instance id for the newly created cat or cosmetic — undefined for backgrounds. */
+  instanceId?: string;
 }
 
 const RARITIES = ['common', 'uncommon', 'rare', 'legendary'] as const;
@@ -38,15 +42,17 @@ function rollRarity(
   }
   // Floating-point tail — fall back to the last non-zero rarity.
   for (let i = RARITIES.length - 1; i >= 0; i--) {
-    if (rates[RARITIES[i]!] > 0) return RARITIES[i]!;
+    if (rates[RARITIES[i]!]! > 0) return RARITIES[i]!;
   }
   return 'common';
 }
 
 /**
  * Server-side box pull. Picks a rarity from the box's drop table, then
- * uniformly picks an item of that rarity from the relevant catalog. Marks
- * the result as a duplicate (with a refund) if the player already owns it.
+ * uniformly picks an item of that rarity from the relevant catalog.
+ *
+ * Cats + cosmetics: always creates a new instance — no duplicate checks.
+ * Backgrounds: duplicate refund still applies (flag-style ownership).
  *
  * NOTE: this function does NOT mutate `state` or deduct the box cost —
  * the caller decides whether to apply the result via `applyPullToState`.
@@ -62,30 +68,32 @@ export function pullBox(
   if (box.rewardKind === 'cat') {
     const pool = CAT_CATALOG.filter((c) => c.rarity === rarity);
     const pick = pool[Math.floor(rng() * pool.length)]!;
-    const duplicate = state.ownedCats.includes(pick.id);
+    const instanceId = makeInstanceId();
     return {
       kind: 'cat',
       itemId: pick.id,
       rarity,
-      duplicate,
-      refundCoins: duplicate ? DUPLICATE_REFUND : 0,
+      duplicate: false,
+      refundCoins: 0,
+      instanceId,
     };
   }
 
   if (box.rewardKind === 'cosmetic') {
     const pool = COSMETIC_CATALOG.filter((c) => c.rarity === rarity);
     const pick = pool[Math.floor(rng() * pool.length)]!;
-    const duplicate = state.ownedCosmetics.includes(pick.id);
+    const instanceId = makeInstanceId();
     return {
       kind: 'cosmetic',
       itemId: pick.id,
       rarity,
-      duplicate,
-      refundCoins: duplicate ? DUPLICATE_REFUND : 0,
+      duplicate: false,
+      refundCoins: 0,
+      instanceId,
     };
   }
 
-  // background
+  // background — flag-style ownership, duplicates still refund
   const allBackgroundIds = Object.keys(BACKGROUND_CATALOG) as BackgroundId[];
   const unowned = allBackgroundIds.filter((id) => !state.ownedBackgrounds.includes(id));
 
@@ -114,18 +122,34 @@ export function pullBox(
 }
 
 /**
- * Apply a pull result to the player's state. New items go into the owned
- * list; duplicates instead credit `refundCoins` back to the wallet.
+ * Apply a pull result to the player's state. New cats/cosmetics append a fresh
+ * instance. Backgrounds go into ownedBackgrounds (flag-style); duplicates refund.
+ *
+ * For cats the catalog breed name is used as the default instance name — the
+ * client will prompt the player to rename via POST /api/cats/rename.
  */
 export function applyPullToState(state: PlayerState, pull: PullResult): void {
-  if (pull.duplicate) {
-    state.coins += pull.refundCoins;
+  if (pull.kind === 'cat') {
+    const catEntry = CAT_CATALOG.find((c) => c.id === pull.itemId);
+    state.ownedCats.push({
+      id: pull.instanceId ?? makeInstanceId(),
+      breed: pull.itemId as CatBreed,
+      name: catEntry?.name ?? (pull.itemId as string),
+    });
     return;
   }
-  if (pull.kind === 'cat') {
-    state.ownedCats.push(pull.itemId as CatBreed);
-  } else if (pull.kind === 'cosmetic') {
-    state.ownedCosmetics.push(pull.itemId as CosmeticId);
+
+  if (pull.kind === 'cosmetic') {
+    state.ownedCosmetics.push({
+      id: pull.instanceId ?? makeInstanceId(),
+      type: pull.itemId as CosmeticId,
+    });
+    return;
+  }
+
+  // background
+  if (pull.duplicate) {
+    state.coins += pull.refundCoins;
   } else {
     state.ownedBackgrounds.push(pull.itemId as BackgroundId);
   }

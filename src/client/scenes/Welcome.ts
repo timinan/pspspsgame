@@ -2,7 +2,8 @@ import { Scene, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
-import { openBox, completeOnboarding } from '@/services/state-client';
+import { CatNamingModal } from '@/ui/cat-naming-modal';
+import { openBox, completeOnboarding, renameCat } from '@/services/state-client';
 import {
   CAT_CATALOG,
   COSMETIC_CATALOG,
@@ -246,7 +247,7 @@ export class Welcome extends Scene {
         {
           textureKey: isCat ? AssetKeys.Atlas.Cats : AssetKeys.Atlas.Cosmetics,
           frame,
-          itemName,
+          itemName: isCat ? 'A cat' : itemName,
           rarity: pull.rarity,
           ...(rainbow ? { rainbow: true } : {}),
           ...(tint ? { tint: parseInt(tint.replace('#', ''), 16) } : {}),
@@ -254,8 +255,30 @@ export class Welcome extends Scene {
           refundCoins: pull.refundCoins,
         },
         () => {
-          this.busy = false;
-          this.showStep(boxId === 'catBox' ? 'cosmetic' : 'done');
+          if (isCat && pull.instanceId) {
+            // Prompt the player to name the new cat before advancing.
+            const defaultName = entry?.name ?? (pull.itemId as string);
+            const instanceId = pull.instanceId;
+            const modal = new CatNamingModal(this, {
+              defaultName,
+              onSubmit: (name) => {
+                // Update local state optimistically.
+                const catInState = this.playerState?.ownedCats.find((c) => c.id === instanceId);
+                if (catInState) catInState.name = name;
+                // Persist to server (fire-and-forget — onboarding continues regardless).
+                renameCat(instanceId, name).catch((e) =>
+                  console.warn('[Welcome] renameCat failed:', e),
+                );
+                this.busy = false;
+                this.showStep('cosmetic');
+              },
+            });
+            // Suppress unused-variable warning — modal manages its own lifecycle.
+            void modal;
+          } else {
+            this.busy = false;
+            this.showStep(boxId === 'catBox' ? 'cosmetic' : 'done');
+          }
         },
       );
     } catch (e) {

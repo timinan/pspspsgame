@@ -4,7 +4,7 @@ import { CAT_CATALOG, COSMETIC_CATALOG } from '@/../shared/state';
 import { AssetKeys } from '@/constants/assets';
 import { equipCosmetic } from '@/services/state-client';
 import { parentIdFor } from '@/entities/cat';
-import type { PlayerState, CatBreed } from '@/../shared/state';
+import type { PlayerState, OwnedCosmetic } from '@/../shared/state';
 
 const COSMETICS_PER_PAGE = 19;
 const SLOT_TABS: { key: string; label: string }[] = [
@@ -14,7 +14,8 @@ const SLOT_TABS: { key: string; label: string }[] = [
 ];
 
 export class DressingRoom extends Scene {
-  private catId!: CatBreed;
+  /** The cat INSTANCE id (not breed). */
+  private catInstanceId!: string;
   private playerState!: PlayerState;
   private page = 0;
   /** Which slot the player is currently browsing in the cosmetics tray. */
@@ -33,8 +34,8 @@ export class DressingRoom extends Scene {
     super(SceneKeys.DressingRoom);
   }
 
-  init(data: { catId: CatBreed; playerState: PlayerState }): void {
-    this.catId = data.catId;
+  init(data: { catInstanceId: string; playerState: PlayerState }): void {
+    this.catInstanceId = data.catInstanceId;
     this.playerState = data.playerState;
     this.page = 0;
     this.activeSlot = 'head';
@@ -45,28 +46,20 @@ export class DressingRoom extends Scene {
     this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
     const { width, height } = this.scale;
 
-    // Modal sizing: leave a margin around the edge so Decorate (running
-    // behind us as a parallel scene) shows through. Tuned to feel like a
-    // popup, not a fullscreen view.
     const modalW = Math.min(width * 0.86, 420);
     const modalH = Math.min(height * 0.78, 620);
     const modalX = (width - modalW) / 2;
     const modalY = (height - modalH) / 2;
     const cx = width / 2;
 
-    // Dim backdrop covers the whole canvas and eats taps so Decorate
-    // underneath doesn't react.
+    // Dim backdrop — eats taps so Decorate underneath doesn't react.
     const scrim = this.add
       .rectangle(0, 0, width, height, 0x000000, 0.55)
       .setOrigin(0, 0)
       .setInteractive();
-    scrim.on('pointerdown', () => {
-      // Tap outside the modal panel closes too.
-      this.exit();
-    });
+    scrim.on('pointerdown', () => this.exit());
 
-    // Modal panel — solid background + accent border. Catches taps so they
-    // don't bubble through to the scrim (which would close).
+    // Modal panel
     const panelBg = this.add
       .rectangle(modalX, modalY, modalW, modalH, 0x1a0a2e, 1)
       .setOrigin(0, 0)
@@ -84,9 +77,11 @@ export class DressingRoom extends Scene {
       },
     );
 
-    // Title across the top of the modal
-    const catEntry = CAT_CATALOG.find((c) => c.id === this.catId);
-    const heroName = catEntry?.name ?? this.catId;
+    // Resolve cat instance + catalog entry.
+    const catInstance = this.playerState.ownedCats.find((cat) => cat.id === this.catInstanceId);
+    const catEntry = catInstance ? CAT_CATALOG.find((c) => c.id === catInstance.breed) : undefined;
+    // Title uses the custom name set by the player.
+    const heroName = catInstance?.name ?? catEntry?.name ?? this.catInstanceId;
     this.add
       .text(cx, modalY + 22, `DRESSING ${heroName.toUpperCase()}`, {
         fontFamily: 'Pixeloid Sans, sans-serif',
@@ -96,7 +91,7 @@ export class DressingRoom extends Scene {
       })
       .setOrigin(0.5);
 
-    // ✕ close button — top-right corner of the modal
+    // ✕ close button
     const closeBg = this.add
       .circle(modalX + modalW - 18, modalY + 18, 12, 0xff5050, 1)
       .setStrokeStyle(2, 0x0b041a, 1)
@@ -122,17 +117,17 @@ export class DressingRoom extends Scene {
       })
       .setOrigin(0.5);
 
-    // Hero shot — match Collection.ts frame pattern, sized to fit the modal
-    const heroFrame =
-      this.catId === 'rainbow' ? 'cat6_idle_00' : `${this.catId}_idle_00`;
+    // Hero sprite — use the breed for the atlas frame.
+    const breed = catInstance?.breed ?? this.catInstanceId;
+    const heroFrame = breed === 'rainbow' ? 'cat6_idle_00' : `${breed}_idle_00`;
     const heroY = modalY + 100;
     const heroScale = Math.min(2.2, modalW / 240);
     this.heroSprite = this.add
       .image(cx, heroY, AssetKeys.Atlas.Cats, heroFrame)
       .setScale(heroScale);
-    this.renderEquippedCosmetic();
+    this.renderEquippedCosmetics();
 
-    // Wearing label — sits between the hero cat and the slot tabs
+    // Wearing label
     this.wearingLabel = this.add
       .text(cx, this.heroSprite.y + 68, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
@@ -146,11 +141,11 @@ export class DressingRoom extends Scene {
     this.slotTabsContainer = this.add.container(0, this.heroSprite.y + 92);
     this.renderSlotTabs();
 
-    // Grid container — filtered by activeSlot
+    // Grid container — filtered by activeSlot, showing AVAILABLE cosmetics only.
     this.gridContainer = this.add.container(0, this.heroSprite.y + 130);
     this.renderGrid();
 
-    // Pagination — pinned to the BOTTOM of the modal, not the canvas
+    // Pagination pinned to the bottom of the modal.
     const paginationY = modalY + modalH - 24;
     this.pageLabel = this.add
       .text(cx, paginationY, '', {
@@ -188,22 +183,23 @@ export class DressingRoom extends Scene {
     return c;
   }
 
-  private renderEquippedCosmetic(): void {
-    // Destroy any existing layered cosmetics first.
+  /** Re-render all hero cosmetic layers from equippedCosmetics. */
+  private renderEquippedCosmetics(): void {
     for (const slot of Object.keys(this.heroCosmetics)) {
       this.heroCosmetics[slot]?.destroy();
     }
     this.heroCosmetics = {};
 
-    const slots = this.playerState.equippedCosmetics[this.catId];
+    const slots = this.playerState.equippedCosmetics[this.catInstanceId];
     if (!slots) return;
 
-    // One sprite per equipped slot, all stacked on the cat with increasing
-    // depth so newer additions render on top.
+    const equippedTypes = this.playerState.equippedCosmeticTypes ?? {};
     let i = 1;
-    for (const [slotKey, cosId] of Object.entries(slots)) {
-      if (!cosId) continue;
-      const cos = COSMETIC_CATALOG.find((c) => c.id === cosId);
+    for (const [slotKey, cosInstanceId] of Object.entries(slots)) {
+      if (!cosInstanceId) continue;
+      // Resolve the catalog type via the sidecar.
+      const cosTypeId = equippedTypes[cosInstanceId] ?? cosInstanceId;
+      const cos = COSMETIC_CATALOG.find((c) => c.id === cosTypeId);
       if (!cos) continue;
       const renderId = parentIdFor(cos) ?? cos.id;
       const frame = `cosmetic_${renderId}_idle_00`;
@@ -213,17 +209,18 @@ export class DressingRoom extends Scene {
         .setOrigin(this.heroSprite.originX, this.heroSprite.originY)
         .setDepth(this.heroSprite.depth + i++);
       if (cos.tint) {
-        const colorInt = parseInt(cos.tint.replace('#', ''), 16);
-        sprite.setTint(colorInt);
+        sprite.setTint(parseInt(cos.tint.replace('#', ''), 16));
       }
       this.heroCosmetics[slotKey] = sprite;
     }
   }
 
   private updateWearingLabel(): void {
-    const slots = this.playerState.equippedCosmetics[this.catId] ?? {};
-    const cosId = slots[this.activeSlot];
-    const cos = cosId ? COSMETIC_CATALOG.find((c) => c.id === cosId) : null;
+    const slots = this.playerState.equippedCosmetics[this.catInstanceId] ?? {};
+    const cosInstanceId = slots[this.activeSlot];
+    const equippedTypes = this.playerState.equippedCosmeticTypes ?? {};
+    const cosTypeId = cosInstanceId ? (equippedTypes[cosInstanceId] ?? cosInstanceId) : undefined;
+    const cos = cosTypeId ? COSMETIC_CATALOG.find((c) => c.id === cosTypeId) : null;
     this.wearingLabel.setText(
       `${this.activeSlot.toUpperCase()}: ${cos?.name ?? 'empty'}`,
     );
@@ -238,10 +235,11 @@ export class DressingRoom extends Scene {
     const gap = 6;
     const totalW = SLOT_TABS.length * tabW + (SLOT_TABS.length - 1) * gap;
     const startX = (width - totalW) / 2;
+    const equippedSlots = this.playerState.equippedCosmetics[this.catInstanceId] ?? {};
     SLOT_TABS.forEach((tab, i) => {
       const x = startX + i * (tabW + gap);
       const isActive = this.activeSlot === tab.key;
-      const equipped = this.playerState.equippedCosmetics[this.catId]?.[tab.key];
+      const equipped = equippedSlots[tab.key];
       const bg = this.add
         .rectangle(x, 0, tabW, tabH, isActive ? 0x2c1856 : 0x0b041a, isActive ? 1 : 0.6)
         .setOrigin(0, 0)
@@ -270,10 +268,10 @@ export class DressingRoom extends Scene {
   private renderGrid(): void {
     this.gridContainer.removeAll(true);
 
-    // Filter owned cosmetics to those that fit the active slot. Each catalog
-    // entry has a `slot` field — entries without one are treated as 'head'.
-    const ownedInSlot = this.playerState.ownedCosmetics.filter((cosId) => {
-      const cos = COSMETIC_CATALOG.find((c) => c.id === cosId);
+    // The grid shows cosmetics currently IN ownedCosmetics (not equipped anywhere).
+    // Equipped cosmetics are removed from ownedCosmetics, so they don't appear here.
+    const ownedInSlot: OwnedCosmetic[] = this.playerState.ownedCosmetics.filter((cosItem) => {
+      const cos = COSMETIC_CATALOG.find((c) => c.id === cosItem.type);
       const slot = cos?.slot ?? 'head';
       return slot === this.activeSlot;
     });
@@ -284,10 +282,13 @@ export class DressingRoom extends Scene {
     const gap = 8;
     const cols = 5;
     const gridStartX = (this.scale.width - (cellSize * cols + gap * (cols - 1))) / 2;
-    const equippedInSlot = this.playerState.equippedCosmetics[this.catId]?.[this.activeSlot];
 
-    slice.forEach((cosId, i) => {
-      const cos = COSMETIC_CATALOG.find((c) => c.id === cosId);
+    // The currently-equipped cosmetic in this slot (instance id).
+    const equippedSlots = this.playerState.equippedCosmetics[this.catInstanceId] ?? {};
+    const equippedInstanceId = equippedSlots[this.activeSlot];
+
+    slice.forEach((cosItem, i) => {
+      const cos = COSMETIC_CATALOG.find((c) => c.id === cosItem.type);
       if (!cos) return;
       const renderId = parentIdFor(cos) ?? cos.id;
       const frame = `cosmetic_${renderId}_idle_00`;
@@ -295,7 +296,8 @@ export class DressingRoom extends Scene {
       const row = Math.floor(i / cols);
       const x = gridStartX + col * (cellSize + gap) + cellSize / 2;
       const y = row * (cellSize + gap) + cellSize / 2;
-      const isEquipped = equippedInSlot === cosId;
+      // isEquipped shouldn't happen (equipped are removed from ownedCosmetics) but guard anyway.
+      const isEquipped = equippedInstanceId === cosItem.id;
       const bg = this.add
         .rectangle(x, y, cellSize, cellSize, 0x0b041a, 0.6)
         .setStrokeStyle(2, isEquipped ? 0xffd34d : 0xc0a0e6, isEquipped ? 1 : 0.3)
@@ -304,21 +306,20 @@ export class DressingRoom extends Scene {
         .sprite(x, y, AssetKeys.Atlas.Cosmetics, frame)
         .setScale(0.7);
       if (cos.tint) {
-        const colorInt = parseInt(cos.tint.replace('#', ''), 16);
-        sprite.setTint(colorInt);
+        sprite.setTint(parseInt(cos.tint.replace('#', ''), 16));
       }
       this.gridContainer.add([bg, sprite]);
-      bg.on('pointerdown', () => this.equipInSlot(cosId));
+      bg.on('pointerdown', () => this.equipInSlot(cosItem));
     });
 
-    // ✕ "clear slot" tile at the end of the slice
+    // ✕ "clear slot" tile
     const noneIdx = slice.length;
     const col = noneIdx % cols;
     const row = Math.floor(noneIdx / cols);
     if (row < 4) {
       const x = gridStartX + col * (cellSize + gap) + cellSize / 2;
       const y = row * (cellSize + gap) + cellSize / 2;
-      const isNone = !equippedInSlot;
+      const isNone = !equippedInstanceId;
       const bg = this.add
         .rectangle(x, y, cellSize, cellSize, 0xff5050, isNone ? 0.4 : 0.15)
         .setStrokeStyle(2, 0xff5050, isNone ? 1 : 0.5)
@@ -336,47 +337,81 @@ export class DressingRoom extends Scene {
     }
   }
 
-  /** Equip / clear a cosmetic in the currently-active slot. */
-  private async equipInSlot(cosId: string | null): Promise<void> {
+  /**
+   * Equip / clear a cosmetic in the currently-active slot.
+   * `cosItem` is an OwnedCosmetic instance, or null to clear.
+   */
+  private async equipInSlot(cosItem: OwnedCosmetic | null): Promise<void> {
     const slot = this.activeSlot;
-    if (!this.playerState.equippedCosmetics[this.catId]) {
-      this.playerState.equippedCosmetics[this.catId] = {};
-    }
-    const slots = this.playerState.equippedCosmetics[this.catId]!;
-    const previous = slots[slot];
 
-    // Optimistic mutation
-    if (cosId === null) {
+    // Ensure structures exist.
+    if (!this.playerState.equippedCosmetics[this.catInstanceId]) {
+      this.playerState.equippedCosmetics[this.catInstanceId] = {};
+    }
+    if (!this.playerState.equippedCosmeticTypes) {
+      this.playerState.equippedCosmeticTypes = {};
+    }
+    const slots = this.playerState.equippedCosmetics[this.catInstanceId]!;
+    const equippedTypes = this.playerState.equippedCosmeticTypes;
+
+    // Snapshot previous state for rollback.
+    const previousInstanceId = slots[slot];
+    const snapshotOwnedCosmetics = [...this.playerState.ownedCosmetics];
+    const snapshotEquippedTypes = { ...equippedTypes };
+
+    // Optimistic mutation — mirrors server logic.
+    if (previousInstanceId) {
+      // Restore previous cosmetic to inventory.
+      const prevType = equippedTypes[previousInstanceId];
+      if (prevType) {
+        this.playerState.ownedCosmetics.push({ id: previousInstanceId, type: prevType });
+        delete equippedTypes[previousInstanceId];
+      }
+    }
+
+    if (cosItem === null) {
       delete slots[slot];
     } else {
-      slots[slot] = cosId;
+      // Pop the new cosmetic from inventory.
+      const idx = this.playerState.ownedCosmetics.findIndex((c) => c.id === cosItem.id);
+      if (idx !== -1) this.playerState.ownedCosmetics.splice(idx, 1);
+      equippedTypes[cosItem.id] = cosItem.type;
+      slots[slot] = cosItem.id;
     }
+
     if (Object.keys(slots).length === 0) {
-      delete this.playerState.equippedCosmetics[this.catId];
+      delete this.playerState.equippedCosmetics[this.catInstanceId];
     }
-    this.renderEquippedCosmetic();
+
+    this.renderEquippedCosmetics();
     this.updateWearingLabel();
     this.renderSlotTabs();
     this.renderGrid();
 
-    // Server sync
+    // Server sync.
     try {
-      const result = await equipCosmetic(this.catId, slot, cosId);
+      const result = await equipCosmetic(
+        this.catInstanceId,
+        slot,
+        cosItem?.id ?? null,
+      );
       if (!result.ok) {
-        // Revert
-        const slotsAfterRevert =
-          this.playerState.equippedCosmetics[this.catId] ?? {};
-        if (previous === undefined) {
-          delete slotsAfterRevert[slot];
-        } else {
-          slotsAfterRevert[slot] = previous;
+        // Revert.
+        this.playerState.ownedCosmetics = snapshotOwnedCosmetics;
+        this.playerState.equippedCosmeticTypes = snapshotEquippedTypes;
+        if (!this.playerState.equippedCosmetics[this.catInstanceId]) {
+          this.playerState.equippedCosmetics[this.catInstanceId] = {};
         }
-        if (Object.keys(slotsAfterRevert).length === 0) {
-          delete this.playerState.equippedCosmetics[this.catId];
+        const revertSlots = this.playerState.equippedCosmetics[this.catInstanceId]!;
+        if (previousInstanceId === undefined) {
+          delete revertSlots[slot];
         } else {
-          this.playerState.equippedCosmetics[this.catId] = slotsAfterRevert;
+          revertSlots[slot] = previousInstanceId;
         }
-        this.renderEquippedCosmetic();
+        if (Object.keys(revertSlots).length === 0) {
+          delete this.playerState.equippedCosmetics[this.catInstanceId];
+        }
+        this.renderEquippedCosmetics();
         this.updateWearingLabel();
         this.renderSlotTabs();
         this.renderGrid();
@@ -389,8 +424,8 @@ export class DressingRoom extends Scene {
   }
 
   private countOwnedInSlot(): number {
-    return this.playerState.ownedCosmetics.filter((cosId) => {
-      const cos = COSMETIC_CATALOG.find((c) => c.id === cosId);
+    return this.playerState.ownedCosmetics.filter((cosItem) => {
+      const cos = COSMETIC_CATALOG.find((c) => c.id === cosItem.type);
       const slot = cos?.slot ?? 'head';
       return slot === this.activeSlot;
     }).length;
@@ -417,11 +452,6 @@ export class DressingRoom extends Scene {
   }
 
   private exit(): void {
-    // DressingRoom runs as a parallel scene over Decorate (via scene.launch).
-    // On close, emit an event on Decorate's bus so it can repaint the cat
-    // stage with the freshly equipped cosmetics, then stop this scene.
-    // playerState is the same shared reference, so Decorate already sees
-    // the latest equippedCosmetics.
     const decorate = this.scene.get(SceneKeys.Decorate);
     if (decorate) decorate.events.emit('dressingroom:closed');
     this.scene.stop();

@@ -25,16 +25,27 @@ function seqRng(values: number[]): () => number {
 }
 
 describe('box-pull', () => {
-  it('catBox returns a cat ID at one of the configured rarities', () => {
+  it('catBox returns a cat breed at one of the configured rarities', () => {
     const result = pullBox('catBox', emptyState(), seqRng([0.0, 0.0]));
     expect(result.kind).toBe('cat');
     expect(CAT_CATALOG.map((c) => c.id)).toContain(result.itemId);
+  });
+
+  it('catBox returns an instanceId for the new cat', () => {
+    const result = pullBox('catBox', emptyState(), seqRng([0.0, 0.0]));
+    expect(typeof result.instanceId).toBe('string');
+    expect(result.instanceId!.length).toBeGreaterThan(0);
   });
 
   it('cosmeticBox returns a cosmetic ID', () => {
     const result = pullBox('cosmeticBox', emptyState(), seqRng([0.0, 0.0]));
     expect(result.kind).toBe('cosmetic');
     expect(COSMETIC_CATALOG.map((c) => c.id)).toContain(result.itemId);
+  });
+
+  it('cosmeticBox returns an instanceId for the new cosmetic', () => {
+    const result = pullBox('cosmeticBox', emptyState(), seqRng([0.0, 0.0]));
+    expect(typeof result.instanceId).toBe('string');
   });
 
   it('catBox NEVER drops a legendary cat over many pulls', () => {
@@ -47,21 +58,26 @@ describe('box-pull', () => {
     expect(legendaryCount).toBe(0);
   });
 
-  it('a duplicate cat pull is flagged with a DUPLICATE_REFUND refund', () => {
+  it('cat pulls are never duplicates — every pull is a fresh instance', () => {
     const state = emptyState();
-    state.ownedCats = ['cat1', 'cat2', 'cat3'];
-    // Force the common-tier branch with rng=0; pick is cat1 (first in pool).
+    // Add several cat instances of the same breed.
+    state.ownedCats = [
+      { id: 'i1', breed: 'cat1', name: 'Mochi' },
+      { id: 'i2', breed: 'cat1', name: 'Mochi 2' },
+    ];
     const result = pullBox('catBox', state, seqRng([0.0, 0.0]));
-    expect(result.duplicate).toBe(true);
-    expect(result.refundCoins).toBe(DUPLICATE_REFUND);
+    // Cats are never marked duplicate regardless of breed ownership.
+    expect(result.duplicate).toBe(false);
+    expect(result.refundCoins).toBe(0);
+    expect(typeof result.instanceId).toBe('string');
   });
 
-  it('a duplicate cosmetic pull is flagged with a refund too', () => {
+  it('cosmetic pulls are never duplicates — every pull is a fresh instance', () => {
     const state = emptyState();
-    state.ownedCosmetics = ['c1'];
+    state.ownedCosmetics = [{ id: 'ci1', type: 'c1' }];
     const result = pullBox('cosmeticBox', state, seqRng([0.0, 0.0]));
-    expect(result.duplicate).toBe(true);
-    expect(result.refundCoins).toBe(DUPLICATE_REFUND);
+    expect(result.duplicate).toBe(false);
+    expect(result.refundCoins).toBe(0);
   });
 
   it('a non-duplicate pull has 0 refund', () => {
@@ -70,7 +86,7 @@ describe('box-pull', () => {
     expect(result.refundCoins).toBe(0);
   });
 
-  it('applyPullToState adds new cats / cosmetics to the owned list', () => {
+  it('applyPullToState adds a new OwnedCat instance to ownedCats', () => {
     const state = emptyState();
     applyPullToState(state, {
       kind: 'cat',
@@ -78,23 +94,56 @@ describe('box-pull', () => {
       rarity: 'uncommon',
       duplicate: false,
       refundCoins: 0,
+      instanceId: 'test-instance-1',
     });
-    expect(state.ownedCats).toContain('cat4');
+    expect(state.ownedCats).toHaveLength(1);
+    expect(state.ownedCats[0]!.id).toBe('test-instance-1');
+    expect(state.ownedCats[0]!.breed).toBe('cat4');
+    expect(typeof state.ownedCats[0]!.name).toBe('string');
   });
 
-  it('applyPullToState refunds duplicate coins instead of adding the item', () => {
+  it('applyPullToState allows multiple instances of the same breed', () => {
     const state = emptyState();
-    state.ownedCats = ['cat1'];
-    const startCoins = state.coins;
+    for (let i = 0; i < 3; i++) {
+      applyPullToState(state, {
+        kind: 'cat',
+        itemId: 'cat1',
+        rarity: 'common',
+        duplicate: false,
+        refundCoins: 0,
+        instanceId: `inst-${i}`,
+      });
+    }
+    expect(state.ownedCats).toHaveLength(3);
+    expect(state.ownedCats.every((c) => c.breed === 'cat1')).toBe(true);
+    // All instance ids are different.
+    const ids = state.ownedCats.map((c) => c.id);
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it('applyPullToState adds a new OwnedCosmetic instance', () => {
+    const state = emptyState();
     applyPullToState(state, {
-      kind: 'cat',
-      itemId: 'cat1',
+      kind: 'cosmetic',
+      itemId: 'c5',
       rarity: 'common',
-      duplicate: true,
-      refundCoins: DUPLICATE_REFUND,
+      duplicate: false,
+      refundCoins: 0,
+      instanceId: 'cos-inst-1',
     });
-    expect(state.coins).toBe(startCoins + DUPLICATE_REFUND);
-    expect(state.ownedCats).toEqual(['cat1']); // unchanged
+    expect(state.ownedCosmetics).toHaveLength(1);
+    expect(state.ownedCosmetics[0]!.id).toBe('cos-inst-1');
+    expect(state.ownedCosmetics[0]!.type).toBe('c5');
+  });
+
+  it('catBox distribution covers all breeds over many pulls', () => {
+    const seenBreeds = new Set<string>();
+    for (let i = 0; i < 3000; i++) {
+      const r = pullBox('catBox', emptyState(), Math.random);
+      seenBreeds.add(r.itemId as string);
+    }
+    // Should see multiple distinct breeds.
+    expect(seenBreeds.size).toBeGreaterThan(1);
   });
 });
 

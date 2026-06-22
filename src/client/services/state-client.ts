@@ -1,9 +1,7 @@
 import type {
   BackgroundId,
   BoxId,
-  CatBreed,
   Chart,
-  CosmeticId,
   PlayerState,
   Rarity,
   SeatId,
@@ -12,10 +10,12 @@ import type {
 
 export interface PullResult {
   kind: 'cat' | 'cosmetic' | 'background';
-  itemId: CatBreed | CosmeticId | BackgroundId;
+  itemId: string;
   rarity: Rarity;
   duplicate: boolean;
   refundCoins: number;
+  /** Present for cat + cosmetic pulls — the new instance id. */
+  instanceId?: string;
 }
 
 export type BoxOpenResult =
@@ -56,15 +56,19 @@ export async function syncCoins(
   return data.state;
 }
 
+/**
+ * Equip a cosmetic instance on a cat instance.
+ * Pass cosmeticInstanceId=null to clear the slot (cosmetic returns to inventory).
+ */
 export async function equipCosmetic(
-  breed: CatBreed,
+  catInstanceId: string,
   slot: string,
-  cosmeticId: CosmeticId | null,
+  cosmeticInstanceId: string | null,
 ): Promise<EquipResult> {
   const r = await fetch('/api/cosmetic/equip', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ breed, slot, cosmeticId }),
+    body: JSON.stringify({ catInstanceId, slot, cosmeticInstanceId }),
   });
   return (await r.json()) as EquipResult;
 }
@@ -87,35 +91,50 @@ export async function setTheme(themeId: ThemeId): Promise<PlayerState> {
   return data.state;
 }
 
-export async function setSeat(seatId: SeatId, catId: CatBreed | null): Promise<PlayerState> {
+/** Seat a cat instance at a seat. Pass catInstanceId=null to unseat. */
+export async function setSeat(seatId: SeatId, catInstanceId: string | null): Promise<PlayerState> {
   const r = await fetch('/api/house/seat', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ seatId, catId }),
+    body: JSON.stringify({ seatId, catInstanceId }),
   });
   if (!r.ok) throw new Error(`setSeat ${r.status}`);
   const data = (await r.json()) as { state: PlayerState };
   return data.state;
 }
 
-export async function sellItem(kind: 'cosmetic', id: string): Promise<PlayerState> {
+/** Sell a cosmetic instance from inventory. */
+export async function sellItem(kind: 'cosmetic', cosmeticInstanceId: string): Promise<PlayerState> {
   const r = await fetch('/api/inventory/sell', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ kind, id }),
+    body: JSON.stringify({ kind, cosmeticInstanceId }),
   });
   if (!r.ok) throw new Error(`sellItem ${r.status}`);
   const data = (await r.json()) as { state: PlayerState };
   return data.state;
 }
 
-export async function rehomeCat(catId: CatBreed): Promise<PlayerState> {
+/** Remove a cat instance from the player's ownership. */
+export async function rehomeCat(catInstanceId: string): Promise<PlayerState> {
   const r = await fetch('/api/cats/rehome', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ catId }),
+    body: JSON.stringify({ catInstanceId }),
   });
   if (!r.ok) throw new Error(`rehomeCat ${r.status}`);
+  const data = (await r.json()) as { state: PlayerState };
+  return data.state;
+}
+
+/** Rename a cat instance. */
+export async function renameCat(catInstanceId: string, name: string): Promise<PlayerState> {
+  const r = await fetch('/api/cats/rename', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ catInstanceId, name }),
+  });
+  if (!r.ok) throw new Error(`renameCat ${r.status}`);
   const data = (await r.json()) as { state: PlayerState };
   return data.state;
 }

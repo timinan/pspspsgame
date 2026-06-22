@@ -18,6 +18,34 @@ import { BACKGROUND_CATALOG } from './themes-catalog.generated';
 export type CatBreed = string;
 export type CosmeticId = string;
 
+// -- Per-instance ownership types ---------------------------------------
+
+/** A single owned cat — one pull from the cat box creates one instance. */
+export interface OwnedCat {
+  /** Unique instance id generated at pull time. */
+  id: string;
+  /** Catalog breed reference. */
+  breed: CatBreed;
+  /** Custom name set by the player on box reveal. Defaults to the catalog breed name. */
+  name: string;
+}
+
+/** A single owned cosmetic item — one pull creates one instance. Duplicates allowed. */
+export interface OwnedCosmetic {
+  /** Unique instance id generated at pull time. */
+  id: string;
+  /** Catalog cosmetic id. */
+  type: CosmeticId;
+}
+
+/**
+ * Generate a short unique id for a new cat/cosmetic instance.
+ * Combines Math.random (base-36) + Date.now (base-36) for practical uniqueness.
+ */
+export function makeInstanceId(): string {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
 export type BoxId = 'catBox' | 'cosmeticBox' | 'backgroundBox';
@@ -183,26 +211,31 @@ export interface PlayerState {
   /** Reddit username — the key under which this lives in Redis. */
   username: string;
   coins: number;
-  ownedCats: CatBreed[];
-  ownedCosmetics: CosmeticId[];
+  /** Each entry is a unique instance of an owned cat. Duplicates allowed. */
+  ownedCats: OwnedCat[];
+  /** Each entry is a unique instance of an owned cosmetic. Duplicates allowed. */
+  ownedCosmetics: OwnedCosmetic[];
   /**
-   * Per-cat equipped cosmetics keyed by slot ('head' / 'neck' / 'body' / etc).
-   * A cat wears at most one cosmetic per slot, so a cat can wear a hat AND a
-   * scarf AND a sweater simultaneously. Slot strings come from
-   * COSMETIC_CATALOG[cosId].slot — unknown slots default to 'misc'.
-   *
-   * Stored as Partial<Record<CatBreed, Partial<Record<Slot, CosmeticId>>>>.
+   * Per-cat-instance equipped cosmetics.
+   * Outer key = cat instance id. Inner key = slot name. Value = cosmetic instance id.
+   * Equipping moves the cosmetic OUT of ownedCosmetics; unequipping puts it back.
    */
-  equippedCosmetics: Partial<Record<CatBreed, Partial<Record<string, CosmeticId>>>>;
+  equippedCosmetics: Partial<Record<string, Partial<Record<string, string>>>>;
+  /**
+   * Lookup from cosmetic instance id → catalog cosmetic type (CosmeticId).
+   * Needed because equipped cosmetics are removed from ownedCosmetics, so we
+   * can't look up their type from there. Updated whenever a cosmetic is equipped
+   * or unequipped.
+   */
+  equippedCosmeticTypes: Record<string, CosmeticId>;
   bestScore: number;
   /** True after the player has completed the Welcome scene. */
   onboardingDone: boolean;
   /** Unix-ms of last write. */
   updatedAt: number;
   house: PlayerHouseState;
-  /** Map of seat id → seated cat breed. Empty entries mean unseated.
-   *  Players explicitly choose who sits where; no auto-seating fallback. */
-  seatedCats: Partial<Record<SeatId, CatBreed>>;
+  /** Map of seat id → cat instance id (NOT breed). */
+  seatedCats: Partial<Record<SeatId, string>>;
   /** The player's current rhythm chart. */
   chart: Chart;
   /** Background ids the player owns. Always includes 'default'. */
@@ -222,6 +255,7 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
     ownedCats: [],
     ownedCosmetics: [],
     equippedCosmetics: {},
+    equippedCosmeticTypes: {},
     bestScore: 0,
     onboardingDone: false,
     updatedAt: Date.now(),
@@ -235,3 +269,4 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
     activeBackground: 'default',
   };
 }
+

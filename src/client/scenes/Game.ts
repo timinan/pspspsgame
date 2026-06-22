@@ -11,7 +11,7 @@ import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
 import { fetchState, loadChart } from '@/services/state-client';
 import { CAT_CATALOG, emptyChart } from '@/../shared/state';
-import type { PlayerState, LaneId, Chart, CatBreed, SeatId } from '@/../shared/state';
+import type { PlayerState, LaneId, Chart, SeatId } from '@/../shared/state';
 import type { CatModel } from '@/types/game';
 
 /**
@@ -147,21 +147,21 @@ export class Game extends Scene {
   private seatCats(): void {
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
-    // Cat anchor: bottom-center of sprite, placed in the lower half of the
-    // cat stage so the cat body sits above the lane top.
     const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.88) * scaleY;
 
     const seatedCats = this.playerState?.seatedCats ?? {};
-    // Collect seated cats in a deterministic left-to-right seat order, capped at 3.
+    // seatedCats maps seatId → cat instance id.
     const SEAT_ORDER: SeatId[] = ['seat-left', 'seat-center', 'seat-right'];
-    const catIds = SEAT_ORDER
+    const seatedInstanceIds = SEAT_ORDER
       .map((seatId) => seatedCats[seatId])
-      .filter((id): id is CatBreed => Boolean(id))
+      .filter((id): id is string => Boolean(id))
       .slice(0, 3);
 
-    for (let i = 0; i < catIds.length; i++) {
-      const catId = catIds[i]!;
-      const catEntry = CAT_CATALOG.find((c) => c.id === catId);
+    for (let i = 0; i < seatedInstanceIds.length; i++) {
+      const instanceId = seatedInstanceIds[i]!;
+      const catInstance = this.playerState?.ownedCats.find((cat) => cat.id === instanceId);
+      if (!catInstance) continue;
+      const catEntry = CAT_CATALOG.find((c) => c.id === catInstance.breed);
       if (!catEntry) continue;
 
       const laneIndex = i as 0 | 1 | 2;
@@ -169,14 +169,14 @@ export class Game extends Scene {
 
       const model: CatModel = {
         id: `lane-cat-${i}`,
-        breed: catId,
+        breed: catInstance.breed,
         animation: 'idle',
         restingAnimation: 'idle',
         x: cx,
         y: catY,
       };
-      // Equip cosmetic if the player has one for this cat.
-      const slots = this.playerState?.equippedCosmetics?.[catId];
+      // equippedCosmetics is keyed by cat instance id.
+      const slots = this.playerState?.equippedCosmetics?.[instanceId];
       if (slots && Object.keys(slots).length > 0) {
         model.equippedCosmetics = { ...slots };
       }

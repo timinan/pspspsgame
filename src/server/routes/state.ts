@@ -7,10 +7,9 @@ import {
   BOX_CATALOG,
   type BackgroundId,
   type BoxId,
-  type CatBreed,
-  type CosmeticId,
   type ThemeId,
   type SeatId,
+  type CosmeticId,
 } from '../../shared/state';
 
 // DEV ONLY — every GET /api/state wipes the player's record and hands
@@ -74,37 +73,71 @@ state.post('/coins/sync', async (c) => {
 });
 
 /**
- * POST /api/cosmetic/equip — body: { breed, slot, cosmeticId | null }.
- * Equips a cosmetic into one slot on one cat. Pass cosmeticId=null to clear
- * that slot. Each cat can wear one cosmetic per slot simultaneously.
+ * POST /api/cosmetic/equip
+ * Body: { catInstanceId, slot, cosmeticInstanceId | null }
+ *
+ * Equips a cosmetic instance into a slot on a cat.
+ * - The cosmetic instance is popped from ownedCosmetics.
+ * - Whatever was previously in the slot is pushed BACK into ownedCosmetics.
+ * - Pass cosmeticInstanceId=null to clear the slot (restores previous to inventory).
+ *
+ * equippedCosmeticTypes is maintained so we can restore the catalog type when a
+ * cosmetic is displaced or the player rehomes the cat.
  */
 state.post('/cosmetic/equip', async (c) => {
-  const { breed, slot, cosmeticId } = (await c.req.json()) as {
-    breed: CatBreed;
+  const { catInstanceId, slot, cosmeticInstanceId } = (await c.req.json()) as {
+    catInstanceId: string;
     slot: string;
-    cosmeticId: CosmeticId | null;
+    cosmeticInstanceId: string | null;
   };
   if (!slot || typeof slot !== 'string') {
     return c.json({ ok: false, reason: 'missing_slot' }, 400);
   }
   const username = await currentUsername();
   const player = await loadOrInit(redis, username);
-  if (!player.ownedCats.includes(breed)) {
+
+  // Ensure equippedCosmeticTypes exists (backfill for older state).
+  if (!player.equippedCosmeticTypes) player.equippedCosmeticTypes = {};
+
+  const catInstance = player.ownedCats.find((cat) => cat.id === catInstanceId);
+  if (!catInstance) {
     return c.json({ ok: false, reason: 'cat_not_owned' }, 400);
   }
-  if (cosmeticId !== null && !player.ownedCosmetics.includes(cosmeticId)) {
-    return c.json({ ok: false, reason: 'cosmetic_not_owned' }, 400);
+
+  const slots = player.equippedCosmetics[catInstanceId] ?? {};
+
+  // Restore whatever was previously in this slot to the player's inventory.
+  const previousCosmeticInstanceId = slots[slot];
+  if (previousCosmeticInstanceId) {
+    const prevType = player.equippedCosmeticTypes[previousCosmeticInstanceId] as CosmeticId | undefined;
+    player.ownedCosmetics.push({
+      id: previousCosmeticInstanceId,
+      type: prevType ?? previousCosmeticInstanceId as CosmeticId,
+    });
+    delete player.equippedCosmeticTypes[previousCosmeticInstanceId];
   }
-  const slots = player.equippedCosmetics[breed] ?? {};
-  if (cosmeticId === null) {
+
+  if (cosmeticInstanceId === null) {
+    // Clear slot — previous item already returned above.
     delete slots[slot];
   } else {
-    slots[slot] = cosmeticId;
+    // Verify the cosmetic instance is in ownedCosmetics.
+    const cosmeticIndex = player.ownedCosmetics.findIndex((cos) => cos.id === cosmeticInstanceId);
+    if (cosmeticIndex === -1) {
+      // Roll back the previous re-insertion.
+      if (previousCosmeticInstanceId) player.ownedCosmetics.pop();
+      return c.json({ ok: false, reason: 'cosmetic_not_owned' }, 400);
+    }
+    const [cosmeticInstance] = player.ownedCosmetics.splice(cosmeticIndex, 1);
+    // Track the type so we can restore it later.
+    player.equippedCosmeticTypes[cosmeticInstanceId] = cosmeticInstance!.type;
+    slots[slot] = cosmeticInstanceId;
   }
+
   if (Object.keys(slots).length === 0) {
-    delete player.equippedCosmetics[breed];
+    delete player.equippedCosmetics[catInstanceId];
   } else {
-    player.equippedCosmetics[breed] = slots;
+    player.equippedCosmetics[catInstanceId] = slots;
   }
   await save(redis, player);
   return c.json({ ok: true, state: player });
@@ -132,46 +165,42 @@ state.post('/house/theme', async (c) => {
   return c.json({ ok: true, state: player });
 });
 
-/** POST /api/house/seat — body: { seatId, catId | null }.
- * Pass null catId to unseat the cat. */
+/** POST /api/house/seat — body: { seatId, catInstanceId | null }.
+ * Pass null catInstanceId to unseat. */
 state.post('/house/seat', async (c) => {
-  const { seatId, catId } = (await c.req.json()) as { seatId: SeatId; catId: CatBreed | null };
+  const { seatId, catInstanceId } = (await c.req.json()) as {
+    seatId: SeatId;
+    catInstanceId: string | null;
+  };
   const username = await currentUsername();
   const player = await loadOrInit(redis, username);
-  if (catId === null) {
+  if (catInstanceId === null) {
     delete player.seatedCats[seatId];
   } else {
-    if (!player.ownedCats.includes(catId)) {
+    const catInstance = player.ownedCats.find((cat) => cat.id === catInstanceId);
+    if (!catInstance) {
       return c.json({ ok: false, reason: 'cat_not_owned' }, 400);
     }
-    player.seatedCats[seatId] = catId;
+    player.seatedCats[seatId] = catInstanceId;
   }
   await save(redis, player);
   return c.json({ ok: true, state: player });
 });
 
-// POST /inventory/sell — { kind, id }
+/** POST /inventory/sell — { kind: 'cosmetic', cosmeticInstanceId } */
 state.post('/inventory/sell', async (c) => {
-  const { id } = await c.req.json() as {
+  const { cosmeticInstanceId } = await c.req.json() as {
     kind: 'cosmetic';
-    id: CosmeticId;
+    cosmeticInstanceId: string;
   };
   const player = await loadOrInit(redis, await currentUsername());
 
-  if (!player.ownedCosmetics.includes(id as CosmeticId)) {
+  const cosmeticIndex = player.ownedCosmetics.findIndex((cos) => cos.id === cosmeticInstanceId);
+  if (cosmeticIndex === -1) {
     return c.json({ ok: false, reason: 'cosmetic_not_owned' }, 400);
   }
-  // Unequip from any cat — search every slot on every cat for matches.
-  for (const [catId, slots] of Object.entries(player.equippedCosmetics)) {
-    if (!slots) continue;
-    for (const slotKey of Object.keys(slots)) {
-      if (slots[slotKey] === id) delete slots[slotKey];
-    }
-    if (Object.keys(slots).length === 0) {
-      delete player.equippedCosmetics[catId];
-    }
-  }
-  player.ownedCosmetics = player.ownedCosmetics.filter((c2) => c2 !== id);
+
+  player.ownedCosmetics.splice(cosmeticIndex, 1);
 
   const SELL_PRICE = 25;
   player.coins += SELL_PRICE;
@@ -197,28 +226,52 @@ state.post('/background/set', async (c) => {
   return c.json({ state: player });
 });
 
-// POST /cats/rehome — { catId }
+/** POST /cats/rehome — { catInstanceId } */
 state.post('/cats/rehome', async (c) => {
-  const { catId } = await c.req.json() as { catId: CatBreed };
+  const { catInstanceId } = await c.req.json() as { catInstanceId: string };
   const player = await loadOrInit(redis, await currentUsername());
 
-  if (!player.ownedCats.includes(catId)) {
+  if (!player.equippedCosmeticTypes) player.equippedCosmeticTypes = {};
+
+  const catIndex = player.ownedCats.findIndex((cat) => cat.id === catInstanceId);
+  if (catIndex === -1) {
     return c.json({ ok: false, reason: 'cat_not_owned' }, 400);
   }
 
-  // Unseat if seated
-  for (const [seatId, sCatId] of Object.entries(player.seatedCats)) {
-    if (sCatId === catId) delete player.seatedCats[seatId];
+  // Unseat if seated.
+  for (const [seatId, seatedInstanceId] of Object.entries(player.seatedCats)) {
+    if (seatedInstanceId === catInstanceId) delete player.seatedCats[seatId];
   }
 
-  // Unequip cosmetic from this cat (cosmetic stays in player's inventory)
-  delete player.equippedCosmetics[catId];
+  // Return any equipped cosmetics to inventory.
+  const equippedSlots = player.equippedCosmetics[catInstanceId];
+  if (equippedSlots) {
+    for (const cosInstanceId of Object.values(equippedSlots)) {
+      if (!cosInstanceId) continue;
+      const cosType = player.equippedCosmeticTypes[cosInstanceId] as CosmeticId | undefined;
+      player.ownedCosmetics.push({
+        id: cosInstanceId,
+        type: cosType ?? cosInstanceId as CosmeticId,
+      });
+      delete player.equippedCosmeticTypes[cosInstanceId];
+    }
+    delete player.equippedCosmetics[catInstanceId];
+  }
 
-  // Remove cat
-  player.ownedCats = player.ownedCats.filter((c2) => c2 !== catId);
+  player.ownedCats.splice(catIndex, 1);
 
-  // No coin refund — rehome is destructive
+  await save(redis, player);
+  return c.json({ ok: true, state: player });
+});
 
+/** POST /api/cats/rename — body: { catInstanceId, name }. */
+state.post('/cats/rename', async (c) => {
+  const { catInstanceId, name } = await c.req.json() as { catInstanceId: string; name: string };
+  const username = await currentUsername();
+  const player = await loadOrInit(redis, username);
+  const cat = player.ownedCats.find((x) => x.id === catInstanceId);
+  if (!cat) return c.json({ ok: false, reason: 'not_owned' }, 400);
+  cat.name = String(name).slice(0, 20).trim() || cat.name;
   await save(redis, player);
   return c.json({ ok: true, state: player });
 });

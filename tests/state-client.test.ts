@@ -9,6 +9,7 @@ import {
   setSeat,
   sellItem,
   rehomeCat,
+  renameCat,
   saveChart,
   loadChart,
 } from '@/services/state-client';
@@ -19,9 +20,10 @@ function makeState(): Partial<PlayerState> {
   return {
     username: 'alice',
     coins: 100,
-    ownedCats: ['cat1'],
+    ownedCats: [{ id: 'inst-1', breed: 'cat1', name: 'Mochi' }],
     ownedCosmetics: [],
     equippedCosmetics: {},
+    equippedCosmeticTypes: {},
     bestScore: 0,
     onboardingDone: false,
     updatedAt: 1,
@@ -50,10 +52,11 @@ describe('state-client', () => {
     const state = makeState();
     const pull = {
       kind: 'cat' as const,
-      itemId: 'cat4' as const,
+      itemId: 'cat4',
       rarity: 'uncommon' as const,
       duplicate: false,
       refundCoins: 0,
+      instanceId: 'new-inst-abc',
     };
     const spy = vi.fn().mockResolvedValue({
       ok: true,
@@ -61,12 +64,12 @@ describe('state-client', () => {
     });
     vi.stubGlobal('fetch', spy);
 
-    const result = await openBox('catCrate');
+    const result = await openBox('catBox');
     expect(spy).toHaveBeenCalledWith(
       '/api/box/open',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ boxId: 'catCrate' }),
+        body: JSON.stringify({ boxId: 'catBox' }),
       }),
     );
     expect(result).toEqual({ ok: true, pull, state });
@@ -90,7 +93,7 @@ describe('state-client', () => {
     );
   });
 
-  it('equipCosmetic POSTs the breed + cosmeticId', async () => {
+  it('equipCosmetic POSTs the catInstanceId + cosmeticInstanceId', async () => {
     const state = makeState();
     const spy = vi.fn().mockResolvedValue({
       ok: true,
@@ -98,17 +101,17 @@ describe('state-client', () => {
     });
     vi.stubGlobal('fetch', spy);
 
-    await equipCosmetic('cat1', 'head', 'c9');
+    await equipCosmetic('inst-1', 'head', 'cos-inst-9');
     expect(spy).toHaveBeenCalledWith(
       '/api/cosmetic/equip',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ breed: 'cat1', slot: 'head', cosmeticId: 'c9' }),
+        body: JSON.stringify({ catInstanceId: 'inst-1', slot: 'head', cosmeticInstanceId: 'cos-inst-9' }),
       }),
     );
   });
 
-  it('equipCosmetic sends cosmeticId: null when unequipping', async () => {
+  it('equipCosmetic sends cosmeticInstanceId: null when unequipping', async () => {
     const state = makeState();
     const spy = vi.fn().mockResolvedValue({
       ok: true,
@@ -116,11 +119,11 @@ describe('state-client', () => {
     });
     vi.stubGlobal('fetch', spy);
 
-    await equipCosmetic('cat1', 'head', null);
+    await equipCosmetic('inst-1', 'head', null);
     expect(spy).toHaveBeenCalledWith(
       '/api/cosmetic/equip',
       expect.objectContaining({
-        body: JSON.stringify({ breed: 'cat1', slot: 'head', cosmeticId: null }),
+        body: JSON.stringify({ catInstanceId: 'inst-1', slot: 'head', cosmeticInstanceId: null }),
       }),
     );
   });
@@ -160,6 +163,92 @@ describe('state-client', () => {
 });
 
 describe('state-client house-editor operations', () => {
+  it('setSeat POSTs catInstanceId (not breed)', async () => {
+    const state = makeState();
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ state }),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    await setSeat('seat-left', 'inst-1');
+    expect(spy).toHaveBeenCalledWith(
+      '/api/house/seat',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ seatId: 'seat-left', catInstanceId: 'inst-1' }),
+      }),
+    );
+  });
+
+  it('setSeat POSTs null catInstanceId to unseat', async () => {
+    const state = makeState();
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ state }),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    await setSeat('seat-left', null);
+    expect(spy).toHaveBeenCalledWith(
+      '/api/house/seat',
+      expect.objectContaining({
+        body: JSON.stringify({ seatId: 'seat-left', catInstanceId: null }),
+      }),
+    );
+  });
+
+  it('sellItem POSTs cosmeticInstanceId', async () => {
+    const state = makeState();
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ state }),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    await sellItem('cosmetic', 'cos-inst-7');
+    expect(spy).toHaveBeenCalledWith(
+      '/api/inventory/sell',
+      expect.objectContaining({
+        body: JSON.stringify({ kind: 'cosmetic', cosmeticInstanceId: 'cos-inst-7' }),
+      }),
+    );
+  });
+
+  it('rehomeCat POSTs catInstanceId', async () => {
+    const state = makeState();
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ state }),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    await rehomeCat('inst-1');
+    expect(spy).toHaveBeenCalledWith(
+      '/api/cats/rehome',
+      expect.objectContaining({
+        body: JSON.stringify({ catInstanceId: 'inst-1' }),
+      }),
+    );
+  });
+
+  it('renameCat POSTs catInstanceId + name', async () => {
+    const state = makeState();
+    const spy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ ok: true, state }),
+    });
+    vi.stubGlobal('fetch', spy);
+
+    await renameCat('inst-1', 'Fluffy');
+    expect(spy).toHaveBeenCalledWith(
+      '/api/cats/rename',
+      expect.objectContaining({
+        body: JSON.stringify({ catInstanceId: 'inst-1', name: 'Fluffy' }),
+      }),
+    );
+  });
+
   it('exposes setSeat', () => {
     expect(typeof setSeat).toBe('function');
   });

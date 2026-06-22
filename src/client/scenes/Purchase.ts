@@ -3,7 +3,8 @@ import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
 import { TopHud } from '@/ui/top-hud';
-import { openBox, fetchState } from '@/services/state-client';
+import { openBox, fetchState, renameCat } from '@/services/state-client';
+import { CatNamingModal } from '@/ui/cat-naming-modal';
 import {
   BOX_CATALOG,
   CAT_CATALOG,
@@ -121,8 +122,8 @@ export class Purchase extends Scene {
     const cats = this.playerState?.ownedCats?.length ?? 0;
     const cosmetics = this.playerState?.ownedCosmetics?.length ?? 0;
     const bgs = this.playerState?.ownedBackgrounds?.length ?? 0;
-    const catNames = (this.playerState?.ownedCats ?? []).slice(-3).join(', ') || '—';
-    const cosNames = (this.playerState?.ownedCosmetics ?? []).slice(-3).join(', ') || '—';
+    const catNames = (this.playerState?.ownedCats ?? []).slice(-3).map((c) => c.name).join(', ') || '—';
+    const cosNames = (this.playerState?.ownedCosmetics ?? []).slice(-3).map((c) => c.type).join(', ') || '—';
     const bgNames = (this.playerState?.ownedBackgrounds ?? []).join(', ') || '—';
 
     const x = width - 8;
@@ -338,14 +339,33 @@ export class Purchase extends Scene {
         {
           textureKey: isCat ? AssetKeys.Atlas.Cats : AssetKeys.Atlas.Cosmetics,
           frame,
-          itemName,
+          itemName: isCat ? 'A cat' : itemName,
           rarity: pull.rarity,
           ...(rainbow ? { rainbow: true } : {}),
           ...(tint ? { tint: parseInt(tint.replace('#', ''), 16) } : {}),
           duplicate: pull.duplicate,
           refundCoins: pull.refundCoins,
         },
-        () => { this.busy = false; },
+        () => {
+          if (isCat && pull.instanceId) {
+            const defaultName = catEntry?.name ?? (pull.itemId as string);
+            const instanceId = pull.instanceId;
+            const modal = new CatNamingModal(this, {
+              defaultName,
+              onSubmit: (name) => {
+                const catInState = this.playerState?.ownedCats.find((c) => c.id === instanceId);
+                if (catInState) catInState.name = name;
+                renameCat(instanceId, name).catch((e) =>
+                  console.warn('[Purchase] renameCat failed:', e),
+                );
+                this.busy = false;
+              },
+            });
+            void modal;
+          } else {
+            this.busy = false;
+          }
+        },
       );
     } catch (e) {
       console.warn('[purchase] open error', e);

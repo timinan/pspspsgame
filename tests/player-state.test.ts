@@ -32,6 +32,7 @@ describe('player-state', () => {
     expect(state.ownedCats).toEqual([]);
     expect(state.ownedCosmetics).toEqual([]);
     expect(state.equippedCosmetics).toEqual({});
+    expect(state.equippedCosmeticTypes).toEqual({});
     expect(state.bestScore).toBe(0);
     expect(state.onboardingDone).toBe(false);
     expect(state.updatedAt).toBeGreaterThan(0);
@@ -40,18 +41,26 @@ describe('player-state', () => {
   it('round-trips a saved state', async () => {
     const initial = await loadOrInit(redis, 'alice');
     initial.coins = 250;
-    initial.ownedCats = ['cat1', 'cat4'];
-    initial.ownedCosmetics = ['c9'];
-    initial.equippedCosmetics = { cat1: 'c9' };
+    initial.ownedCats = [
+      { id: 'inst-1', breed: 'cat1', name: 'Mochi' },
+      { id: 'inst-2', breed: 'cat4', name: 'Cloud' },
+    ];
+    initial.ownedCosmetics = [{ id: 'cos-inst-1', type: 'c9' }];
+    initial.equippedCosmetics = { 'inst-1': { head: 'cos-inst-1' } };
+    initial.equippedCosmeticTypes = { 'cos-inst-1': 'c9' };
     initial.bestScore = 4200;
     initial.onboardingDone = true;
     await save(redis, initial);
 
     const reloaded = await loadOrInit(redis, 'alice');
     expect(reloaded.coins).toBe(250);
-    expect(reloaded.ownedCats).toEqual(['cat1', 'cat4']);
-    expect(reloaded.ownedCosmetics).toEqual(['c9']);
-    expect(reloaded.equippedCosmetics).toEqual({ cat1: 'c9' });
+    expect(reloaded.ownedCats).toHaveLength(2);
+    expect(reloaded.ownedCats[0]!.breed).toBe('cat1');
+    expect(reloaded.ownedCats[0]!.name).toBe('Mochi');
+    expect(reloaded.ownedCosmetics).toHaveLength(1);
+    expect(reloaded.ownedCosmetics[0]!.type).toBe('c9');
+    expect(reloaded.equippedCosmetics).toEqual({ 'inst-1': { head: 'cos-inst-1' } });
+    expect(reloaded.equippedCosmeticTypes).toEqual({ 'cos-inst-1': 'c9' });
     expect(reloaded.bestScore).toBe(4200);
     expect(reloaded.onboardingDone).toBe(true);
   });
@@ -145,9 +154,9 @@ describe('PlayerState.seatedCats', () => {
     expect(Object.keys(fresh.seatedCats).length).toBe(0);
   });
 
-  it('seatedCats key is SeatId and value is CatBreed', () => {
+  it('seatedCats key is SeatId and value is a cat instance id string', () => {
     const fresh = createFreshPlayerState();
-    fresh.seatedCats['seat-left'] = 'tabby';
-    expect(fresh.seatedCats['seat-left']).toBe('tabby');
+    fresh.seatedCats['seat-left'] = 'some-instance-id-123';
+    expect(fresh.seatedCats['seat-left']).toBe('some-instance-id-123');
   });
 });

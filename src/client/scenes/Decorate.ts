@@ -9,15 +9,28 @@ import { ContextMenu, buildCatMenu } from '@/ui/context-menu';
 import * as L from '@/constants/scene-layout';
 import { CAT_CATALOG, COSMETIC_CATALOG, BACKGROUND_CATALOG } from '@/../shared/state';
 import { fetchState, setSeat, setBackground } from '@/services/state-client';
-import type { PlayerState, CatBreed, SeatId, BackgroundId, CatEntry } from '@/../shared/state';
+import type {
+  PlayerState,
+  SeatId,
+  BackgroundId,
+  CatEntry,
+  OwnedCat,
+} from '@/../shared/state';
 import type { CatModel } from '@/types/game';
 
 const SEAT_ORDER: SeatId[] = ['seat-left', 'seat-center', 'seat-right'];
 const THUMB_COLS = 4;
 const THUMB_ROWS = 2;
 const MAX_TRAY = THUMB_COLS * THUMB_ROWS; // 8
+const THUMB_LABEL_MAX = 11; // characters before ellipsis
 
 type ActiveTab = 'CATS' | 'BACKGROUNDS';
+
+/** Truncate a cat name to fit the two-line thumb label capacity. */
+function truncateName(name: string): string {
+  if (name.length <= THUMB_LABEL_MAX) return name;
+  return name.slice(0, THUMB_LABEL_MAX) + '…';
+}
 
 /**
  * Phase 5 Decorate scene.
@@ -28,8 +41,8 @@ type ActiveTab = 'CATS' | 'BACKGROUNDS';
  *   232       Hint line: "Tap a seated cat to dress them up"
  *   252–580   Bottom panel — tabs (CATS / BACKGROUNDS) + 2×4 thumbnail tray
  *
- * Tap a seated cat in the preview → scene.start('DressingRoom', { catId, playerState })
- * Tap a cat thumb (CATS tab)      → seat / unseat
+ * Tap a seated cat in the preview → open cat context menu
+ * Tap a cat thumb (CATS tab)      → seat / unseat / dress up
  * Tap a background thumb          → apply background
  */
 export class Decorate extends Scene {
@@ -48,7 +61,8 @@ export class Decorate extends Scene {
 
   // Tap-menu + placement state
   private contextMenu!: ContextMenu;
-  private placingCatId: CatBreed | null = null;
+  /** Cat instance id being placed, or null. */
+  private placingCatInstanceId: string | null = null;
   private placementZones: GameObjects.Container | null = null;
   /** Named callback for the dressingroom:closed listener so cleanup() can detach it precisely. */
   private onDressingRoomClosed: (() => void) | undefined;
@@ -73,7 +87,7 @@ export class Decorate extends Scene {
     this.cats = [];
     this.catZones = [];
     this.removeBadges = [];
-    this.placingCatId = null;
+    this.placingCatInstanceId = null;
     this.placementZones = null;
     this.activeTab = 'CATS';
     this.catsPage = 0;
@@ -88,7 +102,6 @@ export class Decorate extends Scene {
         if (!this.scene.isActive()) return;
       } catch (err) {
         console.warn('[Decorate] fetchState failed:', err);
-        // Continue with empty state — tray will be empty
       }
     }
 
@@ -117,14 +130,10 @@ export class Decorate extends Scene {
 
     // The DressingRoom modal fires this when it closes (✕) — we re-render
     // the cat stage so any equipped-cosmetic changes show immediately.
-    // Bind a named callback so cleanup() can remove the exact listener and
-    // we don't accumulate handlers across scene restarts (phaser
-    // best-practice: "registering listeners every create() without
-    // removing them").
     this.onDressingRoomClosed = () => this.repaintCatStage();
     this.events.on('dressingroom:closed', this.onDressingRoomClosed);
 
-    // Seated cats in preview (same positions as Game.ts seatCats())
+    // Seated cats in preview
     this.seatCats();
 
     // Top HUD
@@ -150,13 +159,13 @@ export class Decorate extends Scene {
 
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
-    // Match Game.ts exactly — bottom-center of sprite sits in the lower part of the cat stage
     const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.88) * scaleY;
 
     const seatedCats = this.playerState?.seatedCats ?? {};
-    const catIds = SEAT_ORDER
+    // Collect seated instances in seat order. seatedCats maps seatId → cat instance id.
+    const seatedInstanceIds = SEAT_ORDER
       .map((seatId) => seatedCats[seatId])
-      .filter((id): id is CatBreed => Boolean(id))
+      .filter((id): id is string => Boolean(id))
       .slice(0, 3);
 
     const inner = width - L.LANE_GUTTER_PX * 2;
@@ -164,24 +173,28 @@ export class Decorate extends Scene {
     const stageH = L.CAT_STAGE_H * scaleY;
     const stageMidY = (L.TOP_HUD_H + L.CAT_STAGE_H / 2) * scaleY;
 
-    for (let i = 0; i < catIds.length; i++) {
-      const catId = catIds[i]!;
-      const seatId = SEAT_ORDER.find((sid) => seatedCats[sid] === catId)!;
-      const catEntry = CAT_CATALOG.find((c) => c.id === catId);
-      if (!catEntry) continue;
+    for (let i = 0; i < seatedInstanceIds.length; i++) {
+      const instanceId = seatedInstanceIds[i]!;
+      const seatId = SEAT_ORDER.find((sid) => seatedCats[sid] === instanceId)!;
+      const catInstance = this.playerState?.ownedCats.find((cat) => cat.id === instanceId);
+      if (!catInstance) continue;
+      // Guard: breed must exist in the catalog for rendering.
+      if (!CAT_CATALOG.some((c) => c.id === catInstance.breed)) continue;
 
       const laneIndex = i as 0 | 1 | 2;
       const cx = L.laneCenterX(laneIndex, width);
 
       const model: CatModel = {
         id: `decorate-cat-${i}`,
-        breed: catId,
+        breed: catInstance.breed,
         animation: 'idle',
         restingAnimation: 'idle',
         x: cx,
         y: catY,
       };
-      const slots = this.playerState?.equippedCosmetics?.[catId];
+
+      // Equip cosmetics — equippedCosmetics is keyed by cat instance id.
+      const slots = this.playerState?.equippedCosmetics?.[instanceId];
       if (slots && Object.keys(slots).length > 0) {
         model.equippedCosmetics = { ...slots };
       }
@@ -190,8 +203,7 @@ export class Decorate extends Scene {
       cat.setPosition(cx, catY);
       this.cats.push(cat);
 
-      // Invisible tap zone over the whole cat column → opens the cat
-      // context menu (Dress up / Move / Take to bench).
+      // Invisible tap zone over the whole cat column → opens the cat context menu.
       const zone = this.add.rectangle(cx, stageMidY, colW, stageH, 0x000000, 0);
       zone.setInteractive({ useHandCursor: true });
       zone.on(
@@ -203,13 +215,12 @@ export class Decorate extends Scene {
           event: Phaser.Types.Input.EventData,
         ) => {
           event.stopPropagation();
-          this.openCatMenu(catId, catEntry, seatId, cx, catY);
+          this.openCatMenu(catInstance, seatId, cx, catY);
         },
       );
       this.catZones.push(zone);
 
-      // Red ✕ badge top-right of the cat for quick-unseat. Offset is in
-      // canvas space — small constant since cats render at design-scale.
+      // Red ✕ badge top-right of the cat for quick-unseat.
       const badge = new RemoveBadge(this, cx + 22, catY - 56, () => {
         this.unseatCat(seatId);
       });
@@ -220,59 +231,46 @@ export class Decorate extends Scene {
 
   /**
    * Show the cat context menu (Dress up / Move / Take to bench, etc).
-   * `seatId` is undefined when invoked from a tray thumb (cat is not yet
-   * placed in the scene).
+   * `seatId` is undefined when invoked from a tray thumb (cat is not yet placed).
    */
   private openCatMenu(
-    catId: CatBreed,
-    catEntry: CatEntry,
+    catInstance: OwnedCat,
     seatId: SeatId | undefined,
     anchorX: number,
     anchorY: number,
   ): void {
-    if (this.placingCatId) {
-      // In placement mode — ignore taps on cats (overlapping placement zones
-      // handle taps).
-      return;
-    }
+    if (this.placingCatInstanceId) return;
     const rows = buildCatMenu({
       isSeated: Boolean(seatId),
-      displayName: catEntry.name,
+      displayName: catInstance.name,
     });
     this.contextMenu.open(anchorX, anchorY, rows, (action) => {
-      this.onCatMenuAction(action, catId, seatId);
+      this.onCatMenuAction(action, catInstance, seatId);
     });
   }
 
   /** Handle the action the player picked from the cat menu. */
   private onCatMenuAction(
     action: string,
-    catId: CatBreed,
+    catInstance: OwnedCat,
     seatId: SeatId | undefined,
   ): void {
     if (action === 'dressup') {
-      // Launch DressingRoom as a PARALLEL scene so Decorate stays rendered
-      // behind it as the modal backdrop. DressingRoom closes itself via ✕
-      // and emits 'dressingroom:closed' on this scene's emitter, which the
-      // listener in create() uses to repaint the cat stage.
-      // Guard double-launch (phaser best-practice: "launching UI / pause
-      // scenes multiple times without checking whether they already exist").
       if (this.scene.isActive(SceneKeys.DressingRoom)) return;
       this.scene.launch(SceneKeys.DressingRoom, {
-        catId,
+        catInstanceId: catInstance.id,
         playerState: this.playerState,
       });
       return;
     }
     if (action === 'seat' || action === 'place') {
-      this.enterPlacementMode(catId, seatId);
+      this.enterPlacementMode(catInstance.id, seatId);
       return;
     }
     if (action === 'unseat' && seatId) {
       this.unseatCat(seatId);
       return;
     }
-    // 'gift' / 'rehome' are out of scope here.
   }
 
   /** Mutate state to clear a seat, sync, repaint. */
@@ -287,16 +285,16 @@ export class Decorate extends Scene {
   }
 
   /**
-   * Enter placement mode for `catId`. Draws 3 green-tinted panels over the
+   * Enter placement mode for `catInstanceId`. Draws 3 green-tinted panels over the
    * 3 seat columns; tapping a panel seats (or replaces) the cat there.
    */
-  private enterPlacementMode(catId: CatBreed, fromSeat: SeatId | undefined): void {
-    this.placingCatId = catId;
+  private enterPlacementMode(catInstanceId: string, fromSeat: SeatId | undefined): void {
+    this.placingCatInstanceId = catInstanceId;
     this.drawPlacementZones(fromSeat);
   }
 
   private exitPlacementMode(): void {
-    this.placingCatId = null;
+    this.placingCatInstanceId = null;
     if (this.placementZones) {
       this.placementZones.destroy(true);
       this.placementZones = null;
@@ -307,12 +305,8 @@ export class Decorate extends Scene {
     if (this.placementZones) this.placementZones.destroy(true);
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
-    // Center the placement panel on the actual cat-anchor y used in seatCats().
     const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.88) * scaleY;
-    // Panel size tuned to roughly the cat sprite footprint, not the full lane
-    // column. Square-ish so it reads as "drop the cat here".
     const panelSize = Math.min(96, L.CAT_STAGE_H * 0.55 * scaleY);
-    // Anchor the panel a touch above the cat foot so the cat fits inside.
     const panelCenterY = catY - panelSize * 0.4;
 
     const container = this.add.container(0, 0).setDepth(40);
@@ -351,14 +345,16 @@ export class Decorate extends Scene {
 
   /** Move/seat the currently-placing cat into `seatId`, replacing whatever's there. */
   private placeCatAt(seatId: SeatId): void {
-    if (!this.placingCatId || !this.playerState) {
+    if (!this.placingCatInstanceId || !this.playerState) {
       this.exitPlacementMode();
       return;
     }
-    const catId = this.placingCatId;
+    const catInstanceId = this.placingCatInstanceId;
 
     // If this cat was already in another seat, clear that seat first.
-    const prevSeat = SEAT_ORDER.find((sid) => this.playerState!.seatedCats[sid] === catId);
+    const prevSeat = SEAT_ORDER.find(
+      (sid) => this.playerState!.seatedCats[sid] === catInstanceId,
+    );
     if (prevSeat && prevSeat !== seatId) {
       delete this.playerState.seatedCats[prevSeat];
       setSeat(prevSeat, null).catch((e) =>
@@ -366,9 +362,9 @@ export class Decorate extends Scene {
       );
     }
 
-    // Seat the new cat (overwrites whatever was here).
-    this.playerState.seatedCats[seatId] = catId;
-    setSeat(seatId, catId).catch((e) =>
+    // Seat the cat (overwrites whatever was here).
+    this.playerState.seatedCats[seatId] = catInstanceId;
+    setSeat(seatId, catInstanceId).catch((e) =>
       console.warn('[Decorate] setSeat (place) failed:', e),
     );
 
@@ -420,7 +416,6 @@ export class Decorate extends Scene {
 
     const { width } = this.scale;
 
-    // Scene title centered in the HUD strip
     this.add.text(width / 2, TopHud.HEIGHT / 2, 'DECORATE', {
       fontFamily: '"Courier New", monospace',
       fontStyle: 'bold',
@@ -428,7 +423,6 @@ export class Decorate extends Scene {
       color: '#ffd34d',
     }).setOrigin(0.5).setDepth(101);
 
-    // Coins in top-right (sits to the left of the hamburger)
     const coins = this.playerState?.coins ?? 0;
     this.add.text(width - 66, TopHud.HEIGHT / 2, `🪙 ${coins}`, {
       fontFamily: '"Courier New", monospace',
@@ -450,18 +444,15 @@ export class Decorate extends Scene {
 
     this.root = this.add.container(0, panelTop).setDepth(50);
 
-    // Panel background + top border
     const panelBg = this.add.rectangle(0, 0, width, panelH, 0x0b041a, 0.92).setOrigin(0, 0);
     const topBorder = this.add.rectangle(0, 0, width, 1, 0xc0a0e6, 0.25).setOrigin(0, 0);
     this.root.add([panelBg, topBorder]);
 
-    // Tab row
     const tabH = 38;
     const tabRowBg = this.add.rectangle(0, 0, width, tabH, 0x0b041a, 1).setOrigin(0, 0);
     const tabRowBorder = this.add.rectangle(0, tabH - 1, width, 1, 0xc0a0e6, 0.15).setOrigin(0, 0);
     this.root.add([tabRowBg, tabRowBorder]);
 
-    // CATS tab button
     const catsBtnBg = this.add
       .rectangle(0, 0, width / 2, tabH, 0x000000, 0)
       .setOrigin(0, 0)
@@ -478,7 +469,6 @@ export class Decorate extends Scene {
     catsBtnBg.on('pointerdown', () => this.switchTab('CATS'));
     this.root.add([catsBtnBg, this.tabCatsText, this.tabCatsLine]);
 
-    // BACKGROUNDS tab button
     const bgBtnBg = this.add
       .rectangle(width / 2, 0, width / 2, tabH, 0x000000, 0)
       .setOrigin(0, 0)
@@ -495,7 +485,6 @@ export class Decorate extends Scene {
     bgBtnBg.on('pointerdown', () => this.switchTab('BACKGROUNDS'));
     this.root.add([bgBtnBg, this.tabBgText, this.tabBgLine]);
 
-    // Tray container sits below the tab row
     this.trayContainer = this.add.container(0, tabH);
     this.root.add(this.trayContainer);
 
@@ -548,24 +537,27 @@ export class Decorate extends Scene {
     const thumbW = (width - padding * 2 - gapX * (THUMB_COLS - 1)) / THUMB_COLS;
     const thumbH = (trayH - padding * 2 - gapY * (THUMB_ROWS - 1)) / THUMB_ROWS;
 
+    // ownedCats is now OwnedCat[]. Iterate instances directly.
     const ownedCats = this.playerState?.ownedCats ?? [];
     const seatedCats = this.playerState?.seatedCats ?? {};
 
-    // Owned cats from the catalog (maintains catalog order), paginated.
-    const allItems = CAT_CATALOG.filter((c) => ownedCats.includes(c.id));
-    const totalPages = Math.max(1, Math.ceil(allItems.length / MAX_TRAY));
+    const totalPages = Math.max(1, Math.ceil(ownedCats.length / MAX_TRAY));
     if (this.catsPage >= totalPages) this.catsPage = totalPages - 1;
     const start = this.catsPage * MAX_TRAY;
-    const items = allItems.slice(start, start + MAX_TRAY);
+    const items = ownedCats.slice(start, start + MAX_TRAY);
 
     for (let i = 0; i < items.length; i++) {
-      const entry = items[i]!;
+      const catInstance = items[i]!;
+      const catEntry = CAT_CATALOG.find((c) => c.id === catInstance.breed);
+      if (!catEntry) continue;
+
       const col = i % THUMB_COLS;
       const row = Math.floor(i / THUMB_COLS);
       const x = padding + col * (thumbW + gapX);
       const y = padding + row * (thumbH + gapY);
 
-      const seatedSeat = SEAT_ORDER.find((sid) => seatedCats[sid] === entry.id);
+      // Check if this instance is seated anywhere.
+      const seatedSeat = SEAT_ORDER.find((sid) => seatedCats[sid] === catInstance.id);
       const isSeated = Boolean(seatedSeat);
 
       const borderColor = isSeated ? 0xffd34d : 0xc0a0e6;
@@ -576,20 +568,13 @@ export class Decorate extends Scene {
         .setStrokeStyle(2, borderColor, borderAlpha)
         .setInteractive({ useHandCursor: true });
 
-      // Real cat sprite from the atlas instead of an emoji. Frame derivation
-      // mirrors the box-open animation's resolveFrame() — for tinted variants
-      // we render the parent's idle frame and apply the tint.
-      // Scale uniformly so the cat's natural aspect ratio is preserved
-      // regardless of the cell's aspect ratio.
-      const { frame, tint } = catThumbFrame(entry);
+      const { frame, tint } = catThumbFrame(catEntry);
       const sprite = this.add.image(
         x + thumbW / 2,
         y + thumbH / 2 - 14,
         AssetKeys.Atlas.Cats,
         frame,
       );
-      // Fill most of the smaller cell dimension so the cat dominates the
-      // thumb. The 0.4-rest at the bottom is for the name label.
       const maxSize = Math.min(thumbW, thumbH * 0.78);
       const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
       sprite.setScale(scale);
@@ -597,13 +582,15 @@ export class Decorate extends Scene {
 
       this.trayContainer.add([thumb, sprite]);
 
-      // Layer this cat's equipped cosmetics ON TOP of the thumbnail so the
-      // tray clearly distinguishes cats wearing hats / glasses / scarves.
-      const equippedSlots = this.playerState?.equippedCosmetics?.[entry.id] ?? {};
+      // Layer equipped cosmetics on the thumbnail.
+      const equippedSlots = this.playerState?.equippedCosmetics?.[catInstance.id] ?? {};
+      const equippedTypes = this.playerState?.equippedCosmeticTypes ?? {};
       let cosmeticDepth = 1;
-      for (const cosId of Object.values(equippedSlots)) {
-        if (!cosId) continue;
-        const cos = COSMETIC_CATALOG.find((c) => c.id === cosId);
+      for (const cosInstanceId of Object.values(equippedSlots)) {
+        if (!cosInstanceId) continue;
+        // Resolve catalog type from equippedCosmeticTypes sidecar.
+        const cosTypeId = equippedTypes[cosInstanceId] ?? cosInstanceId;
+        const cos = COSMETIC_CATALOG.find((c) => c.id === cosTypeId);
         if (!cos) continue;
         const cosParent = cos.sourceFrame?.match(/^cosmetic_(c\d+)_/)?.[1] ?? cos.id;
         const cosFrame = `cosmetic_${cosParent}_idle_00`;
@@ -618,12 +605,18 @@ export class Decorate extends Scene {
         this.trayContainer.add(cosSprite);
       }
 
-      const label = this.add.text(x + thumbW / 2, y + thumbH - 8, entry.name.toUpperCase(), {
-        fontFamily: '"Courier New", monospace',
-        fontStyle: 'bold',
-        fontSize: '13px',
-        color: '#ffffff',
-      }).setOrigin(0.5, 1);
+      // Label uses the instance's custom name, truncated to fit.
+      const label = this.add.text(
+        x + thumbW / 2,
+        y + thumbH - 8,
+        truncateName(catInstance.name).toUpperCase(),
+        {
+          fontFamily: '"Courier New", monospace',
+          fontStyle: 'bold',
+          fontSize: '13px',
+          color: '#ffffff',
+        },
+      ).setOrigin(0.5, 1);
 
       this.trayContainer.add(label);
 
@@ -647,12 +640,9 @@ export class Decorate extends Scene {
           event: Phaser.Types.Input.EventData,
         ) => {
           event.stopPropagation();
-          // Thumb x/y above are LOCAL to trayContainer (which sits inside
-          // root). Convert to world coords so the context menu anchors right
-          // next to the cat that was tapped.
           const worldX = (this.trayContainer.x ?? 0) + (this.root?.x ?? 0) + x + thumbW / 2;
           const worldY = (this.trayContainer.y ?? 0) + (this.root?.y ?? 0) + y + thumbH / 2;
-          this.openCatMenu(entry.id, entry, seatedSeat, worldX, worldY);
+          this.openCatMenu(catInstance, seatedSeat, worldX, worldY);
         },
       );
     }
@@ -665,7 +655,7 @@ export class Decorate extends Scene {
 
   /**
    * Render Prev/Next pagination buttons + page label centered at the bottom
-   * of the tray. Called by both renderCatsTray and renderBackgroundsTray.
+   * of the tray.
    */
   private drawTrayPagination(
     totalPages: number,
@@ -683,7 +673,7 @@ export class Decorate extends Scene {
 
     const makeBtn = (
       bx: number,
-      label: string,
+      btnLabel: string,
       disabled: boolean,
       delta: -1 | 1,
     ): void => {
@@ -692,7 +682,7 @@ export class Decorate extends Scene {
         .setStrokeStyle(1, 0xc0a0e6, 0.5)
         .setAlpha(disabled ? 0.35 : 1);
       const txt = this.add
-        .text(bx, y, label, {
+        .text(bx, y, btnLabel, {
           fontFamily: '"Courier New", monospace',
           fontStyle: 'bold',
           fontSize: '14px',
@@ -751,14 +741,10 @@ export class Decorate extends Scene {
     const ownedBgs = this.playerState?.ownedBackgrounds ?? (['default'] as BackgroundId[]);
     const activeBg = this.playerState?.activeBackground ?? ('default' as BackgroundId);
 
-    // Only show backgrounds the player actually owns. Locked ones are bought
-    // via the Background Box in Purchase — there's no point teasing them
-    // here without an unlock path on this screen.
     const allBgs = Object.values(BACKGROUND_CATALOG).filter((entry) =>
       ownedBgs.includes(entry.id as BackgroundId),
     );
 
-    // Pagination
     const totalBgPages = Math.max(1, Math.ceil(allBgs.length / MAX_TRAY));
     if (this.bgsPage >= totalBgPages) this.bgsPage = totalBgPages - 1;
     const bgStart = this.bgsPage * MAX_TRAY;
@@ -771,59 +757,37 @@ export class Decorate extends Scene {
       const x = padding + col * (thumbW + gapX);
       const y = padding + row * (thumbH + gapY);
 
-      const isOwned = true; // pre-filtered above; the locked branch is now unreachable
       const isActive = activeBg === entry.id;
+      const borderColor = isActive ? 0x4dffb4 : 0xc0a0e6;
+      const borderAlpha = isActive ? 1 : 0.25;
+      const fillColor = this.bgThumbColor(entry.id as BackgroundId);
 
-      if (isOwned) {
-        const borderColor = isActive ? 0x4dffb4 : 0xc0a0e6;
-        const borderAlpha = isActive ? 1 : 0.25;
-        const fillColor = this.bgThumbColor(entry.id as BackgroundId);
+      const thumb = this.add
+        .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, fillColor, 1)
+        .setStrokeStyle(2, borderColor, borderAlpha)
+        .setInteractive({ useHandCursor: true });
 
-        const thumb = this.add
-          .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, fillColor, 1)
-          .setStrokeStyle(2, borderColor, borderAlpha)
-          .setInteractive({ useHandCursor: true });
+      const label = this.add.text(x + thumbW / 2, y + thumbH - 10, entry.displayName.toUpperCase(), {
+        fontFamily: '"Courier New", monospace',
+        fontStyle: 'bold',
+        fontSize: '7px',
+        color: '#ffffff',
+      }).setOrigin(0.5, 1);
 
-        const label = this.add.text(x + thumbW / 2, y + thumbH - 10, entry.displayName.toUpperCase(), {
+      this.trayContainer.add([thumb, label]);
+
+      if (isActive) {
+        const badge = this.add.circle(x + thumbW - 6, y + 6, 7, 0x4dffb4, 1);
+        const check = this.add.text(x + thumbW - 6, y + 6, '✓', {
           fontFamily: '"Courier New", monospace',
           fontStyle: 'bold',
-          fontSize: '7px',
-          color: '#ffffff',
-        }).setOrigin(0.5, 1);
-
-        this.trayContainer.add([thumb, label]);
-
-        if (isActive) {
-          const badge = this.add.circle(x + thumbW - 6, y + 6, 7, 0x4dffb4, 1);
-          const check = this.add.text(x + thumbW - 6, y + 6, '✓', {
-            fontFamily: '"Courier New", monospace',
-            fontStyle: 'bold',
-            fontSize: '8px',
-            color: '#1a0a2e',
-          }).setOrigin(0.5);
-          this.trayContainer.add([badge, check]);
-        }
-
-        thumb.on('pointerdown', () => this.onBgThumbTap(entry.id as BackgroundId));
-      } else {
-        // Locked — dimmed card with 🔒, no interaction
-        const thumb = this.add
-          .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, 0x0b041a, 0.6)
-          .setStrokeStyle(1, 0xc0a0e6, 0.2);
-        thumb.setAlpha(0.6);
-
-        const lock = this.add.text(x + thumbW / 2, y + thumbH / 2 - 6, '🔒', {
-          fontSize: `${Math.floor(thumbH * 0.4)}px`,
+          fontSize: '8px',
+          color: '#1a0a2e',
         }).setOrigin(0.5);
-
-        const label = this.add.text(x + thumbW / 2, y + thumbH - 10, entry.displayName.toUpperCase(), {
-          fontFamily: '"Courier New", monospace',
-          fontSize: '7px',
-          color: '#c0a0e6',
-        }).setOrigin(0.5, 1).setAlpha(0.5);
-
-        this.trayContainer.add([thumb, lock, label]);
+        this.trayContainer.add([badge, check]);
       }
+
+      thumb.on('pointerdown', () => this.onBgThumbTap(entry.id as BackgroundId));
     }
 
     this.drawTrayPagination(totalBgPages, this.bgsPage, (delta) => {
@@ -841,14 +805,12 @@ export class Decorate extends Scene {
   private onBgThumbTap(bgId: BackgroundId): void {
     if (!this.playerState) return;
     const ownedBgs = this.playerState.ownedBackgrounds ?? (['default'] as BackgroundId[]);
-    if (!ownedBgs.includes(bgId)) return; // safety guard
+    if (!ownedBgs.includes(bgId)) return;
 
-    // Optimistic: live preview + local state update
     this.playerState.activeBackground = bgId;
     this.bg.setBackground(bgId);
     this.renderTray();
 
-    // Server sync
     setBackground(bgId).catch((e) =>
       console.warn('[Decorate] setBackground failed:', e),
     );
@@ -878,15 +840,13 @@ export class Decorate extends Scene {
     this.catZones = [];
     for (const b of this.removeBadges) b.destroy();
     this.removeBadges = [];
-    this.root?.destroy(true); // recursive — kills tray + panel children
+    this.root?.destroy(true);
     this.hud?.destroy();
   }
 }
 
 /**
- * Pick the atlas frame (and optional tint) for a cat catalog entry. Mirrors
- * the box-open animation's resolveFrame() so the tray uses the exact same
- * art as the reveal modal.
+ * Pick the atlas frame (and optional tint) for a cat catalog entry.
  */
 function catThumbFrame(entry: CatEntry): { frame: string; tint?: number } {
   if (entry.id === 'rainbow') {
