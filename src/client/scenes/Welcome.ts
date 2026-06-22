@@ -274,7 +274,9 @@ export class Welcome extends Scene {
     } catch (e) {
       console.warn('[welcome] completeOnboarding failed', e);
     }
-    this.scene.start(SceneKeys.Game, { playerState: this.playerState });
+    // Phase 5 flow: after onboarding, land in Decorate so the player can see
+    // their starter cat + cosmetic and set up their house before playing.
+    this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
   }
 }
 
