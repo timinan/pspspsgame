@@ -290,13 +290,20 @@ export class Game extends Scene {
    * of after a 3s blocking fetch.
    */
   private showReadyModal(): void {
+    if (!this.scene.isActive()) return;
     const { width, height } = this.scale;
     const cx = width / 2;
     const cy = height / 2;
 
-    const container = this.add.container(0, 0).setDepth(400);
+    // Depth 1000 keeps the modal above HUD (100) / drawer (201) /
+    // summary (300) and anything else that might land on this scene.
+    const container = this.add.container(0, 0).setDepth(1000);
 
-    const backdrop = this.add.rectangle(cx, cy, width, height, 0x000000, 0.75);
+    // Full-screen click eater — also interactive so taps OUTSIDE the
+    // PLAY button still don't fall through to disabled tap zones.
+    const backdrop = this.add
+      .rectangle(cx, cy, width, height, 0x000000, 0.75)
+      .setInteractive();
     container.add(backdrop);
 
     const panelW = Math.min(260, width - 32);
@@ -326,8 +333,7 @@ export class Game extends Scene {
     const btnY = cy + 40;
     const btnW = 140;
     const btnH = 44;
-    const btnBg = this.add.rectangle(cx, btnY, btnW, btnH, 0xffd34d, 1)
-      .setInteractive({ useHandCursor: true });
+    const btnBg = this.add.rectangle(cx, btnY, btnW, btnH, 0xffd34d, 1);
     const btnText = this.add.text(cx, btnY, 'PLAY', {
       ...fontBase,
       fontStyle: 'bold',
@@ -336,17 +342,26 @@ export class Game extends Scene {
     }).setOrigin(0.5);
     container.add([btnBg, btnText]);
 
-    btnBg.on('pointerover', () => btnBg.setFillStyle(0xffe680, 1));
-    btnBg.on('pointerout', () => btnBg.setFillStyle(0xffd34d, 1));
-    btnBg.on('pointerdown', () => {
-      // The click is the user gesture WebAudio needs. Kick off audio,
-      // tear down the modal, and release input + chart advance.
-      void this.ensureSongStarted();
-      this.readyModal?.destroy(true);
-      this.readyModal = null;
-      for (const z of this.tapZones) z.setInteractive();
-      this.startTimeMs = this.time.now;
-      this.pendingStart = false;
+    // Defer making the button interactive for 200ms. Phaser fires
+    // pointerup on whatever object sits under the finger at release,
+    // and the hamburger-row tap that opened this scene often ends with
+    // the finger somewhere on the playfield — without the delay, that
+    // residual pointerup destroys the modal instantly and the player
+    // never sees it.
+    this.time.delayedCall(200, () => {
+      btnBg.setInteractive({ useHandCursor: true });
+      btnBg.on('pointerover', () => btnBg.setFillStyle(0xffe680, 1));
+      btnBg.on('pointerout', () => btnBg.setFillStyle(0xffd34d, 1));
+      btnBg.on('pointerup', () => {
+        // The click is the user gesture WebAudio needs. Kick off audio,
+        // tear down the modal, and release input + chart advance.
+        void this.ensureSongStarted();
+        this.readyModal?.destroy(true);
+        this.readyModal = null;
+        for (const z of this.tapZones) z.setInteractive();
+        this.startTimeMs = this.time.now;
+        this.pendingStart = false;
+      });
     });
 
     this.readyModal = container;
