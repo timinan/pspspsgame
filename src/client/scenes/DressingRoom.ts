@@ -236,9 +236,16 @@ export class DressingRoom extends Scene {
   private renderSlotTabs(): void {
     this.slotTabsContainer.removeAll(true);
     const { width } = this.scale;
-    const tabW = 88;
+    // Tabs must fit inside the modal panel. The modal is up to 86% of the
+    // canvas (capped at 420px); leave a small inset so tabs don't kiss the
+    // border. Width is divided evenly across the slot count so we don't have
+    // to retune when slots are added/removed.
+    const modalW = Math.min(width * 0.86, 420);
+    const inset = 14;
+    const gap = 5;
+    const available = modalW - inset * 2;
+    const tabW = Math.floor((available - gap * (SLOT_TABS.length - 1)) / SLOT_TABS.length);
     const tabH = 26;
-    const gap = 6;
     const totalW = SLOT_TABS.length * tabW + (SLOT_TABS.length - 1) * gap;
     const startX = (width - totalW) / 2;
     const equippedSlots = this.playerState.equippedCosmetics[this.catInstanceId] ?? {};

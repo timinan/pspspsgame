@@ -1,4 +1,4 @@
-import { Scene, GameObjects, Tweens } from 'phaser';
+import { Scene, Scenes, GameObjects, Tweens } from 'phaser';
 
 /**
  * Catalog of "effect cosmetics" — visual flair attached to a cat sprite via
@@ -42,18 +42,47 @@ export interface CatEffect {
  * preFX runs inside the sprite's own quad — no separate object to manage.
  * On destroy we ask the preFX manager to remove the glow we added.
  */
+/**
+ * Glow implemented as a soft Graphics circle behind the sprite. Works in
+ * both Canvas and WebGL renderers (Phaser 4's preFX glow is WebGL-only and
+ * may not be available inside the Devvit iframe). The glow follows the
+ * sprite each frame via a POST_UPDATE listener so it tracks any tweens.
+ */
 function makeGlow(color: number): CatEffect['apply'] {
-  return (_scene, sprite) => {
-    // preFX is a Phaser 4 runtime property added by the FX manager when
-    // WebGL is available. Phaser's TS types don't surface it directly on
-    // Sprite, so we cast through a minimal shape.
-    const fxHost = sprite as unknown as {
-      preFX?: { addGlow: (color: number, outer: number, inner: number, knockout: boolean, quality: number, distance: number) => unknown; remove: (fx: unknown) => void };
+  return (scene, sprite) => {
+    const radius = 56;
+    const graphics = scene.add.graphics();
+    // Soft glow built from a stack of concentric translucent circles —
+    // approximates a radial gradient without needing a PNG asset.
+    for (let i = 5; i >= 0; i--) {
+      const r = radius * (1 - i * 0.12);
+      graphics.fillStyle(color, 0.10 + (5 - i) * 0.04);
+      graphics.fillCircle(0, 0, r);
+    }
+    graphics.setDepth(sprite.depth - 1);
+    const sync = (): void => {
+      // Anchor the glow at the cat's body center, not its feet origin.
+      graphics.setPosition(sprite.x, sprite.y - sprite.displayHeight * 0.4);
     };
-    const fx = fxHost.preFX?.addGlow(color, 4, 0, false, 0.1, 16);
+    sync();
+    // Subtle alpha breathing so the glow doesn't read as a static decal.
+    const baseAlpha = 0.9;
+    graphics.setAlpha(baseAlpha);
+    const pulse = scene.tweens.add({
+      targets: graphics,
+      alpha: 0.5,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+    scene.events.on(Scenes.Events.POST_UPDATE, sync);
     return {
       destroy: () => {
-        if (fx && fxHost.preFX) fxHost.preFX.remove(fx);
+        scene.events.off(Scenes.Events.POST_UPDATE, sync);
+        pulse.stop();
+        pulse.remove();
+        graphics.destroy();
       },
     };
   };
