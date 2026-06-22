@@ -12,17 +12,17 @@ Living tracker for end-to-end testing of the Phase 5 redesign. Each flow gets te
 
 | Flow | Status | Commits | Notes |
 |---|---|---|---|
-| 0 — Hamburger nav + asset visuals | ✅ FIXED | `ff38071`, `3ec30dd`, `ffcbaf4` | Confirmed working in playtest |
-| 1 — Purchase (boxes → inventory) | 🟡 SETUP DONE, PARTIAL TEST | `f5e5578` (box texture key fix) | Box reveals show real sprites now; inventory debug panel renders in Purchase. Not yet exhaustively played |
-| 2 — Decorate + DressingRoom | 🟡 ACTIVELY FIXING | `f5e5578`, `2a3481c`, `aea3f1c`, `7cfc53c`, `65a614d`, `<this>` | Multi-slot DressingRoom modal working. Open design decisions on per-instance ownership + naming flow |
-| 3 — Play (random fallback chart) | ⬜ NOT STARTED | — | Needs Flow 2 done first |
-| 4 — Editor (author chart) | ⬜ NOT STARTED | — | Needs Flows 1–3 |
+| 0 — Hamburger nav + asset visuals | ✅ GREEN | `ff38071`, `3ec30dd`, `ffcbaf4` | Confirmed in playtest |
+| 1 — Purchase (boxes → inventory) | ✅ GREEN (in passing) | `f5e5578` | Box reveals work, debug panel shows inventory deltas; cleared as a side-effect of Flow 2 testing |
+| 2 — Decorate + DressingRoom + Effects | ✅ GREEN | `f5e5578` → `e964f65` | Per-instance cats + cosmetics, validated naming, multi-slot dressing room, 16 effect cosmetics, seat→lane mapping fix |
+| 3 — Play (random fallback chart) | 🟡 SETUP IN PROGRESS | — | Next up |
+| 4 — Editor (author chart) | ⬜ NOT STARTED | — | Needs Flow 3 |
 
 ---
 
 ## Where we are right now
 
-**Currently on Flow 2.** Tim has been iteratively reporting visual + flow issues in Decorate + DressingRoom; I've been shipping fix commits in response. Latest commit (`65a614d` and the defensive patch on top) cleared the immediate visual list. Next decision point is whether to tackle the **per-instance ownership data-model refactor** (described under "Open design decisions" below) before declaring Flow 2 complete.
+**Flows 0, 1, 2 green. Moving to Flow 3 (Play).** Flow 2 closed with the per-instance ownership refactor + the 16-effect EFFECT slot + the seat→lane rendering fix. Next setup: wire a `RandomChartSource` so the Game scene spawns notes even without an authored chart, so Flow 3 can be tested without first going through Flow 4.
 
 **Open design decisions before Flow 2 can be marked DONE:**
 
