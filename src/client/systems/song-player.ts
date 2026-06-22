@@ -6,13 +6,15 @@ import type { Chart, LaneId } from '@/../shared/state';
  * looping backing track.
  *
  *   chart step (i, lane) → meow note at time t = i × msPerStep
- *   lane 0 → C4 (root)
- *   lane 1 → E4 (major third)
- *   lane 2 → G4 (perfect fifth)
+ *   lane 0 → A3 (root)
+ *   lane 1 → C4 (minor third)
+ *   lane 2 → E4 (perfect fifth)
  *
- * Pre-tuning the meow pitches to the C major triad means every meow
- * harmonizes with a C-major backing loop without any runtime audio
- * analysis. Stacking lanes in one step plays a chord.
+ * A minor triad sits nicely against most lofi loops (which are typically
+ * in A minor or C major). Keeping the three notes within a 7-semitone
+ * range also means a sample registered at C4 only needs to pitch-shift
+ * ±4 semitones — close enough to sound natural without chipmunk artifacts.
+ * Stacking lanes in one step plays a chord.
  *
  * Mobile / iframe gotcha: WebAudio cannot start without a user gesture.
  * Call `unlock()` from the FIRST tap (Game's lane tap handler is the
@@ -20,7 +22,7 @@ import type { Chart, LaneId } from '@/../shared/state';
  */
 
 /** Lane → musical note. Index by LaneId (0/1/2). */
-const LANE_TO_NOTE = ['C4', 'E4', 'G4'] as const;
+const LANE_TO_NOTE = ['A3', 'C4', 'E4'] as const;
 
 export type MeowNote = (typeof LANE_TO_NOTE)[number];
 
@@ -104,9 +106,11 @@ export class SongPlayer {
 
     if (this.opts.meowSamples && Object.keys(this.opts.meowSamples).length > 0) {
       // Real cat audio path — Tim drops WAVs into public/assets/audio/meows/
-      // and the sampler picks them up via Preloader.
+      // and the sampler picks them up via Preloader. release=0.1 trims the
+      // tail of the source clip so meows land as punctuation, not 1s drones.
       this.sampler = new Tone.Sampler({
         urls: this.opts.meowSamples,
+        release: 0.1,
       }).toDestination();
       this.sampler.volume.value = meowVol;
     } else {
@@ -138,6 +142,13 @@ export class SongPlayer {
 
     Tone.Transport.bpm.value = this.chart.bpm;
 
+    // Wait for all newly-created buffers (the meow sample + the backing
+    // MP3) to actually finish loading before we kick Transport. Without
+    // this, a Tone.Player.start(0) on an unloaded buffer is a silent
+    // no-op — the backing track never plays even though everything
+    // looks wired up.
+    await Tone.loaded();
+
     // Schedule every active meow in advance. Transport runs the callbacks
     // at sample-accurate times — far tighter than scene.time delays.
     const schedule = buildSchedule(this.chart);
@@ -157,7 +168,10 @@ export class SongPlayer {
 
   private triggerMeow(note: MeowNote, time: number): void {
     if (this.sampler) {
-      this.sampler.triggerAttack(note, time);
+      // triggerAttackRelease + a short release (set on the Sampler) clips
+      // the source meow to ~250ms instead of letting the full 1–2s
+      // sample drone over the next beat.
+      this.sampler.triggerAttackRelease(note, '8n', time);
     } else if (this.synth) {
       // Short note — meows are punctuation, not sustained pads.
       this.synth.triggerAttackRelease(note, '8n', time);

@@ -9,14 +9,14 @@ import { emptyChart, type Chart } from '../src/shared/state';
 
 describe('SongPlayer scheduling math', () => {
   describe('noteForLane', () => {
-    it('lane 0 plays the root note (C4)', () => {
-      expect(noteForLane(0)).toBe('C4');
+    it('lane 0 plays the A minor root (A3)', () => {
+      expect(noteForLane(0)).toBe('A3');
     });
-    it('lane 1 plays the major third (E4)', () => {
-      expect(noteForLane(1)).toBe('E4');
+    it('lane 1 plays the minor third (C4)', () => {
+      expect(noteForLane(1)).toBe('C4');
     });
-    it('lane 2 plays the perfect fifth (G4)', () => {
-      expect(noteForLane(2)).toBe('G4');
+    it('lane 2 plays the perfect fifth (E4)', () => {
+      expect(noteForLane(2)).toBe('E4');
     });
   });
 
@@ -38,7 +38,7 @@ describe('SongPlayer scheduling math', () => {
     it('schedules step 0 at time 0', () => {
       const c = chartFromLanes([[0], [], [], [], [], [], [], []]);
       const out = buildSchedule(c);
-      expect(out).toEqual([{ timeSec: 0, note: 'C4' }]);
+      expect(out).toEqual([{ timeSec: 0, note: 'A3' }]);
     });
 
     it('spaces steps by 60s / (bpm * 2) at the chart bpm', () => {
@@ -46,15 +46,15 @@ describe('SongPlayer scheduling math', () => {
       const c = chartFromLanes([[0], [1], [2], [], [], [], [], []], 120);
       const out = buildSchedule(c);
       expect(out.map((s) => s.timeSec)).toEqual([0, 0.25, 0.5]);
-      expect(out.map((s) => s.note)).toEqual(['C4', 'E4', 'G4']);
+      expect(out.map((s) => s.note)).toEqual(['A3', 'C4', 'E4']);
     });
 
     it('emits one entry per active lane on a multi-lane step (double-tap)', () => {
       const c = chartFromLanes([[0, 2], [], [], [], [], [], [], []], 120);
       const out = buildSchedule(c);
       expect(out).toEqual([
-        { timeSec: 0, note: 'C4' },
-        { timeSec: 0, note: 'G4' },
+        { timeSec: 0, note: 'A3' },
+        { timeSec: 0, note: 'E4' },
       ]);
     });
 
@@ -73,10 +73,10 @@ describe('SongPlayer scheduling math', () => {
       c.bpm = 120;
       const out = buildSchedule(c);
       expect(out).toHaveLength(2);
-      expect(out[0]).toEqual({ timeSec: 0, note: 'C4' });
+      expect(out[0]).toEqual({ timeSec: 0, note: 'A3' });
       // 31 × 0.25s = 7.75s
       expect(out[1]!.timeSec).toBeCloseTo(7.75, 2);
-      expect(out[1]!.note).toBe('G4');
+      expect(out[1]!.note).toBe('E4');
     });
   });
 });
