@@ -5,6 +5,7 @@ import { playBoxOpenAnimation } from '@/ui/box-open-animation';
 import { TopHud } from '@/ui/top-hud';
 import { openBox, fetchState, renameCat } from '@/services/state-client';
 import { CatNamingModal } from '@/ui/cat-naming-modal';
+import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
 import {
   BOX_CATALOG,
   CAT_CATALOG,
@@ -329,9 +330,11 @@ export class Purchase extends Scene {
       }
 
       const isCat = pull.kind === 'cat';
+      const isEffect = !isCat && isEffectCosmeticId(pull.itemId as string);
       const catEntry = isCat ? CAT_CATALOG.find((c) => c.id === (pull.itemId as CatBreed)) : undefined;
-      const cosEntry = !isCat ? COSMETIC_CATALOG.find((c) => c.id === (pull.itemId as CosmeticId)) : undefined;
-      const itemName = catEntry?.name ?? cosEntry?.name ?? pull.itemId;
+      const cosEntry = !isCat && !isEffect ? COSMETIC_CATALOG.find((c) => c.id === (pull.itemId as CosmeticId)) : undefined;
+      const effectEntry = isEffect ? CAT_EFFECT_BY_ID[pull.itemId as string] : undefined;
+      const itemName = catEntry?.name ?? effectEntry?.name ?? cosEntry?.name ?? pull.itemId;
       const { frame, rainbow, tint } = resolveFrame(pull.itemId, isCat);
 
       playBoxOpenAnimation(
@@ -344,6 +347,7 @@ export class Purchase extends Scene {
           rarity: pull.rarity,
           ...(rainbow ? { rainbow: true } : {}),
           ...(tint ? { tint: parseInt(tint.replace('#', ''), 16) } : {}),
+          ...(isEffect ? { effectId: pull.itemId as string } : {}),
           duplicate: pull.duplicate,
           refundCoins: pull.refundCoins,
         },

@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { Scene, GameObjects } from 'phaser';
 import { hslToInt } from '@/util/color';
+import { CAT_EFFECT_BY_ID, type EffectHandle } from '@/effects/cat-effects';
 import type { Rarity } from '@/../shared/state';
 
 const PARTICLE_TEXTURE = 'box-open-particle';
@@ -45,6 +46,14 @@ export interface BoxOpenAnimationOpts {
    * "uncommon" twice.
    */
   inlineRarityTemplate?: { prefix: string; suffix: string };
+  /**
+   * When set, renders the named effect (`effect-red-glow`, `effect-fire`, …)
+   * instead of an atlas frame — there's no cat for the effect to live on at
+   * reveal time, so we attach it to a transparent placeholder sprite the
+   * same size as a seated cat. Used by Purchase when a cosmetic-box pull
+   * returns an effect cosmetic.
+   */
+  effectId?: string;
 }
 
 /**
@@ -132,20 +141,40 @@ export function playBoxOpenAnimation(
       duration: 700,
     });
 
-    const item = scene.add
-      .image(cx, cy, opts.textureKey, opts.frame)
-      .setOrigin(0.5)
-      .setScale(0)
-      .setDepth(ITEM_DEPTH);
-    if (opts.tint !== undefined && !opts.rainbow) item.setTint(opts.tint);
-    const naturalMax = Math.max(item.width || 64, item.height || 64);
-    const targetScale = Math.min(220 / naturalMax, 4);
-    scene.tweens.add({
-      targets: item,
-      scale: targetScale,
-      duration: 420,
-      ease: 'Back.easeOut',
-    });
+    // Effect mode: render a code-driven CatEffect (glow / particles) instead
+    // of an atlas sprite. We anchor it to a transparent placeholder Image
+    // sized like a seated cat so the effect's footPosition / displayHeight
+    // math reads sane values. Without this branch, resolveFrame would hand
+    // us a non-existent atlas frame, item.width would be 0, targetScale
+    // would explode to Infinity, and the reveal would hang behind the
+    // depth-9000 dim — which is the "hamburger disappears" symptom.
+    let item: GameObjects.Image | GameObjects.Sprite;
+    let effectHandle: EffectHandle | null = null;
+    if (opts.effectId && CAT_EFFECT_BY_ID[opts.effectId]) {
+      const placeholder = scene.add
+        .image(cx, cy + 60, opts.textureKey, opts.frame)
+        .setOrigin(0.5, 1)
+        .setAlpha(0) // invisible — only the effect itself reads
+        .setDepth(ITEM_DEPTH);
+      placeholder.setDisplaySize(110, 110);
+      effectHandle = CAT_EFFECT_BY_ID[opts.effectId]!.apply(scene, placeholder, 1.8);
+      item = placeholder;
+    } else {
+      item = scene.add
+        .image(cx, cy, opts.textureKey, opts.frame)
+        .setOrigin(0.5)
+        .setScale(0)
+        .setDepth(ITEM_DEPTH);
+      if (opts.tint !== undefined && !opts.rainbow) item.setTint(opts.tint);
+      const naturalMax = Math.max(item.width || 64, item.height || 64);
+      const targetScale = Math.min(220 / naturalMax, 4);
+      scene.tweens.add({
+        targets: item,
+        scale: targetScale,
+        duration: 420,
+        ease: 'Back.easeOut',
+      });
+    }
 
     let rainbowTween: Phaser.Tweens.Tween | null = null;
     if (opts.rainbow) {
@@ -293,6 +322,11 @@ export function playBoxOpenAnimation(
       scene.tweens.killTweensOf(labels);
       rainbowTween?.stop();
       rainbowTween?.remove();
+      // Tear down the effect BEFORE its placeholder dies — the effect's
+      // POST_UPDATE sync reads target.x/y, and a destroyed target would
+      // throw and skip the rest of cleanup.
+      effectHandle?.destroy();
+      effectHandle = null;
 
       scene.tweens.add({
         targets: [item, glow, ...nameTexts, ...(rarityText ? [rarityText] : []), hint, dim, ...(dupText ? [dupText] : [])],
