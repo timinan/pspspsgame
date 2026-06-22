@@ -7,6 +7,7 @@ import { ChartPlayer } from '@/systems/chart-player';
 import { ScoreSystem } from '@/systems/score-system';
 import { TopHud } from '@/ui/top-hud';
 import * as L from '@/constants/scene-layout';
+import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
 import { fetchState, loadChart } from '@/services/state-client';
 import { CAT_CATALOG, emptyChart } from '@/../shared/state';
@@ -101,10 +102,13 @@ export class Game extends Scene {
   // Private — layout
   // -----------------------------------------------------------------------
 
-  /** Draw 3 translucent vertical lane backdrops + hit line for each lane. */
+  /**
+   * Draw 3 vertical lane backdrops + the original "fuzzy ball" hit target
+   * for each lane. Reuses the Phase 1 rhythm assets (RhythmBarBackground,
+   * PspspsTarget) so the visuals match the rest of the game.
+   */
   private drawLanes(): void {
     const { width, height } = this.scale;
-    // Scale design coords to actual canvas size.
     const scaleY = height / L.DESIGN_H;
     const laneTopY = L.LANE_TOP_Y * scaleY;
     const laneH = (L.LANE_BOTTOM_Y - L.LANE_TOP_Y) * scaleY;
@@ -117,15 +121,20 @@ export class Game extends Scene {
       const cx = L.laneCenterX(i as 0 | 1 | 2, width);
       const color = L.LANE_COLORS[i]!;
 
-      // Translucent lane backdrop
-      const lane = this.add.rectangle(cx, laneTopY + laneH / 2, colW, laneH, color, 0.12);
-      lane.setStrokeStyle(1.5, color, 0.35);
-      this.laneRects.push(lane);
+      // Lane backdrop: the original rhythm bar track stretched vertically
+      // and tinted per-lane (blue / purple / yellow).
+      const bar = this.add.image(cx, laneTopY + laneH / 2, AssetKeys.Image.RhythmBarBackground);
+      bar.displayWidth = colW;
+      bar.displayHeight = laneH;
+      bar.setTint(color);
+      this.laneRects.push(bar as unknown as Phaser.GameObjects.Rectangle);
 
-      // Solid hit line at the bottom of the lane
-      const hitLine = this.add.rectangle(cx, hitLineY, colW - 4, 3, color, 0.9);
-      hitLine.setStrokeStyle(0);
-      this.laneRects.push(hitLine);
+      // Hit target at the bottom of the lane — the original "fuzzy ball"
+      // target from horizontal rhythm. Notes get consumed when they reach it.
+      const target = this.add.image(cx, hitLineY, AssetKeys.Image.PspspsTarget);
+      target.setDisplaySize(48, 48);
+      target.setTint(color);
+      this.laneRects.push(target as unknown as Phaser.GameObjects.Rectangle);
     }
   }
 

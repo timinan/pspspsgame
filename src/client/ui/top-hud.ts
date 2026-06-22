@@ -263,10 +263,19 @@ export class TopHud {
       itemBg.on('pointerover', () => itemBg.setFillStyle(0xffd34d, 0.18));
       itemBg.on('pointerout', () => itemBg.setFillStyle(0x0b041a, 0.6));
       itemBg.on('pointerdown', () => {
-        // Schedule the action AFTER the drawer closes so the destination
-        // scene starts on a clean slate.
+        // Fire the action immediately. scene.start() handles its own teardown;
+        // we previously delayed by 180ms to let the close-tween play, but the
+        // delayedCall could be cancelled if the scene's time manager was torn
+        // down mid-flight, causing the nav to silently freeze. Synchronous nav
+        // is reliable; the closeDrawer tween continues animating until Phaser
+        // shuts the scene down.
         this.closeDrawer();
-        this.scene.time.delayedCall(180, () => item.onTap());
+        try {
+          item.onTap();
+        } catch (err) {
+          // Surface destination-scene errors instead of swallowing them.
+          console.error('[TopHud] drawer item onTap threw:', err);
+        }
       });
     }
 

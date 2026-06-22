@@ -1,24 +1,33 @@
 import { GameObjects, Scene } from 'phaser';
 import type { LaneId } from '../../shared/state';
+import { AssetKeys } from '../constants/assets';
 import { LANE_COLORS } from './note-colors';
 
 export { LANE_COLORS };
 
+/**
+ * A falling rhythm note rendered as the original Phase 1 "PS element" ball
+ * (the colored ball that slid down the horizontal rhythm bar). Pooled —
+ * configure() is the reset point; recycle() deactivates without resetting
+ * `consumed`.
+ */
 export class Note extends GameObjects.Container {
   laneId: LaneId = 0;
   hitAtMs = 0;
   consumed = false;
-  private graphics: GameObjects.Graphics;
+  private ball: GameObjects.Image;
+  private letters: GameObjects.Image;
 
   constructor(scene: Scene) {
     super(scene, 0, 0);
-    this.graphics = scene.add.graphics();
-    this.add(this.graphics);
+    this.ball = scene.add.image(0, 0, AssetKeys.Image.PspspsElementBall);
+    this.ball.setDisplaySize(36, 36);
+    this.letters = scene.add.image(0, 0, AssetKeys.Image.PspspsElementLetters);
+    this.letters.setDisplaySize(36, 36);
+    this.add([this.ball, this.letters]);
     this.setActive(false).setVisible(false);
   }
 
-  // configure() is the RESET POINT — every field that can leak across pool reuses
-  // must be set here. recycle() only marks the object inactive and stops tweens.
   configure(
     laneId: LaneId,
     x: number,
@@ -34,10 +43,10 @@ export class Note extends GameObjects.Container {
     this.setActive(true).setVisible(true);
     this.setAlpha(1);
     this.setScale(1);
-    this.graphics.clear();
-    this.graphics.fillStyle(LANE_COLORS[laneId]);
-    this.graphics.fillCircle(0, 0, 18);
-    this.scene.tweens.killTweensOf(this); // safety — never inherit a stale tween
+    this.ball.setTint(LANE_COLORS[laneId]);
+    // Letters stay white so the "PS" reads clearly on top of any lane tint.
+    this.letters.clearTint();
+    this.scene.tweens.killTweensOf(this);
     this.scene.tweens.add({
       targets: this,
       y: endY,
