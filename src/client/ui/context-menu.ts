@@ -68,12 +68,22 @@ export class ContextMenu {
     const rowH = 30;
     const w = 160;
     const h = rows.length * rowH + 8;
+    const margin = 12;
+    const sceneW = this.scene.scale.width;
+    const sceneH = this.scene.scale.height;
 
-    // Position above the anchor by default; flip below if it would clip top
-    let topY = y - h - 6;
-    if (topY < 50) topY = y + 20;
+    // Anchor the menu BESIDE the tap point — to the right by default, or to
+    // the left if it would clip the right edge of the canvas. Vertically
+    // center on the anchor, then clamp into screen.
+    let leftX = x + margin;
+    if (leftX + w > sceneW - 6) leftX = x - margin - w;
+    if (leftX < 6) leftX = 6;
 
-    this.container = this.scene.add.container(x, topY).setDepth(200);
+    let topY = y - h / 2;
+    if (topY < 50) topY = 50;
+    if (topY + h > sceneH - 8) topY = sceneH - 8 - h;
+
+    this.container = this.scene.add.container(leftX, topY).setDepth(200);
 
     const bg = this.scene.add
       .rectangle(0, 0, w, h, 0x2c1856, 0.98)

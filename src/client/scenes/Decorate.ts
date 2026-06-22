@@ -284,10 +284,13 @@ export class Decorate extends Scene {
     if (this.placementZones) this.placementZones.destroy(true);
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
-    const inner = width - L.LANE_GUTTER_PX * 2;
-    const colW = (inner - L.LANE_GAP_PX * (L.LANE_COUNT - 1)) / L.LANE_COUNT;
-    const stageTop = L.TOP_HUD_H * scaleY;
-    const stageH = L.CAT_STAGE_H * scaleY;
+    // Center the placement panel on the actual cat-anchor y used in seatCats().
+    const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.88) * scaleY;
+    // Panel size tuned to roughly the cat sprite footprint, not the full lane
+    // column. Square-ish so it reads as "drop the cat here".
+    const panelSize = Math.min(96, L.CAT_STAGE_H * 0.55 * scaleY);
+    // Anchor the panel a touch above the cat foot so the cat fits inside.
+    const panelCenterY = catY - panelSize * 0.4;
 
     const container = this.add.container(0, 0).setDepth(40);
     this.placementZones = container;
@@ -296,13 +299,13 @@ export class Decorate extends Scene {
       const seatId = SEAT_ORDER[i]!;
       const cx = L.laneCenterX(i as 0 | 1 | 2, width);
       const zone = this.add
-        .rectangle(cx, stageTop + stageH / 2, colW - 6, stageH - 12, 0x4dffb4, 0.18)
-        .setStrokeStyle(2, 0x4dffb4, fromSeat === seatId ? 0.4 : 0.9)
+        .rectangle(cx, panelCenterY, panelSize, panelSize, 0x4dffb4, 0.22)
+        .setStrokeStyle(2, 0x4dffb4, fromSeat === seatId ? 0.4 : 0.95)
         .setInteractive({ useHandCursor: true });
       const label = this.add
-        .text(cx, stageTop + stageH / 2, fromSeat === seatId ? 'HERE' : 'TAP TO PLACE', {
+        .text(cx, panelCenterY, fromSeat === seatId ? 'HERE' : '+', {
           fontFamily: '"Courier New", monospace',
-          fontSize: '10px',
+          fontSize: fromSeat === seatId ? '10px' : '26px',
           fontStyle: 'bold',
           color: '#4dffb4',
         })
@@ -549,10 +552,18 @@ export class Decorate extends Scene {
       // Real cat sprite from the atlas instead of an emoji. Frame derivation
       // mirrors the box-open animation's resolveFrame() — for tinted variants
       // we render the parent's idle frame and apply the tint.
+      // Scale uniformly so the cat's natural aspect ratio is preserved
+      // regardless of the cell's aspect ratio.
       const { frame, tint } = catThumbFrame(entry);
-      const sprite = this.add
-        .image(x + thumbW / 2, y + thumbH / 2 - 4, AssetKeys.Atlas.Cats, frame)
-        .setDisplaySize(Math.floor(thumbH * 0.7), Math.floor(thumbH * 0.7));
+      const sprite = this.add.image(
+        x + thumbW / 2,
+        y + thumbH / 2 - 4,
+        AssetKeys.Atlas.Cats,
+        frame,
+      );
+      const maxSize = Math.min(thumbW, thumbH) * 0.62;
+      const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+      sprite.setScale(scale);
       if (tint !== undefined) sprite.setTint(tint);
 
       const label = this.add.text(x + thumbW / 2, y + thumbH - 10, entry.name.toUpperCase(), {
@@ -612,7 +623,12 @@ export class Decorate extends Scene {
     const ownedBgs = this.playerState?.ownedBackgrounds ?? (['default'] as BackgroundId[]);
     const activeBg = this.playerState?.activeBackground ?? ('default' as BackgroundId);
 
-    const allBgs = Object.values(BACKGROUND_CATALOG);
+    // Only show backgrounds the player actually owns. Locked ones are bought
+    // via the Background Box in Purchase — there's no point teasing them
+    // here without an unlock path on this screen.
+    const allBgs = Object.values(BACKGROUND_CATALOG).filter((entry) =>
+      ownedBgs.includes(entry.id as BackgroundId),
+    );
 
     for (let i = 0; i < allBgs.length && i < MAX_TRAY; i++) {
       const entry = allBgs[i]!;
@@ -621,7 +637,7 @@ export class Decorate extends Scene {
       const x = padding + col * (thumbW + gapX);
       const y = padding + row * (thumbH + gapY);
 
-      const isOwned = ownedBgs.includes(entry.id as BackgroundId);
+      const isOwned = true; // pre-filtered above; the locked branch is now unreachable
       const isActive = activeBg === entry.id;
 
       if (isOwned) {
