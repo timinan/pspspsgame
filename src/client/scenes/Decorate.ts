@@ -202,6 +202,9 @@ export class Decorate extends Scene {
         restingAnimation: 'idle',
         x: cx,
         y: catY,
+        // 1.4× matches the Game scene seated-cat scale so the size doesn't
+        // change when the player switches between Decorate and Play.
+        scale: 1.4,
       };
 
       // Resolve cosmetic INSTANCE ids → catalog TYPE ids via the sidecar

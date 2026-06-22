@@ -77,6 +77,7 @@ export class Game extends Scene {
     this.hitFeedbackTexts = [];
     this.roundOver = false;
     this.startTimeMs = 0;
+    this.cleanedUp = false;
   }
 
   async create(): Promise<void> {
@@ -779,7 +780,23 @@ export class Game extends Scene {
   // Private — cleanup
   // -----------------------------------------------------------------------
 
+  private cleanedUp = false;
   private cleanup(): void {
+    // Guard against double-fire. Phaser only fires SHUTDOWN once per
+    // shutdown, but if scene.start is called from inside a tween's
+    // onComplete (or from a drawer item that's mid-animation), edge cases
+    // can re-enter. Better to short-circuit than to destroy twice.
+    if (this.cleanedUp) return;
+    this.cleanedUp = true;
+
+    // hud FIRST so its drawer panel/scrim get force-destroyed before
+    // tweens.killAll wipes the close animation that would otherwise
+    // destroy them. The orphaned interactive scrim is what was eating
+    // every click in the next scene and making the game appear frozen.
+    this.hud?.destroy();
+    this.summary?.destroy(true);
+    this.summary = null;
+
     this.tweens.killAll();
     this.time.removeAllEvents();
     this.input.removeAllListeners();
@@ -801,9 +818,6 @@ export class Game extends Scene {
     for (const l of this.seatedNameLabels) l.destroy();
     this.seatedNameLabels = [];
     this.bg?.destroy();
-    this.hud?.destroy();
-    this.summary?.destroy(true);
-    this.summary = null;
   }
 }
 

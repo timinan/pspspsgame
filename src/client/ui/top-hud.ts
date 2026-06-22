@@ -308,25 +308,36 @@ export class TopHud {
 
     const { width } = this.scene.scale;
 
+    // Keep `drawerPanel`/`drawerScrim` set during the close animation. If
+    // we nulled them here and the close tween was later killed by a scene
+    // shutdown (Game.cleanup runs tweens.killAll), the onComplete would
+    // never destroy them — they'd survive in scene.displayList as
+    // orphaned input-catching ghosts. The tween onComplete nulls each
+    // field only on natural completion; the synchronous destroy() path
+    // tears them down if the tween dies.
     if (this.drawerPanel) {
       const panel = this.drawerPanel;
-      this.drawerPanel = null;
       this.scene.tweens.add({
         targets: panel,
         x: width,
         duration: 160,
         ease: 'Quad.easeIn',
-        onComplete: () => panel.destroy(true),
+        onComplete: () => {
+          panel.destroy(true);
+          if (this.drawerPanel === panel) this.drawerPanel = null;
+        },
       });
     }
     if (this.drawerScrim) {
       const scrim = this.drawerScrim;
-      this.drawerScrim = null;
       this.scene.tweens.add({
         targets: scrim,
         alpha: 0,
         duration: 160,
-        onComplete: () => scrim.destroy(),
+        onComplete: () => {
+          scrim.destroy();
+          if (this.drawerScrim === scrim) this.drawerScrim = null;
+        },
       });
     }
 
@@ -336,7 +347,22 @@ export class TopHud {
   }
 
   destroy(): void {
-    this.closeDrawer();
+    // Belt-and-suspenders teardown — closeDrawer schedules the visual
+    // outbound animation, but Game.cleanup runs tweens.killAll which kills
+    // that tween before its onComplete fires. The scrim is interactive,
+    // so if it survives this scene transition it eats every click in the
+    // next scene and the game appears frozen. Force-destroy synchronously.
+    if (this.drawerPanel) {
+      this.scene.tweens.killTweensOf(this.drawerPanel);
+      this.drawerPanel.destroy(true);
+      this.drawerPanel = null;
+    }
+    if (this.drawerScrim) {
+      this.scene.tweens.killTweensOf(this.drawerScrim);
+      this.drawerScrim.destroy();
+      this.drawerScrim = null;
+    }
+    this.drawerOpen = false;
     this.modeContainer?.destroy(true);
     this.scene.tweens.killTweensOf(this.container);
     this.container.destroy(true);

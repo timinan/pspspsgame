@@ -56,15 +56,19 @@ export class Cat {
   private readonly postUpdate: () => void;
   private rainbowTween: Phaser.Tweens.Tween | null = null;
   private revertTimer: Phaser.Time.TimerEvent | undefined;
+  /** Cached resting scale (from model.scale). Animations multiply this so a
+   *  1.4× cat doesn't snap back to 1× when playIdle / playMeow tween scaleX. */
+  private readonly baseScale: number;
 
   constructor(
     private readonly scene: Scene,
     public readonly model: CatModel,
   ) {
+    this.baseScale = model.scale ?? 1;
     const initialFrame = Cat.frameName(model.breed, model.animation, 0);
     this.sprite = scene.add.sprite(0, 0, AssetKeys.Atlas.Cats, initialFrame);
     this.sprite.setOrigin(0.5, 1);
-    if (model.scale && model.scale !== 1) this.sprite.setScale(model.scale);
+    if (this.baseScale !== 1) this.sprite.setScale(this.baseScale);
     this.ensureAnimation(model.breed, model.animation);
     this.playAnimation(model.animation);
 
@@ -183,7 +187,8 @@ export class Cat {
     if (this.scene.anims.exists(key)) {
       this.sprite.play({ key, repeat: 0 });
     }
-    this.scene.tweens.add({ targets: this.sprite, scaleX: 1.1, scaleY: 1.1, duration: 120, yoyo: false });
+    const s = this.baseScale * 1.1;
+    this.scene.tweens.add({ targets: this.sprite, scaleX: s, scaleY: s, duration: 120, yoyo: false });
     this.sprite.setTint(0x9fffd4);
     this.revertTimer = this.scene.time.delayedCall(durationMs, () => this.playIdle());
   }
@@ -194,7 +199,8 @@ export class Cat {
     if (this.scene.anims.exists(key)) {
       this.sprite.play({ key, repeat: 0 });
     }
-    this.scene.tweens.add({ targets: this.sprite, scaleX: 0.95, scaleY: 0.95, duration: 120, yoyo: false });
+    const s = this.baseScale * 0.95;
+    this.scene.tweens.add({ targets: this.sprite, scaleX: s, scaleY: s, duration: 120, yoyo: false });
     this.sprite.setTint(0xff9aa0);
     this.revertTimer = this.scene.time.delayedCall(durationMs, () => this.playIdle());
   }
@@ -207,7 +213,8 @@ export class Cat {
     if (this.scene.anims.exists(key)) {
       this.sprite.play({ key, repeat: 0 });
     }
-    this.scene.tweens.add({ targets: this.sprite, scaleX: 1.08, scaleY: 1.08, duration: 120, yoyo: false });
+    const s = this.baseScale * 1.08;
+    this.scene.tweens.add({ targets: this.sprite, scaleX: s, scaleY: s, duration: 120, yoyo: false });
     this.revertTimer = this.scene.time.delayedCall(durationMs, () => this.playIdle());
   }
 
@@ -217,7 +224,7 @@ export class Cat {
     if (this.scene.anims.exists(key)) {
       this.sprite.play({ key });
     }
-    this.scene.tweens.add({ targets: this.sprite, scaleX: 1, scaleY: 1, duration: 120 });
+    this.scene.tweens.add({ targets: this.sprite, scaleX: this.baseScale, scaleY: this.baseScale, duration: 120 });
     this.sprite.clearTint();
   }
 
