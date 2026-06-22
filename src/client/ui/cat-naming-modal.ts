@@ -46,7 +46,7 @@ export class CatNamingModal {
       'display:flex',
       'flex-direction:column',
       'align-items:center',
-      'gap:12px',
+      'gap:10px',
       `max-width:${Math.min(width - 32, 320)}px`,
       'width:90%',
     ].join(';');
@@ -64,9 +64,10 @@ export class CatNamingModal {
     const input = document.createElement('input');
     input.type = 'text';
     input.value = opts.defaultName;
-    // Intentionally no maxLength — we WANT users to be able to type past
-    // the limit so they see the "max length" error instead of having the
-    // browser silently swallow keystrokes.
+    // Hard cap typing at the limit; when the player tries to type more,
+    // the beforeinput listener below surfaces a "max length" error so the
+    // block isn't silent.
+    input.maxLength = NAME_MAX_LENGTH;
     input.placeholder = 'Enter a name…';
     input.style.cssText = [
       'width:100%',
@@ -154,9 +155,26 @@ export class CatNamingModal {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') confirm();
     });
+    // Show the "max length" error the moment the player attempts to type
+    // past the limit, even though the browser silently blocks the keystroke
+    // because of maxLength. Without this listener the block is invisible.
+    input.addEventListener('beforeinput', (e) => {
+      const ev = e as InputEvent;
+      const insertingChar = ev.inputType?.startsWith('insert');
+      const atLimit = input.value.length >= NAME_MAX_LENGTH;
+      const noSelection = input.selectionStart === input.selectionEnd;
+      if (insertingChar && atLimit && noSelection) {
+        errorLine.textContent = `You are at the max length (${NAME_MAX_LENGTH} characters).`;
+        input.style.borderColor = '#ff7a7a';
+      }
+    });
     btn.addEventListener('click', confirm);
 
-    panel.append(title, input, charCount, errorLine, btn);
+    // Layout order: title → input → counter → Save → error.
+    // Error sits BELOW the button so the gap between the input and the
+    // primary action reads as a clean stack, and the error is right where
+    // the player will look after a failed click.
+    panel.append(title, input, charCount, btn, errorLine);
     overlay.append(panel);
     document.body.append(overlay);
 
