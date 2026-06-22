@@ -722,11 +722,20 @@ export class Game extends Scene {
     const now = this.time.now - this.startTimeMs;
     const note = this.activeNoteInLane(laneId, now);
     if (!note) return; // empty lane — no penalty, just no-op
-    // Any tap on an active note in the lane registers. Tight window =
-    // perfect, anything else along the ball's fall is a great. Miss is
-    // reserved for balls that leave the screen entirely.
-    const dt = Math.abs(now - note.hitAtMs);
-    const grade: 'perfect' | 'great' = dt <= Balance.perfectWindowMs ? 'perfect' : 'great';
+
+    // Position-based hit detection. The big target is 72px and the small
+    // note is 54px (radii 36 and 27). dy is the gap between centers:
+    //   dy <= ~15  → perfect (small ball nestled inside the target)
+    //   dy <= ~60  → great   (sprites are visually touching)
+    //   dy >  ~60  → no hit  (small ball nowhere near the target)
+    const scaleY = this.scale.height / L.DESIGN_H;
+    const targetY = L.HIT_LINE_Y * scaleY;
+    const dy = Math.abs(note.y - targetY);
+    const maxHitDistance = 60;
+    const perfectDistance = 15;
+    if (dy > maxHitDistance) return; // ball isn't touching the target yet
+
+    const grade: 'perfect' | 'great' = dy <= perfectDistance ? 'perfect' : 'great';
     this.score.registerHit(grade);
     this.cats[laneId]?.playMeow(Balance.catReactionMs);
     note.consumed = true;
@@ -882,20 +891,45 @@ export class Game extends Scene {
  * ChartPlayer (the player just sees one fresh pattern per round).
  */
 function makeRandomChart(): Chart {
-  const steps: { lanes: LaneId[] }[] = [];
-  for (let i = 0; i < 8; i++) {
-    const lanes: LaneId[] = [];
-    // 60% spawn rate (was 80%) — gives breathing room while learning.
-    if (Math.random() < 0.6) {
-      lanes.push(Math.floor(Math.random() * 3) as LaneId);
-      // 10% double-tap (was 18%) — two-lane reach is hard to land
-      // first-time, save it for authored charts.
-      if (Math.random() < 0.1) {
-        const second = Math.floor(Math.random() * 3) as LaneId;
-        if (!lanes.includes(second)) lanes.push(second);
+  const generate = (): { lanes: LaneId[] }[] => {
+    const out: { lanes: LaneId[] }[] = [];
+    for (let i = 0; i < 8; i++) {
+      const lanes: LaneId[] = [];
+      // 60% spawn rate (was 80%) — gives breathing room while learning.
+      if (Math.random() < 0.6) {
+        lanes.push(Math.floor(Math.random() * 3) as LaneId);
+        // 10% double-tap (was 18%) — two-lane reach is hard to land
+        // first-time, save it for authored charts.
+        if (Math.random() < 0.1) {
+          const second = Math.floor(Math.random() * 3) as LaneId;
+          if (!lanes.includes(second)) lanes.push(second);
+        }
       }
+      out.push({ lanes });
     }
-    steps.push({ lanes });
+    return out;
+  };
+  const allThreeLanes = (s: { lanes: LaneId[] }[]): boolean => {
+    const seen = new Set<LaneId>();
+    for (const step of s) for (const lane of step.lanes) seen.add(lane);
+    return seen.size === 3;
+  };
+  // Naive random + 60% empty-step probability means ~17% of generations
+  // never roll one of the three lanes, and the player sees that lane
+  // sit silent for the whole 3.5-minute round (the chart loops with the
+  // same pattern). Re-roll up to 16 times until all three lanes appear,
+  // then force-inject any missing lane into a random step as a safety net.
+  let steps = generate();
+  for (let i = 0; i < 16 && !allThreeLanes(steps); i++) steps = generate();
+  if (!allThreeLanes(steps)) {
+    const seen = new Set<LaneId>();
+    for (const step of steps) for (const lane of step.lanes) seen.add(lane);
+    for (const lane of [0, 1, 2] as LaneId[]) {
+      if (seen.has(lane)) continue;
+      const idx = Math.floor(Math.random() * steps.length);
+      const step = steps[idx]!;
+      if (!step.lanes.includes(lane)) step.lanes.push(lane);
+    }
   }
   return {
     authorId: 'random',
