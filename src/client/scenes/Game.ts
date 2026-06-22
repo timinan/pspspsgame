@@ -553,6 +553,12 @@ export class Game extends Scene {
   }
 
   private bindInput(): void {
+    // Phaser defaults to a single touch pointer, so a second finger landing
+    // on a different lane during a double-tap step gets dropped — one of
+    // the notes will always miss even with perfect timing. Add two more
+    // active pointers so the player can hit all 3 lanes simultaneously.
+    this.input.addPointer(2);
+
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
     const laneTopY = L.LANE_TOP_Y * scaleY;
