@@ -62,9 +62,14 @@ export const Balance = {
   interactionMarkerTraversalMs: 1_400,
 
   // Phase 5: vertical rhythm gameplay
-  perfectWindowMs: 50,
-  greatWindowMs: 100,
-  noteFallMs: 1500,
+  // Hit windows widened from 50/100ms so first-time players actually land
+  // greats; tight windows + fast fall made every tap feel like a miss.
+  perfectWindowMs: 80,
+  greatWindowMs: 200,
+  // 2400ms (was 1500) — gives the player ~2.4s to track a note from spawn
+  // to the hit line. Pairs with the slower 90bpm random chart so density
+  // stays around 6 notes on screen at peak instead of 9–10.
+  noteFallMs: 2400,
   loopCount: 8,
   pointsPerfect: 100,
   pointsGreat: 50,

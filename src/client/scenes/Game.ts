@@ -33,6 +33,8 @@ export class Game extends Scene {
   /** Name labels rendered below each seated cat (matches Decorate preview). */
   private seatedNameLabels: Phaser.GameObjects.Text[] = [];
   private laneRects: Phaser.GameObjects.Rectangle[] = [];
+  /** Hit targets per lane — kept separate so we can flash them on hit/miss. */
+  private hitTargets: Phaser.GameObjects.Image[] = [];
   private tapZones: Phaser.GameObjects.Rectangle[] = [];
   private notes: Note[] = [];
   private hud!: TopHud;
@@ -40,6 +42,13 @@ export class Game extends Scene {
   private score!: ScoreSystem;
   private startTimeMs = 0;
   private roundOver = false;
+
+  // -----------------------------------------------------------------------
+  // Live hit / miss feedback (one floating "PERFECT" / "GREAT" / "MISS"
+  // text per lane, reused on every tap; one centered combo callout).
+  // -----------------------------------------------------------------------
+  private hitFeedbackTexts: Phaser.GameObjects.Text[] = [];
+  private comboText!: Phaser.GameObjects.Text;
 
   // Summary overlay — built once in create(), shown by endRound()
   private summary: Phaser.GameObjects.Container | null = null;
@@ -57,8 +66,10 @@ export class Game extends Scene {
     this.cats = [];
     this.seatedNameLabels = [];
     this.laneRects = [];
+    this.hitTargets = [];
     this.tapZones = [];
     this.notes = [];
+    this.hitFeedbackTexts = [];
     this.roundOver = false;
     this.startTimeMs = 0;
   }
@@ -76,7 +87,9 @@ export class Game extends Scene {
     this.drawLanes();
     this.seatCats();
     this.buildHud();
+    this.buildFeedback();
     this.buildSummaryOverlay();
+    this.updateHud();
 
     // Pre-warm note pool — avoids allocations during first 12 spawns
     for (let i = 0; i < 12; i++) {
@@ -140,7 +153,7 @@ export class Game extends Scene {
       const target = this.add.image(cx, hitLineY, AssetKeys.Image.PspspsTarget);
       target.setDisplaySize(48, 48);
       target.setTint(color);
-      this.laneRects.push(target as unknown as Phaser.GameObjects.Rectangle);
+      this.hitTargets[i] = target;
     }
   }
 
@@ -379,6 +392,137 @@ export class Game extends Scene {
     });
   }
 
+  /**
+   * Build the per-lane floating grade text and the centered combo callout.
+   * One Text per lane is reused across the round so taps don't allocate.
+   * Combo text sits in the cat-stage band, just above the lanes — same
+   * spot Phase 1 used for combo milestones.
+   */
+  private buildFeedback(): void {
+    const { width, height } = this.scale;
+    const scaleY = height / L.DESIGN_H;
+    const hitLineY = L.HIT_LINE_Y * scaleY;
+    const fontBase = { fontFamily: 'Pixeloid Sans, sans-serif' };
+
+    for (let i = 0; i < L.LANE_COUNT; i++) {
+      const cx = L.laneCenterX(i as 0 | 1 | 2, width);
+      const txt = this.add
+        .text(cx, hitLineY - 36, '', {
+          ...fontBase,
+          fontStyle: 'bold',
+          fontSize: '14px',
+          color: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5)
+        .setAlpha(0)
+        .setDepth(50);
+      this.hitFeedbackTexts.push(txt);
+    }
+
+    const cx = width / 2;
+    // Combo sits just above the lane top — visible without covering the cats.
+    const comboY = (L.LANE_TOP_Y - 18) * scaleY;
+    this.comboText = this.add
+      .text(cx, comboY, '', {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '22px',
+        color: '#ffd34d',
+        stroke: '#1a0a2e',
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setAlpha(0)
+      .setDepth(50);
+  }
+
+  /** Refresh score / coins / best in the TopHud. Cheap — call after every
+   *  judged tap or miss instead of every frame. */
+  private updateHud(): void {
+    const coins = this.playerState?.coins ?? 0;
+    const best = this.playerState?.bestScore ?? 0;
+    this.hud.setStats(this.score.get(), coins, Math.max(best, this.score.get()));
+  }
+
+  /** Punch the lane's hit target on a tap so the player sees their action
+   *  registered even if no note was present. Grade controls the tint flash. */
+  private flashTarget(laneId: LaneId, grade: 'perfect' | 'great' | 'miss'): void {
+    const target = this.hitTargets[laneId];
+    if (!target) return;
+    const baseTint = L.LANE_COLORS[laneId]!;
+    const flashTint =
+      grade === 'perfect' ? 0xffffff : grade === 'great' ? 0xffd34d : 0xff6b6b;
+    target.setTint(flashTint);
+    this.tweens.killTweensOf(target);
+    target.setScale(target.scaleX); // anchor current scale
+    this.tweens.add({
+      targets: target,
+      scaleX: target.scaleX * 1.25,
+      scaleY: target.scaleY * 1.25,
+      yoyo: true,
+      duration: 110,
+      ease: 'Quad.easeOut',
+      onComplete: () => target.setTint(baseTint),
+    });
+  }
+
+  /** Pop the lane's grade text and float it upward. Reuses the same Text
+   *  object — last tween wins if the player double-taps in the same lane. */
+  private showHitFeedback(laneId: LaneId, grade: 'perfect' | 'great' | 'miss'): void {
+    const txt = this.hitFeedbackTexts[laneId];
+    if (!txt) return;
+    const label =
+      grade === 'perfect' ? 'PERFECT!' : grade === 'great' ? 'GREAT' : 'MISS';
+    const color =
+      grade === 'perfect' ? '#ffffff' : grade === 'great' ? '#ffd34d' : '#ff6b6b';
+    txt.setText(label);
+    txt.setColor(color);
+    const startY = txt.y;
+    // Reset every tween-driven prop before re-running the animation.
+    this.tweens.killTweensOf(txt);
+    txt.setAlpha(1);
+    txt.setScale(1.4);
+    txt.y = startY;
+    this.tweens.add({
+      targets: txt,
+      scale: 1,
+      duration: 110,
+      ease: 'Quad.easeOut',
+    });
+    this.tweens.add({
+      targets: txt,
+      y: startY - 22,
+      alpha: 0,
+      duration: 520,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        txt.y = startY;
+      },
+    });
+  }
+
+  /** Pop the combo callout. Hides itself when combo drops to 0. */
+  private pulseCombo(): void {
+    const combo = this.score.getCombo();
+    if (combo <= 0) {
+      this.tweens.killTweensOf(this.comboText);
+      this.comboText.setAlpha(0);
+      return;
+    }
+    this.comboText.setText(`x${combo} COMBO`);
+    this.tweens.killTweensOf(this.comboText);
+    this.comboText.setAlpha(1);
+    this.comboText.setScale(1.3);
+    this.tweens.add({
+      targets: this.comboText,
+      scale: 1,
+      duration: 140,
+      ease: 'Back.easeOut',
+    });
+  }
+
   private bindInput(): void {
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
@@ -546,17 +690,22 @@ export class Game extends Scene {
     const note = this.activeNoteInLane(laneId, now);
     if (!note) return; // mistaps don't reset combo in v1
     const dt = Math.abs(now - note.hitAtMs);
+    let grade: 'perfect' | 'great';
     if (dt <= Balance.perfectWindowMs) {
-      this.score.registerHit('perfect');
-      this.cats[laneId]?.playHappy(Balance.catReactionMs);
+      grade = 'perfect';
     } else if (dt <= Balance.greatWindowMs) {
-      this.score.registerHit('great');
-      this.cats[laneId]?.playHappy(Balance.catReactionMs);
+      grade = 'great';
     } else {
       return; // out of window — leave the note for miss detection
     }
+    this.score.registerHit(grade);
+    this.cats[laneId]?.playHappy(Balance.catReactionMs);
     note.consumed = true;
     note.recycle();
+    this.showHitFeedback(laneId, grade);
+    this.flashTarget(laneId, grade);
+    this.pulseCombo();
+    this.updateHud();
   }
 
   /** Hot path: find the closest active, unconsumed note in the given lane.
@@ -581,14 +730,22 @@ export class Game extends Scene {
   private checkMisses(): void {
     if (this.roundOver) return;
     const now = this.time.now - this.startTimeMs;
+    let anyMissed = false;
     for (let i = 0; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (!n.active || n.consumed) continue;
       if (now - n.hitAtMs > Balance.greatWindowMs) {
         this.score.registerHit('miss');
         this.cats[n.laneId]?.playAngry(Balance.catReactionMs);
+        this.showHitFeedback(n.laneId, 'miss');
+        this.flashTarget(n.laneId, 'miss');
         n.recycle();
+        anyMissed = true;
       }
+    }
+    if (anyMissed) {
+      this.pulseCombo();
+      this.updateHud();
     }
   }
 
@@ -604,6 +761,11 @@ export class Game extends Scene {
     this.scale.off('resize');
     for (const r of this.laneRects) r.destroy();
     this.laneRects = [];
+    for (const t of this.hitTargets) t.destroy();
+    this.hitTargets = [];
+    for (const t of this.hitFeedbackTexts) t.destroy();
+    this.hitFeedbackTexts = [];
+    this.comboText?.destroy();
     for (const z of this.tapZones) z.destroy();
     this.tapZones = [];
     for (const n of this.notes) n.recycle();
@@ -629,10 +791,12 @@ function makeRandomChart(): Chart {
   const steps: { lanes: LaneId[] }[] = [];
   for (let i = 0; i < 8; i++) {
     const lanes: LaneId[] = [];
-    if (Math.random() < 0.8) {
+    // 60% spawn rate (was 80%) — gives breathing room while learning.
+    if (Math.random() < 0.6) {
       lanes.push(Math.floor(Math.random() * 3) as LaneId);
-      // Occasionally double up so dense steps exist too.
-      if (Math.random() < 0.18) {
+      // 10% double-tap (was 18%) — two-lane reach is hard to land
+      // first-time, save it for authored charts.
+      if (Math.random() < 0.1) {
         const second = Math.floor(Math.random() * 3) as LaneId;
         if (!lanes.includes(second)) lanes.push(second);
       }
@@ -643,7 +807,9 @@ function makeRandomChart(): Chart {
     authorId: 'random',
     title: 'random',
     stepCount: 8,
-    bpm: 120,
+    // 90bpm (was 120) — feels like a slow groove instead of a sprint.
+    // Pairs with noteFallMs 2400 so peak density is ~6 notes on screen.
+    bpm: 90,
     steps,
     updatedAt: Date.now(),
   };
