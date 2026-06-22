@@ -15,6 +15,8 @@ export const AssetKeys = {
     ThemeDefaultBg: 'theme-default-bg',
     ThemeCozyBg: 'theme-cozy-bg',
     ThemeSpookyBg: 'theme-spooky-bg',
+    ThemeStageBg: 'theme-stage-bg',
+    ThemeForestBg: 'theme-forest-bg',
   },
   Audio: {
     Background: 'background-music',

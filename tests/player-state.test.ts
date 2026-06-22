@@ -142,9 +142,13 @@ describe('PlayerState.chart + backgrounds', () => {
     expect(fresh.chart.steps).toHaveLength(32);
   });
 
-  it('fresh state owns default background and has it active', () => {
+  it('fresh state owns every catalog background and starts on default', () => {
+    // DEV: fresh state currently grants all backgrounds so playtests can
+    // swap freely without grinding the background box. The active one is
+    // still 'default'. Revert to ['default'] before shipping.
     const fresh = createFreshPlayerState();
-    expect(fresh.ownedBackgrounds).toEqual(['default']);
+    expect(fresh.ownedBackgrounds).toContain('default');
+    expect(fresh.ownedBackgrounds.length).toBeGreaterThan(1);
     expect(fresh.activeBackground).toBe('default');
   });
 });

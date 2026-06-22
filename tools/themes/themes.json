@@ -1,5 +1,7 @@
 {
   "default": { "displayName": "Default Room", "backdropKey": "theme-default-bg", "musicKey": "theme-default-music", "rarity": "common" },
   "cozy":    { "displayName": "Cozy Cabin",   "backdropKey": "theme-cozy-bg",    "musicKey": "theme-cozy-music",    "rarity": "uncommon" },
-  "spooky":  { "displayName": "Spooky Attic", "backdropKey": "theme-spooky-bg",  "musicKey": "theme-spooky-music",  "rarity": "rare" }
+  "spooky":  { "displayName": "Spooky Attic", "backdropKey": "theme-spooky-bg",  "musicKey": "theme-spooky-music",  "rarity": "rare" },
+  "stage":   { "displayName": "Meow Live",    "backdropKey": "theme-stage-bg",   "musicKey": "theme-default-music", "rarity": "rare" },
+  "forest":  { "displayName": "Moonlit Wood", "backdropKey": "theme-forest-bg",  "musicKey": "theme-default-music", "rarity": "rare" }
 }

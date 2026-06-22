@@ -7,6 +7,8 @@ export const BACKGROUND_CATALOG = {
   default: { id: "default", displayName: "Default Room", backdropKey: "theme-default-bg", musicKey: "theme-default-music", rarity: "common" as const },
   cozy: { id: "cozy", displayName: "Cozy Cabin", backdropKey: "theme-cozy-bg", musicKey: "theme-cozy-music", rarity: "uncommon" as const },
   spooky: { id: "spooky", displayName: "Spooky Attic", backdropKey: "theme-spooky-bg", musicKey: "theme-spooky-music", rarity: "rare" as const },
+  stage: { id: "stage", displayName: "Meow Live", backdropKey: "theme-stage-bg", musicKey: "theme-default-music", rarity: "rare" as const },
+  forest: { id: "forest", displayName: "Moonlit Wood", backdropKey: "theme-forest-bg", musicKey: "theme-default-music", rarity: "rare" as const },
 } as const;
 
 // Legacy alias — keep so existing THEME_CATALOG consumers compile without a rename sweep.
@@ -15,4 +17,6 @@ export const GENERATED_THEME_CATALOG = [
   BACKGROUND_CATALOG.default,
   BACKGROUND_CATALOG.cozy,
   BACKGROUND_CATALOG.spooky,
+  BACKGROUND_CATALOG.stage,
+  BACKGROUND_CATALOG.forest,
 ] as const;

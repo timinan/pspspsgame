@@ -347,7 +347,10 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
     },
     seatedCats,
     chart: emptyChart(username, 'Untitled'),
-    ownedBackgrounds: ['default'],
+    // DEV: grant all catalog backgrounds so playtests can swap freely
+    // without pulling from the background box every time. Revert to
+    // ['default'] before shipping (alongside DEV_RESET_ON_LOAD = false).
+    ownedBackgrounds: Object.keys(BACKGROUND_CATALOG) as BackgroundId[],
     activeBackground: 'default',
   };
 }

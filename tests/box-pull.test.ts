@@ -152,9 +152,13 @@ describe('box-pull', () => {
 });
 
 describe('box-pull: backgroundBox', () => {
+  // Fresh state currently grants ALL catalog backgrounds for playtest
+  // convenience (see createFreshPlayerState's DEV note). These tests
+  // reset ownedBackgrounds to just ['default'] so the pull-flow behavior
+  // can be asserted independent of that dev shortcut.
   it('backgroundBox pulls an unowned background and adds it to ownedBackgrounds', () => {
     const state = createFreshPlayerState();
-    // Fresh player owns only 'default'; cozy and spooky are unowned.
+    state.ownedBackgrounds = ['default'];
     const result = pullBox('backgroundBox', state, seqRng([0.42, 0.0]));
     expect(result.kind).toBe('background');
     expect(Object.keys(BACKGROUND_CATALOG)).toContain(result.itemId);
@@ -180,11 +184,12 @@ describe('box-pull: backgroundBox', () => {
   it('backgroundBox distributes across unowned backgrounds over many pulls', () => {
     const seen = new Set<string>();
     for (let i = 0; i < 100; i++) {
-      const state = createFreshPlayerState(); // always only owns 'default'
+      const state = createFreshPlayerState();
+      state.ownedBackgrounds = ['default'];
       const result = pullBox('backgroundBox', state, Math.random);
       if (!result.duplicate) seen.add(result.itemId as string);
     }
-    // With 2 unowned backgrounds (cozy, spooky), both should appear in 100 pulls
+    // Multiple unowned backgrounds should each appear at least once in 100 pulls.
     expect(seen.size).toBeGreaterThan(1);
   });
 });
