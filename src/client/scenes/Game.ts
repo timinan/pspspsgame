@@ -175,10 +175,21 @@ export class Game extends Scene {
         x: cx,
         y: catY,
       };
-      // equippedCosmetics is keyed by cat instance id.
+      // Resolve cosmetic INSTANCE ids → catalog TYPE ids via the sidecar
+      // before handing the model to Cat. Cat's renderer looks up
+      // COSMETIC_CATALOG by type id; instance ids wouldn't match anything.
       const slots = this.playerState?.equippedCosmetics?.[instanceId];
+      const typeMap = this.playerState?.equippedCosmeticTypes ?? {};
       if (slots && Object.keys(slots).length > 0) {
-        model.equippedCosmetics = { ...slots };
+        const resolved: Partial<Record<string, string>> = {};
+        for (const [slotKey, cosInstanceId] of Object.entries(slots)) {
+          if (!cosInstanceId) continue;
+          const typeId = typeMap[cosInstanceId];
+          if (typeId) resolved[slotKey] = typeId;
+        }
+        if (Object.keys(resolved).length > 0) {
+          model.equippedCosmetics = resolved;
+        }
       }
 
       const cat = new Cat(this, model);

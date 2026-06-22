@@ -129,8 +129,12 @@ export class Decorate extends Scene {
     });
 
     // The DressingRoom modal fires this when it closes (✕) — we re-render
-    // the cat stage so any equipped-cosmetic changes show immediately.
-    this.onDressingRoomClosed = () => this.repaintCatStage();
+    // BOTH the cat stage and the tray. Tray thumbs also stack cosmetic
+    // sprites now, so they need refreshing whenever a cat's loadout changes.
+    this.onDressingRoomClosed = () => {
+      this.repaintCatStage();
+      this.renderTray();
+    };
     this.events.on('dressingroom:closed', this.onDressingRoomClosed);
 
     // Seated cats in preview
@@ -193,10 +197,22 @@ export class Decorate extends Scene {
         y: catY,
       };
 
-      // Equip cosmetics — equippedCosmetics is keyed by cat instance id.
+      // Resolve cosmetic INSTANCE ids → catalog TYPE ids via the sidecar
+      // before handing the model to Cat. Cat's renderer looks up
+      // COSMETIC_CATALOG by type id; passing instance ids would fail to find
+      // anything and the cosmetic frame would render as broken/missing.
       const slots = this.playerState?.equippedCosmetics?.[instanceId];
+      const typeMap = this.playerState?.equippedCosmeticTypes ?? {};
       if (slots && Object.keys(slots).length > 0) {
-        model.equippedCosmetics = { ...slots };
+        const resolved: Partial<Record<string, string>> = {};
+        for (const [slotKey, cosInstanceId] of Object.entries(slots)) {
+          if (!cosInstanceId) continue;
+          const typeId = typeMap[cosInstanceId];
+          if (typeId) resolved[slotKey] = typeId;
+        }
+        if (Object.keys(resolved).length > 0) {
+          model.equippedCosmetics = resolved;
+        }
       }
 
       const cat = new Cat(this, model);
@@ -569,14 +585,20 @@ export class Decorate extends Scene {
         .setInteractive({ useHandCursor: true });
 
       const { frame, tint } = catThumbFrame(catEntry);
+      // Reserve ~22px at the bottom of the cell for the name label.
+      const labelReserve = 22;
       const sprite = this.add.image(
         x + thumbW / 2,
-        y + thumbH / 2 - 14,
+        y + (thumbH - labelReserve) / 2 + 4,
         AssetKeys.Atlas.Cats,
         frame,
       );
-      const maxSize = Math.min(thumbW, thumbH * 0.78);
-      const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+      // Fill the cell as much as possible — the cat should dominate the
+      // thumbnail. Allow horizontal overflow up to 98% of the cell width
+      // (cat sprites are taller than wide so scaling to width usually wins).
+      const maxW = thumbW * 0.98;
+      const maxH = thumbH - labelReserve;
+      const scale = Math.min(maxW / sprite.width, maxH / sprite.height);
       sprite.setScale(scale);
       if (tint !== undefined) sprite.setTint(tint);
 

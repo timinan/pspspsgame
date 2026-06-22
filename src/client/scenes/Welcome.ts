@@ -247,7 +247,7 @@ export class Welcome extends Scene {
         {
           textureKey: isCat ? AssetKeys.Atlas.Cats : AssetKeys.Atlas.Cosmetics,
           frame,
-          itemName: isCat ? 'A cat' : itemName,
+          itemName: isCat ? `A ${pull.rarity} cat has been adopted` : itemName,
           rarity: pull.rarity,
           ...(rainbow ? { rainbow: true } : {}),
           ...(tint ? { tint: parseInt(tint.replace('#', ''), 16) } : {}),
