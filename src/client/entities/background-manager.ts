@@ -1,6 +1,7 @@
 import { GameObjects, Scene } from 'phaser';
 import { BACKGROUND_CATALOG } from '@/../shared/state';
 import type { BackgroundId } from '@/../shared/state';
+import { TopHud } from '@/ui/top-hud';
 
 const KNOWN_IDS = Object.keys(BACKGROUND_CATALOG) as BackgroundId[];
 
@@ -46,21 +47,27 @@ export class BackgroundManager {
 
     const w = this.scene.scale.width;
     const h = this.scene.scale.height;
+    // Reserve the top strip for the TopHud so the bg starts where the
+    // play area starts. Without this, the backdrop renders behind the
+    // header and the platforms in the upper third of the image fall
+    // under the HUD bar instead of where the seated cats actually sit.
+    const offsetY = TopHud.HEIGHT;
+    const drawH = h - offsetY;
     const entry = BACKGROUND_CATALOG[this.active];
 
     if (entry && this.scene.textures.exists(entry.backdropKey)) {
       const img = this.scene.add
-        .image(0, 0, entry.backdropKey)
+        .image(0, offsetY, entry.backdropKey)
         .setOrigin(0, 0);
       img.displayWidth = w;
-      img.displayHeight = h;
+      img.displayHeight = drawH;
       this.container.add(img);
       return;
     }
 
     // Texture missing — solid color fallback so the lane stays readable.
     const fallback = this.scene.add
-      .rectangle(0, 0, w, h, 0x3b2a5c)
+      .rectangle(0, offsetY, w, drawH, 0x3b2a5c)
       .setOrigin(0, 0);
     this.container.add(fallback);
   }
