@@ -15,8 +15,8 @@ Living tracker for end-to-end testing of the Phase 5 redesign. Each flow gets te
 | 0 — Hamburger nav + asset visuals | ✅ GREEN | `ff38071`, `3ec30dd`, `ffcbaf4` | Confirmed in playtest |
 | 1 — Purchase (boxes → inventory) | ✅ GREEN (in passing) | `f5e5578` | Box reveals work, debug panel shows inventory deltas; cleared as a side-effect of Flow 2 testing |
 | 2 — Decorate + DressingRoom + Effects | ✅ GREEN | `f5e5578` → `e964f65` | Per-instance cats + cosmetics, validated naming, multi-slot dressing room, 16 effect cosmetics, seat→lane mapping fix |
-| 3 — Play (random fallback chart) | 🟡 SETUP IN PROGRESS | — | Next up |
-| 4 — Editor (author chart) | ⬜ NOT STARTED | — | Needs Flow 3 |
+| 3 — Play (random fallback chart) | ✅ GREEN | `7e1bc00` → `edd40c7` | Position-based hit/miss, multi-touch doubles, 16fps reactions, off-screen fall, effect reveal fix — random chart limits round depth so closing out and moving to Flow 4 for real-song playtest |
+| 4 — Editor (author chart) | 🟡 NEXT | — | Authoring real charts so Flow 3 can be retested with real songs |
 
 ---
 
