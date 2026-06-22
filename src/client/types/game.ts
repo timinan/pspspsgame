@@ -27,6 +27,12 @@ export interface CatModel {
    * Each rendered as a sprite stacked on the cat. Empty / undefined = naked.
    */
   equippedCosmetics?: Partial<Record<string, CosmeticId>>;
+  /**
+   * Render scale applied to the cat sprite (and its cosmetics / effects).
+   * Defaults to 1. Game scene seats cats at 1.4× so they read at the same
+   * weight as the lane hit targets.
+   */
+  scale?: number;
 }
 
 export type InteractionType = 'pet' | 'chinScratch' | 'bellyRub';

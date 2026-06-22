@@ -48,8 +48,13 @@ export interface CatEffect {
   iconEmoji: string;
   /** Drives the rarity badge color. */
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
-  /** Spin up the effect on the given sprite/image. Return a handle that tears it down. */
-  apply(scene: Scene, target: EffectTarget): EffectHandle;
+  /**
+   * Spin up the effect on the given sprite/image. Return a handle that tears
+   * it down. `scale` (default 1) amplifies the effect's footprint — flame
+   * width, particle size, spread, etc. — so it reads at the same visual
+   * weight as the (possibly scaled-up) cat it's attached to.
+   */
+  apply(scene: Scene, target: EffectTarget, scale?: number): EffectHandle;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,14 +72,15 @@ export interface CatEffect {
  * the Devvit iframe, so we draw it manually with Graphics.
  */
 function makeGlow(color: number): CatEffect['apply'] {
-  return (scene, sprite) => {
+  return (scene, sprite, scale = 1) => {
     // Flame footprint. Tuned to engulf the cat's lower body without hiding
-    // the cat behind it.
-    const baseWidth = 56;
-    const tipWidth = 10;
-    const flameHeight = 96; // distance from feet upward
+    // the cat behind it. Scaled with the cat — a 1.4× seated cat gets a
+    // 1.4× wider / taller flame so the glow keeps proportion to its host.
+    const baseWidth = 56 * scale;
+    const tipWidth = 10 * scale;
+    const flameHeight = 96 * scale; // distance from feet upward
     const slices = 40; // resolution — more slices = smoother gradient
-    const sliceThickness = 10; // each slice's vertical thickness (overlap creates the gradient)
+    const sliceThickness = 10 * scale; // each slice's vertical thickness (overlap creates the gradient)
 
     const graphics = scene.add.graphics();
 
@@ -183,10 +189,18 @@ interface ParticleOpts {
 }
 
 function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
-  return (scene, sprite) => {
+  return (scene, sprite, scale = 1) => {
+    // Amplify the particle footprint with the cat's render scale so the
+    // emoji size / spread / rise distance keep proportion when seated cats
+    // are scaled up. Cadence (spawnIntervalMs / lifeMs) intentionally
+    // stays the same — denser spawning at high scales feels noisy.
+    const size = opts.size * scale;
+    const spreadX = opts.spreadX * scale;
+    const riseDistancePx = opts.riseDistancePx * scale;
+    const wobbleX = opts.wobbleX ? opts.wobbleX * scale : undefined;
     const live: GameObjects.Text[] = [];
     const spawnOne = (): void => {
-      const offsetX = (Math.random() - 0.5) * opts.spreadX;
+      const offsetX = (Math.random() - 0.5) * spreadX;
       // Spawn around the cat's feet so particles look like they're rising
       // up from the ground around the cat, not bursting out of its torso.
       // Use the foot position helper so origin (Sprite vs Image) doesn't matter.
@@ -194,18 +208,18 @@ function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
       const startY = foot.y - sprite.displayHeight * 0.1;
       const t = scene.add
         .text(foot.x + offsetX, startY, opts.emoji, {
-          fontSize: `${opts.size}px`,
+          fontSize: `${size}px`,
         })
         .setOrigin(0.5)
         .setDepth(sprite.depth + 2);
       live.push(t);
 
       const targets: Record<string, number | string> = {
-        y: startY - opts.riseDistancePx,
+        y: startY - riseDistancePx,
         alpha: 0,
       };
-      if (opts.wobbleX) {
-        targets.x = `+=${(Math.random() < 0.5 ? -1 : 1) * opts.wobbleX}`;
+      if (wobbleX) {
+        targets.x = `+=${(Math.random() < 0.5 ? -1 : 1) * wobbleX}`;
       }
 
       scene.tweens.add({

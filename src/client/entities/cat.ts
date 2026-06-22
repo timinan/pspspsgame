@@ -64,6 +64,7 @@ export class Cat {
     const initialFrame = Cat.frameName(model.breed, model.animation, 0);
     this.sprite = scene.add.sprite(0, 0, AssetKeys.Atlas.Cats, initialFrame);
     this.sprite.setOrigin(0.5, 1);
+    if (model.scale && model.scale !== 1) this.sprite.setScale(model.scale);
     this.ensureAnimation(model.breed, model.animation);
     this.playAnimation(model.animation);
 
@@ -127,10 +128,12 @@ export class Cat {
     this.model.equippedCosmetics[slot] = cosmeticId;
 
     // EFFECT cosmetics are code-driven flair, not atlas sprites. Apply via
-    // the registered handler and stash the handle.
+    // the registered handler and stash the handle. Pass the cat's render
+    // scale so flame width / particle size / spread amplify when seated
+    // cats are scaled up (Game scene seats at 1.4×, DressingRoom at 1×).
     const effect = CAT_EFFECT_BY_ID[cosmeticId];
     if (effect) {
-      this.activeEffects[slot] = effect.apply(this.scene, this.sprite);
+      this.activeEffects[slot] = effect.apply(this.scene, this.sprite, this.sprite.scaleX);
       return;
     }
 

@@ -174,7 +174,13 @@ export class Game extends Scene {
   private seatCats(): void {
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
-    const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.88) * scaleY;
+    // Cats are scaled up 1.4× so they read at the same visual weight as the
+    // 72px lane targets. Anchor (origin 0.5, 1) is bottom-center, so to
+    // move them up we just lower the catY value. 0.78 (vs the previous
+    // 0.88) plus the taller scaled sprite keeps their feet clear of the
+    // lane top while shifting their bodies up into the cat-stage band.
+    const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.78) * scaleY;
+    const CAT_SCALE = 1.4;
 
     const seatedCats = this.playerState?.seatedCats ?? {};
     // seatedCats maps seatId → cat instance id.
@@ -203,6 +209,7 @@ export class Game extends Scene {
         restingAnimation: 'idle',
         x: cx,
         y: catY,
+        scale: CAT_SCALE,
       };
       // Resolve cosmetic INSTANCE ids → catalog TYPE ids via the sidecar
       // before handing the model to Cat. Cat's renderer looks up
