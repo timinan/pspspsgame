@@ -70,11 +70,12 @@ export const Balance = {
   // to the hit line. Pairs with the slower 90bpm random chart so density
   // stays around 6 notes on screen at peak instead of 9–10.
   noteFallMs: 2400,
-  // 32 loops × 8 steps × ~333ms/step (90bpm) ≈ 85s of play. Bumped from 8
-  // because the previous ~21s round felt like notes stopped spawning mid-
-  // session — they actually had, the chart had finished. 85s is closer to
-  // a real song length and matches how Phase 1 played continuously.
-  loopCount: 32,
+  // 80 loops × 8 steps × ~333ms/step (90bpm) ≈ 213s of play (~3.5 min).
+  // Was 32; at 32 the round naturally ended at ~85s and players who
+  // wanted to keep going saw the summary appear (looking like "notes
+  // stopped"). Long round + the always-available Skip button means the
+  // player ends when they want, not when the chart runs out.
+  loopCount: 80,
   pointsPerfect: 100,
   pointsGreat: 50,
   catReactionMs: 500,

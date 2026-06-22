@@ -97,8 +97,11 @@ export class Game extends Scene {
     this.buildSummaryOverlay();
     this.updateHud();
 
-    // Pre-warm note pool — avoids allocations during first 12 spawns
-    for (let i = 0; i < 12; i++) {
+    // Pre-warm note pool — avoids allocations during first 18 spawns.
+    // Longer fall time + extension past the screen means more notes are
+    // alive at once. Was 12; bumped after notes started "vanishing" on
+    // longer sessions because the pool was being grown ad-hoc mid-play.
+    for (let i = 0; i < 18; i++) {
       const n = new Note(this);
       this.add.existing(n);
       this.notes.push(n);
@@ -688,11 +691,11 @@ export class Game extends Scene {
     const scaleY = this.scale.height / L.DESIGN_H;
     const startY = L.LANE_TOP_Y * scaleY;
     const hitY = L.HIT_LINE_Y * scaleY;
-    const endY = L.LANE_BOTTOM_Y * scaleY;
-    // Note keeps falling past the target so the player can see (and tap)
-    // the ball as it leaves the hit line. Tween duration is scaled to
-    // preserve the original noteFallMs at the moment the ball crosses
-    // the target — same hit timing, longer trail.
+    // Ball falls all the way OFF the screen — miss is detected by
+    // position (n.y past the screen edge), so a slightly late tap as
+    // the ball exits the target still lands. Tween speed is calibrated
+    // to keep hit timing locked to Balance.noteFallMs at the target.
+    const endY = this.scale.height + 80;
     const totalFallMs = ((endY - startY) / (hitY - startY)) * Balance.noteFallMs;
     note.configure(laneId, x, startY, endY, totalFallMs, hitAtMs);
   }
@@ -718,16 +721,12 @@ export class Game extends Scene {
     if (this.roundOver) return;
     const now = this.time.now - this.startTimeMs;
     const note = this.activeNoteInLane(laneId, now);
-    if (!note) return; // mistaps don't reset combo in v1
+    if (!note) return; // empty lane — no penalty, just no-op
+    // Any tap on an active note in the lane registers. Tight window =
+    // perfect, anything else along the ball's fall is a great. Miss is
+    // reserved for balls that leave the screen entirely.
     const dt = Math.abs(now - note.hitAtMs);
-    let grade: 'perfect' | 'great';
-    if (dt <= Balance.perfectWindowMs) {
-      grade = 'perfect';
-    } else if (dt <= Balance.greatWindowMs) {
-      grade = 'great';
-    } else {
-      return; // out of window — leave the note for miss detection
-    }
+    const grade: 'perfect' | 'great' = dt <= Balance.perfectWindowMs ? 'perfect' : 'great';
     this.score.registerHit(grade);
     this.cats[laneId]?.playMeow(Balance.catReactionMs);
     note.consumed = true;
@@ -759,12 +758,15 @@ export class Game extends Scene {
    *  without being tapped. No allocation. */
   private checkMisses(): void {
     if (this.roundOver) return;
-    const now = this.time.now - this.startTimeMs;
+    // Miss is now position-based — the ball must leave the screen
+    // entirely before it counts. A late tap as the ball exits the target
+    // still counts as a great in registerTap.
+    const offScreenY = this.scale.height + 20;
     let anyMissed = false;
     for (let i = 0; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (!n.active || n.consumed) continue;
-      if (now - n.hitAtMs > Balance.greatWindowMs) {
+      if (n.y > offScreenY) {
         this.score.registerHit('miss');
         this.cats[n.laneId]?.playAngry(Balance.catReactionMs);
         this.showHitFeedback(n.laneId, 'miss');
