@@ -564,7 +564,12 @@ export class ChartEditor extends Scene {
     if (Balance.audioEnabled) {
       this.previewSongPlayer?.destroy();
       try {
-        this.previewSongPlayer = new SongPlayer({ chart: this.chart });
+        // Same real-meow sampler as Game. Skip the backing track here so
+        // the author hears the meow placement clearly while building.
+        this.previewSongPlayer = new SongPlayer({
+          chart: this.chart,
+          meowSamples: { C4: 'assets/audio/meows/meow.wav' },
+        });
         void this.previewSongPlayer.unlock().then(() => this.previewSongPlayer?.start());
       } catch (err) {
         console.warn('[ChartEditor] preview SongPlayer init failed:', err);

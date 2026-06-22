@@ -719,7 +719,17 @@ export class Game extends Scene {
     // user gesture in the iframe.
     if (Balance.audioEnabled) {
       try {
-        this.songPlayer = new SongPlayer({ chart: playChart });
+        this.songPlayer = new SongPlayer({
+          chart: playChart,
+          // One real meow sample registered at C4. Tone.Sampler interpolates
+          // up to E4 (+4 semitones) and G4 (+7) so the three lanes still
+          // sound distinct — equal-temperament pitch shift on a cat noise
+          // sounds fine, no per-lane recording needed.
+          meowSamples: { C4: 'assets/audio/meows/meow.wav' },
+          // The prototype's lofi loop, threaded under the meows via Tone
+          // Player.sync so it pauses/resumes with Transport.
+          backingTrackUrl: 'assets/sounds/background.mp3',
+        });
       } catch (err) {
         console.warn('[Game] SongPlayer init failed:', err);
         this.songPlayer = null;

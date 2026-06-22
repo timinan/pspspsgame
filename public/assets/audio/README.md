@@ -1,16 +1,23 @@
 # Audio assets
 
-## Current state (Step 1)
+## Current state (Step 1 + samples wired)
 
 The Game scene boots a `SongPlayer` (see `src/client/systems/song-player.ts`)
 that turns every active step of the round's chart into a pitched meow on
-beat. Today it uses a **procedural Tone.js synth** as the meow voice
-because the real samples aren't wired in yet — sounds like a chiptune
-cat, not a real meow, but proves the sync + key-mapping end to end.
+beat over the prototype's lofi loop.
 
-To switch from procedural synth to real cat audio, drop these files
-into `public/assets/audio/meows/` and update the `meowSamples` option
-passed to `SongPlayer` in `Game.ts`:
+Wired in `Game.ts`:
+- `meowSamples: { C4: 'assets/audio/meows/meow.wav' }` — one real meow
+  sample at C4; Tone.Sampler pitch-shifts to E4 and G4 for the other lanes.
+- `backingTrackUrl: 'assets/sounds/background.mp3'` — the prototype's
+  lofi loop, sync'd to Transport so it pauses with the round.
+
+The `ChartEditor` preview uses the same sampler but skips the backing
+track, so authoring you hear the meow placement cleanly.
+
+To upgrade to per-note recordings (sharper pitch, no interpolation
+artifacts on G4), drop these files into `public/assets/audio/meows/` and
+extend the `meowSamples` map:
 
 | Filename             | Note    | Role in chart                             |
 | -------------------- | ------- | ----------------------------------------- |
