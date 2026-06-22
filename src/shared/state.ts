@@ -126,19 +126,25 @@ import { GENERATED_COSMETIC_CATALOG } from './cosmetics-catalog.generated';
  * client maps id → apply() at render time.
  */
 export const EFFECT_COSMETIC_CATALOG: CosmeticEntry[] = [
-  { id: 'effect-red-glow',    name: 'Red Glow',    rarity: 'common',    slot: 'effect' },
-  { id: 'effect-blue-glow',   name: 'Blue Glow',   rarity: 'common',    slot: 'effect' },
-  { id: 'effect-gold-glow',   name: 'Gold Glow',   rarity: 'rare',      slot: 'effect' },
-  { id: 'effect-green-glow',  name: 'Green Glow',  rarity: 'uncommon',  slot: 'effect' },
-  { id: 'effect-purple-glow', name: 'Purple Glow', rarity: 'uncommon',  slot: 'effect' },
-  { id: 'effect-pink-glow',   name: 'Pink Glow',   rarity: 'common',    slot: 'effect' },
-  { id: 'effect-bob',         name: 'Bobbing',     rarity: 'common',    slot: 'effect' },
-  { id: 'effect-pulse',       name: 'Pulsing',     rarity: 'common',    slot: 'effect' },
-  { id: 'effect-spin',        name: 'Spinning',    rarity: 'rare',      slot: 'effect' },
-  { id: 'effect-wobble',      name: 'Wobble',      rarity: 'common',    slot: 'effect' },
+  // Auras (fuzzy ground glow at the cat's feet)
+  { id: 'effect-red-glow',    name: 'Red Aura',    rarity: 'common',    slot: 'effect' },
+  { id: 'effect-blue-glow',   name: 'Blue Aura',   rarity: 'common',    slot: 'effect' },
+  { id: 'effect-gold-glow',   name: 'Gold Aura',   rarity: 'rare',      slot: 'effect' },
+  { id: 'effect-green-glow',  name: 'Green Aura',  rarity: 'uncommon',  slot: 'effect' },
+  { id: 'effect-purple-glow', name: 'Purple Aura', rarity: 'uncommon',  slot: 'effect' },
+  { id: 'effect-pink-glow',   name: 'Pink Aura',   rarity: 'common',    slot: 'effect' },
+  // Filter
   { id: 'effect-ghost',       name: 'Ghost',       rarity: 'rare',      slot: 'effect' },
+  // Particles
   { id: 'effect-sparkle',     name: 'Sparkles',    rarity: 'uncommon',  slot: 'effect' },
   { id: 'effect-hearts',      name: 'Hearts',      rarity: 'rare',      slot: 'effect' },
+  { id: 'effect-stars',       name: 'Stars',       rarity: 'uncommon',  slot: 'effect' },
+  { id: 'effect-music',       name: 'Music',       rarity: 'uncommon',  slot: 'effect' },
+  { id: 'effect-snow',        name: 'Snow',        rarity: 'rare',      slot: 'effect' },
+  { id: 'effect-blossom',     name: 'Blossoms',    rarity: 'rare',      slot: 'effect' },
+  { id: 'effect-fire',        name: 'Fire',        rarity: 'rare',      slot: 'effect' },
+  { id: 'effect-bubbles',     name: 'Bubbles',     rarity: 'uncommon',  slot: 'effect' },
+  { id: 'effect-butterfly',   name: 'Butterflies', rarity: 'legendary', slot: 'effect' },
 ];
 
 /** Merged cosmetic catalog: generated atlas-backed cosmetics + effect cosmetics. */
