@@ -8,5 +8,9 @@
   "beach":     { "displayName": "Sunset Beach",     "backdropKey": "theme-beach-bg",     "musicKey": "theme-default-music", "rarity": "uncommon" },
   "blossom":   { "displayName": "Sakura Garden",    "backdropKey": "theme-blossom-bg",   "musicKey": "theme-default-music", "rarity": "rare" },
   "cyberpunk": { "displayName": "Neon Alley",       "backdropKey": "theme-cyberpunk-bg", "musicKey": "theme-default-music", "rarity": "rare" },
-  "cabin":     { "displayName": "Snowy Lodge",      "backdropKey": "theme-cabin-bg",     "musicKey": "theme-default-music", "rarity": "uncommon" }
+  "cabin":     { "displayName": "Snowy Lodge",      "backdropKey": "theme-cabin-bg",     "musicKey": "theme-default-music", "rarity": "uncommon" },
+  "arcade":    { "displayName": "Neon Arcade",      "backdropKey": "theme-arcade-bg",    "musicKey": "theme-default-music", "rarity": "rare" },
+  "wizard":    { "displayName": "Wizard's Tower",   "backdropKey": "theme-wizard-bg",    "musicKey": "theme-default-music", "rarity": "rare" },
+  "islands":   { "displayName": "Sky Islands",      "backdropKey": "theme-islands-bg",   "musicKey": "theme-default-music", "rarity": "rare" },
+  "mushroom":  { "displayName": "Mushroom Grove",   "backdropKey": "theme-mushroom-bg",  "musicKey": "theme-default-music", "rarity": "rare" }
 }

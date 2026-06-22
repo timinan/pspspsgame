@@ -22,6 +22,10 @@ export const AssetKeys = {
     ThemeBlossomBg: 'theme-blossom-bg',
     ThemeCyberpunkBg: 'theme-cyberpunk-bg',
     ThemeCabinBg: 'theme-cabin-bg',
+    ThemeArcadeBg: 'theme-arcade-bg',
+    ThemeWizardBg: 'theme-wizard-bg',
+    ThemeIslandsBg: 'theme-islands-bg',
+    ThemeMushroomBg: 'theme-mushroom-bg',
   },
   Audio: {
     Background: 'background-music',
