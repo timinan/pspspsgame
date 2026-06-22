@@ -566,9 +566,11 @@ export class ChartEditor extends Scene {
       try {
         // Same real-meow sampler as Game. Skip the backing track here so
         // the author hears the meow placement clearly while building.
+        // Sample declared at A4 so all lanes pitch DOWN to land below the
+        // clip's natural pitch — matches the Game scene's tuning.
         this.previewSongPlayer = new SongPlayer({
           chart: this.chart,
-          meowSamples: { C4: 'assets/audio/meows/meow.wav' },
+          meowSamples: { A4: 'assets/audio/meows/meow.wav' },
         });
         void this.previewSongPlayer.unlock().then(() => this.previewSongPlayer?.start());
       } catch (err) {

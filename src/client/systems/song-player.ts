@@ -105,9 +105,19 @@ export function buildGroupedSchedule(
 export interface SongPlayerOpts {
   chart: Chart;
   /**
+   * When `true` (default), SongPlayer schedules every chart step as a
+   * pitched meow on Tone.Transport — good for chart playback / preview
+   * where there's no live input. When `false`, the chart is loaded for
+   * its BPM only and the caller drives meows via `playMeow(lane)` — used
+   * by the Game scene so meows fire on the player's tap moment instead
+   * of the chart's beat moment, killing the perceived input → audio
+   * delay.
+   */
+  autoSchedule?: boolean;
+  /**
    * Optional URL to a looping backing track. When null, only the meow
-   * melody plays. The track should be in C major to harmonize with the
-   * lane-to-note mapping. Loops cleanly via Tone.Player.
+   * melody plays. The track should be in A minor or C major to harmonize
+   * with the lane-to-note mapping. Loops cleanly via Tone.Player.
    */
   backingTrackUrl?: string;
   /**
@@ -115,8 +125,15 @@ export interface SongPlayerOpts {
    * Tone.Sampler plays the samples — gives a real meow voice. When
    * omitted, a procedural Tone.Synth fallback produces a meow-shaped
    * tone (rising glide + vibrato + short envelope) at the right pitch.
+   *
+   * Keys are any pitch the Sampler should treat the sample as. The
+   * Sampler interpolates from the declared keys up/down to whatever
+   * pitches the playback engine asks for. Declaring a single key well
+   * outside the lane range (e.g. A4 when lanes ask for A3/C4/E4) is the
+   * trick to push the meow voice into a lower register without
+   * recording new samples.
    */
-  meowSamples?: Partial<Record<MeowNote, string>>;
+  meowSamples?: Record<string, string>;
   /** Master volume for the meow voice, in decibels. Defaults to -6. */
   meowVolumeDb?: number;
   /** Master volume for the backing track. Defaults to -10 dB. */
@@ -215,25 +232,24 @@ export class SongPlayer {
     // SongPlayer silent after the first chart pass (~8s) while
     // ChartPlayer kept looping the visual notes 80 times for the full
     // round. Tone.Part with loopEnd = chart duration re-fires every step
-    // on every loop.
-    //
-    // Grouped schedule: each event carries every meow that fires at the
-    // same Transport time, so a double-tap step triggers both meows from
-    // one callback (Tone.Part can swallow duplicate-time events).
-    const grouped = buildGroupedSchedule(this.chart);
-    const msPerStep = 60000 / (this.chart.bpm * 2);
-    const chartDurSec = (msPerStep * this.chart.steps.length) / 1000;
-    this.part = new Tone.Part(
-      (time, value: { notes: MeowNote[] }) => {
-        for (const note of value.notes) {
-          this.triggerMeow(note, time);
-        }
-      },
-      grouped.map(({ timeSec, notes }) => ({ time: timeSec, notes })),
-    );
-    this.part.loop = true;
-    this.part.loopEnd = chartDurSec;
-    this.part.start(0);
+    // on every loop. Skipped entirely when `autoSchedule: false` so the
+    // caller drives meows via playMeow() on input instead.
+    if (this.opts.autoSchedule !== false) {
+      const grouped = buildGroupedSchedule(this.chart);
+      const msPerStep = 60000 / (this.chart.bpm * 2);
+      const chartDurSec = (msPerStep * this.chart.steps.length) / 1000;
+      this.part = new Tone.Part(
+        (time, value: { notes: MeowNote[] }) => {
+          for (const note of value.notes) {
+            this.triggerMeow(note, time);
+          }
+        },
+        grouped.map(({ timeSec, notes }) => ({ time: timeSec, notes })),
+      );
+      this.part.loop = true;
+      this.part.loopEnd = chartDurSec;
+      this.part.start(0);
+    }
 
     // Sync the backing track to Transport so play/pause stays locked.
     // Detect any leading silence in the buffer (the prototype lofi mp3
@@ -248,6 +264,17 @@ export class SongPlayer {
       this.backing.sync().start(0, startOffset);
     }
     Tone.Transport.start();
+  }
+
+  /**
+   * Fire a meow on the given lane RIGHT NOW (Tone.now()). Game scene
+   * calls this from its tap handler so meows track the player's input
+   * instead of the chart's scheduled beat. Safe to call before
+   * unlock/start — silently no-ops if the sampler isn't ready yet.
+   */
+  playMeow(laneId: LaneId): void {
+    if (this.destroyed) return;
+    this.triggerMeow(noteForLane(laneId), Tone.now());
   }
 
   private triggerMeow(note: MeowNote, time: number): void {
