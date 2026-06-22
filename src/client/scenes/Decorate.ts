@@ -50,6 +50,8 @@ export class Decorate extends Scene {
   private contextMenu!: ContextMenu;
   private placingCatId: CatBreed | null = null;
   private placementZones: GameObjects.Container | null = null;
+  /** Named callback for the dressingroom:closed listener so cleanup() can detach it precisely. */
+  private onDressingRoomClosed: (() => void) | undefined;
 
   // Tab state — each tab tracks its own page index so swapping back-and-forth
   // doesn't lose your spot.
@@ -115,7 +117,12 @@ export class Decorate extends Scene {
 
     // The DressingRoom modal fires this when it closes (✕) — we re-render
     // the cat stage so any equipped-cosmetic changes show immediately.
-    this.events.on('dressingroom:closed', () => this.repaintCatStage());
+    // Bind a named callback so cleanup() can remove the exact listener and
+    // we don't accumulate handlers across scene restarts (phaser
+    // best-practice: "registering listeners every create() without
+    // removing them").
+    this.onDressingRoomClosed = () => this.repaintCatStage();
+    this.events.on('dressingroom:closed', this.onDressingRoomClosed);
 
     // Seated cats in preview (same positions as Game.ts seatCats())
     this.seatCats();
@@ -248,6 +255,9 @@ export class Decorate extends Scene {
       // behind it as the modal backdrop. DressingRoom closes itself via ✕
       // and emits 'dressingroom:closed' on this scene's emitter, which the
       // listener in create() uses to repaint the cat stage.
+      // Guard double-launch (phaser best-practice: "launching UI / pause
+      // scenes multiple times without checking whether they already exist").
+      if (this.scene.isActive(SceneKeys.DressingRoom)) return;
       this.scene.launch(SceneKeys.DressingRoom, {
         catId,
         playerState: this.playerState,
@@ -854,6 +864,10 @@ export class Decorate extends Scene {
     this.input.removeAllListeners();
     this.input.keyboard?.removeAllListeners();
     this.scale.off('resize');
+    if (this.onDressingRoomClosed) {
+      this.events.off('dressingroom:closed', this.onDressingRoomClosed);
+      this.onDressingRoomClosed = undefined;
+    }
     this.contextMenu?.destroy();
     this.placementZones?.destroy(true);
     this.placementZones = null;
