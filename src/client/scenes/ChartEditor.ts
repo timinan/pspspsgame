@@ -3,6 +3,8 @@ import { SceneKeys } from '@/constants/scenes';
 import { LANE_COLORS, LANE_GUTTER_PX, LANE_GAP_PX, LANE_COUNT } from '@/constants/scene-layout';
 import { TopHud } from '@/ui/top-hud';
 import { ChartPlayer } from '@/systems/chart-player';
+import { SongPlayer } from '@/systems/song-player';
+import { Balance } from '@/constants/balance';
 import { saveChart } from '@/services/state-client';
 import {
   emptyChart,
@@ -58,6 +60,10 @@ export class ChartEditor extends Scene {
   private scanElapsedMs = 0;
   private scanTotalMs = 0;
   private scanPlayer: ChartPlayer | null = null;
+  // Per-preview SongPlayer — fires pitched meows alongside the visual
+  // scan line so the player can hear what they've authored. Recreated
+  // on each PLAY so BPM changes take effect on the next preview.
+  private previewSongPlayer: SongPlayer | null = null;
   // Flash timeouts for cell highlight during preview (step → timer)
   private flashTimers: Phaser.Time.TimerEvent[] = [];
 
@@ -550,6 +556,21 @@ export class ChartEditor extends Scene {
 
     this.playBtnBg.setFillStyle(0xb71c1c, 1);
     this.playBtnText.setText('■ STOP');
+
+    // Audio preview: fire pitched meows on every active step so the
+    // player hears their chart as they author it. Recreated each PLAY
+    // so BPM changes between previews are picked up. First PLAY tap
+    // is itself a user gesture so unlock() can resolve immediately.
+    if (Balance.audioEnabled) {
+      this.previewSongPlayer?.destroy();
+      try {
+        this.previewSongPlayer = new SongPlayer({ chart: this.chart });
+        void this.previewSongPlayer.unlock().then(() => this.previewSongPlayer?.start());
+      } catch (err) {
+        console.warn('[ChartEditor] preview SongPlayer init failed:', err);
+        this.previewSongPlayer = null;
+      }
+    }
   }
 
   private stopPreview(): void {
@@ -558,6 +579,8 @@ export class ChartEditor extends Scene {
     this.scanLine.setVisible(false);
     this.playBtnBg.setFillStyle(0x2e7d32, 1);
     this.playBtnText.setText('▶ PLAY');
+    this.previewSongPlayer?.destroy();
+    this.previewSongPlayer = null;
   }
 
   private onClearTap(): void {
@@ -619,6 +642,9 @@ export class ChartEditor extends Scene {
     // Cancel all flash timers.
     for (const t of this.flashTimers) t.destroy();
     this.flashTimers = [];
+
+    this.previewSongPlayer?.destroy();
+    this.previewSongPlayer = null;
 
     this.tweens.killAll();
     this.time.removeAllEvents();
