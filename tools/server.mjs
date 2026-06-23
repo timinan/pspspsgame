@@ -733,12 +733,141 @@ async function handleBgUpload(req, res, slug) {
   });
 }
 
+/**
+ * Accepts raw mp3 bytes from the music calibrator. Runs ffmpeg to trim
+ * to 32s, downmix to mono, and re-encode at 96kbps so the upload lands
+ * the file in the same shape every other backing already has.
+ * Appends a default catalog entry to tools/music/music.json (FAST 130
+ * UPBEAT; the calibrator UI then lets Tim tune speedLabel / vibe / bpm).
+ */
+async function handleMusicUpload(req, res, slug) {
+  if (!/^[a-z][a-z0-9_-]{0,40}$/.test(slug)) {
+    res.writeHead(400, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: `bad slug: ${slug}` }));
+    return;
+  }
+  // Optional defaults via query string — calibrator can drop a file
+  // with an opinion attached. Falls back to FAST 130 UPBEAT otherwise.
+  const q = new URL(req.url, 'http://localhost').searchParams;
+  const displayName = q.get('displayName') || slug;
+  const speedLabel = q.get('speedLabel') || 'fast';
+  const vibe = q.get('vibe') || 'upbeat';
+  const bpm = Number(q.get('bpm')) || 130;
+
+  const chunks = [];
+  req.on('data', (chunk) => chunks.push(chunk));
+  req.on('end', async () => {
+    let tmpPath = null;
+    try {
+      const buf = Buffer.concat(chunks);
+      if (buf.length < 1000) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'empty upload' }));
+        return;
+      }
+      await fs.mkdir(MUSIC_UPLOAD_DIR, { recursive: true });
+      // Write raw upload to a temp file, then run ffmpeg into the final
+      // path so a half-finished encode never leaves a corrupt mp3 in
+      // the catalog dir.
+      tmpPath = path.join(MUSIC_UPLOAD_DIR, `.${slug}.upload.mp3`);
+      const outPath = path.join(MUSIC_UPLOAD_DIR, `${slug}.mp3`);
+      await fs.writeFile(tmpPath, buf);
+
+      await new Promise((resolve, reject) => {
+        const ff = spawn(
+          'ffmpeg',
+          [
+            '-hide_banner', '-loglevel', 'error', '-y',
+            '-i', tmpPath,
+            '-t', '32',
+            '-ac', '1',
+            '-ar', '44100',
+            '-b:a', '96k',
+            outPath,
+          ],
+          { stdio: ['ignore', 'pipe', 'pipe'] },
+        );
+        let stderr = '';
+        ff.stderr.on('data', (b) => { stderr += b.toString(); });
+        ff.on('close', (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`ffmpeg exit ${code}: ${stderr.trim()}`));
+        });
+      });
+
+      // Read existing music.json (if any), add the new entry, write back.
+      let raw = {};
+      try {
+        raw = JSON.parse(await fs.readFile(MUSIC_JSON, 'utf8'));
+      } catch {
+        // first upload — file might not exist yet
+      }
+      raw[slug] = {
+        id: slug,
+        displayName,
+        speedLabel,
+        vibe,
+        bpm,
+        loopDurationMs: 30000,
+      };
+      await rotateBackups(MUSIC_JSON);
+      await fs.writeFile(MUSIC_JSON, JSON.stringify(raw, null, 2) + '\n');
+
+      const finalBytes = (await fs.stat(outPath)).size;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        path: path.relative(PROJECT_ROOT, outPath),
+        bytes: finalBytes,
+        entry: raw[slug],
+      }));
+      console.log(`[upload-music:${slug}] ${buf.length}B raw → ${finalBytes}B mp3, catalog updated`);
+      scheduleCatalogSync();
+    } catch (e) {
+      res.writeHead(500, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    } finally {
+      if (tmpPath) await fs.unlink(tmpPath).catch(() => {});
+    }
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     // --- POST /upload-bg/<slug> ----------------------------------------
     if (req.method === 'POST' && req.url?.startsWith('/upload-bg/')) {
       const slug = req.url.replace(/^\/upload-bg\//, '').split('?')[0];
       await handleBgUpload(req, res, slug);
+      return;
+    }
+
+    // --- POST /upload-music/<slug>?displayName=...&vibe=...&bpm=... ----
+    if (req.method === 'POST' && req.url?.startsWith('/upload-music/')) {
+      const slug = req.url.replace(/^\/upload-music\//, '').split('?')[0];
+      await handleMusicUpload(req, res, slug);
+      return;
+    }
+
+    // --- DELETE /music/<slug> ------------------------------------------
+    if (req.method === 'DELETE' && req.url?.startsWith('/music/')) {
+      const slug = req.url.replace(/^\/music\//, '').split('?')[0];
+      try {
+        let raw = {};
+        try { raw = JSON.parse(await fs.readFile(MUSIC_JSON, 'utf8')); } catch {}
+        if (raw[slug]) {
+          delete raw[slug];
+          await rotateBackups(MUSIC_JSON);
+          await fs.writeFile(MUSIC_JSON, JSON.stringify(raw, null, 2) + '\n');
+        }
+        await fs.unlink(path.join(MUSIC_UPLOAD_DIR, `${slug}.mp3`)).catch(() => {});
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, slug }));
+        console.log(`[delete-music:${slug}] removed`);
+        scheduleCatalogSync();
+      } catch (e) {
+        res.writeHead(500, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
       return;
     }
 
