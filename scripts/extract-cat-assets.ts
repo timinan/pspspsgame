@@ -475,7 +475,7 @@ async function packAtlas(frames: ExtractedFrame[], atlasName: string): Promise<v
   const atlasJson = {
     frames: placements,
     meta: {
-      app: 'pspspsgame-extractor',
+      app: 'meowcert-extractor',
       version: '1',
       image: `${atlasName}.png`,
       format: 'RGBA8888',

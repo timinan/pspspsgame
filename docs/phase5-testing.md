@@ -3,7 +3,7 @@
 Living tracker for end-to-end testing of the Phase 5 redesign. Each flow gets tested in order; don't mix flows. Updated as we go.
 
 **Branch:** `phase5-vertical-gameplay`
-**Playtest URL:** https://www.reddit.com/r/pspspsgame_dev/?playtest=pspspsgame
+**Playtest URL:** https://www.reddit.com/r/meowcert_dev/?playtest=meowcert
 **Spec:** `/Users/timnan/Documents/GitHub/PM-OS/outputs/prds/2026-06-21-pspsps-phase5-spec.md`
 
 ---

@@ -1,6 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "pspspsgame",
+  "name": "meowcert",
   "post": {
     "dir": "dist/client",
     "entrypoints": {
@@ -21,7 +21,7 @@
     "items": [
       {
         "label": "Create a new post",
-        "description": "pspspsgame",
+        "description": "meowcert",
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-create"
@@ -46,6 +46,6 @@
     "dev": "vite build --watch"
   },
   "dev": {
-    "subreddit": "pspspsgame_dev"
+    "subreddit": "meowcert_dev"
   }
 }
