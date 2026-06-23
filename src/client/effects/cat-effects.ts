@@ -91,8 +91,11 @@ function makeGlow(color: number): CatEffect['apply'] {
       const t = i / (slices - 1); // 0 at base, 1 at tip
       const y = -t * flameHeight; // negative = up (feet are at 0)
       const w = baseWidth + (tipWidth - baseWidth) * t;
-      // Stronger at the base (~0.10), tapering to almost nothing at the tip.
-      const alpha = 0.10 * (1 - t * 0.85);
+      // Stronger at the base (~0.24), tapering to ~0.05 at the tip. Bumped
+      // from 0.10 base because the previous setting washed out against
+      // the new full-image backdrops — auras need to read against busy
+      // art, not just the flat purple void of the early Phase 5 builds.
+      const alpha = 0.24 * (1 - t * 0.80);
       graphics.fillStyle(color, alpha);
       graphics.fillEllipse(0, y, w, sliceThickness);
     }
@@ -211,22 +214,34 @@ function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
           fontSize: `${size}px`,
         })
         .setOrigin(0.5)
-        .setDepth(sprite.depth + 2);
+        // Render BEHIND the cat — particles are ambience around the
+        // sprite, not foreground noise on top of it.
+        .setDepth(sprite.depth - 1);
       live.push(t);
 
-      const targets: Record<string, number | string> = {
+      // Movement tween — rise (and optionally wobble) over the full life.
+      const moveTargets: Record<string, number | string> = {
         y: startY - riseDistancePx,
-        alpha: 0,
       };
       if (wobbleX) {
-        targets.x = `+=${(Math.random() < 0.5 ? -1 : 1) * wobbleX}`;
+        moveTargets.x = `+=${(Math.random() < 0.5 ? -1 : 1) * wobbleX}`;
       }
-
       scene.tweens.add({
         targets: t,
-        ...targets,
+        ...moveTargets,
         duration: opts.lifeMs,
         ease: 'Sine.easeOut',
+      });
+
+      // Alpha tween — hold at 1 for the first 60% of life so the particle
+      // stays vivid all the way up to its apex, then fade over the last
+      // 40%. Owns the destroy because it's the tween that finishes last.
+      scene.tweens.add({
+        targets: t,
+        alpha: 0,
+        duration: opts.lifeMs * 0.4,
+        delay: opts.lifeMs * 0.6,
+        ease: 'Sine.easeIn',
         onComplete: () => {
           const i = live.indexOf(t);
           if (i >= 0) live.splice(i, 1);
@@ -270,44 +285,47 @@ export const CAT_EFFECTS: CatEffect[] = [
   // Filter-style
   { id: 'effect-ghost',       name: 'Ghost',       iconEmoji: '👻', rarity: 'rare',      apply: makeGhost() },
 
-  // Particles — originals Tim liked
+  // Particles — originals Tim liked. riseDistancePx ~95 across the board
+  // so the particle column reaches roughly the same apex as the aura's
+  // 96px flameHeight; lifeMs lengthened a touch to give the rise room to
+  // breathe at the higher target height.
   {
     id: 'effect-sparkle',     name: 'Sparkles',    iconEmoji: '✨', rarity: 'uncommon',
-    apply: makeParticles({ emoji: '✨', size: 14, spawnIntervalMs: 200, riseDistancePx: 30, lifeMs: 1200, spreadX: 50 }),
+    apply: makeParticles({ emoji: '✨', size: 14, spawnIntervalMs: 200, riseDistancePx: 95, lifeMs: 1600, spreadX: 50 }),
   },
   {
     id: 'effect-hearts',      name: 'Hearts',      iconEmoji: '💕', rarity: 'rare',
-    apply: makeParticles({ emoji: '💕', size: 14, spawnIntervalMs: 220, riseDistancePx: 36, lifeMs: 1300, spreadX: 50 }),
+    apply: makeParticles({ emoji: '💕', size: 14, spawnIntervalMs: 220, riseDistancePx: 95, lifeMs: 1700, spreadX: 50 }),
   },
 
   // Particles — new variants for Tim to evaluate
   {
     id: 'effect-stars',       name: 'Stars',       iconEmoji: '⭐', rarity: 'uncommon',
-    apply: makeParticles({ emoji: '⭐', size: 14, spawnIntervalMs: 240, riseDistancePx: 38, lifeMs: 1400, spreadX: 60 }),
+    apply: makeParticles({ emoji: '⭐', size: 14, spawnIntervalMs: 240, riseDistancePx: 95, lifeMs: 1800, spreadX: 60 }),
   },
   {
     id: 'effect-music',       name: 'Music',       iconEmoji: '🎵', rarity: 'uncommon',
-    apply: makeParticles({ emoji: '🎵', size: 16, spawnIntervalMs: 280, riseDistancePx: 50, lifeMs: 1600, spreadX: 40, wobbleX: 14 }),
+    apply: makeParticles({ emoji: '🎵', size: 16, spawnIntervalMs: 280, riseDistancePx: 100, lifeMs: 1900, spreadX: 40, wobbleX: 14 }),
   },
   {
     id: 'effect-snow',        name: 'Snow',        iconEmoji: '❄️', rarity: 'rare',
-    apply: makeParticles({ emoji: '❄️', size: 14, spawnIntervalMs: 180, riseDistancePx: 30, lifeMs: 1500, spreadX: 60, wobbleX: 8 }),
+    apply: makeParticles({ emoji: '❄️', size: 14, spawnIntervalMs: 180, riseDistancePx: 95, lifeMs: 1800, spreadX: 60, wobbleX: 8 }),
   },
   {
     id: 'effect-blossom',     name: 'Blossoms',    iconEmoji: '🌸', rarity: 'rare',
-    apply: makeParticles({ emoji: '🌸', size: 14, spawnIntervalMs: 240, riseDistancePx: 40, lifeMs: 1600, spreadX: 60, wobbleX: 10 }),
+    apply: makeParticles({ emoji: '🌸', size: 14, spawnIntervalMs: 240, riseDistancePx: 95, lifeMs: 1900, spreadX: 60, wobbleX: 10 }),
   },
   {
     id: 'effect-fire',        name: 'Fire',        iconEmoji: '🔥', rarity: 'rare',
-    apply: makeParticles({ emoji: '🔥', size: 16, spawnIntervalMs: 120, riseDistancePx: 30, lifeMs: 800, spreadX: 30 }),
+    apply: makeParticles({ emoji: '🔥', size: 16, spawnIntervalMs: 120, riseDistancePx: 95, lifeMs: 1100, spreadX: 30 }),
   },
   {
     id: 'effect-bubbles',     name: 'Bubbles',     iconEmoji: '🫧', rarity: 'uncommon',
-    apply: makeParticles({ emoji: '🫧', size: 14, spawnIntervalMs: 220, riseDistancePx: 50, lifeMs: 1700, spreadX: 40, wobbleX: 6 }),
+    apply: makeParticles({ emoji: '🫧', size: 14, spawnIntervalMs: 220, riseDistancePx: 100, lifeMs: 2000, spreadX: 40, wobbleX: 6 }),
   },
   {
     id: 'effect-butterfly',   name: 'Butterflies', iconEmoji: '🦋', rarity: 'legendary',
-    apply: makeParticles({ emoji: '🦋', size: 16, spawnIntervalMs: 350, riseDistancePx: 60, lifeMs: 2000, spreadX: 70, wobbleX: 24 }),
+    apply: makeParticles({ emoji: '🦋', size: 16, spawnIntervalMs: 350, riseDistancePx: 110, lifeMs: 2200, spreadX: 70, wobbleX: 24 }),
   },
 ];
 

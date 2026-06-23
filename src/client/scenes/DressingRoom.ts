@@ -218,7 +218,11 @@ export class DressingRoom extends Scene {
       // modal. Tracked separately so they tear down on slot swap / close.
       const effect = CAT_EFFECT_BY_ID[cosTypeId];
       if (effect) {
-        this.heroEffects[slotKey] = effect.apply(this, this.heroSprite);
+        // Pass the hero's render scale so the effect's footprint
+        // (flame width, particle size, spread, rise distance) matches
+        // the up-to-2.2× hero. Without this the effect rendered at 1×
+        // and looked smaller than the cat.
+        this.heroEffects[slotKey] = effect.apply(this, this.heroSprite, this.heroSprite.scaleX);
         continue;
       }
       const cos = COSMETIC_CATALOG.find((c) => c.id === cosTypeId);
