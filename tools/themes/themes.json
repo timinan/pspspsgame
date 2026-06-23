@@ -4,7 +4,7 @@
     "backdropKey": "theme-stage-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 30,
+    "bgShiftUp": 2,
     "bgScale": 1.19
   },
   "arcade": {
@@ -44,7 +44,47 @@
     "backdropKey": "theme-cattemple-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": -38,
+    "bgShiftUp": -10,
+    "bgScale": 1
+  },
+  "pumpkinpatch": {
+    "displayName": "Pumpkin Patch",
+    "backdropKey": "theme-pumpkinpatch-bg",
+    "musicKey": "theme-default-music",
+    "rarity": "rare",
+    "bgShiftUp": -13,
+    "bgScale": 1.19
+  },
+  "pizzastore": {
+    "displayName": "Pizza Store",
+    "backdropKey": "theme-pizzastore-bg",
+    "musicKey": "theme-default-music",
+    "rarity": "rare",
+    "bgShiftUp": 64,
+    "bgScale": 1.09
+  },
+  "icecave": {
+    "displayName": "Ice Cave",
+    "backdropKey": "theme-icecave-bg",
+    "musicKey": "theme-default-music",
+    "rarity": "rare",
+    "bgShiftUp": 91,
+    "bgScale": 1.01
+  },
+  "diner": {
+    "displayName": "Diner",
+    "backdropKey": "theme-diner-bg",
+    "musicKey": "theme-default-music",
+    "rarity": "rare",
+    "bgShiftUp": 125,
+    "bgScale": 1
+  },
+  "casino": {
+    "displayName": "Casino",
+    "backdropKey": "theme-casino-bg",
+    "musicKey": "theme-default-music",
+    "rarity": "rare",
+    "bgShiftUp": 113,
     "bgScale": 1
   }
 }
