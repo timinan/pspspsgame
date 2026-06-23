@@ -4,7 +4,7 @@ import {
   save,
   type RedisLike,
 } from '../src/server/core/player-state';
-import { STARTER_COINS, createFreshPlayerState, type SeatId } from '../src/shared/state';
+import { STARTER_COINS, createFreshPlayerState, COSMETIC_CATALOG, type SeatId } from '../src/shared/state';
 
 class FakeRedis implements RedisLike {
   private store = new Map<string, string>();
@@ -35,9 +35,9 @@ describe('player-state', () => {
     expect(state.ownedCats).toHaveLength(3);
     expect(state.ownedCats.map((c) => c.breed)).toEqual(['cat1', 'cat2', 'cat3']);
     expect(Object.keys(state.seatedCats)).toHaveLength(3);
-    // Auto-grants one of each EFFECT cosmetic for immediate DressingRoom testing.
-    expect(state.ownedCosmetics.length).toBeGreaterThan(0);
-    expect(state.ownedCosmetics.every((c) => c.type.startsWith('effect-'))).toBe(true);
+    // DEV: auto-grants one instance of every cosmetic in COSMETIC_CATALOG
+    // (atlas-backed + effects) for immediate DressingRoom testing.
+    expect(state.ownedCosmetics.length).toBe(COSMETIC_CATALOG.length);
     expect(state.equippedCosmetics).toEqual({});
     expect(state.equippedCosmeticTypes).toEqual({});
     expect(state.bestScore).toBe(0);
