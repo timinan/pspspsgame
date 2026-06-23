@@ -139,7 +139,20 @@ export class Preloader extends Scene {
     const atlas = this.textures.get(AssetKeys.Atlas.Cats);
     const allFrameNames = atlas.getFrameNames();
 
-    for (const breed of CAT_BREEDS) {
+    // Discover every actual breed prefix in the atlas (cat1, cat2, …, cat7,
+    // cat8 — any Color Repick variant the extractor packed). The hardcoded
+    // CAT_BREEDS list still covers `rainbow` (which has no frames of its
+    // own — uses cat6's), so we union the two sets.
+    const discoveredBreeds = new Set<string>();
+    for (const name of allFrameNames) {
+      const m = /^(cat\d+)_/.exec(name);
+      if (m) discoveredBreeds.add(m[1]!);
+    }
+    const allBreeds = [
+      ...new Set<string>([...CAT_BREEDS, ...discoveredBreeds]),
+    ];
+
+    for (const breed of allBreeds) {
       const renderBreed = breed === 'rainbow' ? RAINBOW_RENDER_BREED : breed;
 
       for (const anim of ['idle', 'happy', 'hiss', 'meow'] as const) {

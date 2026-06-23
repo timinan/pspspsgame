@@ -59,12 +59,22 @@ export class Cat {
   /** Cached resting scale (from model.scale). Animations multiply this so a
    *  1.4× cat doesn't snap back to 1× when playIdle / playMeow tween scaleX. */
   private readonly baseScale: number;
+  /** Per-frame translation offsets per cat breed + animation, loaded from
+   *  `public/assets/atlas/cat-frame-offsets.json`. Static cosmetics (the
+   *  ones uploaded via the quick-add tool — single-frame animations)
+   *  ride these so they bob with the cat without their own per-frame art.
+   *  Empty {} when the JSON didn't load — falls back to a no-op. */
+  private readonly frameOffsets: Record<string, Record<string, [number, number][]>>;
 
   constructor(
     private readonly scene: Scene,
     public readonly model: CatModel,
   ) {
     this.baseScale = model.scale ?? 1;
+    this.frameOffsets = (scene.cache.json.get(AssetKeys.Json.CatFrameOffsets) ?? {}) as Record<
+      string,
+      Record<string, [number, number][]>
+    >;
     const initialFrame = Cat.frameName(model.breed, model.animation, 0);
     this.sprite = scene.add.sprite(0, 0, AssetKeys.Atlas.Cats, initialFrame);
     this.sprite.setOrigin(0.5, 1);
@@ -275,10 +285,73 @@ export class Cat {
     }
   }
 
-  private syncOneCosmetic(_slot: string, sprite: GameObjects.Sprite, depthOffset = 1): void {
+  private syncOneCosmetic(slot: string, sprite: GameObjects.Sprite, depthOffset = 1): void {
     sprite.setScale(this.sprite.scaleX);
-    sprite.setPosition(this.sprite.x, this.sprite.y);
     sprite.setDepth(this.sprite.depth + depthOffset);
+
+    let dx = 0;
+    let dy = 0;
+
+    // The cat's per-frame translation offset is applied ONLY to cosmetics
+    // that are explicitly marked `isStatic` in the catalog (set by the
+    // Cosmetic Quick Add upload flow). Hand-animated cosmetics (c1–c43)
+    // keep their per-frame art driving their motion — this branch is a
+    // strict no-op for them.
+    const cosId = this.cosmeticIdForSlot(slot);
+    const catalogEntry = cosId
+      ? COSMETIC_CATALOG.find((c) => c.id === cosId)
+      : undefined;
+    if (catalogEntry?.isStatic) {
+      const catAnimKey = this.sprite.anims.currentAnim?.key;
+      const frameIdx = this.sprite.anims.currentFrame?.index;
+      if (catAnimKey && typeof frameIdx === 'number') {
+        // Animation key shape: "<breed>_<anim>". Use renderBreed so rainbow
+        // (which uses cat6's frames) resolves to cat6 in the offsets table.
+        const sepIdx = catAnimKey.indexOf('_');
+        if (sepIdx > 0) {
+          const breed = Cat.renderBreed(catAnimKey.slice(0, sepIdx));
+          const anim = catAnimKey.slice(sepIdx + 1);
+          const off = this.frameOffsets[breed]?.[anim]?.[frameIdx - 1];
+          if (off) {
+            const strength = catalogEntry.motionStrength ?? Cat.motionStrengthForSlot(slot);
+            dx = off[0] * strength;
+            dy = off[1] * strength;
+          }
+        }
+      }
+    }
+
+    // Offsets are in SOURCE pixels (91×64 canvas). Scale to display pixels
+    // via the cat's render scale.
+    sprite.setPosition(
+      this.sprite.x + dx * this.sprite.scaleX,
+      this.sprite.y + dy * this.sprite.scaleX,
+    );
+  }
+
+  /** Get the cosmetic id equipped in the given slot, accounting for the
+   *  equippedCosmetics map's slot keying. Returns null if nothing is
+   *  equipped in that slot. */
+  private cosmeticIdForSlot(slot: string): CosmeticId | null {
+    return this.model.equippedCosmetics?.[slot] ?? null;
+  }
+
+  /** How strongly a cosmetic in this slot rides the cat's per-frame motion.
+   *  1.0 = exactly tracks the cat's body-center delta. Lower for body items
+   *  (which move less in the source art than the head). Tunable later via a
+   *  per-cosmetic `motionStrength` override in the calibrator if needed. */
+  private static motionStrengthForSlot(slot: string): number {
+    switch (slot) {
+      case 'head':
+      case 'face':
+        return 1.0;
+      case 'neck':
+        return 0.8;
+      case 'body':
+        return 0.4;
+      default:
+        return 0.6;
+    }
   }
 
   private playAnimation(animation: CatAnimationState): void {

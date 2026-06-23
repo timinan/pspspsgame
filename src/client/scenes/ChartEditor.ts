@@ -511,7 +511,7 @@ export class ChartEditor extends Scene {
     // never lies about what's selectable.
     this.vibeCycle = buildVibeCycle(this.chart.bpm);
     if (this.vibeCycle.length === 0) {
-      this.chart.vibe = undefined;
+      delete this.chart.vibe;
       this.vibeBtnText.setText(this.vibeButtonLabel());
       return;
     }

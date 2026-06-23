@@ -145,6 +145,43 @@ async function extractCatGifs(): Promise<ExtractedFrame[]> {
       }
     }
   }
+
+  // Auto-discover additional cat<N>/ folders in assets-raw/ — these are
+  // typically Color Repick variants (cat7, cat8, ...) where the server
+  // has dropped recolored frame PNGs directly using the same naming
+  // convention the prototype-GIF flow produces (`cat<N>_<anim>_<NN>.png`).
+  // No GIF processing here — the PNGs ARE the source.
+  const rawEntries = await fs.readdir(OUT_RAW).catch(() => [] as string[]);
+  const extraBreeds = rawEntries
+    .filter((e) => /^cat\d+$/.test(e) && !(BREEDS as readonly string[]).includes(e))
+    .sort((a, b) => parseInt(a.slice(3), 10) - parseInt(b.slice(3), 10));
+
+  for (const breed of extraBreeds) {
+    const dir = path.join(OUT_RAW, breed);
+    const stat = await fs.stat(dir).catch(() => null);
+    if (!stat?.isDirectory()) continue;
+    const pngs = await glob(`${dir}/*.png`);
+    const frameRe = new RegExp(`^${breed}_(.+)_(\\d+)$`);
+    type Bucket = { animation: CanonicalAnim; idx: number; srcPath: string };
+    const buckets: Bucket[] = [];
+    for (const pngPath of pngs) {
+      const base = path.basename(pngPath, '.png');
+      const m = frameRe.exec(base);
+      if (!m) continue;
+      const suffix = m[1]!;
+      const idx = parseInt(m[2]!, 10);
+      const animation = CAT_ANIM_MAP[suffix];
+      if (!animation) continue;
+      buckets.push({ animation, idx, srcPath: pngPath });
+    }
+    buckets.sort((a, b) =>
+      a.animation === b.animation ? a.idx - b.idx : a.animation.localeCompare(b.animation),
+    );
+    for (const b of buckets) {
+      all.push({ breed, animation: b.animation, frameIndex: b.idx, srcPath: b.srcPath });
+    }
+  }
+
   return all;
 }
 
@@ -169,14 +206,29 @@ async function extractCosmeticGifs(): Promise<ExtractedFrame[]> {
     if (!stat?.isDirectory()) continue;
 
     const outDir = srcDir; // Co-locate intermediate PNGs with their source GIFs
+    // PNGs sit alongside GIFs in the same folder. A static cosmetic
+    // uploaded via the calibrator lands as `c<N>_idle.png` (one frame);
+    // the existing hand-animated cosmetics use `c<N>_<anim>.gif` (many
+    // frames). GIFs get priority so a folder with both keeps the
+    // hand-animated version for that animation.
     const gifs = await glob(`${srcDir}/*.gif`);
+    const pngs = await glob(`${srcDir}/*.png`);
     // Sort 'idle' first so it wins de-dup ties if multiple suffixes map
     // to the same canonical animation.
-    gifs.sort((a, b) => {
+    const sortIdleFirst = (a: string, b: string) => {
       const ai = path.basename(a).includes('idle') ? 0 : 1;
       const bi = path.basename(b).includes('idle') ? 0 : 1;
       return ai - bi;
-    });
+    };
+    gifs.sort(sortIdleFirst);
+    pngs.sort(sortIdleFirst);
+
+    // Track which animations we already extracted (intermediate frame
+    // PNGs from a prior gif-frames pass are named `cosmetic_<cos>_<anim>_NN.png`
+    // and live in the same folder — those are NOT source PNGs and must
+    // not be re-treated as standalone sources.
+    const isExtractedIntermediate = (p: string) =>
+      path.basename(p).startsWith(`cosmetic_${cos}_`);
 
     for (const gifPath of gifs) {
       const base = path.basename(gifPath, '.gif');
@@ -210,8 +262,94 @@ async function extractCosmeticGifs(): Promise<ExtractedFrame[]> {
         });
       }
     }
+
+    // Source PNGs come in two shapes:
+    //   - Single-frame static: `c<N>_<anim>.png` (Quick Add uploads land here)
+    //   - Multi-frame variant: `c<N>_<anim>_<NN>.png` (Color Repick variants
+    //     of an animated source — server-side recolored intermediates)
+    // We bucket all source PNGs by animation first so multi-frame sets pack
+    // into a single ExtractedFrame list per animation. A GIF on the same
+    // animation always wins (extracted in the loop above).
+    type ParsedFrame = { pngPath: string; animation: CanonicalAnim; frameIdx: number };
+    const buckets = new Map<CanonicalAnim, ParsedFrame[]>();
+    for (const pngPath of pngs) {
+      if (isExtractedIntermediate(pngPath)) continue;
+      const parsed = parseCosmeticPngSource(pngPath);
+      if (!parsed) {
+        console.warn(`[skip unknown cosmetic anim png] ${pngPath}`);
+        continue;
+      }
+      let arr = buckets.get(parsed.animation);
+      if (!arr) {
+        arr = [];
+        buckets.set(parsed.animation, arr);
+      }
+      arr.push({ pngPath, ...parsed });
+    }
+
+    for (const [animation, frames] of buckets) {
+      // GIF already covered this animation — skip the PNG bucket.
+      const gifCovered = all.some(
+        (f) => f.breed === `cosmetic_${cos}` && f.animation === animation,
+      );
+      if (gifCovered) continue;
+
+      frames.sort((a, b) => a.frameIdx - b.frameIdx);
+      for (const { pngPath, frameIdx } of frames) {
+        const outPath = path.join(
+          outDir,
+          `cosmetic_${cos}_${animation}_${String(frameIdx).padStart(2, '0')}.png`,
+        );
+        if (path.resolve(pngPath) !== path.resolve(outPath)) {
+          await fs.copyFile(pngPath, outPath);
+        }
+        all.push({
+          breed: `cosmetic_${cos}`,
+          animation,
+          frameIndex: frameIdx,
+          srcPath: outPath,
+        });
+      }
+    }
   }
   return all;
+}
+
+/** Parse a cosmetic source PNG filename into animation + frame index.
+ *  Supports both `c44_idle.png` (single frame, idx 0) and
+ *  `c44_idle_00.png` (numbered multi-frame). Returns null when the
+ *  animation suffix isn't recognized. */
+function parseCosmeticPngSource(
+  pngPath: string,
+): { animation: CanonicalAnim; frameIdx: number } | null {
+  const base = path.basename(pngPath, '.png');
+  const tokens = base.split('_');
+  if (tokens.length < 2) return null;
+
+  // Multi-frame: last token numeric, e.g. ['c44', 'idle', '00'].
+  const last = tokens[tokens.length - 1]!;
+  if (/^\d+$/.test(last) && tokens.length >= 3) {
+    const frameIdx = parseInt(last, 10);
+    // The 2-token animation suffix (e.g. 'sleep_r') sits before the index.
+    let suffix = tokens.slice(-3, -1).join('_');
+    let animation = COSMETIC_ANIM_MAP[suffix];
+    if (!animation) {
+      suffix = tokens[tokens.length - 2]!;
+      animation = COSMETIC_ANIM_MAP[suffix];
+    }
+    if (animation) return { animation, frameIdx };
+  }
+
+  // Single-frame: ['c44', 'idle'] or with a 2-token suffix ['c44', 'sleep', 'r'].
+  let suffix = tokens.slice(-2).join('_');
+  let animation = COSMETIC_ANIM_MAP[suffix];
+  if (!animation) {
+    suffix = tokens[tokens.length - 1]!;
+    animation = COSMETIC_ANIM_MAP[suffix];
+  }
+  if (animation) return { animation, frameIdx: 0 };
+
+  return null;
 }
 
 function byCNumber(a: string, b: string): number {
@@ -482,10 +620,107 @@ async function trimMeowBarFill(): Promise<void> {
   );
 }
 
+/**
+ * After the cat atlas is packed, emit per-frame translation offsets for
+ * every cat animation. Static cosmetics (single-frame PNG uploads) ride
+ * these offsets at runtime to bob/jump/etc. along with their cat — see
+ * `Cat.syncOneCosmetic`.
+ *
+ * For each cat × animation × frameIndex, the offset is the delta between
+ * that frame's painted-bound CENTER and the painted-bound center of
+ * frame 0 of idle for the same cat. Captures pure translations (bobs,
+ * jumps); for deformation animations (stretch, hiss) it approximates the
+ * body-center motion, which is close enough for slot-multiplier tuning
+ * to clean up. Output:
+ *
+ *   {
+ *     "cat1": {
+ *       "idle":  [[0,0], [0,-1], [0,-2], [0,-1], [0,0], ...],
+ *       "happy": [[0,-2], [0,-5], [0,-3], [0,0], ...],
+ *       ...
+ *     },
+ *     ...
+ *   }
+ */
+async function writeCatFrameOffsets(): Promise<void> {
+  const atlasJsonPath = path.join(OUT_ATLAS_DIR, 'cats.json');
+  const raw = await fs.readFile(atlasJsonPath, 'utf8').catch(() => null);
+  if (!raw) {
+    console.warn('[offsets] cats.json missing — skipping frame offsets');
+    return;
+  }
+  const atlas = JSON.parse(raw) as { frames: AtlasFrame[] };
+
+  // Group frames by breed + animation, sort by frame index.
+  type Bucket = { name: string; cx: number; cy: number; idx: number };
+  const byCatAnim = new Map<string, Map<string, Bucket[]>>();
+  const frameNameRegex = /^(cat\d+)_([a-z_]+)_(\d+)$/;
+
+  for (const f of atlas.frames) {
+    const m = frameNameRegex.exec(f.filename);
+    if (!m) continue;
+    const [, breed, anim, idxStr] = m;
+    const idx = parseInt(idxStr!, 10);
+    const cx = f.spriteSourceSize.x + f.spriteSourceSize.w / 2;
+    const cy = f.spriteSourceSize.y + f.spriteSourceSize.h / 2;
+    let perAnim = byCatAnim.get(breed!);
+    if (!perAnim) {
+      perAnim = new Map();
+      byCatAnim.set(breed!, perAnim);
+    }
+    let arr = perAnim.get(anim!);
+    if (!arr) {
+      arr = [];
+      perAnim.set(anim!, arr);
+    }
+    arr.push({ name: f.filename, cx, cy, idx });
+  }
+
+  const offsets: Record<string, Record<string, [number, number][]>> = {};
+  for (const [breed, perAnim] of byCatAnim) {
+    // Reference center = frame 0 of idle for this cat. Fall back to the
+    // first frame of any animation if idle is missing.
+    const idleFrames = (perAnim.get('idle') ?? []).slice().sort((a, b) => a.idx - b.idx);
+    let refCx = 0;
+    let refCy = 0;
+    if (idleFrames.length > 0) {
+      refCx = idleFrames[0]!.cx;
+      refCy = idleFrames[0]!.cy;
+    } else {
+      // Fallback — first animation, first frame.
+      const first = [...perAnim.values()][0]?.[0];
+      if (first) {
+        refCx = first.cx;
+        refCy = first.cy;
+      }
+    }
+
+    offsets[breed] = {};
+    for (const [anim, arr] of perAnim) {
+      const sorted = arr.slice().sort((a, b) => a.idx - b.idx);
+      offsets[breed]![anim] = sorted.map(
+        (f) => [Math.round(f.cx - refCx), Math.round(f.cy - refCy)] as [number, number],
+      );
+    }
+  }
+
+  const outPath = path.join(OUT_ATLAS_DIR, 'cat-frame-offsets.json');
+  await fs.writeFile(outPath, JSON.stringify(offsets, null, 2));
+  const breedCount = Object.keys(offsets).length;
+  const animCount = Object.values(offsets).reduce(
+    (acc, b) => acc + Object.keys(b).length,
+    0,
+  );
+  console.log(
+    `[offsets] ${breedCount} cats x ${animCount} animations -> ${path.relative(PROJECT_ROOT, outPath)}`,
+  );
+}
+
 async function main(): Promise<void> {
   await ensureDirs();
   const catFrames = await extractCatGifs();
   await packAtlas(catFrames, 'cats');
+  await writeCatFrameOffsets();
   const cosmeticFrames = await extractCosmeticGifs();
   await packAtlas(cosmeticFrames, 'cosmetics');
   await copyStaticAssets();

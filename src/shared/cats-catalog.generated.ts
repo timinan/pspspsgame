@@ -40,4 +40,22 @@ export const GENERATED_CAT_CATALOG: readonly CatEntry[] = [
     name: "Rainbow Whiskers",
     rarity: "legendary",
   },
+  {
+    id: "cat7",
+    name: "Pinky",
+    rarity: "common",
+    scale: 1,
+  },
+  {
+    id: "cat8",
+    name: "Black",
+    rarity: "rare",
+    scale: 1,
+  },
+  {
+    id: "cat9",
+    name: "Snow White",
+    rarity: "common",
+    scale: 1,
+  },
 ];

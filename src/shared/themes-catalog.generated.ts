@@ -7,15 +7,15 @@ export const BACKGROUND_CATALOG = {
   stage: { id: "stage", displayName: "Meow Live", backdropKey: "theme-stage-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 2, bgScale: 1.19 },
   arcade: { id: "arcade", displayName: "Neon Arcade", backdropKey: "theme-arcade-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 50, bgScale: 1 },
   wizard: { id: "wizard", displayName: "Wizard's Tower", backdropKey: "theme-wizard-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 64, bgScale: 1.09 },
-  pirate: { id: "pirate", displayName: "Pirate Galleon", backdropKey: "theme-pirate-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 48, bgScale: 1.17 },
-  mushroomgrove: { id: "mushroomgrove", displayName: "Mushroom Grove", backdropKey: "theme-mushroomgrove-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: -26, bgScale: 1.23 },
+  pirate: { id: "pirate", displayName: "Pirate Galleon", backdropKey: "theme-pirate-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 54, bgScale: 1.11 },
   cattemple: { id: "cattemple", displayName: "Cat Temple", backdropKey: "theme-cattemple-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: -10, bgScale: 1 },
   pumpkinpatch: { id: "pumpkinpatch", displayName: "Pumpkin Patch", backdropKey: "theme-pumpkinpatch-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: -13, bgScale: 1.19 },
-  pizzastore: { id: "pizzastore", displayName: "Pizza Store", backdropKey: "theme-pizzastore-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 64, bgScale: 1.09 },
+  pizzastore: { id: "pizzastore", displayName: "Pizza Store", backdropKey: "theme-pizzastore-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 66, bgScale: 1.09 },
   icecave: { id: "icecave", displayName: "Ice Cave", backdropKey: "theme-icecave-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 91, bgScale: 1.01 },
-  diner: { id: "diner", displayName: "Diner", backdropKey: "theme-diner-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 125, bgScale: 1 },
+  diner: { id: "diner", displayName: "Diner", backdropKey: "theme-diner-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 132, bgScale: 1 },
   casino: { id: "casino", displayName: "Casino", backdropKey: "theme-casino-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 109, bgScale: 1 },
-  volcanicpalace: { id: "volcanicpalace", displayName: "Volcanic Palace", backdropKey: "theme-volcanicpalace-bg", musicKey: "theme-default-music", rarity: "legendary" as const, bgShiftUp: 62, bgScale: 1.04 },
+  volcanicpalace: { id: "volcanicpalace", displayName: "Volcanic Palace", backdropKey: "theme-volcanicpalace-bg", musicKey: "theme-default-music", rarity: "legendary" as const, bgShiftUp: 27, bgScale: 1.04 },
+  underwater: { id: "underwater", displayName: "Under Water", backdropKey: "theme-underwater-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 76, bgScale: 1 },
 } as const;
 
 // Legacy alias — keep so existing THEME_CATALOG consumers compile without a rename sweep.
@@ -25,7 +25,6 @@ export const GENERATED_THEME_CATALOG = [
   BACKGROUND_CATALOG.arcade,
   BACKGROUND_CATALOG.wizard,
   BACKGROUND_CATALOG.pirate,
-  BACKGROUND_CATALOG.mushroomgrove,
   BACKGROUND_CATALOG.cattemple,
   BACKGROUND_CATALOG.pumpkinpatch,
   BACKGROUND_CATALOG.pizzastore,
@@ -33,4 +32,5 @@ export const GENERATED_THEME_CATALOG = [
   BACKGROUND_CATALOG.diner,
   BACKGROUND_CATALOG.casino,
   BACKGROUND_CATALOG.volcanicpalace,
+  BACKGROUND_CATALOG.underwater,
 ] as const;

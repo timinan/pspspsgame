@@ -28,16 +28,8 @@
     "backdropKey": "theme-pirate-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 48,
-    "bgScale": 1.17
-  },
-  "mushroomgrove": {
-    "displayName": "Mushroom Grove",
-    "backdropKey": "theme-mushroomgrove-bg",
-    "musicKey": "theme-default-music",
-    "rarity": "rare",
-    "bgShiftUp": -26,
-    "bgScale": 1.23
+    "bgShiftUp": 54,
+    "bgScale": 1.11
   },
   "cattemple": {
     "displayName": "Cat Temple",
@@ -60,7 +52,7 @@
     "backdropKey": "theme-pizzastore-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 64,
+    "bgShiftUp": 66,
     "bgScale": 1.09
   },
   "icecave": {
@@ -76,7 +68,7 @@
     "backdropKey": "theme-diner-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 125,
+    "bgShiftUp": 132,
     "bgScale": 1
   },
   "casino": {
@@ -87,12 +79,12 @@
     "bgShiftUp": 109,
     "bgScale": 1
   },
-  "volcanicplalace": {
+  "volcanicpalace": {
     "displayName": "Volcanic Palace",
-    "backdropKey": "theme-volcanicplalace-bg",
+    "backdropKey": "theme-volcanicpalace-bg",
     "musicKey": "theme-default-music",
     "rarity": "legendary",
-    "bgShiftUp": 63,
+    "bgShiftUp": 27,
     "bgScale": 1.04
   }
 }

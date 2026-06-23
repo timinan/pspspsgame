@@ -4,8 +4,8 @@
  *
  *   tools/cosmetics/cosmetics.json      →  src/shared/cosmetics-catalog.generated.ts
  *   tools/cats/cats.json                →  src/shared/cats-catalog.generated.ts
- *   tools/decorations/decorations.json  →  src/shared/decorations-catalog.generated.ts
  *   tools/themes/themes.json            →  src/shared/themes-catalog.generated.ts
+ *   tools/music/music.json              →  src/shared/music-catalog.generated.ts
  *
  * The tools server runs this after every successful POST /save so the
  * game's catalog stays in lock-step with the calibrators without any
@@ -19,6 +19,7 @@ const COSMETICS_JSON = path.join(PROJECT_ROOT, 'tools', 'cosmetics', 'cosmetics.
 const CATS_JSON = path.join(PROJECT_ROOT, 'tools', 'cats', 'cats.json');
 // TODO Phase 5: DECORATIONS_JSON removed with decoration system
 const THEMES_JSON = path.join(PROJECT_ROOT, 'tools', 'themes', 'themes.json');
+const MUSIC_JSON = path.join(PROJECT_ROOT, 'tools', 'music', 'music.json');
 const OUT_DIR = path.join(PROJECT_ROOT, 'src', 'shared');
 
 interface CosmeticJsonEntry {
@@ -32,6 +33,17 @@ interface CosmeticJsonEntry {
   sourceFrame?: string;
   tint?: string;
   tintMode?: string;
+  /** When true, this cosmetic has no per-frame animation art and the
+   *  game's Cat entity rides it through the cat's per-frame translation
+   *  offsets (read from cat-frame-offsets.json) so the cosmetic bobs /
+   *  jumps with its cat. Set automatically by the Cosmetic Quick Add
+   *  upload flow for single-PNG cosmetics. Defaults to false — existing
+   *  hand-animated cosmetics keep their per-frame art driving motion. */
+  isStatic?: boolean;
+  /** Optional per-cosmetic override of the slot-default motion strength.
+   *  1.0 = tracks the cat 1:1, 0 = doesn't ride motion at all. Only
+   *  used when `isStatic: true`. */
+  motionStrength?: number;
 }
 
 interface CatJsonEntry {
@@ -103,6 +115,8 @@ async function genCosmetics(): Promise<number> {
         sourceFrame: e.sourceFrame,
         tint: e.tint,
         tintMode: e.tintMode,
+        isStatic: e.isStatic,
+        motionStrength: e.motionStrength,
       }),
     );
     lines.push('  },');
@@ -202,11 +216,57 @@ async function genThemes(): Promise<number> {
   return entries.length;
 }
 
+interface MusicJsonEntry {
+  id: string;
+  displayName?: string;
+  speedLabel: 'slow' | 'medium' | 'fast' | 'faster';
+  vibe: 'upbeat' | 'melodic' | 'smooth';
+  bpm: number;
+  loopDurationMs?: number;
+}
+
+async function genMusic(): Promise<number> {
+  let raw: Record<string, MusicJsonEntry> = {};
+  try {
+    const text = await fs.readFile(MUSIC_JSON, 'utf8');
+    raw = JSON.parse(text) as Record<string, MusicJsonEntry>;
+  } catch {
+    // missing or unparseable — write an empty catalog so MusicSystem stays silent
+  }
+  const entries = Object.entries(raw);
+  const catalogLines: string[] = [];
+  for (const [id, v] of entries) {
+    const loopDur = typeof v.loopDurationMs === 'number' ? v.loopDurationMs : 30_000;
+    catalogLines.push(
+      `  ${JSON.stringify(id)}: { id: ${JSON.stringify(id)}, displayName: ${JSON.stringify(v.displayName ?? id)}, speedLabel: ${JSON.stringify(v.speedLabel)}, vibe: ${JSON.stringify(v.vibe)}, bpm: ${v.bpm}, audioKey: ${JSON.stringify('backing-' + id)}, loopDurationMs: ${loopDur} },`,
+    );
+  }
+  const lines: string[] = [
+    BANNER,
+    '',
+    `import type { BackingTrack } from './state';`,
+    '',
+    `export const BACKING_CATALOG: Record<string, BackingTrack> = {`,
+    ...catalogLines,
+    `};`,
+    '',
+  ];
+  await fs.writeFile(
+    path.join(OUT_DIR, 'music-catalog.generated.ts'),
+    lines.join('\n'),
+  );
+  return entries.length;
+}
+
 async function main(): Promise<void> {
   await fs.mkdir(OUT_DIR, { recursive: true });
-  // TODO Phase 5: genDecorations() removed from pipeline with decoration system
-  const [cosCount, catCount, themCount] = await Promise.all([genCosmetics(), genCats(), genThemes()]);
-  console.log(`[sync] cosmetics=${cosCount} cats=${catCount} themes=${themCount}`);
+  const [cosCount, catCount, themCount, musicCount] = await Promise.all([
+    genCosmetics(),
+    genCats(),
+    genThemes(),
+    genMusic(),
+  ]);
+  console.log(`[sync] cosmetics=${cosCount} cats=${catCount} themes=${themCount} music=${musicCount}`);
 }
 
 main().catch((err) => {

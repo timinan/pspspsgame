@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Cosmetic Quick Add · pspsps</title>
+<link rel="icon" href="data:," />
+<style>
+  :root {
+    --bg: #1a0a2e;
+    --panel: #261540;
+    --panel-2: #341c5a;
+    --accent: #ffd34d;
+    --accent-2: #c678ff;
+    --text: #fff;
+    --muted: #c0a0e6;
+    --ok: #7fdc8a;
+    --err: #ff7a7a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 32px;
+    font-family: system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card {
+    background: var(--panel); padding: 32px; border-radius: 12px;
+    width: 100%; max-width: 520px; box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  h1 { margin: 0 0 6px; color: var(--accent); font-size: 24px; }
+  .tagline { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+  a.back { font-size: 12px; color: var(--muted); text-decoration: none; }
+  a.back:hover { color: var(--accent); }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--muted); }
+  .field input[type="text"], .field select {
+    width: 100%; padding: 10px 12px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--panel-2); border-radius: 6px; font-size: 14px;
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--accent-2); }
+
+  .upload-zone {
+    border: 2px dashed var(--panel-2); padding: 32px 16px; text-align: center;
+    border-radius: 10px; cursor: pointer; color: var(--muted); font-size: 13px;
+    transition: all 0.15s; margin-bottom: 16px;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent); background: var(--panel-2); color: var(--text);
+  }
+  .upload-zone.has-file {
+    border-color: var(--ok); background: rgba(127, 220, 138, 0.08);
+    color: var(--text);
+  }
+  .preview {
+    display: flex; align-items: center; gap: 14px; margin-top: 10px;
+    justify-content: center; flex-wrap: wrap;
+  }
+  .preview img {
+    max-width: 91px; max-height: 64px; image-rendering: pixelated;
+    border: 1px solid var(--panel-2); background: var(--bg); padding: 4px;
+  }
+  .preview small { color: var(--muted); font-size: 11px; }
+
+  .submit-row { display: flex; gap: 8px; margin-top: 22px; }
+  .btn {
+    flex: 1; padding: 12px; border: none; border-radius: 8px;
+    font-weight: 700; cursor: pointer; font-size: 14px;
+  }
+  .btn-primary { background: var(--accent); color: #1a0a2e; }
+  .btn-secondary { background: var(--panel-2); color: var(--text); }
+  .btn:hover:not(:disabled) { filter: brightness(1.1); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .status { margin-top: 16px; font-size: 13px; min-height: 20px; line-height: 1.5; }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--err); }
+  .status.pending { color: var(--accent); }
+  .spinner {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid var(--accent); border-top-color: transparent;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    margin-right: 6px; vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .footnote {
+    margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--panel-2);
+    font-size: 11px; color: var(--muted); line-height: 1.6;
+  }
+  .footnote code {
+    background: var(--bg); padding: 1px 5px; border-radius: 3px;
+    font-family: ui-monospace, monospace; color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <a class="back" href="/">← all tools</a>
+  <h1>Cosmetic Quick Add</h1>
+  <div class="tagline">Drop one PNG → fully integrated cosmetic in ~30s. Bobs with the cat automatically.</div>
+
+  <form id="form">
+    <div class="field">
+      <label for="name">Display name</label>
+      <input type="text" id="name" name="name" required maxlength="40" placeholder="e.g. Pirate Hat" />
+    </div>
+
+    <div class="field">
+      <label for="slot">Slot</label>
+      <select id="slot" name="slot" required>
+        <option value="head">Head (e.g. hat, crown — rides motion strongly)</option>
+        <option value="face">Face (glasses, mask — rides motion strongly)</option>
+        <option value="neck">Neck (collar, bow tie — rides motion lightly)</option>
+        <option value="body">Body (cape, vest — rides motion least)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="rarity">Rarity</label>
+      <select id="rarity" name="rarity">
+        <option value="common">common</option>
+        <option value="uncommon">uncommon</option>
+        <option value="rare">rare</option>
+        <option value="legendary">legendary</option>
+      </select>
+    </div>
+
+    <div class="upload-zone" id="upload-zone">
+      Drop a PNG here, or click to choose a file<br/>
+      <small style="opacity: 0.7;">91 × 64 pixel-art recommended — alpha-transparent background, item only</small>
+      <input type="file" id="file-input" accept="image/png,image/jpeg" hidden required />
+      <div class="preview" id="preview" hidden></div>
+    </div>
+
+    <div class="submit-row">
+      <button type="reset" class="btn btn-secondary" id="reset-btn">Reset</button>
+      <button type="submit" class="btn btn-primary" id="submit-btn">Add cosmetic</button>
+    </div>
+  </form>
+
+  <div class="status" id="status"></div>
+
+  <div class="footnote">
+    <strong>What happens on submit:</strong>
+    <ol style="margin: 4px 0; padding-left: 18px;">
+      <li>PNG saved as <code>assets-raw/cosmetic/c&lt;N&gt;/c&lt;N&gt;_idle.png</code></li>
+      <li><code>npm run extract:assets</code> regenerates the atlas + frame-offset data</li>
+      <li>Catalog entry appended to <code>tools/cosmetics/cosmetics.json</code></li>
+      <li><code>npm run sync:catalog</code> regenerates the typed catalog</li>
+      <li>Devvit playtest auto-rebuilds — refresh the playtest tab to see it in DressingRoom</li>
+    </ol>
+    <p style="margin: 10px 0 0;">Bobs / jumps with the cat via the cat's per-frame translation offsets (<code>cat-frame-offsets.json</code>) — no per-frame art needed.</p>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// File picker + preview
+// =====================================================================
+const fileIn = document.getElementById('file-input');
+const uploadZone = document.getElementById('upload-zone');
+const preview = document.getElementById('preview');
+
+let selectedFile = null;
+
+uploadZone.addEventListener('click', (e) => {
+  if (e.target === fileIn) return;
+  fileIn.click();
+});
+uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadZone.classList.add('dragover');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length > 0) setFile(e.dataTransfer.files[0]);
+});
+fileIn.addEventListener('change', () => {
+  if (fileIn.files.length > 0) setFile(fileIn.files[0]);
+});
+
+function setFile(file) {
+  selectedFile = file;
+  uploadZone.classList.add('has-file');
+  preview.hidden = false;
+  preview.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = URL.createObjectURL(file);
+  img.onload = () => {
+    const meta = document.createElement('small');
+    meta.textContent = `${file.name} · ${img.naturalWidth}×${img.naturalHeight} · ${Math.round(file.size/1024)}KB`;
+    preview.appendChild(img);
+    preview.appendChild(meta);
+  };
+}
+
+// =====================================================================
+// Submit
+// =====================================================================
+const form = document.getElementById('form');
+const submitBtn = document.getElementById('submit-btn');
+const resetBtn = document.getElementById('reset-btn');
+const statusEl = document.getElementById('status');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!selectedFile) {
+    setStatus('err', 'Pick a PNG first.');
+    return;
+  }
+  const name = document.getElementById('name').value.trim();
+  const slot = document.getElementById('slot').value;
+  const rarity = document.getElementById('rarity').value;
+  if (!name) {
+    setStatus('err', 'Name required.');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  resetBtn.disabled = true;
+  setStatus('pending', '<span class="spinner"></span>Saving PNG, running extractor (~10–30s)…');
+
+  try {
+    const params = new URLSearchParams({ name, slot, rarity });
+    const r = await fetch('/upload-cosmetic?' + params.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': selectedFile.type || 'image/png' },
+      body: selectedFile,
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'upload failed');
+    setStatus(
+      'ok',
+      `Added <strong>${j.name}</strong> as <code>${j.slug}</code> (${j.slot}, ${j.rarity}).<br/>Refresh the Reddit playtest tab → DressingRoom → ${j.slot.toUpperCase()} to see it.`
+    );
+    form.reset();
+    selectedFile = null;
+    uploadZone.classList.remove('has-file');
+    preview.hidden = true;
+    preview.innerHTML = '';
+  } catch (err) {
+    setStatus('err', 'Failed: ' + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    resetBtn.disabled = false;
+  }
+});
+
+resetBtn.addEventListener('click', () => {
+  selectedFile = null;
+  uploadZone.classList.remove('has-file');
+  preview.hidden = true;
+  preview.innerHTML = '';
+  setStatus('', '');
+});
+
+function setStatus(kind, html) {
+  statusEl.className = 'status ' + kind;
+  statusEl.innerHTML = html;
+}
+</script>
+
+<script src="/tools-nav.js"></script>
+</body>
+</html>

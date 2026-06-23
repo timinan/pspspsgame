@@ -14,6 +14,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 const TOOL_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(TOOL_DIR, '..');
@@ -36,17 +37,25 @@ const TOOLS = {
     savePath: path.join(TOOL_DIR, 'cats', 'cats.json'),
     description: 'Name, rarity, scale, animation preview, and tint variants for the 6 base cats.',
   },
-  decorations: {
-    label: 'Decoration Calibrator',
-    href: '/tools/decorations/calibrator.html',
-    savePath: path.join(TOOL_DIR, 'decorations', 'decorations.json'),
-    description: 'Display name, frame key, and rarity for the 6 room decorations.',
-  },
   themes: {
     label: 'Theme Calibrator',
     href: '/tools/themes/calibrator.html',
     savePath: path.join(TOOL_DIR, 'themes', 'themes.json'),
     description: 'Display name, frame key, and rarity for room themes.',
+  },
+  music: {
+    label: 'Music Calibrator',
+    href: '/tools/music/calibrator.html',
+    savePath: path.join(TOOL_DIR, 'music', 'music.json'),
+    description: 'Tempo, vibe, BPM per backing track. Drop an MP3 to add a new song; ffmpeg auto-trims to 32s + downmixes to 96kbps mono.',
+  },
+  'cosmetic-quick-add': {
+    label: 'Cosmetic Quick Add',
+    href: '/tools/cosmetics/quick-add.html',
+    // Reuses the cosmetics catalog — no dedicated save endpoint, the
+    // upload handler writes directly + runs extract + sync-catalog.
+    savePath: path.join(TOOL_DIR, 'cosmetics', 'cosmetics.json'),
+    description: 'Upload one PNG → fully integrated cosmetic (static + rides cat motion).',
   },
 };
 
@@ -127,6 +136,73 @@ const MIME = {
   '.wav': 'audio/wav',
 };
 
+/**
+ * Returns the JS source for the universal tools-nav top bar. Tool pages
+ * pull this via `<script src="/tools-nav.js"></script>` and the script
+ * self-injects a fixed nav at the top of the page with one link per
+ * registered tool plus a Home link. The current tool gets an `active`
+ * highlight. Brand-new tools added to the TOOLS table show up
+ * automatically — no per-tool HTML edit needed.
+ */
+function toolsNavJs() {
+  const tools = Object.entries(TOOLS).map(([_, t]) => ({
+    label: t.label,
+    href: t.href,
+  }));
+  return `(function () {
+  if (window.__pspspsToolsNavInjected) return;
+  window.__pspspsToolsNavInjected = true;
+  const tools = ${JSON.stringify(tools)};
+  const path = window.location.pathname;
+
+  const style = document.createElement('style');
+  style.textContent = [
+    '#pspsps-tools-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 9999;',
+    '  background: #0d041b; padding: 7px 14px;',
+    '  display: flex; gap: 4px; flex-wrap: wrap; align-items: center;',
+    '  border-bottom: 1px solid #341c5a;',
+    '  font-family: system-ui, sans-serif; font-size: 12px;',
+    '  box-shadow: 0 2px 8px rgba(0,0,0,0.3); }',
+    '#pspsps-tools-nav a { color: #c0a0e6; text-decoration: none;',
+    '  padding: 4px 10px; border-radius: 4px;',
+    '  transition: background 0.1s, color 0.1s; }',
+    '#pspsps-tools-nav a:hover { background: #261540; color: #fff; }',
+    '#pspsps-tools-nav a.active { background: #ffd34d; color: #1a0a2e; font-weight: 700; }',
+    '#pspsps-tools-nav .brand { color: #ffd34d; font-weight: 700; margin-right: 10px;',
+    '  letter-spacing: 0.5px; }',
+    'body { padding-top: 40px !important; }'
+  ].join('\\n');
+  document.head.appendChild(style);
+
+  const nav = document.createElement('nav');
+  nav.id = 'pspsps-tools-nav';
+
+  const brand = document.createElement('span');
+  brand.className = 'brand';
+  brand.textContent = '🐾 pspsps tools';
+  nav.appendChild(brand);
+
+  const home = document.createElement('a');
+  home.href = '/';
+  home.textContent = 'home';
+  if (path === '/' || path === '') home.className = 'active';
+  nav.appendChild(home);
+
+  for (const t of tools) {
+    const a = document.createElement('a');
+    a.href = t.href;
+    a.textContent = t.label;
+    if (path === t.href) a.className = 'active';
+    nav.appendChild(a);
+  }
+
+  if (document.body) document.body.insertBefore(nav, document.body.firstChild);
+  else document.addEventListener('DOMContentLoaded', () => {
+    document.body.insertBefore(nav, document.body.firstChild);
+  });
+})();`;
+}
+
 function indexHtml() {
   const rows = Object.entries(TOOLS)
     .map(
@@ -157,10 +233,463 @@ function indexHtml() {
 <body>
   <h1>pspsps · dev tools</h1>
   <ul>${rows}</ul>
+  <script src="/tools-nav.js"></script>
 </body></html>`;
 }
 
 const BG_UPLOAD_DIR = path.join(PROJECT_ROOT, 'public', 'assets', 'themes');
+const MUSIC_UPLOAD_DIR = path.join(PROJECT_ROOT, 'public', 'assets', 'audio', 'backings');
+const MUSIC_JSON = path.join(TOOL_DIR, 'music', 'music.json');
+const COSMETIC_RAW_DIR = path.join(PROJECT_ROOT, 'assets-raw', 'cosmetic');
+const CAT_RAW_DIR = path.join(PROJECT_ROOT, 'assets-raw');
+
+/**
+ * Runs an npm script and resolves on success. Used by the cosmetic
+ * upload flow to chain `extract:assets` → `sync:catalog` after writing
+ * the new PNG. Stderr is captured into the rejection so the caller can
+ * surface it back to the calibrator.
+ */
+function runScript(cmd, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, {
+      cwd: PROJECT_ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stderr = '';
+    let stdout = '';
+    child.stdout.on('data', (d) => { stdout += d.toString(); });
+    child.stderr.on('data', (d) => { stderr += d.toString(); });
+    child.on('close', (code) => {
+      if (code === 0) resolve({ stdout, stderr });
+      else reject(new Error(`${cmd} ${args.join(' ')} exited ${code}\n${stderr}`));
+    });
+    child.on('error', reject);
+  });
+}
+
+/**
+ * Read all source intermediate PNGs for a cosmetic (the ones the extractor
+ * either decomposed from a GIF or copied from a single PNG source). These
+ * are the frames the atlas was packed from — the source of truth we want
+ * to recolor.
+ *
+ * Returns a list keyed by animation, each carrying the original
+ * intermediate paths sorted by frame index. Recolor logic iterates these
+ * and writes the swapped variants to a new cosmetic folder.
+ */
+async function listSourceFramesForCosmetic(sourceId) {
+  const dir = path.join(COSMETIC_RAW_DIR, sourceId);
+  const entries = await fs.readdir(dir).catch(() => []);
+  const prefix = `cosmetic_${sourceId}_`;
+  const byAnim = new Map();
+  for (const name of entries) {
+    if (!name.startsWith(prefix) || !name.endsWith('.png')) continue;
+    const stripped = name.slice(prefix.length, -4); // e.g. "idle_03"
+    const m = /^(.+)_(\d+)$/.exec(stripped);
+    if (!m) continue;
+    const anim = m[1];
+    const idx = parseInt(m[2], 10);
+    let arr = byAnim.get(anim);
+    if (!arr) {
+      arr = [];
+      byAnim.set(anim, arr);
+    }
+    arr.push({ idx, srcPath: path.join(dir, name) });
+  }
+  for (const arr of byAnim.values()) arr.sort((a, b) => a.idx - b.idx);
+  return byAnim;
+}
+
+/**
+ * Pixel-level palette swap on a single PNG. Reads `srcPath`, replaces
+ * every exact-hex pixel in `swaps` with its new value, writes to `dstPath`.
+ * Alpha is preserved. Sharp's raw buffer interface keeps this fast even
+ * across hundreds of frames.
+ */
+async function recolorPng(srcPath, dstPath, swaps) {
+  const img = sharp(srcPath).ensureAlpha();
+  const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  // Build a hex→[r,g,b] lookup once.
+  const lookup = new Map();
+  for (const [hex, target] of Object.entries(swaps)) {
+    const oldKey = hex.toLowerCase();
+    const r = parseInt(target.slice(1, 3), 16);
+    const g = parseInt(target.slice(3, 5), 16);
+    const b = parseInt(target.slice(5, 7), 16);
+    lookup.set(oldKey, [r, g, b]);
+  }
+  if (lookup.size === 0) {
+    // No swaps — just copy.
+    await fs.copyFile(srcPath, dstPath);
+    return;
+  }
+  for (let i = 0; i < data.length; i += channels) {
+    if (data[i + 3] < 200) continue;
+    const key =
+      '#' +
+      data[i].toString(16).padStart(2, '0') +
+      data[i + 1].toString(16).padStart(2, '0') +
+      data[i + 2].toString(16).padStart(2, '0');
+    const swap = lookup.get(key);
+    if (swap) {
+      data[i] = swap[0];
+      data[i + 1] = swap[1];
+      data[i + 2] = swap[2];
+    }
+  }
+  await sharp(data, { raw: { width, height, channels } })
+    .png()
+    .toFile(dstPath);
+}
+
+/**
+ * Color-Repick cosmetic variant: reads the source cosmetic's intermediate
+ * frame PNGs, applies the supplied hex→hex swap map to every pixel across
+ * every animation, writes the result as a new c<N> folder (multi-frame
+ * if the source was animated; single-frame if static), then runs extractor
+ * + sync-catalog so the new variant shows up in the game.
+ *
+ * Body shape: JSON { sourceId, swaps: {hex: newHex, ...}, name, slot,
+ * rarity, isStatic? }. `isStatic` defaults to the source's flag — if the
+ * source was a Quick Add static, the variant is static too and rides the
+ * cat's frame offsets via `cat-frame-offsets.json`.
+ */
+async function handleRepickCosmetic(req, res) {
+  const chunks = [];
+  req.on('data', (chunk) => chunks.push(chunk));
+  req.on('end', async () => {
+    try {
+      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      const { sourceId, swaps, name, slot, rarity } = body;
+
+      if (!sourceId || typeof sourceId !== 'string') throw new Error('sourceId required');
+      if (!swaps || typeof swaps !== 'object') throw new Error('swaps required');
+      if (!name || typeof name !== 'string' || !name.trim()) throw new Error('name required');
+      const allowedSlots = new Set(['head', 'face', 'neck', 'body', 'held']);
+      if (!allowedSlots.has(slot)) throw new Error(`slot must be one of ${[...allowedSlots].join(', ')}`);
+      const allowedRarities = new Set(['common', 'uncommon', 'rare', 'legendary']);
+      if (!allowedRarities.has(rarity)) throw new Error(`rarity must be one of ${[...allowedRarities].join(', ')}`);
+
+      const cosmeticsPath = TOOLS.cosmetics.savePath;
+      const cosmeticsRaw = await fs.readFile(cosmeticsPath, 'utf8').catch(() => '[]');
+      const cosmetics = JSON.parse(cosmeticsRaw);
+      const sourceEntry = cosmetics.find((c) => c?.id === sourceId);
+      if (!sourceEntry) throw new Error(`unknown sourceId: ${sourceId}`);
+
+      let maxId = 0;
+      for (const entry of cosmetics) {
+        const m = /^c(\d+)$/.exec(entry?.id ?? '');
+        if (m) maxId = Math.max(maxId, parseInt(m[1], 10));
+      }
+      const slug = `c${maxId + 1}`;
+
+      // Read source intermediate frames.
+      const sourceFrames = await listSourceFramesForCosmetic(sourceId);
+      if (sourceFrames.size === 0) {
+        throw new Error(
+          `no source frames found for ${sourceId} — extract:assets may need to run, or the source has no intermediate PNGs in assets-raw/cosmetic/${sourceId}/`,
+        );
+      }
+
+      // Write recolored frames to the new cosmetic folder. Multi-frame
+      // sources use `<slug>_<anim>_<NN>.png` (the new numbered pattern
+      // the extractor handles); single-frame sources just `<slug>_<anim>.png`.
+      const outDir = path.join(COSMETIC_RAW_DIR, slug);
+      await fs.mkdir(outDir, { recursive: true });
+      let totalFrames = 0;
+      for (const [anim, frames] of sourceFrames) {
+        const multi = frames.length > 1;
+        for (const { idx, srcPath } of frames) {
+          const dstName = multi
+            ? `${slug}_${anim}_${String(idx).padStart(2, '0')}.png`
+            : `${slug}_${anim}.png`;
+          await recolorPng(srcPath, path.join(outDir, dstName), swaps);
+          totalFrames++;
+        }
+      }
+      console.log(`[repick-cosmetic:${slug}] wrote ${totalFrames} recolored frames to ${path.relative(PROJECT_ROOT, outDir)}`);
+
+      // Extract → pack new atlas frames; sync-catalog → typed catalog regen.
+      console.log(`[repick-cosmetic:${slug}] extracting…`);
+      await runScript('npm', ['run', 'extract:assets']);
+
+      const variantEntry = {
+        id: slug,
+        name: name.trim(),
+        slot,
+        rarity,
+        offsetX: sourceEntry.offsetX ?? 0,
+        offsetY: sourceEntry.offsetY ?? 0,
+        scale: sourceEntry.scale ?? 1,
+      };
+      // Preserve isStatic if the source had it (Quick Add static cosmetic).
+      // The variant inherits the same isStatic semantics — single-frame
+      // source → static variant; multi-frame source → animated variant.
+      if (sourceEntry.isStatic) variantEntry.isStatic = true;
+      cosmetics.push(variantEntry);
+      await rotateBackups(cosmeticsPath);
+      await fs.writeFile(cosmeticsPath, JSON.stringify(cosmetics, null, 2));
+      console.log(`[repick-cosmetic:${slug}] catalog entry appended`);
+
+      await runScript('npm', ['run', 'sync:catalog']);
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, slug, name: variantEntry.name, slot, rarity, frames: totalFrames }));
+    } catch (e) {
+      console.warn(`[repick-cosmetic] failed: ${e.message}`);
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+  });
+}
+
+/**
+ * List intermediate frame PNGs for a cat breed. Both base cats (cat1–cat6)
+ * and Color-Repick variants share the same naming `cat<N>_<anim>_<NN>.png`
+ * and same folder structure `assets-raw/cat<N>/`, so this single reader
+ * works for both sources. Returns a Map keyed by animation, frames sorted
+ * by index.
+ */
+async function listSourceFramesForCat(sourceBreed) {
+  const dir = path.join(CAT_RAW_DIR, sourceBreed);
+  const entries = await fs.readdir(dir).catch(() => []);
+  const frameRe = new RegExp(`^${sourceBreed}_(.+)_(\\d+)\\.png$`);
+  const byAnim = new Map();
+  for (const name of entries) {
+    const m = frameRe.exec(name);
+    if (!m) continue;
+    const anim = m[1];
+    const idx = parseInt(m[2], 10);
+    let arr = byAnim.get(anim);
+    if (!arr) {
+      arr = [];
+      byAnim.set(anim, arr);
+    }
+    arr.push({ idx, srcPath: path.join(dir, name) });
+  }
+  for (const arr of byAnim.values()) arr.sort((a, b) => a.idx - b.idx);
+  return byAnim;
+}
+
+/**
+ * Color-Repick cat variant: reads the source cat breed's intermediate
+ * frame PNGs, applies the supplied hex→hex swap map to every pixel across
+ * every animation, writes the result as a new `assets-raw/cat<N>/` folder
+ * with the same naming convention as the base cats. The extractor's
+ * auto-discovery picks them up + packs them into the cats atlas, and the
+ * frame-offsets emitter re-runs so the new breed has its own per-frame
+ * motion data.
+ *
+ * Body: JSON { sourceId, swaps, name, rarity, scale? }.
+ */
+async function handleRepickCat(req, res) {
+  const chunks = [];
+  req.on('data', (chunk) => chunks.push(chunk));
+  req.on('end', async () => {
+    try {
+      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      const { sourceId, swaps, name, rarity, scale } = body;
+
+      if (!sourceId || typeof sourceId !== 'string' || !/^cat\d+$/.test(sourceId)) {
+        throw new Error('sourceId must look like "cat<N>"');
+      }
+      if (!swaps || typeof swaps !== 'object') throw new Error('swaps required');
+      if (!name || typeof name !== 'string' || !name.trim()) throw new Error('name required');
+      const allowedRarities = new Set(['common', 'uncommon', 'rare', 'legendary']);
+      if (!allowedRarities.has(rarity)) throw new Error(`rarity must be one of ${[...allowedRarities].join(', ')}`);
+
+      const catsPath = TOOLS.cats.savePath;
+      const catsRaw = await fs.readFile(catsPath, 'utf8').catch(() => '[]');
+      const cats = JSON.parse(catsRaw);
+
+      // Defensive seed: ensure the 6 base cats + rainbow are always present
+      // in cats.json before we write back. The bases live in the catalog
+      // because sync-catalog ships them as bootstrap defaults when the file
+      // is empty — but once the file has ANY entry, the defaults stop
+      // contributing and any missing bases vanish from the catalog. We
+      // re-add them here so a /repick-cat call can never strip the bases.
+      const BASE_CATS = [
+        { id: 'cat1', name: 'Mochi', rarity: 'common' },
+        { id: 'cat2', name: 'Biscuit', rarity: 'common' },
+        { id: 'cat3', name: 'Pebble', rarity: 'common' },
+        { id: 'cat4', name: 'Marble', rarity: 'uncommon' },
+        { id: 'cat5', name: 'Saffron', rarity: 'rare' },
+        { id: 'cat6', name: 'Inkwell', rarity: 'rare' },
+        { id: 'rainbow', name: 'Rainbow Whiskers', rarity: 'legendary' },
+      ];
+      const existingIds = new Set(cats.map((c) => c?.id));
+      for (const base of BASE_CATS) {
+        if (!existingIds.has(base.id)) cats.unshift(base);
+      }
+
+      // Pick next free `cat<N>`. Scan both catalog entries AND on-disk
+      // folders to avoid collisions with breeds that exist on disk but
+      // weren't yet added to cats.json.
+      let maxId = 0;
+      for (const entry of cats) {
+        const m = /^cat(\d+)$/.exec(entry?.id ?? '');
+        if (m) maxId = Math.max(maxId, parseInt(m[1], 10));
+      }
+      const rawEntries = await fs.readdir(CAT_RAW_DIR).catch(() => []);
+      for (const e of rawEntries) {
+        const m = /^cat(\d+)$/.exec(e);
+        if (m) maxId = Math.max(maxId, parseInt(m[1], 10));
+      }
+      const slug = `cat${maxId + 1}`;
+
+      const sourceFrames = await listSourceFramesForCat(sourceId);
+      if (sourceFrames.size === 0) {
+        throw new Error(
+          `no source frames in assets-raw/${sourceId}/ — run extract:assets if this is a base cat without intermediates yet`,
+        );
+      }
+
+      const outDir = path.join(CAT_RAW_DIR, slug);
+      await fs.mkdir(outDir, { recursive: true });
+      let totalFrames = 0;
+      for (const [anim, frames] of sourceFrames) {
+        for (const { idx, srcPath } of frames) {
+          const dstName = `${slug}_${anim}_${String(idx).padStart(2, '0')}.png`;
+          await recolorPng(srcPath, path.join(outDir, dstName), swaps);
+          totalFrames++;
+        }
+      }
+      console.log(`[repick-cat:${slug}] wrote ${totalFrames} recolored frames to ${path.relative(PROJECT_ROOT, outDir)}`);
+
+      console.log(`[repick-cat:${slug}] extracting…`);
+      await runScript('npm', ['run', 'extract:assets']);
+
+      const sourceEntry = cats.find((c) => c?.id === sourceId);
+      const variantEntry = {
+        id: slug,
+        name: name.trim(),
+        rarity,
+      };
+      if (typeof scale === 'number') variantEntry.scale = scale;
+      else if (sourceEntry?.scale) variantEntry.scale = sourceEntry.scale;
+      cats.push(variantEntry);
+      await rotateBackups(catsPath);
+      await fs.writeFile(catsPath, JSON.stringify(cats, null, 2));
+      console.log(`[repick-cat:${slug}] catalog entry appended`);
+
+      await runScript('npm', ['run', 'sync:catalog']);
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, slug, name: variantEntry.name, rarity, frames: totalFrames }));
+    } catch (e) {
+      console.warn(`[repick-cat] failed: ${e.message}`);
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+  });
+}
+
+/**
+ * One-shot cosmetic creation: accepts a PNG body + query params
+ * (`name`, `slot`, `rarity`). Finds the next free `c<N>` slug, writes
+ * `assets-raw/cosmetic/c<N>/c<N>_idle.png`, runs the extractor (which
+ * packs the new frame into the cosmetics atlas + emits cat-frame-offsets
+ * for the runtime), appends the entry to `tools/cosmetics/cosmetics.json`
+ * with sensible defaults, then runs sync:catalog. Returns the new slug.
+ *
+ * The new cosmetic is automatically a "static" cosmetic (single-frame
+ * idle animation); the game's Cat entity rides it through cat motion
+ * via `cat-frame-offsets.json` so it bobs without per-frame art.
+ */
+async function handleUploadCosmetic(req, res, query) {
+  const name = (query.get('name') ?? '').trim();
+  const slot = (query.get('slot') ?? '').trim();
+  const rarity = (query.get('rarity') ?? 'common').trim();
+  const allowedSlots = new Set(['head', 'face', 'neck', 'body']);
+  const allowedRarities = new Set(['common', 'uncommon', 'rare', 'legendary']);
+
+  if (!name) {
+    res.writeHead(400, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: 'name is required' }));
+    return;
+  }
+  if (!allowedSlots.has(slot)) {
+    res.writeHead(400, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: `slot must be one of ${[...allowedSlots].join(', ')}` }));
+    return;
+  }
+  if (!allowedRarities.has(rarity)) {
+    res.writeHead(400, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: `rarity must be one of ${[...allowedRarities].join(', ')}` }));
+    return;
+  }
+
+  const chunks = [];
+  req.on('data', (chunk) => chunks.push(chunk));
+  req.on('end', async () => {
+    try {
+      const buf = Buffer.concat(chunks);
+      if (buf.length < 100) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'empty image upload' }));
+        return;
+      }
+
+      // Pick the next free slug by scanning the live catalog. Avoids
+      // clashing with anything Tim added earlier in the session.
+      const cosmeticsPath = TOOLS.cosmetics.savePath;
+      const cosmeticsRaw = await fs.readFile(cosmeticsPath, 'utf8').catch(() => '[]');
+      const cosmetics = JSON.parse(cosmeticsRaw);
+      let maxId = 0;
+      for (const entry of cosmetics) {
+        const m = /^c(\d+)$/.exec(entry?.id ?? '');
+        if (m) maxId = Math.max(maxId, parseInt(m[1], 10));
+      }
+      const slug = `c${maxId + 1}`;
+
+      // Write the PNG into the canonical extractor input slot.
+      const folder = path.join(COSMETIC_RAW_DIR, slug);
+      await fs.mkdir(folder, { recursive: true });
+      const pngPath = path.join(folder, `${slug}_idle.png`);
+      await fs.writeFile(pngPath, buf);
+      console.log(`[upload-cosmetic:${slug}] wrote ${buf.length}B → ${path.relative(PROJECT_ROOT, pngPath)}`);
+
+      // Run extractor — this regens both atlases + emits cat-frame-offsets.
+      // Long-running (~5-30s) so we hold the HTTP connection open. Tim's
+      // upload UI shows a spinner while we wait.
+      console.log(`[upload-cosmetic:${slug}] extracting…`);
+      await runScript('npm', ['run', 'extract:assets']);
+
+      // Append the catalog entry now that the atlas has the frame. Defaults
+      // are tuned for "drop in and it works" — no offset, no scale tweak,
+      // calibrator can refine later.
+      cosmetics.push({
+        id: slug,
+        name,
+        slot,
+        rarity,
+        offsetX: 0,
+        offsetY: 0,
+        scale: 1,
+        // Marks this cosmetic as single-frame so the Cat entity rides it
+        // through cat-frame-offsets at runtime (bobs/jumps with the cat
+        // without per-frame art). Hand-animated cosmetics omit this flag
+        // and keep their per-frame motion.
+        isStatic: true,
+      });
+      await rotateBackups(cosmeticsPath);
+      await fs.writeFile(cosmeticsPath, JSON.stringify(cosmetics, null, 2));
+      console.log(`[upload-cosmetic:${slug}] catalog entry appended`);
+
+      // Regenerate the typed catalog. The devvit playtest watcher picks up
+      // the resulting source-file touch and re-uploads automatically.
+      await runScript('npm', ['run', 'sync:catalog']);
+
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, slug, name, slot, rarity }));
+    } catch (e) {
+      console.warn(`[upload-cosmetic] failed: ${e.message}`);
+      res.writeHead(500, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+  });
+}
 
 /**
  * Accepts raw image bytes from the themes calibrator and writes them to
@@ -210,6 +739,40 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && req.url?.startsWith('/upload-bg/')) {
       const slug = req.url.replace(/^\/upload-bg\//, '').split('?')[0];
       await handleBgUpload(req, res, slug);
+      return;
+    }
+
+    // --- POST /upload-cosmetic?name=...&slot=...&rarity=... -----------
+    if (req.method === 'POST' && req.url?.startsWith('/upload-cosmetic')) {
+      const q = new URL(req.url, 'http://localhost').searchParams;
+      await handleUploadCosmetic(req, res, q);
+      return;
+    }
+
+    // --- POST /repick-cosmetic ----------------------------------------
+    // JSON body: { sourceId, swaps: {hex: newHex}, name, slot, rarity }
+    if (req.method === 'POST' && req.url?.startsWith('/repick-cosmetic')) {
+      await handleRepickCosmetic(req, res);
+      return;
+    }
+
+    // --- POST /repick-cat ---------------------------------------------
+    // JSON body: { sourceId: "cat<N>", swaps, name, rarity, scale? }
+    if (req.method === 'POST' && req.url?.startsWith('/repick-cat')) {
+      await handleRepickCat(req, res);
+      return;
+    }
+
+    // --- GET /tools-nav.js --------------------------------------------
+    // Universal top-bar nav injected by every tool page. Generated from
+    // the live TOOLS table so adding a new tool auto-appears in the bar
+    // — no per-tool HTML edit needed.
+    if (req.method === 'GET' && req.url === '/tools-nav.js') {
+      res.writeHead(200, {
+        'content-type': 'application/javascript; charset=utf-8',
+        'cache-control': NO_CACHE,
+      });
+      res.end(toolsNavJs());
       return;
     }
 
