@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Commit WIP · pspsps</title>
+<link rel="icon" href="data:," />
+<style>
+  :root {
+    --bg: #1a0a2e;
+    --panel: #261540;
+    --panel-2: #341c5a;
+    --accent: #ffd34d;
+    --accent-2: #c678ff;
+    --ok: #7fdc8a;
+    --err: #ff7a7a;
+    --muted: #c0a0e6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 36px; font-family: system-ui, sans-serif;
+    background: var(--bg); color: #fff; min-height: 100vh;
+  }
+  h1 {
+    margin: 0 0 4px; color: var(--accent); font-size: 22px;
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  h1 .branch {
+    font-family: ui-monospace, 'SF Mono', monospace; font-size: 13px;
+    color: var(--accent-2); font-weight: 400;
+    background: var(--panel-2); padding: 3px 9px; border-radius: 999px;
+  }
+  .subhead { color: var(--muted); font-size: 13px; margin: 0 0 24px; max-width: 720px; }
+  .subhead a { color: var(--accent-2); }
+
+  .panel { background: var(--panel); border-radius: 12px; padding: 18px 22px; margin-bottom: 18px; }
+  .panel h2 {
+    margin: 0 0 12px; color: var(--accent); font-size: 14px;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  .panel h2 .count {
+    color: var(--muted); font-size: 11px; font-weight: 400;
+  }
+
+  .files {
+    max-height: 320px; overflow-y: auto;
+    background: var(--bg); border-radius: 8px; padding: 8px 12px;
+    border: 1px solid var(--panel-2);
+  }
+  .file {
+    font-family: ui-monospace, 'SF Mono', monospace; font-size: 12.5px;
+    line-height: 1.65; display: flex; gap: 10px; align-items: center;
+  }
+  .file .badge {
+    flex-shrink: 0; width: 28px; text-align: center;
+    font-weight: 700; font-size: 10px;
+    padding: 2px 0; border-radius: 4px;
+  }
+  .file .badge.M  { background: #4a380a; color: #ffd34d; }
+  .file .badge.A  { background: #1a4a2a; color: var(--ok); }
+  .file .badge.D  { background: #4a1a1a; color: var(--err); }
+  .file .badge.R  { background: #3a1a4a; color: var(--accent-2); }
+  .file .badge.UN { background: #2a2a4a; color: #9ed5ff; }
+  .file .path { color: #e8dcf5; word-break: break-all; }
+  .empty { color: var(--muted); font-size: 13px; font-style: italic; padding: 8px 0; }
+
+  input[type=text] {
+    width: 100%; background: var(--bg); border: 1px solid var(--panel-2);
+    color: #fff; font-family: inherit; font-size: 14px;
+    padding: 10px 12px; border-radius: 6px;
+  }
+  input[type=text]:focus { outline: none; border-color: var(--accent); }
+
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  button {
+    border: none; cursor: pointer; font-weight: 700;
+    padding: 10px 18px; border-radius: 6px;
+    font-family: inherit; font-size: 13px;
+  }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .commit-btn { background: var(--ok); color: #0a1a10; }
+  .commit-btn:hover:not(:disabled) { background: #a4ec9c; }
+  .refresh-btn {
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--panel-2);
+  }
+  .refresh-btn:hover { color: #fff; border-color: var(--accent-2); }
+
+  .result {
+    margin-top: 12px; padding: 12px 14px; border-radius: 8px;
+    font-family: ui-monospace, monospace; font-size: 12px;
+    line-height: 1.6; display: none;
+  }
+  .result.ok  { background: rgba(127, 220, 138, 0.08); color: var(--ok); border: 1px solid var(--ok); display: block; }
+  .result.err { background: rgba(255, 122, 122, 0.08); color: var(--err); border: 1px solid var(--err); display: block; }
+
+  .hint { color: var(--muted); font-size: 11px; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <h1>
+    Commit WIP
+    <span class="branch" id="branch">…</span>
+  </h1>
+  <p class="subhead">
+    One-tap commit of every uncommitted file so unsaved content drops can't
+    get lost. Runs <code>git add -A</code> followed by <code>git commit -m
+    "&lt;message&gt;"</code> in the project root. Never pushes —
+    that stays manual. <a href="/">all tools</a>
+  </p>
+
+  <div class="panel">
+    <h2>Pending changes <span class="count" id="file-count"></span></h2>
+    <div class="files" id="files"></div>
+    <p class="hint">M = modified, A = added (already staged), D = deleted, R = renamed, UN = untracked (new file).</p>
+  </div>
+
+  <div class="panel">
+    <h2>Commit message</h2>
+    <input id="message" type="text" placeholder="e.g. wip: content drop, themes + new backings" />
+    <div class="actions">
+      <button class="commit-btn" id="commit-btn">Commit everything</button>
+      <button class="refresh-btn" id="refresh-btn">Refresh status</button>
+    </div>
+    <div class="result" id="result"></div>
+  </div>
+
+<script src="/tools-nav.js"></script>
+<script>
+const els = {
+  branch: document.getElementById('branch'),
+  files: document.getElementById('files'),
+  fileCount: document.getElementById('file-count'),
+  message: document.getElementById('message'),
+  commitBtn: document.getElementById('commit-btn'),
+  refreshBtn: document.getElementById('refresh-btn'),
+  result: document.getElementById('result'),
+};
+
+function defaultMessage() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  return `wip: content drop ${stamp}`;
+}
+
+function badgeFor(status) {
+  if (status === '??') return 'UN';
+  if (!status) return 'M';
+  // Just use the first character for the badge (e.g. "MM" -> M, "AM" -> A).
+  return status[0];
+}
+
+async function refresh() {
+  els.files.innerHTML = '<div class="empty">loading…</div>';
+  els.commitBtn.disabled = true;
+  try {
+    const r = await fetch('/git-status?_=' + Date.now());
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'git-status failed');
+    els.branch.textContent = j.branch;
+    if (j.files.length === 0) {
+      els.files.innerHTML = '<div class="empty">working tree clean — nothing to commit.</div>';
+      els.fileCount.textContent = '';
+      els.commitBtn.disabled = true;
+    } else {
+      els.fileCount.textContent = j.files.length + ' file' + (j.files.length === 1 ? '' : 's');
+      const rows = j.files.map((f) => {
+        const badge = badgeFor(f.status);
+        const escaped = f.path
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<div class="file"><span class="badge ${badge}">${badge}</span><span class="path">${escaped}</span></div>`;
+      }).join('');
+      els.files.innerHTML = rows;
+      els.commitBtn.disabled = false;
+    }
+  } catch (e) {
+    els.files.innerHTML = `<div class="empty">error: ${e.message}</div>`;
+    els.fileCount.textContent = '';
+  }
+}
+
+async function commit() {
+  const message = els.message.value.trim();
+  if (!message) {
+    showResult('err', 'commit message is required');
+    return;
+  }
+  els.commitBtn.disabled = true;
+  els.commitBtn.textContent = 'committing…';
+  els.result.style.display = 'none';
+  try {
+    const r = await fetch('/commit-wip', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'commit failed');
+    if (j.nothing) {
+      showResult('ok', 'nothing to commit — working tree was already clean.');
+    } else {
+      showResult('ok', `committed ${j.sha} on ${j.branch}\n${j.summary}`);
+      els.message.value = defaultMessage();
+    }
+    await refresh();
+  } catch (e) {
+    showResult('err', e.message);
+  } finally {
+    els.commitBtn.disabled = false;
+    els.commitBtn.textContent = 'Commit everything';
+  }
+}
+
+function showResult(kind, text) {
+  els.result.className = 'result ' + kind;
+  els.result.textContent = text;
+}
+
+els.commitBtn.addEventListener('click', commit);
+els.refreshBtn.addEventListener('click', refresh);
+
+els.message.value = defaultMessage();
+refresh();
+</script>
+</body>
+</html>

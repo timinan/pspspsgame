@@ -57,6 +57,15 @@ const TOOLS = {
     savePath: path.join(TOOL_DIR, 'prompts', 'prompts.json'),
     description: 'Fresh background + music prompts on demand. Tap regenerate to roll new ones matched to the game vibe; tap a prompt to copy.',
   },
+  'commit-wip': {
+    label: 'Commit WIP',
+    href: '/tools/commit-wip/index.html',
+    // No save endpoint — uses /git-status (GET) + /commit-wip (POST)
+    // that shell out to git directly. Path here is uniform with the
+    // TOOLS table convention; nothing reads it.
+    savePath: path.join(TOOL_DIR, 'commit-wip', 'placeholder.json'),
+    description: 'One-tap commit of the entire working tree. Lists every modified + untracked file, lets you set a message, and runs git add -A + git commit so content drops never get lost.',
+  },
   'cosmetic-quick-add': {
     label: 'Cosmetic Quick Add',
     href: '/tools/cosmetics/quick-add.html',
@@ -840,8 +849,109 @@ async function handleMusicUpload(req, res, slug) {
   });
 }
 
+/**
+ * Spawn a git subprocess and collect stdout + stderr. Resolves with both
+ * even on non-zero exit so the caller can surface real git error messages
+ * to the UI instead of a generic "command failed".
+ */
+function runGit(args) {
+  return new Promise((resolve) => {
+    const child = spawn('git', args, { cwd: PROJECT_ROOT });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (b) => { stdout += b.toString(); });
+    child.stderr.on('data', (b) => { stderr += b.toString(); });
+    child.on('close', (code) => resolve({ code, stdout, stderr }));
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   try {
+    // --- GET /git-status ----------------------------------------------
+    // Reports the current branch + every uncommitted file so the
+    // Commit WIP tool can render a checklist before the user commits.
+    if (req.method === 'GET' && (req.url === '/git-status' || req.url?.startsWith('/git-status?'))) {
+      const [branch, status] = await Promise.all([
+        runGit(['rev-parse', '--abbrev-ref', 'HEAD']),
+        runGit(['status', '--porcelain']),
+      ]);
+      if (branch.code !== 0 || status.code !== 0) {
+        res.writeHead(500, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({
+          ok: false,
+          error: branch.stderr.trim() || status.stderr.trim() || 'git failed',
+        }));
+        return;
+      }
+      const files = status.stdout
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => ({
+          status: line.slice(0, 2).trim(),
+          path: line.slice(3),
+        }));
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': NO_CACHE });
+      res.end(JSON.stringify({
+        ok: true,
+        branch: branch.stdout.trim(),
+        files,
+      }));
+      return;
+    }
+
+    // --- POST /commit-wip ---------------------------------------------
+    // Body: { message: string }. Runs `git add -A && git commit -m
+    // "<message>"`. Returns the new commit SHA on success, or "nothing
+    // to commit" if the working tree is clean. Never pushes — keep
+    // remote ops manual.
+    if (req.method === 'POST' && req.url === '/commit-wip') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', async () => {
+        try {
+          const parsed = body ? JSON.parse(body) : {};
+          const message = (parsed.message ?? '').toString().trim();
+          if (!message) {
+            res.writeHead(400, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: 'commit message is required' }));
+            return;
+          }
+          const add = await runGit(['add', '-A']);
+          if (add.code !== 0) {
+            res.writeHead(500, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: `git add: ${add.stderr.trim()}` }));
+            return;
+          }
+          const status = await runGit(['status', '--porcelain']);
+          if (!status.stdout.trim()) {
+            res.writeHead(200, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: true, nothing: true }));
+            return;
+          }
+          const commit = await runGit(['commit', '-m', message]);
+          if (commit.code !== 0) {
+            res.writeHead(500, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: `git commit: ${commit.stderr.trim() || commit.stdout.trim()}` }));
+            return;
+          }
+          const sha = await runGit(['rev-parse', '--short', 'HEAD']);
+          const branch = await runGit(['rev-parse', '--abbrev-ref', 'HEAD']);
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({
+            ok: true,
+            sha: sha.stdout.trim(),
+            branch: branch.stdout.trim(),
+            summary: commit.stdout.trim(),
+          }));
+          console.log(`[commit-wip] ${branch.stdout.trim()} ${sha.stdout.trim()} ${message}`);
+        } catch (e) {
+          res.writeHead(500, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+      });
+      return;
+    }
+
     // --- POST /upload-bg/<slug> ----------------------------------------
     if (req.method === 'POST' && req.url?.startsWith('/upload-bg/')) {
       const slug = req.url.replace(/^\/upload-bg\//, '').split('?')[0];
