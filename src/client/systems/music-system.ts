@@ -1,4 +1,4 @@
-import { Scene, Sound } from 'phaser';
+import { Scene, Sound, Loader } from 'phaser';
 import {
   BACKING_CATALOG,
   MEOW_STEM_CATALOG,
@@ -35,6 +35,10 @@ export class MusicSystem {
   private backing: Sound.BaseSound | null = null;
   private lastMeowKey: string | null = null;
   private destroyed = false;
+  /** Cached promise for the in-flight backing download. Calling preload()
+   *  more than once for the same round is cheap — subsequent calls reuse
+   *  this promise so start() and an upfront preload() resolve together. */
+  private loadPromise: Promise<void> | null = null;
 
   constructor(
     private readonly scene: Scene,
@@ -42,20 +46,61 @@ export class MusicSystem {
   ) {}
 
   /**
-   * Start the backing track for this round. Picks the backing by hashing
-   * (authorId + bpm) so the same chart always sounds like the same song.
+   * Begin downloading the resolved backing track for this round. Idempotent
+   * — call once from Game.create() to kick off the download in parallel
+   * with scene setup, then start() awaits the same promise. Resolves
+   * immediately if the asset is already cached.
+   *
+   * Errors are swallowed (resolves anyway) so a failed download produces
+   * a silent round rather than a stuck modal.
+   */
+  preload(): Promise<void> {
+    if (this.loadPromise) return this.loadPromise;
+    const backing = this.pickBacking();
+    if (!backing) {
+      this.loadPromise = Promise.resolve();
+      return this.loadPromise;
+    }
+    if (this.scene.cache.audio.exists(backing.audioKey)) {
+      this.loadPromise = Promise.resolve();
+      return this.loadPromise;
+    }
+    this.loadPromise = new Promise<void>((resolve) => {
+      const loader = this.scene.load;
+      const onComplete = () => {
+        loader.off('loaderror', onError);
+        resolve();
+      };
+      const onError = (file: { key: string }) => {
+        if (file.key !== backing.audioKey) return;
+        console.warn(`[MusicSystem] backing load failed: ${backing.audioKey}`);
+        loader.off(Phaser.Loader.Events.COMPLETE, onComplete);
+        resolve();
+      };
+      loader.audio(backing.audioKey, `assets/audio/backings/${backing.id}.mp3`);
+      loader.once(Loader.Events.COMPLETE, onComplete);
+      loader.once('loaderror', onError);
+      if (!loader.isLoading()) loader.start();
+    });
+    return this.loadPromise;
+  }
+
+  /**
+   * Start the backing track for this round. Awaits the lazy load if
+   * needed — typically a no-op because Game.create kicked preload off
+   * earlier and the file's already in cache by the time the player
+   * taps PLAY on the Ready modal.
+   *
    * No-op if the chart's BPM has no matching backing in the catalog
    * (silent round; meow taps still fire).
    */
-  start(): void {
+  async start(): Promise<void> {
+    if (this.destroyed) return;
+    await this.preload();
     if (this.destroyed) return;
     const backing = this.pickBacking();
     if (!backing) return;
-    if (!this.scene.cache.audio.exists(backing.audioKey)) {
-      // Asset not loaded — defensive guard; Preloader should have it.
-      console.warn(`[MusicSystem] backing audio key missing: ${backing.audioKey}`);
-      return;
-    }
+    if (!this.scene.cache.audio.exists(backing.audioKey)) return;
     this.backing = this.scene.sound.add(backing.audioKey, {
       loop: true,
       volume: BACKING_VOLUME,

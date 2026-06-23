@@ -357,7 +357,10 @@ export class Game extends Scene {
       playBg.on('pointerover', () => playBg.setFillStyle(0xffe680, 1));
       playBg.on('pointerout', () => playBg.setFillStyle(0xffd34d, 1));
       playBg.on('pointerup', () => {
-        this.music?.start();
+        // MusicSystem.start awaits the lazy load if it hasn't finished
+        // yet. In the common case (modal sat open for >1s) the audio
+        // is already cached and this resolves synchronously.
+        void this.music?.start();
         this.readyModal?.destroy(true);
         this.readyModal = null;
         for (const z of this.tapZones) z.setInteractive();
@@ -819,11 +822,16 @@ export class Game extends Scene {
     this.player.onSpawn((lane, hitAt) => this.spawnNote(lane, hitAt));
 
     // Music for the round: real backing track from BACKING_CATALOG
-    // (selected by chart.bpm + author hash) and meow stems from
+    // (selected by chart.bpm + vibe + author hash) and meow stems from
     // MEOW_STEM_CATALOG fired on each successful lane tap. Phaser's
     // sound manager handles the WebAudio gesture unlock for free on
     // first user interaction — no manual unlock dance needed.
+    //
+    // Backings are lazy-loaded, so kick the download off RIGHT NOW —
+    // it runs in parallel with the player reading the Ready modal so
+    // the file's usually cached by the time they tap PLAY.
     this.music = new MusicSystem(this, playChart);
+    void this.music.preload();
   }
 
   // -----------------------------------------------------------------------

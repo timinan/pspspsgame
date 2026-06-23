@@ -3,7 +3,7 @@ import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
 import { fetchState } from '@/services/state-client';
-import { BACKGROUND_CATALOG, BACKING_CATALOG, MEOW_STEM_CATALOG } from '@/../shared/state';
+import { BACKGROUND_CATALOG, MEOW_STEM_CATALOG } from '@/../shared/state';
 import type { PlayerState } from '@/../shared/state';
 
 // All logical cat breeds. 'rainbow' has no atlas frames of its own — it borrows
@@ -68,17 +68,17 @@ export class Preloader extends Scene {
     this.load.audio(AssetKeys.Audio.ThemeCozyMusic, ['themes/cozy-music.mp3']);
     this.load.audio(AssetKeys.Audio.ThemeSpookyMusic, ['themes/spooky-music.mp3']);
 
-    // Music system catalogs. Backings + meow stems get added as Tim
-    // authors them via the workflow in
-    // `outputs/prds/2026-06-22-pspsps-music-system-spec.md`. mp3-only
-    // for now — ogg companions deferred until ffmpeg is on the build
-    // box; Devvit's Chromium iframe plays mp3 natively.
-    for (const backing of Object.values(BACKING_CATALOG)) {
-      this.load.audio(backing.audioKey, `audio/backings/${backing.id}.mp3`);
-    }
+    // Meow stems are tiny (~50KB each) so they all preload — the cost
+    // of upfront-loading the whole pool is well under a single backing
+    // and avoids any tap latency on first meow.
     for (const stem of MEOW_STEM_CATALOG) {
       this.load.audio(stem.audioKey, `audio/meows/${stem.id}.wav`);
     }
+
+    // BACKING_CATALOG entries are lazy-loaded by MusicSystem.preload()
+    // when the round boots — visitors only ever download the song the
+    // host's chart resolves to (~500KB at 96kbps mono), not the whole
+    // library.
   }
 
   async create() {
