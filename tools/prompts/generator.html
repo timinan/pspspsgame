@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Prompt Generator · pspsps</title>
+<link rel="icon" href="data:," />
+<style>
+  :root {
+    --bg: #1a0a2e;
+    --panel: #261540;
+    --panel-2: #341c5a;
+    --accent: #ffd34d;
+    --accent-2: #c678ff;
+    --ok: #7fdc8a;
+    --muted: #c0a0e6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 36px; font-family: system-ui, sans-serif;
+    background: var(--bg); color: #fff; min-height: 100vh;
+  }
+  h1 {
+    margin: 0 0 4px; color: var(--accent); font-size: 22px;
+  }
+  .subhead { color: var(--muted); font-size: 13px; margin: 0 0 28px; max-width: 760px; }
+  .subhead a { color: var(--accent-2); }
+
+  .section {
+    background: var(--panel); border-radius: 12px; padding: 18px 22px;
+    margin-bottom: 24px;
+  }
+  .section-head {
+    display: flex; align-items: baseline; gap: 14px; margin: 0 0 4px;
+  }
+  .section-head h2 {
+    margin: 0; color: var(--accent); font-size: 16px;
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .section-head .hint {
+    color: var(--muted); font-size: 12px; margin-left: auto;
+  }
+  .section .blurb { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  .regen {
+    background: var(--accent-2); color: #1a0a2e; padding: 9px 18px; border-radius: 6px;
+    font-weight: 700; cursor: pointer; font-size: 13px; border: none;
+    margin-bottom: 14px; font-family: inherit;
+  }
+  .regen:hover { background: var(--accent); }
+  .regen .icon { margin-right: 6px; }
+
+  .prompt {
+    background: var(--bg); border-radius: 8px; padding: 12px 14px;
+    margin-bottom: 8px; display: flex; gap: 12px;
+    border: 1px solid var(--panel-2);
+    transition: background 80ms, border-color 80ms;
+    cursor: pointer;
+  }
+  .prompt:hover { background: var(--panel-2); border-color: var(--accent-2); }
+  .prompt.copied { border-color: var(--ok); background: rgba(127, 220, 138, 0.08); }
+  .prompt .text { flex: 1; font-size: 14px; line-height: 1.45; }
+  .prompt .meta {
+    flex-shrink: 0; font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    align-self: center; padding: 3px 9px; border: 1px solid var(--accent-2);
+    border-radius: 999px;
+  }
+  .prompt .meta.upbeat  { color: #ffb46b; border-color: #ffb46b; }
+  .prompt .meta.melodic { color: #9ed5ff; border-color: #9ed5ff; }
+  .prompt .meta.smooth  { color: #c5a3ff; border-color: #c5a3ff; }
+  .prompt .copy-hint {
+    font-size: 10px; color: var(--muted); align-self: center;
+  }
+
+  .toast {
+    position: fixed; bottom: 22px; right: 22px;
+    background: var(--panel-2); color: #fff; padding: 10px 16px; border-radius: 6px;
+    font-size: 13px; font-family: monospace;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    opacity: 0; transition: opacity 200ms;
+    border-left: 3px solid var(--ok);
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <h1>Prompt Generator</h1>
+  <p class="subhead">
+    Procedural prompts shaped around the pspsps game vibe: cozy / playful cat-room
+    backgrounds, and 130 BPM looping backing music with no vocals.
+    Tap a prompt to copy. <a href="/">all tools</a>
+  </p>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>🖼  Backgrounds</h2>
+      <span class="hint">portrait 1024×1536 · bottom 2/3 empty floor · no characters</span>
+    </div>
+    <p class="blurb">
+      For gpt-image-1 / Midjourney / Stable Diffusion. Every prompt enforces the
+      empty-floor layout so the game engine can seat cats on top — the bg art
+      provides the room, never the characters.
+    </p>
+    <button class="regen" id="regen-bg"><span class="icon">🎲</span>Regenerate</button>
+    <div id="bg-list"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>🎵  Music</h2>
+      <span class="hint">Suno · 130 BPM · no vocals · loop-friendly</span>
+    </div>
+    <p class="blurb">
+      Tagged by vibe (UPBEAT / MELODIC / SMOOTH) so you can target gaps in the
+      Music Calibrator. All locked at 130 BPM so charts authored at FAST stay
+      in sync.
+    </p>
+    <button class="regen" id="regen-music"><span class="icon">🎲</span>Regenerate</button>
+    <div id="music-list"></div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+<script src="/tools-nav.js"></script>
+<script>
+const BG_PROMPTS_PER_BATCH = 6;
+const MUSIC_PROMPTS_PER_BATCH = 6;
+
+// ─── Background ingredients ───────────────────────────────────────────────
+//
+// Each prompt = setting + mood + lighting + style + layout enforcement.
+// Pool sizes chosen so 6 picks rarely repeat exact combos across consecutive
+// regenerates; combinatorial space is ~30k+.
+
+const BG_SETTINGS = [
+  'cozy reading nook with tall floor-to-ceiling bookshelves',
+  'sun-drenched tropical beach hut interior with bamboo walls',
+  'abandoned 80s arcade with dusty cabinets and faded carpet',
+  "wizard's cluttered potion lab with bubbling glassware",
+  'mossy mushroom forest grove with giant glowing toadstools',
+  'Japanese tea house at twilight with shoji screens and tatami floor',
+  'polar ice cave with bioluminescent crystals on the walls',
+  'retro diner booth interior with chrome trim and neon signage',
+  "pirate ship captain's cabin with maps, lanterns, and a wheel",
+  'pumpkin patch under a harvest moon with hay bales and lanterns',
+  'neon Tokyo alley with vending machines and cherry blossoms',
+  'casino lounge with red velvet booths and brass chandeliers',
+  'ancient cat temple with stone murals and burning incense',
+  'volcanic palace throne room with obsidian columns and lava channels',
+  'lo-fi study room with a rain-streaked window and houseplants',
+  'cherry blossom garden with stone lanterns and a koi pond',
+  'snowy mountain cabin interior with a stone fireplace',
+  'underwater coral palace with bioluminescent fish',
+  'witch cottage interior with herb bundles and a cauldron',
+  'candy land bakery with frosting drips and gumdrop tiles',
+  'art studio with paint splatters, easels, and northern light',
+  'observatory dome with a brass telescope and star charts',
+  'train station platform at night with steam and lanterns',
+  'art deco ballroom with gold trim and a chandelier',
+  'ramen shop interior with paper lanterns and a steaming pot',
+  'snowy alpine ski lodge lounge with antler decor',
+  'old library with stained glass windows and reading lamps',
+  'autumn forest clearing with red maples and a creek',
+  'dragon hoard cavern with gold piles and gemstones',
+  'retro space station observation deck with a planet view',
+  'beachside boardwalk arcade with palm trees and string lights',
+  'treehouse hideout with rope bridges and lantern strings',
+  'Moroccan riad courtyard with tiled fountain and arches',
+  'underground jazz club with brick walls and dim sconces',
+  'secret garden with fairy lights, ivy walls, and stone benches',
+  'theater backstage with hanging ropes and rolled-up backdrops',
+  'alpine valley meadow with wildflowers and snowy peaks',
+  'frost-frozen ice palace ballroom with crystal chandeliers',
+  'swampy witch hut on stilts with cypress trees',
+  'candlelit gothic cathedral interior with vaulted arches',
+  'mad scientist laboratory with tesla coils and bubbling beakers',
+  'cyberpunk noodle bar with holographic signs',
+  'haunted mansion library with cobwebs and a hidden door',
+  'bamboo dojo with rice paper walls and morning mist',
+  'fairy mushroom village interior with twig furniture',
+  'desert oasis tent interior with rugs and brass lamps',
+  'medieval tavern with a hearth and oak tables',
+  'space pirate cargo bay with crates and viewports',
+];
+
+const BG_MOOD = [
+  'cozy and warm', 'mysterious and dim', 'playful and bright',
+  'dreamy and pastel', 'peaceful and quiet', 'vibrant and energetic',
+  'melancholic and soft', 'whimsical and storybook', 'magical and sparkly',
+  'intimate and welcoming', 'festive and lively', 'eerie and atmospheric',
+  'sun-drenched and cheerful',
+];
+
+const BG_LIGHTING = [
+  'warm sunset glow through the windows',
+  'soft morning light with floating dust motes',
+  'golden hour streaming sideways',
+  'moonlit with pale blue highlights',
+  'candlelit with flickering shadows',
+  'neon-lit with magenta and cyan',
+  'dappled afternoon light through leaves',
+  'twilight purple and pink sky',
+  'cool fluorescent overhead light',
+  'pale dawn pastels',
+  'paper lantern warmth',
+  'firelight flicker from a hearth',
+  'overcast diffuse daylight',
+];
+
+const BG_STYLE = [
+  'stylized painted illustration, soft brush strokes',
+  "hand-painted children's storybook style, gouache",
+  'cozy anime backdrop, cel-shaded',
+  'retro 16-bit pixel art backdrop, sharp pixels',
+  'watercolor illustration with visible paper grain',
+  'Studio Ghibli inspired painterly background',
+  'storybook gouache with rich saturated color',
+  'soft 3D render with painterly post-processing',
+];
+
+const BG_LAYOUT_CONSTRAINT =
+  'portrait 1024x1536, top third holds the visual focus (ceiling / sky / horizon),' +
+  ' bottom two thirds is an empty clear floor at image y ≈ 415 ready for the game' +
+  ' engine to seat characters, no people, no animals, no creatures, no characters' +
+  ' in the scene';
+
+// ─── Music ingredients ────────────────────────────────────────────────────
+
+const MUSIC_VIBES = {
+  upbeat: [
+    '8-bit chiptune adventure music',
+    'synthwave with arpeggio leads and gated drums',
+    'bouncy electro-funk with slap bass',
+    'K-pop dance instrumental with pluck synths',
+    'tropical house with steel drums and clap layers',
+    'EDM festival build with arpeggios and white-noise sweeps',
+    'disco-funk with brass stabs',
+    'electro swing with chopped horns',
+    'video game boss music',
+    'vaporwave shopping mall ambient',
+    'drum and bass breakbeat',
+    'carnival circus march with calliope',
+    'Nintendo platformer chip-rock',
+    'Chicago house with piano stabs',
+    'energetic ska punk instrumental',
+    'happy hardcore with rave stabs',
+  ],
+  melodic: [
+    'dreamy lo-fi hip hop beats',
+    'ambient marimba with bell synths',
+    'Japanese city pop instrumental, breezy',
+    'indie folk with glockenspiel and acoustic guitar',
+    'chillwave sunset cruise instrumental',
+    'anime study session beat with rain ambience',
+    'minimalist piano with strings',
+    'shoegaze instrumental with reverb-soaked guitar',
+    'celestial harp ambient',
+    'post-rock guitar swells building slowly',
+    'Mediterranean acoustic instrumental with mandolin',
+    'cinematic music box lullaby tempo-doubled',
+    'soft electronica with woodwinds',
+    'wistful folktronica with field recordings',
+  ],
+  smooth: [
+    'bossa nova lounge with vibraphone',
+    'neo-soul groove with Rhodes piano',
+    'trip-hop with vinyl crackle and dusty drums',
+    'cool jazz piano trio',
+    'smooth jazz with soprano sax lead',
+    'soul-jazz with Hammond organ',
+    '70s lounge muzak instrumental',
+    'French café jazz with accordion accents',
+    'elevator muzak refined edition',
+    'noir jazz piano with brushed drums',
+    'samba groove with shaker and surdo',
+    'rare groove instrumental with wah guitar',
+    'Cuban son montuno with piano tumbao',
+    'reggae one-drop with skanking guitar',
+  ],
+};
+
+const MUSIC_DESCRIPTORS = [
+  'playful and bouncy',
+  'warm and intimate',
+  'breezy and effortless',
+  'punchy and tight',
+  'dreamy and floating',
+  'energetic and confident',
+  'mellow but groovy',
+  'lush and cinematic',
+  'crisp and clean',
+];
+
+const MUSIC_TAIL =
+  'no vocals, 130 BPM, loops cleanly at 30 seconds, instrumental only';
+
+// ─── Generation ────────────────────────────────────────────────────────────
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function pickNUnique(arr, n) {
+  const pool = [...arr];
+  const out = [];
+  for (let i = 0; i < n && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    out.push(pool[idx]);
+    pool.splice(idx, 1);
+  }
+  return out;
+}
+
+function bgPrompt() {
+  return [
+    pick(BG_SETTINGS),
+    pick(BG_MOOD),
+    pick(BG_LIGHTING),
+    pick(BG_STYLE),
+    BG_LAYOUT_CONSTRAINT,
+  ].join(', ');
+}
+
+function musicPrompt(vibe) {
+  const style = pick(MUSIC_VIBES[vibe]);
+  const descriptor = pick(MUSIC_DESCRIPTORS);
+  return `${style}, ${descriptor}, ${MUSIC_TAIL}`;
+}
+
+function renderBackgrounds() {
+  const list = document.getElementById('bg-list');
+  list.innerHTML = '';
+  const settings = pickNUnique(BG_SETTINGS, BG_PROMPTS_PER_BATCH);
+  for (const setting of settings) {
+    const prompt = [
+      setting,
+      pick(BG_MOOD),
+      pick(BG_LIGHTING),
+      pick(BG_STYLE),
+      BG_LAYOUT_CONSTRAINT,
+    ].join(', ');
+    list.appendChild(buildPromptRow(prompt, null));
+  }
+}
+
+function renderMusic() {
+  const list = document.getElementById('music-list');
+  list.innerHTML = '';
+  // Distribute 6 picks across the 3 vibes evenly: 2 upbeat / 2 melodic / 2 smooth.
+  // Tim said the picker should help fill gaps — even split avoids upbeat-heavy bias.
+  const split = ['upbeat', 'upbeat', 'melodic', 'melodic', 'smooth', 'smooth'];
+  // Shuffle so they don't always render in the same order.
+  for (let i = split.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [split[i], split[j]] = [split[j], split[i]];
+  }
+  for (const vibe of split.slice(0, MUSIC_PROMPTS_PER_BATCH)) {
+    list.appendChild(buildPromptRow(musicPrompt(vibe), vibe));
+  }
+}
+
+function buildPromptRow(text, badge) {
+  const row = document.createElement('div');
+  row.className = 'prompt';
+  const t = document.createElement('div');
+  t.className = 'text';
+  t.textContent = text;
+  row.appendChild(t);
+  if (badge) {
+    const b = document.createElement('span');
+    b.className = 'meta ' + badge;
+    b.textContent = badge;
+    row.appendChild(b);
+  }
+  const hint = document.createElement('span');
+  hint.className = 'copy-hint';
+  hint.textContent = 'tap to copy';
+  row.appendChild(hint);
+  row.addEventListener('click', () => copy(text, row));
+  return row;
+}
+
+async function copy(text, row) {
+  try {
+    await navigator.clipboard.writeText(text);
+    row.classList.add('copied');
+    toast('copied');
+    setTimeout(() => row.classList.remove('copied'), 1200);
+  } catch (e) {
+    toast('copy failed: ' + e.message);
+  }
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+document.getElementById('regen-bg').addEventListener('click', renderBackgrounds);
+document.getElementById('regen-music').addEventListener('click', renderMusic);
+
+renderBackgrounds();
+renderMusic();
+</script>
+</body>
+</html>

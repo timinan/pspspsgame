@@ -49,6 +49,14 @@ const TOOLS = {
     savePath: path.join(TOOL_DIR, 'music', 'music.json'),
     description: 'Tempo, vibe, BPM per backing track. Drop an MP3 to add a new song; ffmpeg auto-trims to 32s + downmixes to 96kbps mono.',
   },
+  prompts: {
+    label: 'Prompt Generator',
+    href: '/tools/prompts/generator.html',
+    // No save endpoint — purely client-side prompt generation. Path
+    // is set so the TOOLS table stays uniform; nothing reads it.
+    savePath: path.join(TOOL_DIR, 'prompts', 'prompts.json'),
+    description: 'Fresh background + music prompts on demand. Tap regenerate to roll new ones matched to the game vibe; tap a prompt to copy.',
+  },
   'cosmetic-quick-add': {
     label: 'Cosmetic Quick Add',
     href: '/tools/cosmetics/quick-add.html',
