@@ -200,13 +200,48 @@ export const BACKING_CATALOG: Record<string, BackingTrack> = {
     speedLabel: 'fast',
     bpm: 130,
     audioKey: 'backing-bounce-bloom-1',
-    loopDurationMs: 30_000, // ~30s — fills one full round if chart bpm matches
+    loopDurationMs: 30_000, // approximate — only used by future tooling
   },
   'bounce-bloom-2': {
     id: 'bounce-bloom-2',
     speedLabel: 'fast',
     bpm: 130,
     audioKey: 'backing-bounce-bloom-2',
+    loopDurationMs: 30_000,
+  },
+  'bouncy-bounce': {
+    id: 'bouncy-bounce',
+    speedLabel: 'fast',
+    bpm: 130,
+    audioKey: 'backing-bouncy-bounce',
+    loopDurationMs: 30_000,
+  },
+  'cinematic-bossa-nova-1': {
+    id: 'cinematic-bossa-nova-1',
+    speedLabel: 'fast',
+    bpm: 130,
+    audioKey: 'backing-cinematic-bossa-nova-1',
+    loopDurationMs: 30_000,
+  },
+  'cinematic-bossa-nova-2': {
+    id: 'cinematic-bossa-nova-2',
+    speedLabel: 'fast',
+    bpm: 130,
+    audioKey: 'backing-cinematic-bossa-nova-2',
+    loopDurationMs: 30_000,
+  },
+  'midnight-coffee': {
+    id: 'midnight-coffee',
+    speedLabel: 'fast',
+    bpm: 130,
+    audioKey: 'backing-midnight-coffee',
+    loopDurationMs: 30_000,
+  },
+  'neon-dash': {
+    id: 'neon-dash',
+    speedLabel: 'fast',
+    bpm: 130,
+    audioKey: 'backing-neon-dash',
     loopDurationMs: 30_000,
   },
 };
