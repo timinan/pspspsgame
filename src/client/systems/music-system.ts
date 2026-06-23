@@ -27,11 +27,9 @@ import {
  * accents. Tune in playtest.
  */
 const BACKING_VOLUME = 0.85;
-// Meows turned way down from the initial 0.55 — Tim flagged them as
-// obnoxious at first playtest. Single legacy meow at full velocity over
-// a busy backing reads as clipping; richer stems + a softer per-tap
-// volume should let them sit as percussion instead of a foreground voice.
-const MEOW_VOLUME = 0.3;
+// Meows pulled down to 0.2 — Tim wants them faint so they read as
+// gentle confirmations on top of the song, not a vocal layer.
+const MEOW_VOLUME = 0.2;
 
 export class MusicSystem {
   private backing: Sound.BaseSound | null = null;
