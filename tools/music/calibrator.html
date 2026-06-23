@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Music Calibrator · pspsps</title>
+<link rel="icon" href="data:," />
+<style>
+  :root {
+    --bg: #1a0a2e;
+    --panel: #261540;
+    --panel-2: #341c5a;
+    --accent: #ffd34d;
+    --accent-2: #c678ff;
+    --ok: #7fdc8a;
+    --err: #ff7a7a;
+    --muted: #c0a0e6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 36px; font-family: system-ui, sans-serif;
+    background: var(--bg); color: #fff; min-height: 100vh;
+  }
+  h1 {
+    margin: 0 0 4px; color: var(--accent); font-size: 22px; display: flex; align-items: baseline; gap: 12px;
+  }
+  h1 .count {
+    font-size: 13px; color: var(--muted); font-weight: 400; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .subhead { color: var(--muted); font-size: 13px; margin: 0 0 24px; }
+  .subhead a { color: var(--accent-2); }
+
+  .dropzone {
+    border: 2px dashed var(--accent-2); border-radius: 10px;
+    padding: 22px 18px; margin-bottom: 24px;
+    background: var(--panel); transition: background 120ms, border-color 120ms;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .dropzone.over { background: var(--panel-2); border-color: var(--accent); }
+  .dropzone .icon { font-size: 32px; }
+  .dropzone .label { font-size: 14px; flex: 1; }
+  .dropzone .label strong { color: var(--accent); }
+  .dropzone .pick {
+    background: var(--accent-2); color: #1a0a2e; padding: 8px 14px; border-radius: 6px;
+    font-weight: 700; cursor: pointer; font-size: 13px; border: none;
+  }
+  .dropzone .pick:hover { background: var(--accent); }
+  .dropzone input[type=file] { display: none; }
+
+  table {
+    width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 10px; overflow: hidden;
+  }
+  th, td { text-align: left; padding: 10px 12px; vertical-align: middle; }
+  th {
+    background: var(--panel-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--muted); font-weight: 700;
+  }
+  tr { border-top: 1px solid #0d041b; }
+  tr:first-child { border-top: none; }
+  tr.row-busy { opacity: 0.5; pointer-events: none; }
+
+  .id-cell .id { font-family: monospace; font-size: 11px; color: var(--muted); }
+  .id-cell .name-input {
+    background: transparent; border: 1px solid transparent; color: #fff; font-size: 14px;
+    padding: 4px 6px; border-radius: 4px; width: 100%; max-width: 260px;
+  }
+  .id-cell .name-input:hover { border-color: var(--panel-2); }
+  .id-cell .name-input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+
+  .cycle {
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--accent-2);
+    padding: 5px 10px; border-radius: 5px; font-size: 11px; font-weight: 700;
+    cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: 0.5px;
+    min-width: 78px;
+  }
+  .cycle:hover { background: var(--accent-2); color: #1a0a2e; }
+  .cycle.vibe { border-color: var(--accent); }
+
+  .bpm-input {
+    background: var(--bg); border: 1px solid var(--panel-2); color: #fff; font-size: 13px;
+    padding: 5px 8px; border-radius: 4px; width: 60px; text-align: center; font-family: monospace;
+  }
+  .bpm-input:focus { outline: none; border-color: var(--accent); }
+
+  .preview-btn, .delete-btn {
+    background: transparent; border: 1px solid var(--panel-2); color: #fff; padding: 5px 10px;
+    border-radius: 4px; font-size: 14px; cursor: pointer;
+  }
+  .preview-btn:hover { border-color: var(--accent); }
+  .preview-btn.playing { background: var(--accent); color: #1a0a2e; border-color: var(--accent); }
+  .delete-btn:hover { border-color: var(--err); color: var(--err); }
+
+  .size-pill {
+    font-family: monospace; font-size: 11px; color: var(--muted);
+    background: var(--bg); padding: 3px 7px; border-radius: 999px;
+  }
+
+  .toast {
+    position: fixed; bottom: 22px; right: 22px;
+    background: var(--panel-2); color: #fff; padding: 10px 16px; border-radius: 6px;
+    font-size: 13px; font-family: monospace;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    opacity: 0; transition: opacity 200ms;
+    border-left: 3px solid var(--accent);
+  }
+  .toast.show { opacity: 1; }
+  .toast.ok { border-left-color: var(--ok); }
+  .toast.err { border-left-color: var(--err); }
+</style>
+</head>
+<body>
+  <h1>Music Calibrator <span class="count" id="entry-count"></span></h1>
+  <p class="subhead">
+    Source of truth: <code>tools/music/music.json</code> · <a href="/">all tools</a>
+  </p>
+
+  <label class="dropzone" id="dropzone">
+    <span class="icon">🎵</span>
+    <div class="label">
+      <strong>Drop an MP3</strong> here to add a new backing.
+      <br>Auto-processed: trim to 32s, mono, 96kbps. Catalog entry created with FAST · UPBEAT · 130 BPM defaults — tune below.
+    </div>
+    <button class="pick" type="button" onclick="document.getElementById('file-input').click()">Choose file…</button>
+    <input id="file-input" type="file" accept="audio/mpeg,audio/mp3,.mp3" />
+  </label>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 32%">Track</th>
+        <th style="width: 90px">Tempo</th>
+        <th style="width: 90px">Vibe</th>
+        <th style="width: 70px">BPM</th>
+        <th style="width: 80px">Size</th>
+        <th style="width: 80px"></th>
+        <th style="width: 50px"></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+const SPEED_CYCLE = ['slow', 'medium', 'fast', 'faster'];
+const VIBE_CYCLE = ['upbeat', 'melodic', 'smooth'];
+
+let catalog = {};
+let saveTimer = null;
+let currentlyPlaying = null;
+
+function toast(msg, kind = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + kind;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+function nextInCycle(current, cycle) {
+  const i = cycle.indexOf(current);
+  return cycle[(i + 1) % cycle.length] || cycle[0];
+}
+
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'song';
+}
+
+async function load() {
+  const r = await fetch('/tools/music/music.json?_=' + Date.now());
+  catalog = r.ok ? await r.json() : {};
+  render();
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 400);
+}
+
+async function save() {
+  try {
+    const r = await fetch('/save/music', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(catalog),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    toast('saved', 'ok');
+  } catch (e) {
+    toast('save failed: ' + e.message, 'err');
+  }
+}
+
+async function fetchSize(id) {
+  try {
+    const r = await fetch('/public/assets/audio/backings/' + id + '.mp3', { method: 'HEAD' });
+    if (!r.ok) return null;
+    return Number(r.headers.get('content-length')) || null;
+  } catch { return null; }
+}
+function fmtBytes(n) {
+  if (n == null) return '—';
+  if (n < 1024) return n + 'B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + 'KB';
+  return (n / 1024 / 1024).toFixed(1) + 'MB';
+}
+
+function render() {
+  const tbody = document.getElementById('tbody');
+  const ids = Object.keys(catalog).sort();
+  document.getElementById('entry-count').textContent = ids.length + ' track' + (ids.length === 1 ? '' : 's');
+  tbody.innerHTML = '';
+  for (const id of ids) {
+    const entry = catalog[id];
+    const tr = document.createElement('tr');
+    tr.dataset.id = id;
+
+    // Track column: display name + id beneath
+    const trackCell = document.createElement('td');
+    trackCell.className = 'id-cell';
+    const nameInput = document.createElement('input');
+    nameInput.className = 'name-input';
+    nameInput.type = 'text';
+    nameInput.value = entry.displayName || id;
+    nameInput.addEventListener('input', () => {
+      entry.displayName = nameInput.value;
+      scheduleSave();
+    });
+    const idLabel = document.createElement('div');
+    idLabel.className = 'id';
+    idLabel.textContent = id + '.mp3';
+    trackCell.appendChild(nameInput);
+    trackCell.appendChild(idLabel);
+    tr.appendChild(trackCell);
+
+    // Tempo cycle
+    const tempoCell = document.createElement('td');
+    const tempoBtn = document.createElement('button');
+    tempoBtn.className = 'cycle';
+    tempoBtn.textContent = (entry.speedLabel || 'fast').toUpperCase();
+    tempoBtn.addEventListener('click', () => {
+      entry.speedLabel = nextInCycle(entry.speedLabel || 'fast', SPEED_CYCLE);
+      tempoBtn.textContent = entry.speedLabel.toUpperCase();
+      scheduleSave();
+    });
+    tempoCell.appendChild(tempoBtn);
+    tr.appendChild(tempoCell);
+
+    // Vibe cycle
+    const vibeCell = document.createElement('td');
+    const vibeBtn = document.createElement('button');
+    vibeBtn.className = 'cycle vibe';
+    vibeBtn.textContent = (entry.vibe || 'upbeat').toUpperCase();
+    vibeBtn.addEventListener('click', () => {
+      entry.vibe = nextInCycle(entry.vibe || 'upbeat', VIBE_CYCLE);
+      vibeBtn.textContent = entry.vibe.toUpperCase();
+      scheduleSave();
+    });
+    vibeCell.appendChild(vibeBtn);
+    tr.appendChild(vibeCell);
+
+    // BPM input
+    const bpmCell = document.createElement('td');
+    const bpmInput = document.createElement('input');
+    bpmInput.className = 'bpm-input';
+    bpmInput.type = 'number';
+    bpmInput.min = 40;
+    bpmInput.max = 240;
+    bpmInput.value = entry.bpm || 130;
+    bpmInput.addEventListener('change', () => {
+      entry.bpm = Number(bpmInput.value) || 130;
+      scheduleSave();
+    });
+    bpmCell.appendChild(bpmInput);
+    tr.appendChild(bpmCell);
+
+    // File size
+    const sizeCell = document.createElement('td');
+    const sizePill = document.createElement('span');
+    sizePill.className = 'size-pill';
+    sizePill.textContent = '…';
+    sizeCell.appendChild(sizePill);
+    tr.appendChild(sizeCell);
+    fetchSize(id).then((b) => { sizePill.textContent = fmtBytes(b); });
+
+    // Preview button
+    const previewCell = document.createElement('td');
+    const previewBtn = document.createElement('button');
+    previewBtn.className = 'preview-btn';
+    previewBtn.textContent = '▶ play';
+    previewBtn.addEventListener('click', () => togglePreview(id, previewBtn));
+    previewCell.appendChild(previewBtn);
+    tr.appendChild(previewCell);
+
+    // Delete button
+    const deleteCell = document.createElement('td');
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.textContent = '🗑';
+    deleteBtn.title = 'Delete this track';
+    deleteBtn.addEventListener('click', () => deleteTrack(id));
+    deleteCell.appendChild(deleteBtn);
+    tr.appendChild(deleteCell);
+
+    tbody.appendChild(tr);
+  }
+}
+
+function togglePreview(id, btn) {
+  if (currentlyPlaying && currentlyPlaying.id === id) {
+    currentlyPlaying.audio.pause();
+    currentlyPlaying.btn.classList.remove('playing');
+    currentlyPlaying.btn.textContent = '▶ play';
+    currentlyPlaying = null;
+    return;
+  }
+  if (currentlyPlaying) {
+    currentlyPlaying.audio.pause();
+    currentlyPlaying.btn.classList.remove('playing');
+    currentlyPlaying.btn.textContent = '▶ play';
+  }
+  const audio = new Audio('/public/assets/audio/backings/' + id + '.mp3');
+  audio.volume = 0.7;
+  audio.play().catch((e) => toast('play failed: ' + e.message, 'err'));
+  btn.classList.add('playing');
+  btn.textContent = '■ stop';
+  audio.addEventListener('ended', () => {
+    btn.classList.remove('playing');
+    btn.textContent = '▶ play';
+    currentlyPlaying = null;
+  });
+  currentlyPlaying = { id, audio, btn };
+}
+
+async function deleteTrack(id) {
+  if (!confirm(`Delete "${catalog[id]?.displayName || id}"? This removes the mp3 and the catalog entry.`)) return;
+  try {
+    const r = await fetch('/music/' + encodeURIComponent(id), { method: 'DELETE' });
+    if (!r.ok) throw new Error(await r.text());
+    delete catalog[id];
+    render();
+    toast('deleted', 'ok');
+  } catch (e) {
+    toast('delete failed: ' + e.message, 'err');
+  }
+}
+
+// --- Drop zone + file pick ---
+const dz = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+
+['dragenter', 'dragover'].forEach((evt) =>
+  dz.addEventListener(evt, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dz.classList.add('over');
+  }),
+);
+['dragleave', 'drop'].forEach((evt) =>
+  dz.addEventListener(evt, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    dz.classList.remove('over');
+  }),
+);
+dz.addEventListener('drop', (e) => {
+  const file = e.dataTransfer?.files?.[0];
+  if (file) uploadFile(file);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files?.[0]) uploadFile(fileInput.files[0]);
+  fileInput.value = '';
+});
+
+async function uploadFile(file) {
+  if (!/\.mp3$/i.test(file.name) && file.type !== 'audio/mpeg' && file.type !== 'audio/mp3') {
+    toast('mp3 only', 'err');
+    return;
+  }
+  // Derive a slug from the filename; let the calibrator UI override later.
+  let baseName = file.name.replace(/\.[^.]+$/, '');
+  let slug = slugify(baseName);
+  // Disambiguate if the slug already exists in the catalog.
+  let n = 2;
+  const originalSlug = slug;
+  while (catalog[slug]) {
+    slug = originalSlug + '-' + n++;
+  }
+  toast('uploading + processing…');
+  try {
+    const buf = await file.arrayBuffer();
+    const params = new URLSearchParams({ displayName: baseName });
+    const r = await fetch('/upload-music/' + encodeURIComponent(slug) + '?' + params, {
+      method: 'POST',
+      headers: { 'content-type': 'audio/mpeg' },
+      body: buf,
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const j = await r.json();
+    catalog[slug] = j.entry;
+    render();
+    toast(`added "${j.entry.displayName}" (${fmtBytes(j.bytes)})`, 'ok');
+  } catch (e) {
+    toast('upload failed: ' + e.message, 'err');
+  }
+}
+
+load();
+</script>
+</body>
+</html>
