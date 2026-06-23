@@ -2605,9 +2605,513 @@
       }
     },
     {
-      "filename": "cat1_meow_03",
+      "filename": "cat10_hiss_00",
       "frame": {
         "x": 369,
+        "y": 176,
+        "w": 44,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 44,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_02",
+      "frame": {
+        "x": 415,
+        "y": 176,
+        "w": 50,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 50,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_05",
+      "frame": {
+        "x": 467,
+        "y": 176,
+        "w": 50,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 50,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_08",
+      "frame": {
+        "x": 519,
+        "y": 176,
+        "w": 50,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 50,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_idle_00",
+      "frame": {
+        "x": 571,
+        "y": 176,
+        "w": 44,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 44,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_idle_03",
+      "frame": {
+        "x": 617,
+        "y": 176,
+        "w": 50,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 50,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_idle_06",
+      "frame": {
+        "x": 669,
+        "y": 176,
+        "w": 47,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 47,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_00",
+      "frame": {
+        "x": 718,
+        "y": 176,
+        "w": 44,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 44,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_01",
+      "frame": {
+        "x": 764,
+        "y": 176,
+        "w": 47,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 47,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_02",
+      "frame": {
+        "x": 813,
+        "y": 176,
+        "w": 55,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 55,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_05",
+      "frame": {
+        "x": 870,
+        "y": 176,
+        "w": 55,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 55,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_08",
+      "frame": {
+        "x": 927,
+        "y": 176,
+        "w": 55,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 55,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_00",
+      "frame": {
+        "x": 984,
+        "y": 176,
+        "w": 44,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 44,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_02",
+      "frame": {
+        "x": 1030,
+        "y": 176,
+        "w": 50,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 50,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_05",
+      "frame": {
+        "x": 1082,
+        "y": 176,
+        "w": 50,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 50,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_08",
+      "frame": {
+        "x": 1134,
+        "y": 176,
+        "w": 50,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 50,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_idle_00",
+      "frame": {
+        "x": 1186,
+        "y": 176,
+        "w": 44,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 44,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_idle_03",
+      "frame": {
+        "x": 1232,
+        "y": 176,
+        "w": 50,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 50,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_idle_06",
+      "frame": {
+        "x": 1284,
+        "y": 176,
+        "w": 47,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 47,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_00",
+      "frame": {
+        "x": 1333,
+        "y": 176,
+        "w": 44,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 44,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_01",
+      "frame": {
+        "x": 1379,
+        "y": 176,
+        "w": 47,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 47,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_02",
+      "frame": {
+        "x": 1428,
+        "y": 176,
+        "w": 55,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 55,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_05",
+      "frame": {
+        "x": 1485,
+        "y": 176,
+        "w": 55,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 55,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_08",
+      "frame": {
+        "x": 1542,
+        "y": 176,
+        "w": 55,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 12,
+        "w": 55,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat1_meow_03",
+      "frame": {
+        "x": 1599,
         "y": 176,
         "w": 55,
         "h": 51
@@ -2628,7 +3132,7 @@
     {
       "filename": "cat1_meow_04",
       "frame": {
-        "x": 426,
+        "x": 1656,
         "y": 176,
         "w": 55,
         "h": 51
@@ -2649,7 +3153,7 @@
     {
       "filename": "cat1_meow_06",
       "frame": {
-        "x": 483,
+        "x": 1713,
         "y": 176,
         "w": 55,
         "h": 51
@@ -2670,7 +3174,7 @@
     {
       "filename": "cat1_meow_07",
       "frame": {
-        "x": 540,
+        "x": 1770,
         "y": 176,
         "w": 55,
         "h": 51
@@ -2691,7 +3195,7 @@
     {
       "filename": "cat1_meow_09",
       "frame": {
-        "x": 597,
+        "x": 1827,
         "y": 176,
         "w": 55,
         "h": 51
@@ -2712,7 +3216,7 @@
     {
       "filename": "cat1_meow_10",
       "frame": {
-        "x": 654,
+        "x": 1884,
         "y": 176,
         "w": 55,
         "h": 51
@@ -2733,7 +3237,7 @@
     {
       "filename": "cat1_lick_01",
       "frame": {
-        "x": 711,
+        "x": 1941,
         "y": 176,
         "w": 45,
         "h": 51
@@ -2754,7 +3258,7 @@
     {
       "filename": "cat1_lick_02",
       "frame": {
-        "x": 758,
+        "x": 1988,
         "y": 176,
         "w": 49,
         "h": 51
@@ -2775,8 +3279,8 @@
     {
       "filename": "cat1_lick_03",
       "frame": {
-        "x": 809,
-        "y": 176,
+        "x": 2,
+        "y": 230,
         "w": 52,
         "h": 51
       },
@@ -2796,8 +3300,8 @@
     {
       "filename": "cat1_lick_05",
       "frame": {
-        "x": 863,
-        "y": 176,
+        "x": 56,
+        "y": 230,
         "w": 47,
         "h": 51
       },
@@ -2817,8 +3321,8 @@
     {
       "filename": "cat1_lick_06",
       "frame": {
-        "x": 912,
-        "y": 176,
+        "x": 105,
+        "y": 230,
         "w": 44,
         "h": 51
       },
@@ -2838,8 +3342,8 @@
     {
       "filename": "cat1_lick_07",
       "frame": {
-        "x": 958,
-        "y": 176,
+        "x": 151,
+        "y": 230,
         "w": 39,
         "h": 51
       },
@@ -2859,8 +3363,8 @@
     {
       "filename": "cat1_idle_01",
       "frame": {
-        "x": 999,
-        "y": 176,
+        "x": 192,
+        "y": 230,
         "w": 48,
         "h": 51
       },
@@ -2880,8 +3384,8 @@
     {
       "filename": "cat1_idle_02",
       "frame": {
-        "x": 1049,
-        "y": 176,
+        "x": 242,
+        "y": 230,
         "w": 51,
         "h": 51
       },
@@ -2901,8 +3405,8 @@
     {
       "filename": "cat1_idle_04",
       "frame": {
-        "x": 1102,
-        "y": 176,
+        "x": 295,
+        "y": 230,
         "w": 51,
         "h": 51
       },
@@ -2922,8 +3426,8 @@
     {
       "filename": "cat1_idle_05",
       "frame": {
-        "x": 1155,
-        "y": 176,
+        "x": 348,
+        "y": 230,
         "w": 49,
         "h": 51
       },
@@ -2943,8 +3447,8 @@
     {
       "filename": "cat1_idle_07",
       "frame": {
-        "x": 1206,
-        "y": 176,
+        "x": 399,
+        "y": 230,
         "w": 44,
         "h": 51
       },
@@ -2964,8 +3468,8 @@
     {
       "filename": "cat1_idle_08",
       "frame": {
-        "x": 1252,
-        "y": 176,
+        "x": 445,
+        "y": 230,
         "w": 41,
         "h": 51
       },
@@ -2985,8 +3489,8 @@
     {
       "filename": "cat1_hiss_01",
       "frame": {
-        "x": 1295,
-        "y": 176,
+        "x": 488,
+        "y": 230,
         "w": 44,
         "h": 51
       },
@@ -3006,8 +3510,8 @@
     {
       "filename": "cat1_hiss_03",
       "frame": {
-        "x": 1341,
-        "y": 176,
+        "x": 534,
+        "y": 230,
         "w": 50,
         "h": 51
       },
@@ -3027,8 +3531,8 @@
     {
       "filename": "cat1_hiss_04",
       "frame": {
-        "x": 1393,
-        "y": 176,
+        "x": 586,
+        "y": 230,
         "w": 51,
         "h": 51
       },
@@ -3048,8 +3552,8 @@
     {
       "filename": "cat1_hiss_06",
       "frame": {
-        "x": 1446,
-        "y": 176,
+        "x": 639,
+        "y": 230,
         "w": 51,
         "h": 51
       },
@@ -3069,8 +3573,8 @@
     {
       "filename": "cat1_hiss_07",
       "frame": {
-        "x": 1499,
-        "y": 176,
+        "x": 692,
+        "y": 230,
         "w": 50,
         "h": 51
       },
@@ -3090,8 +3594,8 @@
     {
       "filename": "cat1_hiss_09",
       "frame": {
-        "x": 1551,
-        "y": 176,
+        "x": 744,
+        "y": 230,
         "w": 50,
         "h": 51
       },
@@ -3111,8 +3615,8 @@
     {
       "filename": "cat1_hiss_10",
       "frame": {
-        "x": 1603,
-        "y": 176,
+        "x": 796,
+        "y": 230,
         "w": 50,
         "h": 51
       },
@@ -3132,8 +3636,8 @@
     {
       "filename": "cat2_meow_03",
       "frame": {
-        "x": 1655,
-        "y": 176,
+        "x": 848,
+        "y": 230,
         "w": 55,
         "h": 51
       },
@@ -3153,8 +3657,8 @@
     {
       "filename": "cat2_meow_04",
       "frame": {
-        "x": 1712,
-        "y": 176,
+        "x": 905,
+        "y": 230,
         "w": 55,
         "h": 51
       },
@@ -3174,8 +3678,8 @@
     {
       "filename": "cat2_meow_06",
       "frame": {
-        "x": 1769,
-        "y": 176,
+        "x": 962,
+        "y": 230,
         "w": 55,
         "h": 51
       },
@@ -3195,8 +3699,8 @@
     {
       "filename": "cat2_meow_07",
       "frame": {
-        "x": 1826,
-        "y": 176,
+        "x": 1019,
+        "y": 230,
         "w": 55,
         "h": 51
       },
@@ -3216,8 +3720,8 @@
     {
       "filename": "cat2_meow_09",
       "frame": {
-        "x": 1883,
-        "y": 176,
+        "x": 1076,
+        "y": 230,
         "w": 55,
         "h": 51
       },
@@ -3237,8 +3741,8 @@
     {
       "filename": "cat2_meow_10",
       "frame": {
-        "x": 1940,
-        "y": 176,
+        "x": 1133,
+        "y": 230,
         "w": 55,
         "h": 51
       },
@@ -3258,8 +3762,8 @@
     {
       "filename": "cat2_lick_01",
       "frame": {
-        "x": 1997,
-        "y": 176,
+        "x": 1190,
+        "y": 230,
         "w": 45,
         "h": 51
       },
@@ -3279,7 +3783,7 @@
     {
       "filename": "cat2_lick_02",
       "frame": {
-        "x": 2,
+        "x": 1237,
         "y": 230,
         "w": 49,
         "h": 51
@@ -3300,7 +3804,7 @@
     {
       "filename": "cat2_lick_03",
       "frame": {
-        "x": 53,
+        "x": 1288,
         "y": 230,
         "w": 52,
         "h": 51
@@ -3321,7 +3825,7 @@
     {
       "filename": "cat2_lick_05",
       "frame": {
-        "x": 107,
+        "x": 1342,
         "y": 230,
         "w": 47,
         "h": 51
@@ -3342,7 +3846,7 @@
     {
       "filename": "cat2_lick_06",
       "frame": {
-        "x": 156,
+        "x": 1391,
         "y": 230,
         "w": 44,
         "h": 51
@@ -3363,7 +3867,7 @@
     {
       "filename": "cat2_lick_07",
       "frame": {
-        "x": 202,
+        "x": 1437,
         "y": 230,
         "w": 39,
         "h": 51
@@ -3384,7 +3888,7 @@
     {
       "filename": "cat2_idle_01",
       "frame": {
-        "x": 243,
+        "x": 1478,
         "y": 230,
         "w": 48,
         "h": 51
@@ -3405,7 +3909,7 @@
     {
       "filename": "cat2_idle_02",
       "frame": {
-        "x": 293,
+        "x": 1528,
         "y": 230,
         "w": 51,
         "h": 51
@@ -3426,7 +3930,7 @@
     {
       "filename": "cat2_idle_04",
       "frame": {
-        "x": 346,
+        "x": 1581,
         "y": 230,
         "w": 51,
         "h": 51
@@ -3447,7 +3951,7 @@
     {
       "filename": "cat2_idle_05",
       "frame": {
-        "x": 399,
+        "x": 1634,
         "y": 230,
         "w": 49,
         "h": 51
@@ -3468,7 +3972,7 @@
     {
       "filename": "cat2_idle_07",
       "frame": {
-        "x": 450,
+        "x": 1685,
         "y": 230,
         "w": 44,
         "h": 51
@@ -3489,7 +3993,7 @@
     {
       "filename": "cat2_idle_08",
       "frame": {
-        "x": 496,
+        "x": 1731,
         "y": 230,
         "w": 41,
         "h": 51
@@ -3510,7 +4014,7 @@
     {
       "filename": "cat2_hiss_01",
       "frame": {
-        "x": 539,
+        "x": 1774,
         "y": 230,
         "w": 44,
         "h": 51
@@ -3531,7 +4035,7 @@
     {
       "filename": "cat2_hiss_03",
       "frame": {
-        "x": 585,
+        "x": 1820,
         "y": 230,
         "w": 50,
         "h": 51
@@ -3552,7 +4056,7 @@
     {
       "filename": "cat2_hiss_04",
       "frame": {
-        "x": 637,
+        "x": 1872,
         "y": 230,
         "w": 51,
         "h": 51
@@ -3573,7 +4077,7 @@
     {
       "filename": "cat2_hiss_06",
       "frame": {
-        "x": 690,
+        "x": 1925,
         "y": 230,
         "w": 51,
         "h": 51
@@ -3594,7 +4098,7 @@
     {
       "filename": "cat2_hiss_07",
       "frame": {
-        "x": 743,
+        "x": 1978,
         "y": 230,
         "w": 50,
         "h": 51
@@ -3615,510 +4119,6 @@
     {
       "filename": "cat2_hiss_09",
       "frame": {
-        "x": 795,
-        "y": 230,
-        "w": 50,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 50,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat2_hiss_10",
-      "frame": {
-        "x": 847,
-        "y": 230,
-        "w": 50,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 50,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_meow_03",
-      "frame": {
-        "x": 899,
-        "y": 230,
-        "w": 55,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 55,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_meow_04",
-      "frame": {
-        "x": 956,
-        "y": 230,
-        "w": 55,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 55,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_meow_06",
-      "frame": {
-        "x": 1013,
-        "y": 230,
-        "w": 55,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 55,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_meow_07",
-      "frame": {
-        "x": 1070,
-        "y": 230,
-        "w": 55,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 55,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_meow_09",
-      "frame": {
-        "x": 1127,
-        "y": 230,
-        "w": 55,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 55,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_meow_10",
-      "frame": {
-        "x": 1184,
-        "y": 230,
-        "w": 55,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 55,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_lick_01",
-      "frame": {
-        "x": 1241,
-        "y": 230,
-        "w": 45,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 45,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_lick_02",
-      "frame": {
-        "x": 1288,
-        "y": 230,
-        "w": 49,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 49,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_lick_05",
-      "frame": {
-        "x": 1339,
-        "y": 230,
-        "w": 47,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 47,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_lick_06",
-      "frame": {
-        "x": 1388,
-        "y": 230,
-        "w": 44,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 44,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_lick_07",
-      "frame": {
-        "x": 1434,
-        "y": 230,
-        "w": 39,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 39,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_idle_01",
-      "frame": {
-        "x": 1475,
-        "y": 230,
-        "w": 48,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 48,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_idle_02",
-      "frame": {
-        "x": 1525,
-        "y": 230,
-        "w": 51,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 51,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_idle_04",
-      "frame": {
-        "x": 1578,
-        "y": 230,
-        "w": 51,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 51,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_idle_05",
-      "frame": {
-        "x": 1631,
-        "y": 230,
-        "w": 49,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 49,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_idle_07",
-      "frame": {
-        "x": 1682,
-        "y": 230,
-        "w": 44,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 44,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_idle_08",
-      "frame": {
-        "x": 1728,
-        "y": 230,
-        "w": 41,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 41,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_hiss_01",
-      "frame": {
-        "x": 1771,
-        "y": 230,
-        "w": 44,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 44,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_hiss_03",
-      "frame": {
-        "x": 1817,
-        "y": 230,
-        "w": 50,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 50,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_hiss_04",
-      "frame": {
-        "x": 1869,
-        "y": 230,
-        "w": 51,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 51,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_hiss_06",
-      "frame": {
-        "x": 1922,
-        "y": 230,
-        "w": 51,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 51,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_hiss_07",
-      "frame": {
-        "x": 1975,
-        "y": 230,
-        "w": 50,
-        "h": 51
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 28,
-        "y": 13,
-        "w": 50,
-        "h": 51
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      }
-    },
-    {
-      "filename": "cat3_hiss_09",
-      "frame": {
         "x": 2,
         "y": 283,
         "w": 50,
@@ -4138,7 +4138,7 @@
       }
     },
     {
-      "filename": "cat3_hiss_10",
+      "filename": "cat2_hiss_10",
       "frame": {
         "x": 54,
         "y": 283,
@@ -4159,7 +4159,7 @@
       }
     },
     {
-      "filename": "cat4_meow_03",
+      "filename": "cat3_meow_03",
       "frame": {
         "x": 106,
         "y": 283,
@@ -4180,7 +4180,7 @@
       }
     },
     {
-      "filename": "cat4_meow_04",
+      "filename": "cat3_meow_04",
       "frame": {
         "x": 163,
         "y": 283,
@@ -4201,7 +4201,7 @@
       }
     },
     {
-      "filename": "cat4_meow_06",
+      "filename": "cat3_meow_06",
       "frame": {
         "x": 220,
         "y": 283,
@@ -4222,7 +4222,7 @@
       }
     },
     {
-      "filename": "cat4_meow_07",
+      "filename": "cat3_meow_07",
       "frame": {
         "x": 277,
         "y": 283,
@@ -4243,7 +4243,7 @@
       }
     },
     {
-      "filename": "cat4_meow_09",
+      "filename": "cat3_meow_09",
       "frame": {
         "x": 334,
         "y": 283,
@@ -4264,7 +4264,7 @@
       }
     },
     {
-      "filename": "cat4_meow_10",
+      "filename": "cat3_meow_10",
       "frame": {
         "x": 391,
         "y": 283,
@@ -4285,7 +4285,7 @@
       }
     },
     {
-      "filename": "cat4_lick_01",
+      "filename": "cat3_lick_01",
       "frame": {
         "x": 448,
         "y": 283,
@@ -4306,7 +4306,7 @@
       }
     },
     {
-      "filename": "cat4_lick_02",
+      "filename": "cat3_lick_02",
       "frame": {
         "x": 495,
         "y": 283,
@@ -4327,9 +4327,513 @@
       }
     },
     {
-      "filename": "cat4_lick_03",
+      "filename": "cat3_lick_05",
       "frame": {
         "x": 546,
+        "y": 283,
+        "w": 47,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 47,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_lick_06",
+      "frame": {
+        "x": 595,
+        "y": 283,
+        "w": 44,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 44,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_lick_07",
+      "frame": {
+        "x": 641,
+        "y": 283,
+        "w": 39,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 39,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_idle_01",
+      "frame": {
+        "x": 682,
+        "y": 283,
+        "w": 48,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 48,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_idle_02",
+      "frame": {
+        "x": 732,
+        "y": 283,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_idle_04",
+      "frame": {
+        "x": 785,
+        "y": 283,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_idle_05",
+      "frame": {
+        "x": 838,
+        "y": 283,
+        "w": 49,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 49,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_idle_07",
+      "frame": {
+        "x": 889,
+        "y": 283,
+        "w": 44,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 44,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_idle_08",
+      "frame": {
+        "x": 935,
+        "y": 283,
+        "w": 41,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 41,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_hiss_01",
+      "frame": {
+        "x": 978,
+        "y": 283,
+        "w": 44,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 44,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_hiss_03",
+      "frame": {
+        "x": 1024,
+        "y": 283,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_hiss_04",
+      "frame": {
+        "x": 1076,
+        "y": 283,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_hiss_06",
+      "frame": {
+        "x": 1129,
+        "y": 283,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_hiss_07",
+      "frame": {
+        "x": 1182,
+        "y": 283,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_hiss_09",
+      "frame": {
+        "x": 1234,
+        "y": 283,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat3_hiss_10",
+      "frame": {
+        "x": 1286,
+        "y": 283,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat4_meow_03",
+      "frame": {
+        "x": 1338,
+        "y": 283,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat4_meow_04",
+      "frame": {
+        "x": 1395,
+        "y": 283,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat4_meow_06",
+      "frame": {
+        "x": 1452,
+        "y": 283,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat4_meow_07",
+      "frame": {
+        "x": 1509,
+        "y": 283,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat4_meow_09",
+      "frame": {
+        "x": 1566,
+        "y": 283,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat4_meow_10",
+      "frame": {
+        "x": 1623,
+        "y": 283,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat4_lick_01",
+      "frame": {
+        "x": 1680,
+        "y": 283,
+        "w": 45,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 45,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat4_lick_02",
+      "frame": {
+        "x": 1727,
+        "y": 283,
+        "w": 49,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 49,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat4_lick_03",
+      "frame": {
+        "x": 1778,
         "y": 283,
         "w": 52,
         "h": 51
@@ -4350,7 +4854,7 @@
     {
       "filename": "cat4_lick_05",
       "frame": {
-        "x": 600,
+        "x": 1832,
         "y": 283,
         "w": 47,
         "h": 51
@@ -4371,7 +4875,7 @@
     {
       "filename": "cat4_lick_06",
       "frame": {
-        "x": 649,
+        "x": 1881,
         "y": 283,
         "w": 44,
         "h": 51
@@ -4392,7 +4896,7 @@
     {
       "filename": "cat4_lick_07",
       "frame": {
-        "x": 695,
+        "x": 1927,
         "y": 283,
         "w": 39,
         "h": 51
@@ -4413,7 +4917,7 @@
     {
       "filename": "cat4_idle_01",
       "frame": {
-        "x": 736,
+        "x": 1968,
         "y": 283,
         "w": 48,
         "h": 51
@@ -4434,8 +4938,8 @@
     {
       "filename": "cat4_idle_02",
       "frame": {
-        "x": 786,
-        "y": 283,
+        "x": 2,
+        "y": 336,
         "w": 51,
         "h": 51
       },
@@ -4455,8 +4959,8 @@
     {
       "filename": "cat4_idle_04",
       "frame": {
-        "x": 839,
-        "y": 283,
+        "x": 55,
+        "y": 336,
         "w": 51,
         "h": 51
       },
@@ -4476,8 +4980,8 @@
     {
       "filename": "cat4_idle_05",
       "frame": {
-        "x": 892,
-        "y": 283,
+        "x": 108,
+        "y": 336,
         "w": 49,
         "h": 51
       },
@@ -4497,8 +5001,8 @@
     {
       "filename": "cat4_idle_07",
       "frame": {
-        "x": 943,
-        "y": 283,
+        "x": 159,
+        "y": 336,
         "w": 44,
         "h": 51
       },
@@ -4518,8 +5022,8 @@
     {
       "filename": "cat4_idle_08",
       "frame": {
-        "x": 989,
-        "y": 283,
+        "x": 205,
+        "y": 336,
         "w": 41,
         "h": 51
       },
@@ -4539,8 +5043,8 @@
     {
       "filename": "cat4_hiss_01",
       "frame": {
-        "x": 1032,
-        "y": 283,
+        "x": 248,
+        "y": 336,
         "w": 44,
         "h": 51
       },
@@ -4560,8 +5064,8 @@
     {
       "filename": "cat4_hiss_03",
       "frame": {
-        "x": 1078,
-        "y": 283,
+        "x": 294,
+        "y": 336,
         "w": 50,
         "h": 51
       },
@@ -4581,8 +5085,8 @@
     {
       "filename": "cat4_hiss_04",
       "frame": {
-        "x": 1130,
-        "y": 283,
+        "x": 346,
+        "y": 336,
         "w": 51,
         "h": 51
       },
@@ -4602,8 +5106,8 @@
     {
       "filename": "cat4_hiss_06",
       "frame": {
-        "x": 1183,
-        "y": 283,
+        "x": 399,
+        "y": 336,
         "w": 51,
         "h": 51
       },
@@ -4623,8 +5127,8 @@
     {
       "filename": "cat4_hiss_07",
       "frame": {
-        "x": 1236,
-        "y": 283,
+        "x": 452,
+        "y": 336,
         "w": 50,
         "h": 51
       },
@@ -4644,8 +5148,8 @@
     {
       "filename": "cat4_hiss_09",
       "frame": {
-        "x": 1288,
-        "y": 283,
+        "x": 504,
+        "y": 336,
         "w": 50,
         "h": 51
       },
@@ -4665,8 +5169,8 @@
     {
       "filename": "cat4_hiss_10",
       "frame": {
-        "x": 1340,
-        "y": 283,
+        "x": 556,
+        "y": 336,
         "w": 50,
         "h": 51
       },
@@ -4686,8 +5190,8 @@
     {
       "filename": "cat5_meow_03",
       "frame": {
-        "x": 1392,
-        "y": 283,
+        "x": 608,
+        "y": 336,
         "w": 55,
         "h": 51
       },
@@ -4707,8 +5211,8 @@
     {
       "filename": "cat5_meow_04",
       "frame": {
-        "x": 1449,
-        "y": 283,
+        "x": 665,
+        "y": 336,
         "w": 55,
         "h": 51
       },
@@ -4728,8 +5232,8 @@
     {
       "filename": "cat5_meow_06",
       "frame": {
-        "x": 1506,
-        "y": 283,
+        "x": 722,
+        "y": 336,
         "w": 55,
         "h": 51
       },
@@ -4749,8 +5253,8 @@
     {
       "filename": "cat5_meow_07",
       "frame": {
-        "x": 1563,
-        "y": 283,
+        "x": 779,
+        "y": 336,
         "w": 55,
         "h": 51
       },
@@ -4770,8 +5274,8 @@
     {
       "filename": "cat5_meow_09",
       "frame": {
-        "x": 1620,
-        "y": 283,
+        "x": 836,
+        "y": 336,
         "w": 55,
         "h": 51
       },
@@ -4791,8 +5295,8 @@
     {
       "filename": "cat5_meow_10",
       "frame": {
-        "x": 1677,
-        "y": 283,
+        "x": 893,
+        "y": 336,
         "w": 55,
         "h": 51
       },
@@ -4812,8 +5316,8 @@
     {
       "filename": "cat5_lick_01",
       "frame": {
-        "x": 1734,
-        "y": 283,
+        "x": 950,
+        "y": 336,
         "w": 45,
         "h": 51
       },
@@ -4833,8 +5337,8 @@
     {
       "filename": "cat5_lick_02",
       "frame": {
-        "x": 1781,
-        "y": 283,
+        "x": 997,
+        "y": 336,
         "w": 49,
         "h": 51
       },
@@ -4854,8 +5358,8 @@
     {
       "filename": "cat5_lick_03",
       "frame": {
-        "x": 1832,
-        "y": 283,
+        "x": 1048,
+        "y": 336,
         "w": 52,
         "h": 51
       },
@@ -4875,8 +5379,8 @@
     {
       "filename": "cat5_lick_05",
       "frame": {
-        "x": 1886,
-        "y": 283,
+        "x": 1102,
+        "y": 336,
         "w": 47,
         "h": 51
       },
@@ -4896,8 +5400,8 @@
     {
       "filename": "cat5_lick_06",
       "frame": {
-        "x": 1935,
-        "y": 283,
+        "x": 1151,
+        "y": 336,
         "w": 44,
         "h": 51
       },
@@ -4917,8 +5421,8 @@
     {
       "filename": "cat5_lick_07",
       "frame": {
-        "x": 1981,
-        "y": 283,
+        "x": 1197,
+        "y": 336,
         "w": 39,
         "h": 51
       },
@@ -4938,7 +5442,7 @@
     {
       "filename": "cat5_idle_01",
       "frame": {
-        "x": 2,
+        "x": 1238,
         "y": 336,
         "w": 48,
         "h": 51
@@ -4959,7 +5463,7 @@
     {
       "filename": "cat5_idle_02",
       "frame": {
-        "x": 52,
+        "x": 1288,
         "y": 336,
         "w": 51,
         "h": 51
@@ -4980,7 +5484,7 @@
     {
       "filename": "cat5_idle_04",
       "frame": {
-        "x": 105,
+        "x": 1341,
         "y": 336,
         "w": 51,
         "h": 51
@@ -5001,7 +5505,7 @@
     {
       "filename": "cat5_idle_05",
       "frame": {
-        "x": 158,
+        "x": 1394,
         "y": 336,
         "w": 49,
         "h": 51
@@ -5022,7 +5526,7 @@
     {
       "filename": "cat5_idle_07",
       "frame": {
-        "x": 209,
+        "x": 1445,
         "y": 336,
         "w": 44,
         "h": 51
@@ -5043,7 +5547,7 @@
     {
       "filename": "cat5_idle_08",
       "frame": {
-        "x": 255,
+        "x": 1491,
         "y": 336,
         "w": 41,
         "h": 51
@@ -5064,7 +5568,7 @@
     {
       "filename": "cat5_hiss_01",
       "frame": {
-        "x": 298,
+        "x": 1534,
         "y": 336,
         "w": 44,
         "h": 51
@@ -5085,7 +5589,7 @@
     {
       "filename": "cat5_hiss_03",
       "frame": {
-        "x": 344,
+        "x": 1580,
         "y": 336,
         "w": 50,
         "h": 51
@@ -5106,7 +5610,7 @@
     {
       "filename": "cat5_hiss_04",
       "frame": {
-        "x": 396,
+        "x": 1632,
         "y": 336,
         "w": 51,
         "h": 51
@@ -5127,7 +5631,7 @@
     {
       "filename": "cat5_hiss_06",
       "frame": {
-        "x": 449,
+        "x": 1685,
         "y": 336,
         "w": 51,
         "h": 51
@@ -5148,7 +5652,7 @@
     {
       "filename": "cat5_hiss_07",
       "frame": {
-        "x": 502,
+        "x": 1738,
         "y": 336,
         "w": 50,
         "h": 51
@@ -5169,7 +5673,7 @@
     {
       "filename": "cat5_hiss_09",
       "frame": {
-        "x": 554,
+        "x": 1790,
         "y": 336,
         "w": 50,
         "h": 51
@@ -5190,7 +5694,7 @@
     {
       "filename": "cat5_hiss_10",
       "frame": {
-        "x": 606,
+        "x": 1842,
         "y": 336,
         "w": 50,
         "h": 51
@@ -5211,7 +5715,7 @@
     {
       "filename": "cat5_happy_03",
       "frame": {
-        "x": 658,
+        "x": 1894,
         "y": 336,
         "w": 55,
         "h": 51
@@ -5232,7 +5736,7 @@
     {
       "filename": "cat5_happy_04",
       "frame": {
-        "x": 715,
+        "x": 1951,
         "y": 336,
         "w": 55,
         "h": 51
@@ -5253,8 +5757,8 @@
     {
       "filename": "cat5_happy_06",
       "frame": {
-        "x": 772,
-        "y": 336,
+        "x": 2,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5274,8 +5778,8 @@
     {
       "filename": "cat5_happy_07",
       "frame": {
-        "x": 829,
-        "y": 336,
+        "x": 59,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5295,8 +5799,8 @@
     {
       "filename": "cat5_happy_09",
       "frame": {
-        "x": 886,
-        "y": 336,
+        "x": 116,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5316,8 +5820,8 @@
     {
       "filename": "cat5_happy_10",
       "frame": {
-        "x": 943,
-        "y": 336,
+        "x": 173,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5337,8 +5841,8 @@
     {
       "filename": "cat6_meow_03",
       "frame": {
-        "x": 1000,
-        "y": 336,
+        "x": 230,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5358,8 +5862,8 @@
     {
       "filename": "cat6_meow_04",
       "frame": {
-        "x": 1057,
-        "y": 336,
+        "x": 287,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5379,8 +5883,8 @@
     {
       "filename": "cat6_meow_06",
       "frame": {
-        "x": 1114,
-        "y": 336,
+        "x": 344,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5400,8 +5904,8 @@
     {
       "filename": "cat6_meow_07",
       "frame": {
-        "x": 1171,
-        "y": 336,
+        "x": 401,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5421,8 +5925,8 @@
     {
       "filename": "cat6_meow_09",
       "frame": {
-        "x": 1228,
-        "y": 336,
+        "x": 458,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5442,8 +5946,8 @@
     {
       "filename": "cat6_meow_10",
       "frame": {
-        "x": 1285,
-        "y": 336,
+        "x": 515,
+        "y": 389,
         "w": 55,
         "h": 51
       },
@@ -5463,8 +5967,8 @@
     {
       "filename": "cat6_lick_01",
       "frame": {
-        "x": 1342,
-        "y": 336,
+        "x": 572,
+        "y": 389,
         "w": 45,
         "h": 51
       },
@@ -5484,8 +5988,8 @@
     {
       "filename": "cat6_lick_02",
       "frame": {
-        "x": 1389,
-        "y": 336,
+        "x": 619,
+        "y": 389,
         "w": 49,
         "h": 51
       },
@@ -5505,8 +6009,8 @@
     {
       "filename": "cat6_lick_03",
       "frame": {
-        "x": 1440,
-        "y": 336,
+        "x": 670,
+        "y": 389,
         "w": 52,
         "h": 51
       },
@@ -5526,8 +6030,8 @@
     {
       "filename": "cat6_lick_05",
       "frame": {
-        "x": 1494,
-        "y": 336,
+        "x": 724,
+        "y": 389,
         "w": 47,
         "h": 51
       },
@@ -5547,8 +6051,8 @@
     {
       "filename": "cat6_lick_06",
       "frame": {
-        "x": 1543,
-        "y": 336,
+        "x": 773,
+        "y": 389,
         "w": 44,
         "h": 51
       },
@@ -5568,8 +6072,8 @@
     {
       "filename": "cat6_lick_07",
       "frame": {
-        "x": 1589,
-        "y": 336,
+        "x": 819,
+        "y": 389,
         "w": 39,
         "h": 51
       },
@@ -5589,8 +6093,8 @@
     {
       "filename": "cat6_idle_01",
       "frame": {
-        "x": 1630,
-        "y": 336,
+        "x": 860,
+        "y": 389,
         "w": 48,
         "h": 51
       },
@@ -5610,8 +6114,8 @@
     {
       "filename": "cat6_idle_02",
       "frame": {
-        "x": 1680,
-        "y": 336,
+        "x": 910,
+        "y": 389,
         "w": 51,
         "h": 51
       },
@@ -5631,8 +6135,8 @@
     {
       "filename": "cat6_idle_04",
       "frame": {
-        "x": 1733,
-        "y": 336,
+        "x": 963,
+        "y": 389,
         "w": 51,
         "h": 51
       },
@@ -5652,8 +6156,8 @@
     {
       "filename": "cat6_idle_05",
       "frame": {
-        "x": 1786,
-        "y": 336,
+        "x": 1016,
+        "y": 389,
         "w": 49,
         "h": 51
       },
@@ -5673,8 +6177,8 @@
     {
       "filename": "cat6_idle_07",
       "frame": {
-        "x": 1837,
-        "y": 336,
+        "x": 1067,
+        "y": 389,
         "w": 44,
         "h": 51
       },
@@ -5694,8 +6198,8 @@
     {
       "filename": "cat6_idle_08",
       "frame": {
-        "x": 1883,
-        "y": 336,
+        "x": 1113,
+        "y": 389,
         "w": 41,
         "h": 51
       },
@@ -5715,8 +6219,8 @@
     {
       "filename": "cat6_hiss_01",
       "frame": {
-        "x": 1926,
-        "y": 336,
+        "x": 1156,
+        "y": 389,
         "w": 44,
         "h": 51
       },
@@ -5736,8 +6240,8 @@
     {
       "filename": "cat6_hiss_03",
       "frame": {
-        "x": 1972,
-        "y": 336,
+        "x": 1202,
+        "y": 389,
         "w": 50,
         "h": 51
       },
@@ -5757,7 +6261,7 @@
     {
       "filename": "cat6_hiss_04",
       "frame": {
-        "x": 2,
+        "x": 1254,
         "y": 389,
         "w": 51,
         "h": 51
@@ -5778,7 +6282,7 @@
     {
       "filename": "cat6_hiss_06",
       "frame": {
-        "x": 55,
+        "x": 1307,
         "y": 389,
         "w": 51,
         "h": 51
@@ -5799,7 +6303,7 @@
     {
       "filename": "cat6_hiss_07",
       "frame": {
-        "x": 108,
+        "x": 1360,
         "y": 389,
         "w": 50,
         "h": 51
@@ -5820,7 +6324,7 @@
     {
       "filename": "cat6_hiss_09",
       "frame": {
-        "x": 160,
+        "x": 1412,
         "y": 389,
         "w": 50,
         "h": 51
@@ -5841,7 +6345,7 @@
     {
       "filename": "cat6_hiss_10",
       "frame": {
-        "x": 212,
+        "x": 1464,
         "y": 389,
         "w": 50,
         "h": 51
@@ -5862,7 +6366,7 @@
     {
       "filename": "cat6_happy_03",
       "frame": {
-        "x": 264,
+        "x": 1516,
         "y": 389,
         "w": 55,
         "h": 51
@@ -5883,7 +6387,7 @@
     {
       "filename": "cat6_happy_04",
       "frame": {
-        "x": 321,
+        "x": 1573,
         "y": 389,
         "w": 55,
         "h": 51
@@ -5904,7 +6408,7 @@
     {
       "filename": "cat6_happy_06",
       "frame": {
-        "x": 378,
+        "x": 1630,
         "y": 389,
         "w": 55,
         "h": 51
@@ -5925,7 +6429,7 @@
     {
       "filename": "cat6_happy_07",
       "frame": {
-        "x": 435,
+        "x": 1687,
         "y": 389,
         "w": 55,
         "h": 51
@@ -5946,7 +6450,7 @@
     {
       "filename": "cat6_happy_09",
       "frame": {
-        "x": 492,
+        "x": 1744,
         "y": 389,
         "w": 55,
         "h": 51
@@ -5967,7 +6471,7 @@
     {
       "filename": "cat6_happy_10",
       "frame": {
-        "x": 549,
+        "x": 1801,
         "y": 389,
         "w": 55,
         "h": 51
@@ -5988,7 +6492,7 @@
     {
       "filename": "cat7_hiss_01",
       "frame": {
-        "x": 606,
+        "x": 1858,
         "y": 389,
         "w": 44,
         "h": 51
@@ -6009,7 +6513,7 @@
     {
       "filename": "cat7_hiss_03",
       "frame": {
-        "x": 652,
+        "x": 1904,
         "y": 389,
         "w": 50,
         "h": 51
@@ -6030,7 +6534,7 @@
     {
       "filename": "cat7_hiss_04",
       "frame": {
-        "x": 704,
+        "x": 1956,
         "y": 389,
         "w": 51,
         "h": 51
@@ -6051,8 +6555,8 @@
     {
       "filename": "cat7_hiss_06",
       "frame": {
-        "x": 757,
-        "y": 389,
+        "x": 2,
+        "y": 442,
         "w": 51,
         "h": 51
       },
@@ -6072,8 +6576,8 @@
     {
       "filename": "cat7_hiss_07",
       "frame": {
-        "x": 810,
-        "y": 389,
+        "x": 55,
+        "y": 442,
         "w": 50,
         "h": 51
       },
@@ -6093,8 +6597,8 @@
     {
       "filename": "cat7_hiss_09",
       "frame": {
-        "x": 862,
-        "y": 389,
+        "x": 107,
+        "y": 442,
         "w": 50,
         "h": 51
       },
@@ -6114,8 +6618,8 @@
     {
       "filename": "cat7_hiss_10",
       "frame": {
-        "x": 914,
-        "y": 389,
+        "x": 159,
+        "y": 442,
         "w": 50,
         "h": 51
       },
@@ -6135,8 +6639,8 @@
     {
       "filename": "cat7_idle_01",
       "frame": {
-        "x": 966,
-        "y": 389,
+        "x": 211,
+        "y": 442,
         "w": 48,
         "h": 51
       },
@@ -6156,8 +6660,8 @@
     {
       "filename": "cat7_idle_02",
       "frame": {
-        "x": 1016,
-        "y": 389,
+        "x": 261,
+        "y": 442,
         "w": 51,
         "h": 51
       },
@@ -6177,8 +6681,8 @@
     {
       "filename": "cat7_idle_04",
       "frame": {
-        "x": 1069,
-        "y": 389,
+        "x": 314,
+        "y": 442,
         "w": 51,
         "h": 51
       },
@@ -6198,8 +6702,8 @@
     {
       "filename": "cat7_idle_05",
       "frame": {
-        "x": 1122,
-        "y": 389,
+        "x": 367,
+        "y": 442,
         "w": 49,
         "h": 51
       },
@@ -6219,8 +6723,8 @@
     {
       "filename": "cat7_idle_07",
       "frame": {
-        "x": 1173,
-        "y": 389,
+        "x": 418,
+        "y": 442,
         "w": 44,
         "h": 51
       },
@@ -6240,8 +6744,8 @@
     {
       "filename": "cat7_idle_08",
       "frame": {
-        "x": 1219,
-        "y": 389,
+        "x": 464,
+        "y": 442,
         "w": 41,
         "h": 51
       },
@@ -6261,8 +6765,8 @@
     {
       "filename": "cat7_lick_01",
       "frame": {
-        "x": 1262,
-        "y": 389,
+        "x": 507,
+        "y": 442,
         "w": 45,
         "h": 51
       },
@@ -6282,8 +6786,8 @@
     {
       "filename": "cat7_lick_02",
       "frame": {
-        "x": 1309,
-        "y": 389,
+        "x": 554,
+        "y": 442,
         "w": 49,
         "h": 51
       },
@@ -6303,8 +6807,8 @@
     {
       "filename": "cat7_lick_03",
       "frame": {
-        "x": 1360,
-        "y": 389,
+        "x": 605,
+        "y": 442,
         "w": 52,
         "h": 51
       },
@@ -6324,8 +6828,8 @@
     {
       "filename": "cat7_lick_05",
       "frame": {
-        "x": 1414,
-        "y": 389,
+        "x": 659,
+        "y": 442,
         "w": 47,
         "h": 51
       },
@@ -6345,8 +6849,8 @@
     {
       "filename": "cat7_lick_06",
       "frame": {
-        "x": 1463,
-        "y": 389,
+        "x": 708,
+        "y": 442,
         "w": 44,
         "h": 51
       },
@@ -6366,8 +6870,8 @@
     {
       "filename": "cat7_lick_07",
       "frame": {
-        "x": 1509,
-        "y": 389,
+        "x": 754,
+        "y": 442,
         "w": 39,
         "h": 51
       },
@@ -6387,8 +6891,8 @@
     {
       "filename": "cat7_meow_03",
       "frame": {
-        "x": 1550,
-        "y": 389,
+        "x": 795,
+        "y": 442,
         "w": 55,
         "h": 51
       },
@@ -6408,8 +6912,8 @@
     {
       "filename": "cat7_meow_04",
       "frame": {
-        "x": 1607,
-        "y": 389,
+        "x": 852,
+        "y": 442,
         "w": 55,
         "h": 51
       },
@@ -6429,8 +6933,8 @@
     {
       "filename": "cat7_meow_06",
       "frame": {
-        "x": 1664,
-        "y": 389,
+        "x": 909,
+        "y": 442,
         "w": 55,
         "h": 51
       },
@@ -6450,8 +6954,8 @@
     {
       "filename": "cat7_meow_07",
       "frame": {
-        "x": 1721,
-        "y": 389,
+        "x": 966,
+        "y": 442,
         "w": 55,
         "h": 51
       },
@@ -6471,8 +6975,8 @@
     {
       "filename": "cat7_meow_09",
       "frame": {
-        "x": 1778,
-        "y": 389,
+        "x": 1023,
+        "y": 442,
         "w": 55,
         "h": 51
       },
@@ -6492,8 +6996,8 @@
     {
       "filename": "cat7_meow_10",
       "frame": {
-        "x": 1835,
-        "y": 389,
+        "x": 1080,
+        "y": 442,
         "w": 55,
         "h": 51
       },
@@ -6513,8 +7017,8 @@
     {
       "filename": "cat8_happy_03",
       "frame": {
-        "x": 1892,
-        "y": 389,
+        "x": 1137,
+        "y": 442,
         "w": 55,
         "h": 51
       },
@@ -6534,8 +7038,8 @@
     {
       "filename": "cat8_happy_04",
       "frame": {
-        "x": 1949,
-        "y": 389,
+        "x": 1194,
+        "y": 442,
         "w": 55,
         "h": 51
       },
@@ -6555,7 +7059,7 @@
     {
       "filename": "cat8_happy_06",
       "frame": {
-        "x": 2,
+        "x": 1251,
         "y": 442,
         "w": 55,
         "h": 51
@@ -6576,7 +7080,7 @@
     {
       "filename": "cat8_happy_07",
       "frame": {
-        "x": 59,
+        "x": 1308,
         "y": 442,
         "w": 55,
         "h": 51
@@ -6597,7 +7101,7 @@
     {
       "filename": "cat8_happy_09",
       "frame": {
-        "x": 116,
+        "x": 1365,
         "y": 442,
         "w": 55,
         "h": 51
@@ -6618,7 +7122,7 @@
     {
       "filename": "cat8_happy_10",
       "frame": {
-        "x": 173,
+        "x": 1422,
         "y": 442,
         "w": 55,
         "h": 51
@@ -6639,7 +7143,7 @@
     {
       "filename": "cat8_hiss_01",
       "frame": {
-        "x": 230,
+        "x": 1479,
         "y": 442,
         "w": 44,
         "h": 51
@@ -6660,7 +7164,7 @@
     {
       "filename": "cat8_hiss_03",
       "frame": {
-        "x": 276,
+        "x": 1525,
         "y": 442,
         "w": 50,
         "h": 51
@@ -6681,7 +7185,7 @@
     {
       "filename": "cat8_hiss_04",
       "frame": {
-        "x": 328,
+        "x": 1577,
         "y": 442,
         "w": 51,
         "h": 51
@@ -6702,7 +7206,7 @@
     {
       "filename": "cat8_hiss_06",
       "frame": {
-        "x": 381,
+        "x": 1630,
         "y": 442,
         "w": 51,
         "h": 51
@@ -6723,7 +7227,7 @@
     {
       "filename": "cat8_hiss_07",
       "frame": {
-        "x": 434,
+        "x": 1683,
         "y": 442,
         "w": 50,
         "h": 51
@@ -6744,7 +7248,7 @@
     {
       "filename": "cat8_hiss_09",
       "frame": {
-        "x": 486,
+        "x": 1735,
         "y": 442,
         "w": 50,
         "h": 51
@@ -6765,7 +7269,7 @@
     {
       "filename": "cat8_hiss_10",
       "frame": {
-        "x": 538,
+        "x": 1787,
         "y": 442,
         "w": 50,
         "h": 51
@@ -6786,7 +7290,7 @@
     {
       "filename": "cat8_idle_01",
       "frame": {
-        "x": 590,
+        "x": 1839,
         "y": 442,
         "w": 48,
         "h": 51
@@ -6807,7 +7311,7 @@
     {
       "filename": "cat8_idle_02",
       "frame": {
-        "x": 640,
+        "x": 1889,
         "y": 442,
         "w": 51,
         "h": 51
@@ -6828,7 +7332,7 @@
     {
       "filename": "cat8_idle_04",
       "frame": {
-        "x": 693,
+        "x": 1942,
         "y": 442,
         "w": 51,
         "h": 51
@@ -6849,7 +7353,7 @@
     {
       "filename": "cat8_idle_05",
       "frame": {
-        "x": 746,
+        "x": 1995,
         "y": 442,
         "w": 49,
         "h": 51
@@ -6870,8 +7374,8 @@
     {
       "filename": "cat8_idle_07",
       "frame": {
-        "x": 797,
-        "y": 442,
+        "x": 2,
+        "y": 495,
         "w": 44,
         "h": 51
       },
@@ -6891,8 +7395,8 @@
     {
       "filename": "cat8_idle_08",
       "frame": {
-        "x": 843,
-        "y": 442,
+        "x": 48,
+        "y": 495,
         "w": 41,
         "h": 51
       },
@@ -6912,8 +7416,8 @@
     {
       "filename": "cat8_lick_01",
       "frame": {
-        "x": 886,
-        "y": 442,
+        "x": 91,
+        "y": 495,
         "w": 45,
         "h": 51
       },
@@ -6933,8 +7437,8 @@
     {
       "filename": "cat8_lick_02",
       "frame": {
-        "x": 933,
-        "y": 442,
+        "x": 138,
+        "y": 495,
         "w": 49,
         "h": 51
       },
@@ -6954,8 +7458,8 @@
     {
       "filename": "cat8_lick_03",
       "frame": {
-        "x": 984,
-        "y": 442,
+        "x": 189,
+        "y": 495,
         "w": 52,
         "h": 51
       },
@@ -6975,8 +7479,8 @@
     {
       "filename": "cat8_lick_05",
       "frame": {
-        "x": 1038,
-        "y": 442,
+        "x": 243,
+        "y": 495,
         "w": 47,
         "h": 51
       },
@@ -6996,8 +7500,8 @@
     {
       "filename": "cat8_lick_06",
       "frame": {
-        "x": 1087,
-        "y": 442,
+        "x": 292,
+        "y": 495,
         "w": 44,
         "h": 51
       },
@@ -7017,8 +7521,8 @@
     {
       "filename": "cat8_lick_07",
       "frame": {
-        "x": 1133,
-        "y": 442,
+        "x": 338,
+        "y": 495,
         "w": 39,
         "h": 51
       },
@@ -7038,8 +7542,8 @@
     {
       "filename": "cat8_meow_03",
       "frame": {
-        "x": 1174,
-        "y": 442,
+        "x": 379,
+        "y": 495,
         "w": 55,
         "h": 51
       },
@@ -7059,8 +7563,8 @@
     {
       "filename": "cat8_meow_04",
       "frame": {
-        "x": 1231,
-        "y": 442,
+        "x": 436,
+        "y": 495,
         "w": 55,
         "h": 51
       },
@@ -7080,8 +7584,8 @@
     {
       "filename": "cat8_meow_06",
       "frame": {
-        "x": 1288,
-        "y": 442,
+        "x": 493,
+        "y": 495,
         "w": 55,
         "h": 51
       },
@@ -7101,8 +7605,8 @@
     {
       "filename": "cat8_meow_07",
       "frame": {
-        "x": 1345,
-        "y": 442,
+        "x": 550,
+        "y": 495,
         "w": 55,
         "h": 51
       },
@@ -7122,8 +7626,8 @@
     {
       "filename": "cat8_meow_09",
       "frame": {
-        "x": 1402,
-        "y": 442,
+        "x": 607,
+        "y": 495,
         "w": 55,
         "h": 51
       },
@@ -7143,8 +7647,8 @@
     {
       "filename": "cat8_meow_10",
       "frame": {
-        "x": 1459,
-        "y": 442,
+        "x": 664,
+        "y": 495,
         "w": 55,
         "h": 51
       },
@@ -7164,8 +7668,8 @@
     {
       "filename": "cat9_hiss_01",
       "frame": {
-        "x": 1516,
-        "y": 442,
+        "x": 721,
+        "y": 495,
         "w": 44,
         "h": 51
       },
@@ -7185,8 +7689,8 @@
     {
       "filename": "cat9_hiss_03",
       "frame": {
-        "x": 1562,
-        "y": 442,
+        "x": 767,
+        "y": 495,
         "w": 50,
         "h": 51
       },
@@ -7206,8 +7710,8 @@
     {
       "filename": "cat9_hiss_04",
       "frame": {
-        "x": 1614,
-        "y": 442,
+        "x": 819,
+        "y": 495,
         "w": 51,
         "h": 51
       },
@@ -7227,8 +7731,8 @@
     {
       "filename": "cat9_hiss_06",
       "frame": {
-        "x": 1667,
-        "y": 442,
+        "x": 872,
+        "y": 495,
         "w": 51,
         "h": 51
       },
@@ -7248,8 +7752,8 @@
     {
       "filename": "cat9_hiss_07",
       "frame": {
-        "x": 1720,
-        "y": 442,
+        "x": 925,
+        "y": 495,
         "w": 50,
         "h": 51
       },
@@ -7269,8 +7773,8 @@
     {
       "filename": "cat9_hiss_09",
       "frame": {
-        "x": 1772,
-        "y": 442,
+        "x": 977,
+        "y": 495,
         "w": 50,
         "h": 51
       },
@@ -7290,8 +7794,8 @@
     {
       "filename": "cat9_hiss_10",
       "frame": {
-        "x": 1824,
-        "y": 442,
+        "x": 1029,
+        "y": 495,
         "w": 50,
         "h": 51
       },
@@ -7311,8 +7815,8 @@
     {
       "filename": "cat9_idle_01",
       "frame": {
-        "x": 1876,
-        "y": 442,
+        "x": 1081,
+        "y": 495,
         "w": 48,
         "h": 51
       },
@@ -7332,8 +7836,8 @@
     {
       "filename": "cat9_idle_02",
       "frame": {
-        "x": 1926,
-        "y": 442,
+        "x": 1131,
+        "y": 495,
         "w": 51,
         "h": 51
       },
@@ -7353,8 +7857,8 @@
     {
       "filename": "cat9_idle_04",
       "frame": {
-        "x": 1979,
-        "y": 442,
+        "x": 1184,
+        "y": 495,
         "w": 51,
         "h": 51
       },
@@ -7374,7 +7878,7 @@
     {
       "filename": "cat9_idle_05",
       "frame": {
-        "x": 2,
+        "x": 1237,
         "y": 495,
         "w": 49,
         "h": 51
@@ -7395,7 +7899,7 @@
     {
       "filename": "cat9_idle_07",
       "frame": {
-        "x": 53,
+        "x": 1288,
         "y": 495,
         "w": 44,
         "h": 51
@@ -7416,7 +7920,7 @@
     {
       "filename": "cat9_idle_08",
       "frame": {
-        "x": 99,
+        "x": 1334,
         "y": 495,
         "w": 41,
         "h": 51
@@ -7437,7 +7941,7 @@
     {
       "filename": "cat9_lick_01",
       "frame": {
-        "x": 142,
+        "x": 1377,
         "y": 495,
         "w": 45,
         "h": 51
@@ -7458,7 +7962,7 @@
     {
       "filename": "cat9_lick_02",
       "frame": {
-        "x": 189,
+        "x": 1424,
         "y": 495,
         "w": 49,
         "h": 51
@@ -7479,7 +7983,7 @@
     {
       "filename": "cat9_lick_03",
       "frame": {
-        "x": 240,
+        "x": 1475,
         "y": 495,
         "w": 52,
         "h": 51
@@ -7500,7 +8004,7 @@
     {
       "filename": "cat9_lick_05",
       "frame": {
-        "x": 294,
+        "x": 1529,
         "y": 495,
         "w": 47,
         "h": 51
@@ -7521,7 +8025,7 @@
     {
       "filename": "cat9_lick_06",
       "frame": {
-        "x": 343,
+        "x": 1578,
         "y": 495,
         "w": 44,
         "h": 51
@@ -7542,7 +8046,7 @@
     {
       "filename": "cat9_lick_07",
       "frame": {
-        "x": 389,
+        "x": 1624,
         "y": 495,
         "w": 39,
         "h": 51
@@ -7563,7 +8067,7 @@
     {
       "filename": "cat9_meow_03",
       "frame": {
-        "x": 430,
+        "x": 1665,
         "y": 495,
         "w": 55,
         "h": 51
@@ -7584,7 +8088,7 @@
     {
       "filename": "cat9_meow_04",
       "frame": {
-        "x": 487,
+        "x": 1722,
         "y": 495,
         "w": 55,
         "h": 51
@@ -7605,7 +8109,7 @@
     {
       "filename": "cat9_meow_06",
       "frame": {
-        "x": 544,
+        "x": 1779,
         "y": 495,
         "w": 55,
         "h": 51
@@ -7626,7 +8130,7 @@
     {
       "filename": "cat9_meow_07",
       "frame": {
-        "x": 601,
+        "x": 1836,
         "y": 495,
         "w": 55,
         "h": 51
@@ -7647,7 +8151,7 @@
     {
       "filename": "cat9_meow_09",
       "frame": {
-        "x": 658,
+        "x": 1893,
         "y": 495,
         "w": 55,
         "h": 51
@@ -7668,8 +8172,1058 @@
     {
       "filename": "cat9_meow_10",
       "frame": {
-        "x": 715,
+        "x": 1950,
         "y": 495,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_01",
+      "frame": {
+        "x": 2,
+        "y": 548,
+        "w": 44,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 44,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_03",
+      "frame": {
+        "x": 48,
+        "y": 548,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_04",
+      "frame": {
+        "x": 100,
+        "y": 548,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_06",
+      "frame": {
+        "x": 153,
+        "y": 548,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_07",
+      "frame": {
+        "x": 206,
+        "y": 548,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_09",
+      "frame": {
+        "x": 258,
+        "y": 548,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_hiss_10",
+      "frame": {
+        "x": 310,
+        "y": 548,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_idle_01",
+      "frame": {
+        "x": 362,
+        "y": 548,
+        "w": 48,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 48,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_idle_02",
+      "frame": {
+        "x": 412,
+        "y": 548,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_idle_04",
+      "frame": {
+        "x": 465,
+        "y": 548,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_idle_05",
+      "frame": {
+        "x": 518,
+        "y": 548,
+        "w": 49,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 49,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_idle_07",
+      "frame": {
+        "x": 569,
+        "y": 548,
+        "w": 44,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 44,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_idle_08",
+      "frame": {
+        "x": 615,
+        "y": 548,
+        "w": 41,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 41,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_lick_01",
+      "frame": {
+        "x": 658,
+        "y": 548,
+        "w": 45,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 45,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_lick_02",
+      "frame": {
+        "x": 705,
+        "y": 548,
+        "w": 49,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 49,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_lick_03",
+      "frame": {
+        "x": 756,
+        "y": 548,
+        "w": 52,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 52,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_lick_05",
+      "frame": {
+        "x": 810,
+        "y": 548,
+        "w": 47,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 47,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_lick_06",
+      "frame": {
+        "x": 859,
+        "y": 548,
+        "w": 44,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 44,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_lick_07",
+      "frame": {
+        "x": 905,
+        "y": 548,
+        "w": 39,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 39,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_03",
+      "frame": {
+        "x": 946,
+        "y": 548,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_04",
+      "frame": {
+        "x": 1003,
+        "y": 548,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_06",
+      "frame": {
+        "x": 1060,
+        "y": 548,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_07",
+      "frame": {
+        "x": 1117,
+        "y": 548,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_09",
+      "frame": {
+        "x": 1174,
+        "y": 548,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_meow_10",
+      "frame": {
+        "x": 1231,
+        "y": 548,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_01",
+      "frame": {
+        "x": 1288,
+        "y": 548,
+        "w": 44,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 44,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_03",
+      "frame": {
+        "x": 1334,
+        "y": 548,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_04",
+      "frame": {
+        "x": 1386,
+        "y": 548,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_06",
+      "frame": {
+        "x": 1439,
+        "y": 548,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_07",
+      "frame": {
+        "x": 1492,
+        "y": 548,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_09",
+      "frame": {
+        "x": 1544,
+        "y": 548,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_hiss_10",
+      "frame": {
+        "x": 1596,
+        "y": 548,
+        "w": 50,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 50,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_idle_01",
+      "frame": {
+        "x": 1648,
+        "y": 548,
+        "w": 48,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 48,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_idle_02",
+      "frame": {
+        "x": 1698,
+        "y": 548,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_idle_04",
+      "frame": {
+        "x": 1751,
+        "y": 548,
+        "w": 51,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 51,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_idle_05",
+      "frame": {
+        "x": 1804,
+        "y": 548,
+        "w": 49,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 49,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_idle_07",
+      "frame": {
+        "x": 1855,
+        "y": 548,
+        "w": 44,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 44,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_idle_08",
+      "frame": {
+        "x": 1901,
+        "y": 548,
+        "w": 41,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 41,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_lick_01",
+      "frame": {
+        "x": 1944,
+        "y": 548,
+        "w": 45,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 45,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_lick_02",
+      "frame": {
+        "x": 1991,
+        "y": 548,
+        "w": 49,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 49,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_lick_03",
+      "frame": {
+        "x": 2,
+        "y": 601,
+        "w": 52,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 52,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_lick_05",
+      "frame": {
+        "x": 56,
+        "y": 601,
+        "w": 47,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 47,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_lick_06",
+      "frame": {
+        "x": 105,
+        "y": 601,
+        "w": 44,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 44,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_lick_07",
+      "frame": {
+        "x": 151,
+        "y": 601,
+        "w": 39,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 39,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_03",
+      "frame": {
+        "x": 192,
+        "y": 601,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_04",
+      "frame": {
+        "x": 249,
+        "y": 601,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_06",
+      "frame": {
+        "x": 306,
+        "y": 601,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_07",
+      "frame": {
+        "x": 363,
+        "y": 601,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_09",
+      "frame": {
+        "x": 420,
+        "y": 601,
+        "w": 55,
+        "h": 51
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 13,
+        "w": 55,
+        "h": 51
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_meow_10",
+      "frame": {
+        "x": 477,
+        "y": 601,
         "w": 55,
         "h": 51
       },
@@ -7689,8 +9243,8 @@
     {
       "filename": "cat1_lick_00",
       "frame": {
-        "x": 772,
-        "y": 495,
+        "x": 534,
+        "y": 601,
         "w": 44,
         "h": 50
       },
@@ -7710,8 +9264,8 @@
     {
       "filename": "cat1_lick_04",
       "frame": {
-        "x": 818,
-        "y": 495,
+        "x": 580,
+        "y": 601,
         "w": 52,
         "h": 50
       },
@@ -7731,8 +9285,8 @@
     {
       "filename": "cat2_lick_00",
       "frame": {
-        "x": 872,
-        "y": 495,
+        "x": 634,
+        "y": 601,
         "w": 60,
         "h": 50
       },
@@ -7752,8 +9306,8 @@
     {
       "filename": "cat2_lick_04",
       "frame": {
-        "x": 934,
-        "y": 495,
+        "x": 696,
+        "y": 601,
         "w": 52,
         "h": 50
       },
@@ -7773,8 +9327,8 @@
     {
       "filename": "cat3_lick_00",
       "frame": {
-        "x": 988,
-        "y": 495,
+        "x": 750,
+        "y": 601,
         "w": 44,
         "h": 50
       },
@@ -7794,8 +9348,8 @@
     {
       "filename": "cat3_lick_04",
       "frame": {
-        "x": 1034,
-        "y": 495,
+        "x": 796,
+        "y": 601,
         "w": 52,
         "h": 50
       },
@@ -7815,8 +9369,8 @@
     {
       "filename": "cat4_lick_00",
       "frame": {
-        "x": 1088,
-        "y": 495,
+        "x": 850,
+        "y": 601,
         "w": 44,
         "h": 50
       },
@@ -7836,8 +9390,8 @@
     {
       "filename": "cat4_lick_04",
       "frame": {
-        "x": 1134,
-        "y": 495,
+        "x": 896,
+        "y": 601,
         "w": 52,
         "h": 50
       },
@@ -7857,8 +9411,8 @@
     {
       "filename": "cat5_lick_00",
       "frame": {
-        "x": 1188,
-        "y": 495,
+        "x": 950,
+        "y": 601,
         "w": 44,
         "h": 50
       },
@@ -7878,8 +9432,8 @@
     {
       "filename": "cat5_lick_04",
       "frame": {
-        "x": 1234,
-        "y": 495,
+        "x": 996,
+        "y": 601,
         "w": 52,
         "h": 50
       },
@@ -7899,8 +9453,8 @@
     {
       "filename": "cat6_lick_00",
       "frame": {
-        "x": 1288,
-        "y": 495,
+        "x": 1050,
+        "y": 601,
         "w": 44,
         "h": 50
       },
@@ -7920,8 +9474,8 @@
     {
       "filename": "cat6_lick_04",
       "frame": {
-        "x": 1334,
-        "y": 495,
+        "x": 1096,
+        "y": 601,
         "w": 52,
         "h": 50
       },
@@ -7941,8 +9495,8 @@
     {
       "filename": "cat7_lick_00",
       "frame": {
-        "x": 1388,
-        "y": 495,
+        "x": 1150,
+        "y": 601,
         "w": 44,
         "h": 50
       },
@@ -7962,8 +9516,8 @@
     {
       "filename": "cat7_lick_04",
       "frame": {
-        "x": 1434,
-        "y": 495,
+        "x": 1196,
+        "y": 601,
         "w": 52,
         "h": 50
       },
@@ -7983,8 +9537,8 @@
     {
       "filename": "cat8_lick_00",
       "frame": {
-        "x": 1488,
-        "y": 495,
+        "x": 1250,
+        "y": 601,
         "w": 44,
         "h": 50
       },
@@ -8004,8 +9558,8 @@
     {
       "filename": "cat8_lick_04",
       "frame": {
-        "x": 1534,
-        "y": 495,
+        "x": 1296,
+        "y": 601,
         "w": 52,
         "h": 50
       },
@@ -8025,8 +9579,8 @@
     {
       "filename": "cat9_lick_00",
       "frame": {
-        "x": 1588,
-        "y": 495,
+        "x": 1350,
+        "y": 601,
         "w": 60,
         "h": 50
       },
@@ -8046,8 +9600,92 @@
     {
       "filename": "cat9_lick_04",
       "frame": {
-        "x": 1650,
-        "y": 495,
+        "x": 1412,
+        "y": 601,
+        "w": 52,
+        "h": 50
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 14,
+        "w": 52,
+        "h": 50
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_lick_00",
+      "frame": {
+        "x": 1466,
+        "y": 601,
+        "w": 60,
+        "h": 50
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 14,
+        "w": 60,
+        "h": 50
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat10_lick_04",
+      "frame": {
+        "x": 1528,
+        "y": 601,
+        "w": 52,
+        "h": 50
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 14,
+        "w": 52,
+        "h": 50
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_lick_00",
+      "frame": {
+        "x": 1582,
+        "y": 601,
+        "w": 60,
+        "h": 50
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 28,
+        "y": 14,
+        "w": 60,
+        "h": 50
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      }
+    },
+    {
+      "filename": "cat11_lick_04",
+      "frame": {
+        "x": 1644,
+        "y": 601,
         "w": 52,
         "h": 50
       },
@@ -8066,13 +9704,13 @@
     }
   ],
   "meta": {
-    "app": "pspspsgame-extractor",
+    "app": "meowcert-extractor",
     "version": "1",
     "image": "cats.png",
     "format": "RGBA8888",
     "size": {
       "w": 2048,
-      "h": 548
+      "h": 654
     },
     "scale": "1"
   }

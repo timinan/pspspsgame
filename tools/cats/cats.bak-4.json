@@ -1,0 +1,14 @@
+[
+  {
+    "id": "cat7",
+    "name": "Pinky",
+    "rarity": "common",
+    "scale": 1
+  },
+  {
+    "id": "cat8",
+    "name": "Black",
+    "rarity": "rare",
+    "scale": 1
+  }
+]

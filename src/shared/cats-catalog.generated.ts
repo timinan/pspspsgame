@@ -6,39 +6,45 @@ import type { CatEntry } from './state';
 
 export const GENERATED_CAT_CATALOG: readonly CatEntry[] = [
   {
+    id: "rainbow",
+    name: "Rainbow Whiskers",
+    rarity: "legendary",
+  },
+  {
     id: "cat1",
     name: "Mochi",
     rarity: "common",
+    scale: 1,
   },
   {
     id: "cat2",
     name: "Biscuit",
     rarity: "common",
+    scale: 1,
   },
   {
     id: "cat3",
     name: "Pebble",
     rarity: "common",
+    scale: 1,
   },
   {
     id: "cat4",
     name: "Marble",
     rarity: "uncommon",
+    scale: 1,
   },
   {
     id: "cat5",
     name: "Saffron",
     rarity: "rare",
+    scale: 1,
   },
   {
     id: "cat6",
     name: "Inkwell",
     rarity: "rare",
-  },
-  {
-    id: "rainbow",
-    name: "Rainbow Whiskers",
-    rarity: "legendary",
+    scale: 1,
   },
   {
     id: "cat7",
@@ -56,6 +62,18 @@ export const GENERATED_CAT_CATALOG: readonly CatEntry[] = [
     id: "cat9",
     name: "Snow White",
     rarity: "common",
+    scale: 1,
+  },
+  {
+    id: "cat10",
+    name: "Jade",
+    rarity: "legendary",
+    scale: 1,
+  },
+  {
+    id: "cat11",
+    name: "Purps",
+    rarity: "legendary",
     scale: 1,
   },
 ];

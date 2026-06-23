@@ -110,13 +110,5 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 30000
-  },
-  "neon-pulse-1": {
-    "id": "neon-pulse-1",
-    "displayName": "Neon Pulse (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 30000
   }
 }

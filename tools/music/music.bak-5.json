@@ -95,25 +95,9 @@
     "bpm": 130,
     "loopDurationMs": 30000
   },
-  "neon-horizon-3": {
-    "id": "neon-horizon-3",
-    "displayName": "Neon Horizon (3)",
-    "speedLabel": "fast",
-    "vibe": "melodic",
-    "bpm": 130,
-    "loopDurationMs": 30000
-  },
-  "neon-pulse": {
-    "id": "neon-pulse",
-    "displayName": "Neon Pulse",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 30000
-  },
-  "neon-pulse-1": {
-    "id": "neon-pulse-1",
-    "displayName": "Neon Pulse (1)",
+  "neon-horizon-1": {
+    "id": "neon-horizon-1",
+    "displayName": "Neon Horizon (1)",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,

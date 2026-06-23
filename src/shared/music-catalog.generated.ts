@@ -13,4 +13,12 @@ export const BACKING_CATALOG: Record<string, BackingTrack> = {
   "cinematic-bossa-nova-2": { id: "cinematic-bossa-nova-2", displayName: "Cinematic Bossa Nova (alt)", speedLabel: "fast", vibe: "smooth", bpm: 130, audioKey: "backing-cinematic-bossa-nova-2", loopDurationMs: 30000 },
   "midnight-coffee": { id: "midnight-coffee", displayName: "Midnight Coffee", speedLabel: "fast", vibe: "melodic", bpm: 130, audioKey: "backing-midnight-coffee", loopDurationMs: 30000 },
   "neon-dash": { id: "neon-dash", displayName: "Neon Dash", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-neon-dash", loopDurationMs: 30000 },
+  "warmth-in-the-air": { id: "warmth-in-the-air", displayName: "Warmth in the Air", speedLabel: "fast", vibe: "smooth", bpm: 130, audioKey: "backing-warmth-in-the-air", loopDurationMs: 30000 },
+  "midnight-skyline": { id: "midnight-skyline", displayName: "Midnight Skyline", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-midnight-skyline", loopDurationMs: 30000 },
+  "midnight-skyline-1": { id: "midnight-skyline-1", displayName: "Midnight Skyline (1)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-midnight-skyline-1", loopDurationMs: 30000 },
+  "neon-horizon": { id: "neon-horizon", displayName: "Neon Horizon", speedLabel: "fast", vibe: "melodic", bpm: 130, audioKey: "backing-neon-horizon", loopDurationMs: 30000 },
+  "warmth-in-the-air-1": { id: "warmth-in-the-air-1", displayName: "Warmth in the Air (1)", speedLabel: "fast", vibe: "smooth", bpm: 130, audioKey: "backing-warmth-in-the-air-1", loopDurationMs: 30000 },
+  "neon-horizon-3": { id: "neon-horizon-3", displayName: "Neon Horizon (3)", speedLabel: "fast", vibe: "melodic", bpm: 130, audioKey: "backing-neon-horizon-3", loopDurationMs: 30000 },
+  "neon-pulse": { id: "neon-pulse", displayName: "Neon Pulse", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-neon-pulse", loopDurationMs: 30000 },
+  "neon-pulse-1": { id: "neon-pulse-1", displayName: "Neon Pulse (1)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-neon-pulse-1", loopDurationMs: 30000 },
 };
