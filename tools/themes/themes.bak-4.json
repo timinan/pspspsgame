@@ -76,7 +76,23 @@
     "backdropKey": "theme-diner-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 136,
+    "bgShiftUp": 125,
     "bgScale": 1
+  },
+  "casino": {
+    "displayName": "Casino",
+    "backdropKey": "theme-casino-bg",
+    "musicKey": "theme-default-music",
+    "rarity": "rare",
+    "bgShiftUp": 109,
+    "bgScale": 1
+  },
+  "volcanicplalace": {
+    "displayName": "Volcanic Palace",
+    "backdropKey": "theme-volcanicplalace-bg",
+    "musicKey": "theme-default-music",
+    "rarity": "legendary",
+    "bgShiftUp": 58,
+    "bgScale": 1.04
   }
 }

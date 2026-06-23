@@ -14,7 +14,8 @@ export const BACKGROUND_CATALOG = {
   pizzastore: { id: "pizzastore", displayName: "Pizza Store", backdropKey: "theme-pizzastore-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 64, bgScale: 1.09 },
   icecave: { id: "icecave", displayName: "Ice Cave", backdropKey: "theme-icecave-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 91, bgScale: 1.01 },
   diner: { id: "diner", displayName: "Diner", backdropKey: "theme-diner-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 125, bgScale: 1 },
-  casino: { id: "casino", displayName: "Casino", backdropKey: "theme-casino-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 113, bgScale: 1 },
+  casino: { id: "casino", displayName: "Casino", backdropKey: "theme-casino-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 109, bgScale: 1 },
+  volcanicpalace: { id: "volcanicpalace", displayName: "Volcanic Palace", backdropKey: "theme-volcanicpalace-bg", musicKey: "theme-default-music", rarity: "legendary" as const, bgShiftUp: 62, bgScale: 1.04 },
 } as const;
 
 // Legacy alias — keep so existing THEME_CATALOG consumers compile without a rename sweep.
@@ -31,4 +32,5 @@ export const GENERATED_THEME_CATALOG = [
   BACKGROUND_CATALOG.icecave,
   BACKGROUND_CATALOG.diner,
   BACKGROUND_CATALOG.casino,
+  BACKGROUND_CATALOG.volcanicpalace,
 ] as const;
