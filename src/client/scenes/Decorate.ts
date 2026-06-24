@@ -679,15 +679,14 @@ export class Decorate extends Scene {
       const seatedSeat = SEAT_ORDER.find((sid) => seatedCats[sid] === catInstance.id);
       const isSeated = Boolean(seatedSeat);
 
-      // Match the dressing room cell treatment exactly: dim purple
-      // stroke on unseated / inactive thumbs, yellow ring (full alpha)
-      // when seated. Seated state ALSO bumps the fill alpha slightly so
-      // the active pick really pops, mirroring DressingRoom's tabs.
+      // Every cell renders a visible box — yellow ring when seated,
+      // soft purple at high enough alpha to actually read against the
+      // tray's near-black bg (DressingRoom's 0.3 disappears here).
       const thumb = this.add
         .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, 0x0b041a, 0.6)
         .setInteractive({ useHandCursor: true });
       if (isSeated) thumb.setStrokeStyle(2, 0xffd34d, 1);
-      else thumb.setStrokeStyle(2, 0xc0a0e6, 0.35);
+      else thumb.setStrokeStyle(2, 0xc0a0e6, 0.65);
 
       const { frame, tint } = catThumbFrame(catEntry);
       // Reserve enough at the bottom for a two-line wrapped name label —
@@ -945,12 +944,12 @@ export class Decorate extends Scene {
             .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, 0x3b2a5c, 1)
             .setInteractive({ useHandCursor: true });
 
-      // Match dressing-room cells: dim purple stroke when inactive,
-      // green ring when active. Border is always rendered now so the
-      // grid reads as a unified set of cells.
+      // Border alpha pumped (0.35 → 0.65) so the inactive box reads
+      // against the bg thumbnail's saturated artwork. Active = green
+      // ring full alpha.
       const border = this.add
         .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, 0x000000, 0)
-        .setStrokeStyle(2, isActive ? 0x4dffb4 : 0xc0a0e6, isActive ? 1 : 0.35);
+        .setStrokeStyle(2, isActive ? 0x4dffb4 : 0xc0a0e6, isActive ? 1 : 0.65);
 
       // Bigger than the 7px stub — backdrop labels read at 11px now and
       // wrap into the cell width if the name is too long for one line.
