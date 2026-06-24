@@ -2,6 +2,7 @@ import { Scene, Scenes, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { TopHud } from '@/ui/top-hud';
 import { BackgroundManager } from '@/entities/background-manager';
+import { liftTowardWhite, BALL_BRIGHTNESS_LIFT } from '@/entities/note-colors';
 import * as L from '@/constants/scene-layout';
 import { AssetKeys } from '@/constants/assets';
 import { saveChart } from '@/services/state-client';
@@ -75,6 +76,12 @@ export class ChartEditor extends Scene {
   private cellH = 0;
   private cellW = 0;
   private colCenterXs: number[] = [];
+  /** Per-bg sampled lane tints for the active background. Same source
+   *  as `Game.laneTints` so the editor previews colors that match
+   *  what'll show in-round. Falls back to `LANE_COLORS` defaults. */
+  private laneTints: readonly [number, number, number] = [
+    L.LANE_COLORS[0]!, L.LANE_COLORS[1]!, L.LANE_COLORS[2]!,
+  ];
 
   // Cells
   private cellPanels: GameObjects.Rectangle[][] = []; // [localStep][lane]
@@ -95,9 +102,9 @@ export class ChartEditor extends Scene {
   private vibeBtnText!: GameObjects.Text;
   private vibeCycle: BackingVibe[] = [];
   private vibeIndex = 0;
-  private saveBusy = false;
-  private saveBtnBg!: GameObjects.Rectangle;
-  private saveBtnText!: GameObjects.Text;
+  private tryBusy = false;
+  private tryBtnBg!: GameObjects.Rectangle;
+  private tryBtnText!: GameObjects.Text;
 
   constructor() {
     super(SceneKeys.ChartEditor);
@@ -145,7 +152,7 @@ export class ChartEditor extends Scene {
     this.cellPanels = [];
     this.cellNotes = [];
     this.scrollOffset = 0;
-    this.saveBusy = false;
+    this.tryBusy = false;
     this.colCenterXs = [];
   }
 
@@ -187,14 +194,36 @@ export class ChartEditor extends Scene {
     }
   }
 
+  /** Look up the per-bg sampled lane tint trio from cache, matching the
+   *  exact same resolver `Game` uses. Falls back to LANE_COLORS defaults
+   *  when the JSON didn't load or the active bg isn't sampled. */
+  private resolveLaneTints(): readonly [number, number, number] {
+    const sampled = this.cache.json.get(AssetKeys.Json.BgLaneColors) as
+      | Record<string, [string, string, string]>
+      | undefined;
+    const activeBg = this.playerState?.activeBackground ?? 'stage';
+    const trio = sampled?.[activeBg];
+    if (!trio || trio.length !== 3) {
+      return [L.LANE_COLORS[0]!, L.LANE_COLORS[1]!, L.LANE_COLORS[2]!];
+    }
+    return trio.map((hex) => parseInt(hex.replace('#', ''), 16)) as unknown as readonly [number, number, number];
+  }
+
   private drawColumnWashes(): void {
+    // Resolve the per-bg sampled lane tints once and cache. Editor reads
+    // the same `bg-lane-colors.json` Game does, so the preview matches
+    // what the chart will look like in-round on whichever bg the player
+    // currently has active.
+    this.laneTints = this.resolveLaneTints();
     const colW = this.cellW;
     const colH = this.gridBottom - this.gridTop;
     for (let i = 0; i < L.LANE_COUNT; i++) {
       const cx = this.colCenterXs[i]!;
       const cy = this.gridTop + colH / 2;
-      const color = L.LANE_COLORS[i]!;
-      const bar = this.add.image(cx, cy, AssetKeys.Image.RhythmBarBackground);
+      const color = this.laneTints[i]!;
+      // White-base lane texture so the tint comes through clean — same
+      // change Game.drawLanes uses.
+      const bar = this.add.image(cx, cy, AssetKeys.Image.RhythmBarBackgroundWhite);
       bar.displayWidth = colH;
       bar.displayHeight = colW - 2;
       bar.setRotation(-Math.PI / 2);
@@ -320,9 +349,12 @@ export class ChartEditor extends Scene {
 
         const noteSize = Math.min(this.cellW - 18, this.cellH - 12, 64);
         const noteContainer = this.add.container(cx, cy);
-        const ball = this.add.image(0, 0, AssetKeys.Image.PspspsElementBall);
+        // Same white-base ball + lifted tint as the in-game falling note —
+        // see `Note.configure` + `liftTowardWhite`. Keeps the editor's
+        // preview color-accurate against the live Game scene.
+        const ball = this.add.image(0, 0, AssetKeys.Image.PspspsElementBallWhite);
         ball.setDisplaySize(noteSize, noteSize);
-        ball.setTint(L.LANE_COLORS[lane]!);
+        ball.setTint(liftTowardWhite(this.laneTints[lane]!, BALL_BRIGHTNESS_LIFT));
         const letters = this.add.image(0, 0, AssetKeys.Image.PspspsElementLetters);
         letters.setDisplaySize(noteSize, noteSize);
         noteContainer.add([ball, letters]);
@@ -346,9 +378,10 @@ export class ChartEditor extends Scene {
     const barCenterY = stripY + BOTTOM_STRIP_H / 2;
     const btnH = 40;
 
-    // Four buttons across the bottom: CLEAR / TEMPO / VIBE / SAVE.
-    // SAVE is the primary action — persists the chart in place. Play
-    // happens from the hamburger drawer.
+    // Four buttons across the bottom: CLEAR / TEMPO / VIBE / TRY.
+    // TRY is the primary action — saves the chart, then immediately
+    // boots the Game scene in test mode so the player can play their
+    // own chart. The post-test summary offers POST + BACK TO EDITOR.
     const sideMargin = 10;
     const gap = 6;
     const btnW = (width - sideMargin * 2 - gap * 3) / 4;
@@ -404,22 +437,22 @@ export class ChartEditor extends Scene {
     vibeBg.on('pointerdown', () => this.onVibeTap());
     this.root.add([vibeBg, this.vibeBtnText]);
 
-    // SAVE — primary action. Big yellow button. Flashes green on success
-    // so the player gets unambiguous confirmation without a modal.
-    const saveX = vibeX + btnW + gap;
-    this.saveBtnBg = this.add
-      .rectangle(saveX, barCenterY, btnW, btnH, 0xffd34d, 1)
+    // TRY — primary action. Big yellow button. Saves the chart then
+    // jumps to Game in test mode for an instant playthrough.
+    const tryX = vibeX + btnW + gap;
+    this.tryBtnBg = this.add
+      .rectangle(tryX, barCenterY, btnW, btnH, 0xffd34d, 1)
       .setInteractive({ useHandCursor: true });
-    this.saveBtnText = this.add
-      .text(saveX, barCenterY, 'SAVE', {
+    this.tryBtnText = this.add
+      .text(tryX, barCenterY, 'TRY', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '14px',
         color: '#1a0a2e',
       })
       .setOrigin(0.5);
-    this.saveBtnBg.on('pointerdown', () => void this.onSaveTap());
-    this.root.add([this.saveBtnBg, this.saveBtnText]);
+    this.tryBtnBg.on('pointerdown', () => void this.onTryTap());
+    this.root.add([this.tryBtnBg, this.tryBtnText]);
   }
 
   // ─── Interactions ───────────────────────────────────────────────────────
@@ -547,42 +580,43 @@ export class ChartEditor extends Scene {
     return this.vibeCycle[this.vibeIndex]!.toUpperCase();
   }
 
-  private async onSaveTap(): Promise<void> {
-    if (this.saveBusy) return;
+  private async onTryTap(): Promise<void> {
+    if (this.tryBusy) return;
     const result = validateChart(this.chart);
     if (!result.ok) {
       console.warn('[ChartEditor] validateChart failed:', result.reason);
-      this.flashSaveButton(0xff6b6b, 'INVALID');
+      this.flashTryButton(0xff6b6b, 'INVALID');
       return;
     }
-    this.saveBusy = true;
+    this.tryBusy = true;
     this.chart.updatedAt = Date.now();
     try {
       await saveChart(this.chart);
-      // Mutate the live playerState so the next time the player hits PLAY
-      // from the hamburger drawer, Game.initChartPlayer sees the chart they
-      // just authored (initChartPlayer reads playerState.chart first).
-      if (this.playerState) {
-        this.playerState.chart = this.chart;
-      }
-      this.flashSaveButton(0x4dffb4, 'SAVED');
     } catch (err) {
-      console.warn('[ChartEditor] saveChart failed:', err);
-      this.flashSaveButton(0xff6b6b, 'FAILED');
-    } finally {
-      this.saveBusy = false;
+      // Save failure isn't fatal — Game.initChartPlayer reads the chart
+      // off playerState first, and we mutate that below. Worst case the
+      // player tests an unsaved version.
+      console.warn('[ChartEditor] saveChart failed (continuing anyway):', err);
     }
+    if (this.playerState) {
+      this.playerState.chart = this.chart;
+    }
+    this.scene.start(SceneKeys.Game, {
+      playerState: this.playerState,
+      testMode: true,
+    });
   }
 
-  /** Briefly recolor + relabel the SAVE button so the player sees the
-   *  write took effect, then snap it back to yellow / SAVE. */
-  private flashSaveButton(color: number, label: string): void {
-    this.saveBtnBg.setFillStyle(color, 1);
-    this.saveBtnText.setText(label);
+  /** Briefly recolor + relabel the TRY button — only used for
+   *  validation failure; on a successful TRY we navigate to Game
+   *  immediately so no flash is needed. */
+  private flashTryButton(color: number, label: string): void {
+    this.tryBtnBg.setFillStyle(color, 1);
+    this.tryBtnText.setText(label);
     this.time.delayedCall(900, () => {
       if (!this.scene.isActive()) return;
-      this.saveBtnBg.setFillStyle(0xffd34d, 1);
-      this.saveBtnText.setText('SAVE');
+      this.tryBtnBg.setFillStyle(0xffd34d, 1);
+      this.tryBtnText.setText('TRY');
     });
   }
 

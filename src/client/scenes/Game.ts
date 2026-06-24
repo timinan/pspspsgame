@@ -29,6 +29,11 @@ import type { CatModel } from '@/types/game';
  */
 export class Game extends Scene {
   private playerState: PlayerState | null = null;
+  // When true, this round was launched from ChartEditor's TRY button. UI
+  // wording + return paths swap: Ready modal calls it a "test", Summary
+  // routes both buttons back to the editor, and the TopHud drawer adds a
+  // "← CHART" entry for mid-round bail.
+  private testMode = false;
   private bg!: BackgroundManager;
   private cats: Cat[] = [];
   /** Name labels rendered below each seated cat (matches Decorate preview). */
@@ -82,8 +87,9 @@ export class Game extends Scene {
     super(SceneKeys.Game);
   }
 
-  init(data: { playerState?: PlayerState | null }): void {
+  init(data: { playerState?: PlayerState | null; testMode?: boolean }): void {
     this.playerState = data?.playerState ?? null;
+    this.testMode = data?.testMode === true;
     this.cats = [];
     this.seatedNameLabels = [];
     this.laneRects = [];
@@ -342,7 +348,7 @@ export class Game extends Scene {
 
     const fontBase = { fontFamily: 'Pixeloid Sans, sans-serif' };
 
-    const title = this.add.text(cx, cy - 78, 'READY?', {
+    const title = this.add.text(cx, cy - 78, this.testMode ? 'READY TO TEST?' : 'READY?', {
       ...fontBase,
       fontStyle: 'bold',
       fontSize: '22px',
@@ -350,12 +356,17 @@ export class Game extends Scene {
     }).setOrigin(0.5);
     container.add(title);
 
-    const subtitle = this.add.text(cx, cy - 42, 'Play your beat', {
-      ...fontBase,
-      fontSize: '11px',
-      color: '#c0a0e6',
-      align: 'center',
-    }).setOrigin(0.5);
+    const subtitle = this.add.text(
+      cx,
+      cy - 42,
+      this.testMode ? 'Try your beat before posting' : 'Play your beat',
+      {
+        ...fontBase,
+        fontSize: '11px',
+        color: '#c0a0e6',
+        align: 'center',
+      },
+    ).setOrigin(0.5);
     container.add(subtitle);
 
     const playY = cy + 6;
@@ -504,68 +515,90 @@ export class Game extends Scene {
     const btnH = 38;
     const btnGap = 12;
 
-    // Skip button
-    const skipBg = this.add.rectangle(
+    // Left button: "Skip" (replay) in normal mode, "← Editor" in test mode.
+    const leftLabel = this.testMode ? '← Editor' : 'Skip';
+    const leftBg = this.add.rectangle(
       cx - btnW / 2 - btnGap / 2, btnY, btnW, btnH, 0x2c1856, 1,
     ).setInteractive({ useHandCursor: true });
-    skipBg.setStrokeStyle(1, 0xc0a0e6, 0.5);
-    const skipText = this.add.text(
-      cx - btnW / 2 - btnGap / 2, btnY, 'Skip', {
+    leftBg.setStrokeStyle(1, 0xc0a0e6, 0.5);
+    const leftText = this.add.text(
+      cx - btnW / 2 - btnGap / 2, btnY, leftLabel, {
         ...fontBase,
         fontStyle: 'bold',
         fontSize: '14px',
         color: '#c0a0e6',
       },
     ).setOrigin(0.5);
-    container.add([skipBg, skipText]);
-    skipBg.on('pointerover', () => skipBg.setFillStyle(0x3d2566, 1));
-    skipBg.on('pointerout', () => skipBg.setFillStyle(0x2c1856, 1));
-    skipBg.on('pointerdown', this.onSkipClicked);
+    container.add([leftBg, leftText]);
+    leftBg.on('pointerover', () => leftBg.setFillStyle(0x3d2566, 1));
+    leftBg.on('pointerout', () => leftBg.setFillStyle(0x2c1856, 1));
+    leftBg.on(
+      'pointerdown',
+      this.testMode ? this.onBackToEditorClicked : this.onSkipClicked,
+    );
 
-    // Post Comment button
-    const postBg = this.add.rectangle(
+    // Right button: "Post Comment" in normal mode, "Post" (stub → editor)
+    // in test mode. Both POST handlers route back to the editor for now —
+    // real Devvit post wiring lands later.
+    const rightLabel = this.testMode ? 'Post' : 'Post Comment';
+    const rightBg = this.add.rectangle(
       cx + btnW / 2 + btnGap / 2, btnY, btnW, btnH, 0xffd34d, 1,
     ).setInteractive({ useHandCursor: true });
-    const postText = this.add.text(
-      cx + btnW / 2 + btnGap / 2, btnY, 'Post Comment', {
+    const rightText = this.add.text(
+      cx + btnW / 2 + btnGap / 2, btnY, rightLabel, {
         ...fontBase,
         fontStyle: 'bold',
-        fontSize: '11px',
+        fontSize: this.testMode ? '14px' : '11px',
         color: '#1a0a2e',
       },
     ).setOrigin(0.5);
-    container.add([postBg, postText]);
-    postBg.on('pointerover', () => postBg.setFillStyle(0xffe680, 1));
-    postBg.on('pointerout', () => postBg.setFillStyle(0xffd34d, 1));
-    postBg.on('pointerdown', this.onPostCommentClicked);
+    container.add([rightBg, rightText]);
+    rightBg.on('pointerover', () => rightBg.setFillStyle(0xffe680, 1));
+    rightBg.on('pointerout', () => rightBg.setFillStyle(0xffd34d, 1));
+    rightBg.on(
+      'pointerdown',
+      this.testMode ? this.onPostFromTestClicked : this.onPostCommentClicked,
+    );
 
     this.summary = container;
   }
 
   private buildHud(): void {
+    // In test mode the only useful drawer action is "bail back to the chart" —
+    // jumping to Decorate/Purchase mid-test would lose the in-progress
+    // round and re-entering the editor from there starts a fresh edit pass.
+    const testModeItems = [
+      {
+        label: '← CHART',
+        description: 'Back to editor',
+        icon: '🎼',
+        onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
+      },
+    ];
+    const normalItems = [
+      // PLAY (self) is omitted — no point reloading the current scene
+      {
+        label: 'DECORATE',
+        description: 'Cats & background',
+        icon: '😺',
+        onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
+      },
+      {
+        label: 'POST',
+        description: 'Build a beat',
+        icon: '🎼',
+        onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
+      },
+      {
+        label: 'PURCHASE',
+        description: 'Boxes',
+        icon: '🛒',
+        onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
+      },
+    ];
     this.hud = new TopHud(this, {
       showStats: true,
-      items: [
-        // PLAY (self) is omitted — no point reloading the current scene
-        {
-          label: 'DECORATE',
-          description: 'Cats & background',
-          icon: '😺',
-          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
-        },
-        {
-          label: 'POST',
-          description: 'Build a beat',
-          icon: '🎼',
-          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
-        },
-        {
-          label: 'PURCHASE',
-          description: 'Boxes',
-          icon: '🛒',
-          onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
-        },
-      ],
+      items: this.testMode ? testModeItems : normalItems,
     });
   }
 
@@ -789,6 +822,18 @@ export class Game extends Scene {
     console.info('[Game] Post Comment clicked. Score:', this.score.get());
     // Real Devvit comment post wiring comes later. Same retry behavior for now.
     this.scene.restart({ playerState: this.playerState });
+  };
+
+  // Test-mode summary handlers. Both currently return to ChartEditor since
+  // POST is a stub — when the real post flow lands, only onPostFromTestClicked
+  // will diverge.
+  private onBackToEditorClicked = (): void => {
+    this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState });
+  };
+
+  private onPostFromTestClicked = (): void => {
+    console.info('[Game] Post (test mode) clicked. Score:', this.score.get());
+    this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState });
   };
 
   // -----------------------------------------------------------------------
