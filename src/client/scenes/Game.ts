@@ -644,6 +644,12 @@ export class Game extends Scene {
           icon: '🛒',
           onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
         },
+        {
+          label: 'VISIT SHOWS',
+          description: 'Other players\' shows',
+          icon: '🎪',
+          onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
+        },
       ],
     });
 

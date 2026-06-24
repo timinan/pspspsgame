@@ -10,15 +10,12 @@ import {
   emptyChart,
   validateChart,
   CHART_PAGE_SIZE,
+  BACKING_CATALOG,
 } from '@/../shared/state';
-import type { PlayerState, Chart, LaneId, BackingVibe } from '@/../shared/state';
-import {
-  buildTempoCycle,
-  buildVibeCycle,
-  type TempoEntry,
-} from '@/systems/tempo-vibe-cycles';
-import { generateChart } from '@/../shared/chart-generator';
-import { GenerateModal } from '@/ui/generate-modal';
+import type { PlayerState, Chart, LaneId } from '@/../shared/state';
+import { generateChart, stepsForDuration } from '@/../shared/chart-generator';
+import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
+import { TemplateOrScratchModal, type StartMode } from '@/ui/template-or-scratch-modal';
 import { Balance } from '@/constants/balance';
 
 /**
@@ -58,27 +55,25 @@ export class ChartEditor extends Scene {
   private cellPanels: GameObjects.Rectangle[][] = []; // [localStep][lane]
   private cellNotes: GameObjects.Container[][] = [];  // [localStep][lane]
 
-  // Page nav (sits right above the bottom controls strip)
+  // Page nav (sits right above the bottom controls strip). ADD PAGE +
+  // TEMPLATE buttons were removed when chart length became fixed at song
+  // pick time — the page nav is just ▲ / PAGE / ▼ now.
   private scrollOffset = 0;
   private upPageBtn!: GameObjects.Text;
   private downPageBtn!: GameObjects.Text;
   private pageLabel!: GameObjects.Text;
-  private addPageBtn!: GameObjects.Rectangle;
-  private addPageBtnText!: GameObjects.Text;
-  private tmplBtn!: GameObjects.Rectangle;
-  private tmplBtnText!: GameObjects.Text;
-  private generateModal: GenerateModal | null = null;
 
-  // Bottom controls
-  private bpmBtnText!: GameObjects.Text;
-  private tempoCycle: TempoEntry[] = [];
-  private tempoIndex = 0;
-  private vibeBtnText!: GameObjects.Text;
-  private vibeCycle: BackingVibe[] = [];
-  private vibeIndex = 0;
+  // Bottom controls — CLEAR / SONG / TRY since tempo+vibe come from the
+  // SongPicker now.
+  private songBtnText!: GameObjects.Text;
   private tryBusy = false;
   private tryBtnBg!: GameObjects.Rectangle;
   private tryBtnText!: GameObjects.Text;
+
+  // Pre-edit pickers — SongPickerModal then TemplateOrScratchModal seed
+  // the chart at scene entry. Both nullable so cleanup can null-check.
+  private songPicker: SongPickerModal | null = null;
+  private templateScratchModal: TemplateOrScratchModal | null = null;
 
   constructor() {
     super(SceneKeys.ChartEditor);
@@ -86,55 +81,15 @@ export class ChartEditor extends Scene {
 
   init(data: { playerState?: PlayerState | null }): void {
     this.playerState = data?.playerState ?? null;
-
-    const username = this.playerState?.username ?? 'anon';
-    const existing = this.playerState?.chart;
-    this.chart = existing
-      ? (JSON.parse(JSON.stringify(existing)) as Chart)
-      : emptyChart(username, 'My Beat');
-
-    // Build the tempo cycle from whatever backings are in the catalog.
-    // Snap chart.bpm to the closest available tempo so a chart authored
-    // before a backing was added still has a valid playable tempo.
-    this.tempoCycle = buildTempoCycle();
-    if (this.tempoCycle.length > 0) {
-      let nearestIdx = 0;
-      let nearestDist = Math.abs(this.chart.bpm - this.tempoCycle[0]!.bpm);
-      for (let i = 1; i < this.tempoCycle.length; i++) {
-        const d = Math.abs(this.chart.bpm - this.tempoCycle[i]!.bpm);
-        if (d < nearestDist) {
-          nearestDist = d;
-          nearestIdx = i;
-        }
-      }
-      this.tempoIndex = nearestIdx;
-      this.chart.bpm = this.tempoCycle[nearestIdx]!.bpm;
-    }
-
-    // Vibe cycle depends on the current tempo — only vibes with at
-    // least one backing at this tempo are pickable. If the chart's
-    // saved vibe is no longer available (catalog churn), snap to the
-    // first option.
-    this.vibeCycle = buildVibeCycle(this.chart.bpm);
-    if (this.vibeCycle.length > 0) {
-      const saved = this.chart.vibe;
-      const matchIdx = saved ? this.vibeCycle.indexOf(saved) : -1;
-      this.vibeIndex = matchIdx >= 0 ? matchIdx : 0;
-      this.chart.vibe = this.vibeCycle[this.vibeIndex]!;
-    }
-
+    // Chart is not assigned here — it's seeded by SongPicker + Template/
+    // Scratch in create(). Until then this.chart is undefined and the
+    // grid isn't built.
     this.cellPanels = [];
     this.cellNotes = [];
     this.scrollOffset = 0;
     this.tryBusy = false;
     this.colCenterXs = [];
   }
-
-  /** Max chart length, in pages. Tuned to fit a 45-second round at the
-   *  slowest tempo we support — Template-generated charts at 130bpm pack
-   *  about 25 pages, so 32 leaves headroom for a slower future BPM and
-   *  hand-extended authoring without ever needing a runtime clamp. */
-  private static readonly MAX_PAGES = 32;
 
   create(): void {
     this.root = this.add.container(0, 0).setDepth(0);
@@ -147,11 +102,102 @@ export class ChartEditor extends Scene {
     this.computeGrid();
     this.drawColumnWashes();
     this.buildHud();
+
+    this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
+
+    // Editor entry flow: pick a song, then (if needed) pick template or
+    // scratch. Once both resolve, finishSetup builds the page nav + grid
+    // + bottom bar and the user can author the chart.
+    this.showSongPickerModal();
+  }
+
+  // ─── Entry flow ─────────────────────────────────────────────────────────
+
+  private showSongPickerModal(): void {
+    if (!this.songPicker) this.songPicker = new SongPickerModal(this);
+    const existing = this.playerState?.chart;
+    this.songPicker.open({
+      initial: {
+        ...(existing?.audioKey ? { audioKey: existing.audioKey } : {}),
+        ...(existing?.vibe ? { vibe: existing.vibe } : {}),
+      },
+      onPick: (song) => this.handleSongPicked(song),
+      onCancel: () => {
+        this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
+      },
+    });
+  }
+
+  /** Decide whether to skip Template/Scratch and load the existing
+   *  chart directly. Skip when: the player already has a chart AT THIS
+   *  SAME song with at least one note authored — they're coming back to
+   *  keep editing, not start over. */
+  private handleSongPicked(song: SongPickerResult): void {
+    const existing = this.playerState?.chart;
+    const sameSong = existing?.audioKey === song.audioKey;
+    const hasNotes = !!existing?.steps.some((s) => s.lanes.length > 0);
+    if (existing && sameSong && hasNotes) {
+      const chart = JSON.parse(JSON.stringify(existing)) as Chart;
+      // Make sure tempo/vibe match what was just picked — catalog could
+      // have shifted between the save and now.
+      chart.bpm = song.bpm;
+      chart.vibe = song.vibe;
+      chart.audioKey = song.audioKey;
+      this.finishSetup(chart);
+      return;
+    }
+    this.showTemplateOrScratchModal(song);
+  }
+
+  private showTemplateOrScratchModal(song: SongPickerResult): void {
+    if (!this.templateScratchModal) {
+      this.templateScratchModal = new TemplateOrScratchModal(this);
+    }
+    this.templateScratchModal.open({
+      onPick: (mode) => this.buildChartForSong(song, mode),
+      onBack: () => this.showSongPickerModal(),
+    });
+  }
+
+  /** Build the initial chart against the song the player picked. Template
+   *  fills with a procedurally generated 'medium' chart; Scratch leaves
+   *  the grid empty at the length needed to fill one round at this BPM. */
+  private buildChartForSong(song: SongPickerResult, mode: StartMode): void {
+    const username = this.playerState?.username ?? 'anon';
+    const title = this.playerState?.chart?.title ?? 'My Beat';
+
+    let chart: Chart;
+    if (mode === 'template') {
+      chart = generateChart({
+        authorId: username,
+        title,
+        difficulty: 'medium',
+        bpm: song.bpm,
+        vibe: song.vibe,
+        targetDurationMs: Balance.maxRoundMs,
+      });
+    } else {
+      // Scratch: pad chart length to one full round at this song's BPM
+      // rounded up to a CHART_PAGE_SIZE so validateChart is happy.
+      const rawSteps = stepsForDuration(song.bpm, Balance.maxRoundMs);
+      const stepCount = Math.max(
+        CHART_PAGE_SIZE,
+        Math.ceil(rawSteps / CHART_PAGE_SIZE) * CHART_PAGE_SIZE,
+      );
+      chart = emptyChart(username, title, stepCount);
+      chart.bpm = song.bpm;
+      chart.vibe = song.vibe;
+    }
+    chart.audioKey = song.audioKey;
+    this.finishSetup(chart);
+  }
+
+  /** Stamp the chart, build the grid + bottom bar, refresh the page. */
+  private finishSetup(chart: Chart): void {
+    this.chart = chart;
     this.buildPageNav();
     this.buildGrid();
     this.buildBottomBar();
-
-    this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
   }
 
   // ─── Layout ─────────────────────────────────────────────────────────────
@@ -236,21 +282,27 @@ export class ChartEditor extends Scene {
           icon: '🛒',
           onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
         },
+        {
+          label: 'VISIT SHOWS',
+          description: 'Other players\' shows',
+          icon: '🎪',
+          onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
+        },
       ],
     });
   }
 
   private buildPageNav(): void {
     const { width, height } = this.scale;
-    // Page-nav row sits directly above the bottom controls strip.
+    // Page-nav row sits directly above the bottom controls strip. With
+    // ADD PAGE + TEMPLATE removed, the row is just the prev / page-label
+    // / next cluster centered horizontally.
     const navY = height - BOTTOM_STRIP_H - PAGE_NAV_ROW_H / 2;
+    const centerX = width / 2;
+    const spacing = 60;
 
-    // ▲ on the left, PAGE label + ▼ clustered to the right of it. Leaves
-    // the right edge for the + ADD PAGE button so navigate-vs-modify
-    // stay visually separated.
-    const leftCluster = 12;
     this.upPageBtn = this.add
-      .text(leftCluster + 14, navY, '▲', {
+      .text(centerX - spacing, navY, '▲', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '20px',
@@ -261,7 +313,7 @@ export class ChartEditor extends Scene {
     this.upPageBtn.on('pointerdown', () => this.onPrevPage());
 
     this.pageLabel = this.add
-      .text(leftCluster + 80, navY, '', {
+      .text(centerX, navY, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '12px',
@@ -270,7 +322,7 @@ export class ChartEditor extends Scene {
       .setOrigin(0.5);
 
     this.downPageBtn = this.add
-      .text(leftCluster + 144, navY, '▼', {
+      .text(centerX + spacing, navY, '▼', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '20px',
@@ -280,54 +332,7 @@ export class ChartEditor extends Scene {
       .setInteractive({ useHandCursor: true });
     this.downPageBtn.on('pointerdown', () => this.onNextPage());
 
-    // + ADD PAGE — grows the chart by another 8-step page (capped at
-    // MAX_PAGES so the timeline doesn't blow up to thousands of steps).
-    const addW = 96;
-    const addH = 28;
-    const addX = width - 12 - addW / 2;
-    this.addPageBtn = this.add
-      .rectangle(addX, navY, addW, addH, 0x2c1856, 1)
-      .setStrokeStyle(1, 0x4dffb4, 0.7)
-      .setInteractive({ useHandCursor: true });
-    this.addPageBtnText = this.add
-      .text(addX, navY, '+ ADD PAGE', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '11px',
-        color: '#4dffb4',
-      })
-      .setOrigin(0.5);
-    this.addPageBtn.on('pointerdown', () => this.onAddPage());
-
-    // TEMPLATE — opens the Generate modal so the player can fill the
-    // chart with a procedurally generated pattern. Sits between the
-    // page nav cluster and ADD PAGE so it never overlaps either.
-    const tmplW = 96;
-    const tmplH = 28;
-    const tmplX = addX - addW / 2 - 8 - tmplW / 2;
-    this.tmplBtn = this.add
-      .rectangle(tmplX, navY, tmplW, tmplH, 0x2c1856, 1)
-      .setStrokeStyle(1, 0xffd34d, 0.7)
-      .setInteractive({ useHandCursor: true });
-    this.tmplBtnText = this.add
-      .text(tmplX, navY, 'TEMPLATE', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '11px',
-        color: '#ffd34d',
-      })
-      .setOrigin(0.5);
-    this.tmplBtn.on('pointerdown', () => this.onTemplateTap());
-
-    this.root.add([
-      this.upPageBtn,
-      this.pageLabel,
-      this.downPageBtn,
-      this.tmplBtn,
-      this.tmplBtnText,
-      this.addPageBtn,
-      this.addPageBtnText,
-    ]);
+    this.root.add([this.upPageBtn, this.pageLabel, this.downPageBtn]);
     this.refreshPageLabel();
   }
 
@@ -381,13 +386,12 @@ export class ChartEditor extends Scene {
     const barCenterY = stripY + BOTTOM_STRIP_H / 2;
     const btnH = 40;
 
-    // Four buttons across the bottom: CLEAR / TEMPO / VIBE / TRY.
-    // TRY is the primary action — saves the chart, then immediately
-    // boots the Game scene in test mode so the player can play their
-    // own chart. The post-test summary offers POST + BACK TO EDITOR.
+    // Three buttons: CLEAR / SONG / TRY. Tempo + vibe came from the
+    // SongPicker at scene entry, so they're no longer needed here. SONG
+    // re-opens the picker so the player can swap mid-edit.
     const sideMargin = 10;
     const gap = 6;
-    const btnW = (width - sideMargin * 2 - gap * 3) / 4;
+    const btnW = (width - sideMargin * 2 - gap * 2) / 3;
     const startX = sideMargin + btnW / 2;
 
     // CLEAR
@@ -406,43 +410,31 @@ export class ChartEditor extends Scene {
     clearBg.on('pointerdown', () => this.onClearTap());
     this.root.add([clearBg, clearText]);
 
-    // TEMPO cycle
-    const bpmX = startX + btnW + gap;
-    const bpmBg = this.add
-      .rectangle(bpmX, barCenterY, btnW, btnH, 0x2c1856, 1)
+    // SONG — shows the picked song's display name (truncated). Tap to
+    // re-open the SongPicker. Re-picking the same song keeps existing
+    // notes; picking a different one triggers Template-or-Scratch again
+    // and replaces the chart.
+    const songX = startX + btnW + gap;
+    const songBg = this.add
+      .rectangle(songX, barCenterY, btnW, btnH, 0x2c1856, 1)
       .setStrokeStyle(1, 0xc678ff, 0.7)
       .setInteractive({ useHandCursor: true });
-    this.bpmBtnText = this.add
-      .text(bpmX, barCenterY, this.tempoButtonLabel(), {
+    this.songBtnText = this.add
+      .text(songX, barCenterY, this.songButtonLabel(), {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '11px',
+        fontSize: '10px',
         color: '#c0a0e6',
+        align: 'center',
+        wordWrap: { width: btnW - 8 },
       })
       .setOrigin(0.5);
-    bpmBg.on('pointerdown', () => this.onBpmTap());
-    this.root.add([bpmBg, this.bpmBtnText]);
-
-    // VIBE cycle
-    const vibeX = bpmX + btnW + gap;
-    const vibeBg = this.add
-      .rectangle(vibeX, barCenterY, btnW, btnH, 0x2c1856, 1)
-      .setStrokeStyle(1, 0xc678ff, 0.7)
-      .setInteractive({ useHandCursor: true });
-    this.vibeBtnText = this.add
-      .text(vibeX, barCenterY, this.vibeButtonLabel(), {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '11px',
-        color: '#c0a0e6',
-      })
-      .setOrigin(0.5);
-    vibeBg.on('pointerdown', () => this.onVibeTap());
-    this.root.add([vibeBg, this.vibeBtnText]);
+    songBg.on('pointerdown', () => this.showSongPickerModal());
+    this.root.add([songBg, this.songBtnText]);
 
     // TRY — primary action. Big yellow button. Saves the chart then
     // jumps to Game in test mode for an instant playthrough.
-    const tryX = vibeX + btnW + gap;
+    const tryX = songX + btnW + gap;
     this.tryBtnBg = this.add
       .rectangle(tryX, barCenterY, btnW, btnH, 0xffd34d, 1)
       .setInteractive({ useHandCursor: true });
@@ -456,6 +448,17 @@ export class ChartEditor extends Scene {
       .setOrigin(0.5);
     this.tryBtnBg.on('pointerdown', () => void this.onTryTap());
     this.root.add([this.tryBtnBg, this.tryBtnText]);
+  }
+
+  /** Human-readable label for the SONG button — the picked backing's
+   *  display name when set, otherwise a fallback. Kept short so it fits
+   *  the bottom-strip cell. */
+  private songButtonLabel(): string {
+    const key = this.chart?.audioKey;
+    if (!key) return 'SONG';
+    const entry = BACKING_CATALOG[key];
+    const name = entry?.displayName ?? entry?.id ?? key;
+    return name.toUpperCase();
   }
 
   // ─── Interactions ───────────────────────────────────────────────────────
@@ -501,21 +504,6 @@ export class ChartEditor extends Scene {
     this.pageLabel.setText(`PAGE ${page} / ${totalPages}`);
     this.upPageBtn.setAlpha(page === 1 ? 0.3 : 1);
     this.downPageBtn.setAlpha(page === totalPages ? 0.3 : 1);
-    const atMax = totalPages >= ChartEditor.MAX_PAGES;
-    this.addPageBtn.setAlpha(atMax ? 0.3 : 1);
-    this.addPageBtnText.setAlpha(atMax ? 0.4 : 1);
-  }
-
-  private onAddPage(): void {
-    const totalPages = Math.ceil(this.chart.stepCount / CHART_PAGE_SIZE);
-    if (totalPages >= ChartEditor.MAX_PAGES) return;
-    for (let i = 0; i < CHART_PAGE_SIZE; i++) {
-      this.chart.steps.push({ lanes: [] });
-    }
-    this.chart.stepCount += CHART_PAGE_SIZE;
-    // Jump the player to the new page so they can start authoring it.
-    this.scrollOffset = this.chart.stepCount - CHART_PAGE_SIZE;
-    this.refreshPage();
   }
 
   private onPrevPage(): void {
@@ -534,102 +522,6 @@ export class ChartEditor extends Scene {
   private onClearTap(): void {
     for (const step of this.chart.steps) step.lanes = [];
     this.refreshPage();
-  }
-
-  private onTemplateTap(): void {
-    if (!this.generateModal) this.generateModal = new GenerateModal(this);
-    this.generateModal.open({
-      initial: {
-        bpm: this.chart.bpm,
-        vibe: this.chart.vibe,
-      },
-      onGenerate: (result) => {
-        const generated = generateChart({
-          authorId: this.chart.authorId,
-          title: this.chart.title,
-          difficulty: result.difficulty,
-          bpm: result.bpm,
-          vibe: result.vibe,
-          targetDurationMs: Balance.maxRoundMs,
-        });
-        // Mutate the existing chart in place so any other reference (e.g.
-        // playerState.chart pointing at this object) sees the update,
-        // then re-sync the editor's tempo/vibe pickers to match.
-        this.chart.steps = generated.steps;
-        this.chart.stepCount = generated.stepCount;
-        this.chart.bpm = generated.bpm;
-        this.chart.vibe = generated.vibe;
-        this.chart.updatedAt = generated.updatedAt;
-        this.syncTempoVibeIndexes();
-        this.bpmBtnText.setText(this.tempoButtonLabel());
-        this.vibeBtnText.setText(this.vibeButtonLabel());
-        this.scrollOffset = 0;
-        this.refreshPage();
-      },
-    });
-  }
-
-  /** After a generator run flips bpm + vibe under us, snap the editor's
-   *  cycle indexes back into sync so the next tempo/vibe tap continues
-   *  from the right slot instead of jumping to a stale position. */
-  private syncTempoVibeIndexes(): void {
-    if (this.tempoCycle.length > 0) {
-      const idx = this.tempoCycle.findIndex((t) => t.bpm === this.chart.bpm);
-      this.tempoIndex = idx >= 0 ? idx : 0;
-    }
-    this.vibeCycle = buildVibeCycle(this.chart.bpm);
-    if (this.vibeCycle.length > 0) {
-      const idx = this.chart.vibe ? this.vibeCycle.indexOf(this.chart.vibe) : -1;
-      this.vibeIndex = idx >= 0 ? idx : 0;
-      this.chart.vibe = this.vibeCycle[this.vibeIndex]!;
-    }
-  }
-
-  private onBpmTap(): void {
-    if (this.tempoCycle.length === 0) return;
-    this.tempoIndex = (this.tempoIndex + 1) % this.tempoCycle.length;
-    this.chart.bpm = this.tempoCycle[this.tempoIndex]!.bpm;
-    this.bpmBtnText.setText(this.tempoButtonLabel());
-
-    // Vibes available depend on the new tempo — rebuild the cycle and
-    // snap the chart's vibe to whatever's available so the picker
-    // never lies about what's selectable.
-    this.vibeCycle = buildVibeCycle(this.chart.bpm);
-    if (this.vibeCycle.length === 0) {
-      delete this.chart.vibe;
-      this.vibeBtnText.setText(this.vibeButtonLabel());
-      return;
-    }
-    const existingIdx = this.chart.vibe
-      ? this.vibeCycle.indexOf(this.chart.vibe)
-      : -1;
-    this.vibeIndex = existingIdx >= 0 ? existingIdx : 0;
-    this.chart.vibe = this.vibeCycle[this.vibeIndex]!;
-    this.vibeBtnText.setText(this.vibeButtonLabel());
-  }
-
-  private onVibeTap(): void {
-    if (this.vibeCycle.length === 0) return;
-    this.vibeIndex = (this.vibeIndex + 1) % this.vibeCycle.length;
-    this.chart.vibe = this.vibeCycle[this.vibeIndex]!;
-    this.vibeBtnText.setText(this.vibeButtonLabel());
-  }
-
-  /** Render the speedLabel uppercased, e.g. "FAST". Falls back to a
-   *  numeric "BPM N" only if the catalog is empty — that's a content
-   *  bug worth surfacing. */
-  private tempoButtonLabel(): string {
-    if (this.tempoCycle.length === 0) return `BPM ${this.chart.bpm}`;
-    const entry = this.tempoCycle[this.tempoIndex]!;
-    return entry.speedLabel.toUpperCase();
-  }
-
-  /** Render the current vibe uppercased, e.g. "UPBEAT". Shows "—"
-   *  if no vibes are available at the current tempo so the picker
-   *  visibly inert rather than mysteriously blank. */
-  private vibeButtonLabel(): string {
-    if (this.vibeCycle.length === 0) return '—';
-    return this.vibeCycle[this.vibeIndex]!.toUpperCase();
   }
 
   private async onTryTap(): Promise<void> {
@@ -682,8 +574,10 @@ export class ChartEditor extends Scene {
     this.scale.off('resize');
     this.hud.destroy();
     this.bg.destroy();
-    this.generateModal?.destroy();
-    this.generateModal = null;
+    this.songPicker?.destroy();
+    this.songPicker = null;
+    this.templateScratchModal?.destroy();
+    this.templateScratchModal = null;
     this.root.destroy(true);
   }
 }

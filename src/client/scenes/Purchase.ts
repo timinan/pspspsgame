@@ -74,6 +74,12 @@ export class Purchase extends Scene {
           icon: '🎼',
           onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
         },
+        {
+          label: 'VISIT SHOWS',
+          description: 'Other players\' shows',
+          icon: '🎪',
+          onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
+        },
         // PURCHASE (self) is omitted
       ],
     });
