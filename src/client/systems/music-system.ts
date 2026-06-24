@@ -27,6 +27,16 @@ const BACKING_VOLUME = 0.85;
 // gain inside the synth so this constant is sample-only.
 const TAP_SAMPLE_VOLUME = 0.4;
 
+// Backing pulse — when a hit registers we briefly amplify the song
+// itself so the player gets a "bigger" momentary read of whatever was
+// playing at that beat (drums hitting + synth + meow stem from the
+// song, however it happens to land). Concurrent pulses extend the hold
+// instead of stacking so rapid taps don't blow the meter past clipping.
+const PULSE_PEAK_MULTIPLIER = 1.25;     // 1.0 = baseline, 1.25 = +25% boost
+const PULSE_ATTACK_SEC = 0.015;         // ramp up to peak
+const PULSE_HOLD_SEC = 0.03;            // sit at peak briefly
+const PULSE_DECAY_SEC = 0.2;            // exponential ride back to baseline
+
 export class MusicSystem {
   private backing: Sound.BaseSound | null = null;
   private noteSynth: NoteSynth;
@@ -35,6 +45,10 @@ export class MusicSystem {
    *  more than once for the same round is cheap — subsequent calls reuse
    *  this promise so start() and an upfront preload() resolve together. */
   private loadPromise: Promise<void> | null = null;
+  /** AudioContext time at which the current pulse's decay finishes.
+   *  Concurrent pulses while we're still ramping down just push this
+   *  out further instead of cancelling + restarting the envelope. */
+  private pulseEndsAt = 0;
 
   constructor(
     private readonly scene: Scene,
@@ -145,6 +159,59 @@ export class MusicSystem {
       }
     }
     this.noteSynth.play(this.chart.vibe, lane);
+  }
+
+  /**
+   * Brief amplification pulse on the backing track for the "oomph" hit
+   * feedback. Web Audio gain automation produces a click-free envelope:
+   * 15 ms ramp up to +25% gain, 30 ms hold, 200 ms exponential decay
+   * back to baseline. Concurrent calls during decay push the decay end
+   * out instead of stacking — rapid taps can't drive the gain past peak.
+   *
+   * No-op if the backing's underlying GainNode isn't accessible (e.g.
+   * sound hasn't started, or Phaser's internal API changes). Cheap to
+   * call on every hit; safe to ignore failures.
+   */
+  pulseBacking(): void {
+    if (this.destroyed || !this.backing) return;
+    // Phaser's WebAudioSound exposes the per-sound GainNode as
+    // `volumeNode`. Duck-typed access so a non-WebAudio path (HTML5
+    // audio fallback on rare browsers) is just a no-op.
+    const node = (this.backing as unknown as { volumeNode?: GainNode }).volumeNode;
+    if (!node) return;
+    const ctx = node.context;
+    if (ctx.state !== 'running') return;
+
+    const baseline = BACKING_VOLUME;
+    const peak = baseline * PULSE_PEAK_MULTIPLIER;
+    const now = ctx.currentTime;
+
+    if (now < this.pulseEndsAt) {
+      // Still pulsing from a recent hit — just extend the decay to
+      // the new end. Keeps gain pinned near peak through rapid taps
+      // instead of bouncing it down and re-attacking which would
+      // produce an audible warble.
+      const newEnd = now + PULSE_DECAY_SEC;
+      if (newEnd > this.pulseEndsAt) {
+        node.gain.cancelScheduledValues(now);
+        node.gain.setValueAtTime(peak, now);
+        node.gain.exponentialRampToValueAtTime(baseline, newEnd);
+        this.pulseEndsAt = newEnd;
+      }
+      return;
+    }
+
+    const attackEnd = now + PULSE_ATTACK_SEC;
+    const holdEnd = attackEnd + PULSE_HOLD_SEC;
+    const decayEnd = holdEnd + PULSE_DECAY_SEC;
+
+    node.gain.cancelScheduledValues(now);
+    node.gain.setValueAtTime(baseline, now);
+    node.gain.linearRampToValueAtTime(peak, attackEnd);
+    node.gain.setValueAtTime(peak, holdEnd);
+    node.gain.exponentialRampToValueAtTime(baseline, decayEnd);
+
+    this.pulseEndsAt = decayEnd;
   }
 
   /** Stop the backing track immediately. Pending meow one-shots will
