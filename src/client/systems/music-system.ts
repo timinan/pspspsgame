@@ -34,22 +34,24 @@ const TAP_SAMPLE_VOLUME = 0.4;
 //     amplified quiet song sections too hard ("song becomes quiet
 //     then hitting the beat makes it sound weird").
 //
-//   1.30× / 4 ms attack / 160 ms decay — current.
-//     - 4 ms ramp is below perception (~12 ms is the threshold) but
-//       eliminates the sample-level discontinuity that was creating
-//       a tiny click and reading as latency.
-//     - 1.30× boost is gentler so amplifying a quiet verse doesn't
-//       feel like the song "suddenly woke up" — the pulse glows
-//       instead of shouting.
-//     - 160 ms decay is brief enough that the amplification overlap
-//       on rapid taps stays small.
+//   1.30× / 4 ms attack / 160 ms decay — too gentle/swelly. The
+//     smoothing killed the click but the brain lost its "now" anchor
+//     in the absence of a sharp transient, so the amplification read
+//     as a delayed swell instead of a punch.
+//
+//   1.45× / 4 ms attack / 90 ms decay — current. Higher peak +
+//     shorter decay = punchier envelope that feels like a brief
+//     accent instead of a sustained swell. 4 ms ramp keeps the
+//     click-free start; the louder peak gives the brain the
+//     transient cue it was missing, so the pulse reads as synced
+//     to the tap rather than trailing it.
 //
 // The current gain value is anchored before the ramp so overlapping
 // pulses pick up smoothly from wherever the decay left off instead of
 // jumping back to peak.
-const PULSE_PEAK_MULTIPLIER = 1.3;
+const PULSE_PEAK_MULTIPLIER = 1.45;
 const PULSE_ATTACK_SEC = 0.004;
-const PULSE_DECAY_SEC = 0.16;
+const PULSE_DECAY_SEC = 0.09;
 
 export class MusicSystem {
   private backing: Sound.BaseSound | null = null;
@@ -61,8 +63,13 @@ export class MusicSystem {
   private loadPromise: Promise<void> | null = null;
   /** AudioContext time at which the current pulse's decay finishes.
    *  Concurrent pulses while we're still ramping down just push this
-   *  out further instead of cancelling + restarting the envelope. */
-  private pulseEndsAt = 0;
+   *  out further instead of cancelling + restarting the envelope.
+   *  Exposed via a getter so strict-noUnused doesn't fire while there's
+   *  no in-tree reader; the future visual-cue-on-pulse-decay feature
+   *  will read it. */
+  private _pulseEndsAt = 0;
+  get pulseEndsAt(): number { return this._pulseEndsAt; }
+  set pulseEndsAt(v: number) { this._pulseEndsAt = v; }
 
   constructor(
     private readonly scene: Scene,
