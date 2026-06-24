@@ -43,12 +43,34 @@ export class TemplateOrScratchModal {
     const panelH = 364;
     const panel = this.scene.add
       .rectangle(cx, cy, panelW, panelH, 0x1a0a2e, 1)
-      .setStrokeStyle(2, 0xc678ff, 0.8)
+      .setStrokeStyle(2, 0xffd34d, 0.85)
       .setInteractive();
     panel.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, e: Phaser.Types.Input.EventData) =>
       e.stopPropagation(),
     );
     this.container.add(panel);
+
+    // Red ✕ close — project standard from DressingRoom.
+    const closeCx = cx + panelW / 2 - 18;
+    const closeCy = cy - panelH / 2 + 18;
+    const closeBg = this.scene.add
+      .circle(closeCx, closeCy, 12, 0xff5050, 1)
+      .setStrokeStyle(2, 0x0b041a, 1)
+      .setInteractive({ useHandCursor: true });
+    const closeGlyph = this.scene.add
+      .text(closeCx, closeCy, '✕', {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5);
+    closeBg.on('pointerdown', () => {
+      const cb = this.onBackRef;
+      this.close();
+      cb?.();
+    });
+    this.container.add([closeBg, closeGlyph]);
 
     const title = this.scene.add
       .text(cx, cy - panelH / 2 + 22, 'START FROM', {

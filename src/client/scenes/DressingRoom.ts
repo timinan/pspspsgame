@@ -262,15 +262,8 @@ export class DressingRoom extends Scene {
       if (!cos) continue;
       const renderId = parentIdFor(cos) ?? cos.id;
       const frame = `cosmetic_${renderId}_idle_00`;
-      // Head items sit too high relative to the hero in the modal —
-      // the cosmetic atlas was authored for the Game scene's bottom-
-      // anchor cat, while the dressing-room hero uses default center
-      // anchor. Shift head sprites down so the hat lands on the cat's
-      // head instead of floating above it. Scale-aware so it stays
-      // consistent if the hero scale ever changes.
-      const slotShiftY = slotKey === 'head' ? 22 * this.heroSprite.scaleY : 0;
       const sprite = this.add
-        .sprite(this.heroSprite.x, this.heroSprite.y + slotShiftY, AssetKeys.Atlas.Cosmetics, frame)
+        .sprite(this.heroSprite.x, this.heroSprite.y, AssetKeys.Atlas.Cosmetics, frame)
         .setScale(this.heroSprite.scaleX, this.heroSprite.scaleY)
         .setOrigin(this.heroSprite.originX, this.heroSprite.originY)
         .setDepth(this.heroSprite.depth + i++);
@@ -456,8 +449,12 @@ export class DressingRoom extends Scene {
       });
     });
 
-    // ✕ "clear slot" tile fills whatever cell sits after the last
-    // visible cosmetic. Drops if the page is so full there's no room.
+    // "Clear slot" tile — same neutral cell shell as the cosmetics
+    // (dark fill, soft purple stroke) so the grid reads as one unified
+    // surface. Active "currently none equipped" state lights up with
+    // the yellow stroke just like a selected cosmetic. A subtle slashed
+    // circle inside replaces the previous big-red ✕ block (Tim: 'X on
+    // NONE looks clunky').
     const noneIdx = slice.length;
     const col = noneIdx % cols;
     const row = Math.floor(noneIdx / cols);
@@ -466,15 +463,15 @@ export class DressingRoom extends Scene {
       const y = row * (cellSize + gap) + cellSize / 2;
       const isNone = !equippedInstanceId;
       const bg = this.add
-        .rectangle(x, y, cellSize, cellSize, 0xff5050, isNone ? 0.4 : 0.15)
-        .setStrokeStyle(2, 0xff5050, isNone ? 1 : 0.5)
+        .rectangle(x, y, cellSize, cellSize, 0x0b041a, 0.6)
+        .setStrokeStyle(2, isNone ? 0xffd34d : 0xc0a0e6, isNone ? 1 : 0.3)
         .setInteractive({ useHandCursor: true });
-      const text = this.add
-        .text(x, y + imageYOffset, '✕', {
+      const glyph = this.add
+        .text(x, y + imageYOffset, '⊘', {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '28px',
-          color: '#ffffff',
+          fontSize: '34px',
+          color: isNone ? '#ffd34d' : '#c0a0e6',
         })
         .setOrigin(0.5);
       const label = this.add
@@ -482,10 +479,10 @@ export class DressingRoom extends Scene {
           fontFamily: '"Courier New", monospace',
           fontStyle: 'bold',
           fontSize: `${labelFontSize}px`,
-          color: '#ffffff',
+          color: isNone ? '#ffd34d' : '#ffffff',
         })
         .setOrigin(0.5);
-      this.gridContainer.add([bg, text, label]);
+      this.gridContainer.add([bg, glyph, label]);
       bg.on('pointerdown', () => this.equipInSlot(null));
     }
   }

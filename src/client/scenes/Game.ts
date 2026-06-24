@@ -282,24 +282,23 @@ export class Game extends Scene {
       // hit target read as the darker shape against a lighter wash. Easier
       // to spot than lifting the ball — same hue, just lower saturation.
       bar.setTint(liftTowardWhite(color, LANE_BRIGHTNESS_LIFT));
-      // Alpha bumped 0.55 → 0.82 so the lane wash + paw-print texture
-      // hold their presence on the bg — at 0.55 the cat color blew out
-      // to whitish nothing. Per Tim: lanes a bit more opaque overall.
-      bar.setAlpha(0.82);
+      bar.setAlpha(0.95);
       this.laneRects.push(bar as unknown as Phaser.GameObjects.Rectangle);
 
       // Pink toe-bean overlay — second copy of the same texture, tinted
-      // pink, laid on top in SCREEN blend. Screen's effect on light
-      // pixels (bar body) is tiny; on dark pixels (paws) it's strong —
-      // so the bar reads as the cat color while the toe beans tint
-      // pink. Alpha kept low (0.35) so the cat color dominates instead
-      // of getting washed pink.
+      // bright pink, laid on top at full alpha in SCREEN blend. Screen
+      // at α=1 leaves white pixels of the bar essentially untouched
+      // (1 - (1-white)(1-pink) ≈ white) while pushing the dark paw
+      // pixels all the way up to bright solid pink. Net result: bar
+      // stays cat-colored, every toe-bean reads as a saturated solid
+      // pink shape on top. (Lower alphas read as a subtle pink wash —
+      // Tim wants the paws SOLID, not tinted.)
       const paws = this.add.image(cx, laneTopY + laneH / 2, AssetKeys.Image.RhythmBarBackgroundWhite);
       paws.displayWidth = laneH;
       paws.displayHeight = colW;
       paws.setRotation(-Math.PI / 2);
-      paws.setTint(0xff66cc);
-      paws.setAlpha(0.35);
+      paws.setTint(0xff4fb0);
+      paws.setAlpha(1);
       paws.setBlendMode(BlendModes.SCREEN);
 
       // Hit target at the bottom of the lane — the original "fuzzy ball"
@@ -988,37 +987,39 @@ export class Game extends Scene {
     // Below the threshold: hide PUT ON A MEOWCERT entirely so the
     // author can only route back to the editor. Tim's rule: don't let
     // a failed rehearsal post — fix the chart and rehearse again.
-    if (this.testMode) {
-      const passed = accuracyPct >= Balance.passAccuracyPct;
-      if (passed) {
-        this.summaryTitleText.setText('MEOWCERT COMPLETE!');
-        this.summaryTitleText.setColor('#ffd34d');
-        this.summaryGateText.setText('Nice — your meowcert is ready to post.');
-        this.summaryGateText.setColor('#a4ffb4');
-        this.summaryRightBg.setVisible(true);
-        this.summaryRightText.setVisible(true);
-        // Cats stay on the happy "thank you for coming" line.
-        this.comboText.setText('💕 thank you for coming to our meowcert 💕');
-        this.comboText.setColor('#ff9ed4');
-      } else {
-        this.summaryTitleText.setText('MEOWCERT FAILED');
-        this.summaryTitleText.setColor('#ff8b8b');
-        this.summaryGateText.setText(
-          'Please up your performance or fix your chart and try again.',
-        );
-        this.summaryGateText.setColor('#ff8b8b');
-        this.summaryRightBg.setVisible(false);
-        this.summaryRightText.setVisible(false);
-        // Disappointed cat-line — soft, cute, never harsh.
-        this.comboText.setText('😿 we expected more, please try again 😿');
-        this.comboText.setColor('#c6b3ff');
-      }
-    } else {
+    // Pass/fail logic applies to ALL rehearsals (test mode, drawer
+    // rehearse, future visit-shows). Tim's rule: mad cats on every
+    // failed performance — encourages players to author levels they
+    // and others can actually play. Only the PUT ON A MEOWCERT button
+    // is gated to test mode (post flow doesn't exist outside it yet).
+    const passed = accuracyPct >= Balance.passAccuracyPct;
+    if (passed) {
       this.summaryTitleText.setText('MEOWCERT COMPLETE!');
       this.summaryTitleText.setColor('#ffd34d');
-      this.summaryGateText.setText('');
+      this.summaryGateText.setText(
+        this.testMode ? 'Nice — your meowcert is ready to post.' : '',
+      );
+      this.summaryGateText.setColor('#a4ffb4');
       this.summaryRightBg.setVisible(true);
       this.summaryRightText.setVisible(true);
+      this.comboText.setText('💕 thank you for coming to our meowcert 💕');
+      this.comboText.setColor('#ff9ed4');
+    } else {
+      this.summaryTitleText.setText('MEOWCERT FAILED');
+      this.summaryTitleText.setColor('#ff8b8b');
+      this.summaryGateText.setText(
+        this.testMode
+          ? 'Please up your performance or fix your chart and try again.'
+          : 'Better luck next time — practice this one and try again!',
+      );
+      this.summaryGateText.setColor('#ff8b8b');
+      // PUT ON A MEOWCERT only exists in test mode; hide it on test-mode
+      // fails to enforce the "fix your chart" rule. Non-test rehearse
+      // keeps the right button visible (Post Comment, future post flow).
+      this.summaryRightBg.setVisible(!this.testMode);
+      this.summaryRightText.setVisible(!this.testMode);
+      this.comboText.setText('😿 we expected more, please try again 😿');
+      this.comboText.setColor('#c6b3ff');
     }
 
     this.summary.setVisible(true);

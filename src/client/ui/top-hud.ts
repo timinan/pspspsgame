@@ -44,7 +44,8 @@ export class TopHud {
   private container: GameObjects.Container;
   private scoreText: GameObjects.Text | null = null;
   private coinsText: GameObjects.Text | null = null;
-  private bestText: GameObjects.Text | null = null;
+  private hitsCountText: GameObjects.Text | null = null;
+  private hitsPercentText: GameObjects.Text | null = null;
   private hamburgerBg: GameObjects.Rectangle | null = null;
   private hamburgerText: GameObjects.Text | null = null;
   private drawerOpen = false;
@@ -101,26 +102,30 @@ export class TopHud {
           .setOrigin(0, 0.5);
       }
 
-      // Slot 3: hits / total / percentage (replaced "best score"). Two
-      // compact lines stacked tight so the strip still fits inside
-      // 320 px with the hamburger on the right. Shifts left when coins
-      // are hidden so it doesn't sit awkwardly alone in the middle.
-      // `bigStats` bumps the font for test-mode rehearsal where the
-      // author needs to read the count at a glance.
-      const hitsX = showCoins ? 196 : 112;
-      const hitsFontSize = options.bigStats ? '14px' : '9px';
-      this.bestText = scene.add
-        .text(hitsX, TopHud.HEIGHT / 2, '0/0\n0%', {
-          fontFamily: 'Pixeloid Sans, sans-serif',
-          fontStyle: 'bold',
-          fontSize: hitsFontSize,
-          color: '#c0a0e6',
-          align: 'left',
-          lineSpacing: -1,
-        })
+      // Slot 3: hits + percentage. Two separate Text objects laid out
+      // side-by-side (count on the left, percentage on the right) in
+      // white so they both read clearly against the dark strip.
+      // `bigStats` bumps the size for the editor test-mode rehearsal
+      // where the author needs the numbers legible at a glance.
+      const hitsLeftX = showCoins ? 196 : 112;
+      const hitsFontSize = options.bigStats ? '13px' : '10px';
+      const hitsFontStyle = {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: hitsFontSize,
+        color: '#ffffff',
+      };
+      this.hitsCountText = scene.add
+        .text(hitsLeftX, TopHud.HEIGHT / 2, '0/0', hitsFontStyle)
         .setOrigin(0, 0.5);
+      // Percent sits flush against the hamburger button area — anchor
+      // origin to the right edge so it doesn't collide with the ☰.
+      const hamburgerLeftEdge = w - 44;
+      this.hitsPercentText = scene.add
+        .text(hamburgerLeftEdge - 6, TopHud.HEIGHT / 2, '0%', hitsFontStyle)
+        .setOrigin(1, 0.5);
 
-      const slotChildren = [this.scoreText, this.bestText];
+      const slotChildren = [this.scoreText, this.hitsCountText, this.hitsPercentText];
       if (this.coinsText) slotChildren.splice(1, 0, this.coinsText);
       this.container.add(slotChildren);
     }
@@ -149,7 +154,8 @@ export class TopHud {
     this.scoreText?.setText(`🎵 ${score.toLocaleString()}`);
     if (this.coinsText) this.coinsText.setText(`🪙 ${coins}`);
     const pct = judged > 0 ? Math.round((hits / judged) * 100) : 0;
-    this.bestText?.setText(`${hits}/${judged}\n${pct}%`);
+    this.hitsCountText?.setText(`${hits}/${judged}`);
+    this.hitsPercentText?.setText(`${pct}%`);
   }
 
   /** Just the coins — handy for Boxes where score isn't tracked. */
@@ -172,7 +178,8 @@ export class TopHud {
     if (mode === 'default') {
       this.scoreText?.setVisible(true);
       this.coinsText?.setVisible(true);
-      this.bestText?.setVisible(true);
+      this.hitsCountText?.setVisible(true);
+      this.hitsPercentText?.setVisible(true);
       this.hamburgerBg?.setVisible(true);
       this.hamburgerText?.setVisible(true);
       return;
@@ -181,7 +188,8 @@ export class TopHud {
     // Hide stats but keep hamburger visible in edit/placing modes
     this.scoreText?.setVisible(false);
     this.coinsText?.setVisible(false);
-    this.bestText?.setVisible(false);
+    this.hitsCountText?.setVisible(false);
+    this.hitsPercentText?.setVisible(false);
 
     const w = this.scene.scale.width;
     this.modeContainer = this.scene.add.container(0, 0).setDepth(2000);

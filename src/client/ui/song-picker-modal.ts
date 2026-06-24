@@ -73,16 +73,18 @@ export class SongPickerModal {
     const panelH = Math.min(440, height - 60);
     const cx = width / 2;
     const cy = height / 2;
+    // Match the DressingRoom modal language (Tim's standard): yellow
+    // stroke around the whole panel, yellow uppercase title, red ✕ in
+    // the top-right corner.
     const panel = this.scene.add
       .rectangle(cx, cy, panelW, panelH, 0x1a0a2e, 1)
-      .setStrokeStyle(2, 0xc678ff, 0.8)
+      .setStrokeStyle(2, 0xffd34d, 0.85)
       .setInteractive();
     panel.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, e: Phaser.Types.Input.EventData) =>
       e.stopPropagation(),
     );
     this.container.add(panel);
 
-    // Header title + subtitle (rewritten per step)
     this.titleText = this.scene.add
       .text(cx, cy - panelH / 2 + 22, 'PICK A SONG', {
         fontFamily: 'Pixeloid Sans, sans-serif',
@@ -101,6 +103,29 @@ export class SongPickerModal {
       })
       .setOrigin(0.5);
     this.container.add(this.subtitleText);
+
+    // Red ✕ close in the top-right — same affordance as DressingRoom.
+    const closeR = 12;
+    const closeCx = cx + panelW / 2 - 18;
+    const closeCy = cy - panelH / 2 + 18;
+    const closeBg = this.scene.add
+      .circle(closeCx, closeCy, closeR, 0xff5050, 1)
+      .setStrokeStyle(2, 0x0b041a, 1)
+      .setInteractive({ useHandCursor: true });
+    const closeGlyph = this.scene.add
+      .text(closeCx, closeCy, '✕', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5);
+    closeBg.on('pointerdown', () => {
+      const cb = this.onCancelRef;
+      this.close();
+      cb?.();
+    });
+    this.container.add([closeBg, closeGlyph]);
 
     // Decide which step to open on. If caller passed an initial audioKey
     // that's in the catalog, jump straight to the song list scrolled to
