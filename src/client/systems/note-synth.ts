@@ -61,23 +61,31 @@ const PRESETS: Record<BackingVibe, TapPreset> = {
 const DEFAULT_VIBE: BackingVibe = 'upbeat';
 
 /**
- * Miss hum-buzz — low fundamental + low-pass-filtered sawtooth so it
- * reads as a soft "hmmm-wrong" instead of a sharp buzz. 110 Hz puts
- * the fundamental in the low-bass range (perceived as low + hummy),
- * but the sawtooth's harmonic stack (110 / 220 / 330 / 440 …) means
- * the 220 + 330 Hz harmonics are still in every speaker's bandwidth.
- * The low-pass at 500 Hz rolls off the bright upper harmonics that
- * made the 220 Hz raw sawtooth sound shrill — keeps the lower
- * "hum" body and trims the "buzz" hardness. Gain bumped to 0.45 to
- * compensate for the filter.
+ * Miss hum-buzz — two detuned sawtooth oscillators sharing a low-pass
+ * filter and gliding down in pitch. Three cues stack to read as "error"
+ * rather than "musical note":
+ *
+ *   1. Detune (110 Hz + 117 Hz) → ~7 Hz beating, a fast warble that
+ *      classically reads as dissonance. Single low sine sounded too
+ *      much like an intentional bass note.
+ *   2. Downward pitch glide (every freq * 0.85 by end) → the universal
+ *      "sad trombone" cue. Falling pitch tells the listener something
+ *      collapsed; rising pitch would feel like success.
+ *   3. Low-pass at 800 Hz → softens the highest harmonics but lets
+ *      220 / 330 / 440 / 550 / 660 Hz through, keeping the buzz
+ *      character. 500 Hz (the prior cutoff) over-filtered and the
+ *      result blended into the song. 800 Hz keeps it obviously
+ *      synthetic / non-musical.
  */
 const MISS_PRESET = {
   waveform: 'sawtooth' as OscillatorType,
-  freqHz: 110,
-  filterHz: 500,
+  freqAHz: 110,
+  freqBHz: 117,            // ~1.06× freqAHz, beats at ~7 Hz
+  glideRatio: 0.85,        // both freqs glide down to 85% by release end
+  filterHz: 800,
   filterQ: 0.7,
-  releaseSec: 0.22,
-  peakGain: 0.45,
+  releaseSec: 0.28,
+  peakGain: 0.32,          // halved-ish because two oscillators sum
 };
 
 export class NoteSynth {
@@ -125,22 +133,32 @@ export class NoteSynth {
   }
 
   /**
-   * Fire the miss hum-buzz. Sawtooth → low-pass filter → gain → output.
-   * Instant peak, short exponential decay. Lane-independent.
+   * Fire the miss hum-buzz. Two detuned sawtooth oscillators → shared
+   * low-pass → gain → output. Both oscillators glide down in pitch
+   * over the decay so the sound visibly "deflates". Instant peak gain.
    */
   playMiss(): void {
     if (this.destroyed || !this.ctx) return;
     if (this.ctx.state !== 'running') return;
     const now = this.ctx.currentTime;
+    const endTime = now + MISS_PRESET.releaseSec;
 
-    const osc = this.ctx.createOscillator();
-    osc.type = MISS_PRESET.waveform;
-    osc.frequency.value = MISS_PRESET.freqHz;
+    const oscA = this.ctx.createOscillator();
+    oscA.type = MISS_PRESET.waveform;
+    oscA.frequency.setValueAtTime(MISS_PRESET.freqAHz, now);
+    oscA.frequency.exponentialRampToValueAtTime(
+      MISS_PRESET.freqAHz * MISS_PRESET.glideRatio,
+      endTime,
+    );
 
-    // Low-pass filter rolls off the upper harmonics so the sound reads
-    // as a low hum instead of a high buzz — the harmonics at 220 / 330
-    // Hz still pass to give the sawtooth its texture, but the bright
-    // 660+ Hz harmonics get trimmed.
+    const oscB = this.ctx.createOscillator();
+    oscB.type = MISS_PRESET.waveform;
+    oscB.frequency.setValueAtTime(MISS_PRESET.freqBHz, now);
+    oscB.frequency.exponentialRampToValueAtTime(
+      MISS_PRESET.freqBHz * MISS_PRESET.glideRatio,
+      endTime,
+    );
+
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.value = MISS_PRESET.filterHz;
@@ -148,13 +166,16 @@ export class NoteSynth {
 
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(MISS_PRESET.peakGain, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + MISS_PRESET.releaseSec);
+    gain.gain.exponentialRampToValueAtTime(0.0001, endTime);
 
-    osc.connect(filter);
+    oscA.connect(filter);
+    oscB.connect(filter);
     filter.connect(gain);
     gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + MISS_PRESET.releaseSec + 0.05);
+    oscA.start(now);
+    oscB.start(now);
+    oscA.stop(endTime + 0.05);
+    oscB.stop(endTime + 0.05);
   }
 
   destroy(): void {
