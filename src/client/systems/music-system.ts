@@ -32,16 +32,14 @@ const TAP_SAMPLE_VOLUME = 0.4;
 // playing at that beat (drums hitting + synth + meow stem from the
 // song, however it happens to land). Concurrent pulses extend the hold
 // instead of stacking so rapid taps don't blow the meter past clipping.
-// 1.25 -> 1.55: bumped after first playtest because the boost wasn't
-// reading as "oomph". 1.55× sits right at the clipping cliff for songs
-// mastered hot — if a particular backing distorts on peak hits, drop
-// this back to ~1.4 or trim that song's source level.
 const PULSE_PEAK_MULTIPLIER = 1.55;
-// Hold also doubled (30 → 60ms) so the punch sits at peak longer
-// before the ride down begins.
-const PULSE_ATTACK_SEC = 0.012;         // ramp up to peak
-const PULSE_HOLD_SEC = 0.06;            // sit at peak briefly
-const PULSE_DECAY_SEC = 0.24;           // exponential ride back to baseline
+// No attack ramp + no hold: gain jumps straight to peak the instant
+// the tap registers and starts decaying. The previous 12 ms attack +
+// 60 ms hold meant the boost crested ~70 ms AFTER the tap — by which
+// point the song had moved forward to a different beat than the one
+// the player was trying to amplify. Instant jump matches the tap to
+// the right moment of audio.
+const PULSE_DECAY_SEC = 0.22;           // exponential ride back to baseline
 
 export class MusicSystem {
   private backing: Sound.BaseSound | null = null;
@@ -192,31 +190,13 @@ export class MusicSystem {
     const peak = baseline * PULSE_PEAK_MULTIPLIER;
     const now = ctx.currentTime;
 
-    if (now < this.pulseEndsAt) {
-      // Still pulsing from a recent hit — just extend the decay to
-      // the new end. Keeps gain pinned near peak through rapid taps
-      // instead of bouncing it down and re-attacking which would
-      // produce an audible warble.
-      const newEnd = now + PULSE_DECAY_SEC;
-      if (newEnd > this.pulseEndsAt) {
-        node.gain.cancelScheduledValues(now);
-        node.gain.setValueAtTime(peak, now);
-        node.gain.exponentialRampToValueAtTime(baseline, newEnd);
-        this.pulseEndsAt = newEnd;
-      }
-      return;
-    }
-
-    const attackEnd = now + PULSE_ATTACK_SEC;
-    const holdEnd = attackEnd + PULSE_HOLD_SEC;
-    const decayEnd = holdEnd + PULSE_DECAY_SEC;
-
+    // Instant jump to peak + exponential decay back. Same shape whether
+    // we're starting a fresh pulse or extending a still-decaying one —
+    // the only difference is which scheduled tail we're overwriting.
+    const decayEnd = now + PULSE_DECAY_SEC;
     node.gain.cancelScheduledValues(now);
-    node.gain.setValueAtTime(baseline, now);
-    node.gain.linearRampToValueAtTime(peak, attackEnd);
-    node.gain.setValueAtTime(peak, holdEnd);
+    node.gain.setValueAtTime(peak, now);
     node.gain.exponentialRampToValueAtTime(baseline, decayEnd);
-
     this.pulseEndsAt = decayEnd;
   }
 
