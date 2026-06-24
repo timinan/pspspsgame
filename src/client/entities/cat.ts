@@ -37,6 +37,11 @@ const CELEBRATION_BRIDGE_MS = 280;
  *  ~600 ms, so a 1.1 s interval produces a "normal → pronounced →
  *  normal → pronounced" rhythm the player can clearly see. */
 const CELEBRATION_PULSE_MS = 1100;
+/** How many leading frames the meow animation skips at create time so
+ *  the closed-eye anticipation doesn't play. Applied both to the
+ *  Phaser anim's frame list AND to the per-frame cosmetic offset
+ *  lookup so static cosmetics don't drift by N frames during meow. */
+const MEOW_FRAME_SHIFT = 2;
 
 /**
  * Pull the parent cosmetic id out of a tint variant's sourceFrame string
@@ -452,7 +457,15 @@ export class Cat {
         if (sepIdx > 0) {
           const breed = Cat.renderBreed(catAnimKey.slice(0, sepIdx));
           const anim = catAnimKey.slice(sepIdx + 1);
-          const off = this.frameOffsets[breed]?.[anim]?.[frameIdx - 1];
+          // Compensate for the meow's leading-frame trim — the offsets
+          // table still has all 11 entries indexed from the original
+          // meow_00, but the Phaser anim now starts at meow_02. Without
+          // this, static cosmetics drift by MEOW_FRAME_SHIFT frames
+          // every time a cat meows.
+          const offsetIdx = anim === 'meow'
+            ? frameIdx - 1 + MEOW_FRAME_SHIFT
+            : frameIdx - 1;
+          const off = this.frameOffsets[breed]?.[anim]?.[offsetIdx];
           if (off) {
             const strength = catalogEntry.motionStrength ?? Cat.motionStrengthForSlot(slot);
             resolved = [off[0] * strength, off[1] * strength];
@@ -561,7 +574,7 @@ export class Cat {
     const renderBreed = Cat.renderBreed(breed);
     const atlas = this.scene.textures.get(AssetKeys.Atlas.Cats);
     const prefix = `${renderBreed}_${animation}_`;
-    const frameNames = atlas
+    let frameNames = atlas
       .getFrameNames()
       .filter((n) => n.startsWith(prefix))
       .sort();
@@ -569,6 +582,17 @@ export class Cat {
     if (frameNames.length === 0) {
       console.warn(`[cat] No frames for ${prefix} in cats atlas`);
       return;
+    }
+
+    // Every breed's meow_00 and meow_01 are anticipation frames where
+    // the cat closes its eyes before bursting into the meow — visually
+    // the eyes look black for ~285 ms (2 frames at the 7 fps cat rate)
+    // and Tim called it out as "eyes turning black mid-animation."
+    // Drop those two so the meow plays straight through with open eyes
+    // matching the idle pose. The matching FRAME_INDEX_SHIFT below
+    // keeps the cosmetic offset lookup in sync.
+    if (animation === 'meow' && frameNames.length > MEOW_FRAME_SHIFT) {
+      frameNames = frameNames.slice(MEOW_FRAME_SHIFT);
     }
 
     this.scene.anims.create({
