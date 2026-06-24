@@ -13,7 +13,7 @@ import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
 import { fetchState, loadChart } from '@/services/state-client';
 import { CAT_CATALOG, emptyChart, CHART_PAGE_SIZE } from '@/../shared/state';
-import { resolveLaneTintsFromSeatedCats, vividBorderColor } from '@/constants/cat-colors';
+import { resolveLaneTintsFromSeatedCats } from '@/constants/cat-colors';
 import type { PlayerState, LaneId, Chart, SeatId } from '@/../shared/state';
 import type { CatModel } from '@/types/game';
 import { generateChart, type GenDifficulty } from '@/../shared/chart-generator';
@@ -289,41 +289,12 @@ export class Game extends Scene {
       bar.setAlpha(0.78);
       this.laneRects.push(bar as unknown as Phaser.GameObjects.Rectangle);
 
-      // Opaque, vivid cat-color border around the lane. Rect shrunk
-      // by `borderStroke` on each axis so the stroke (which Phaser
-      // centers on the rect edge) sits entirely INSIDE the lane area.
-      // Without this, adjacent lanes' borders extended into each
-      // other and read as one combined 10 px line instead of two
-      // equally-shared cat-color frames.
-      const borderStroke = 5;
-      this.add
-        .rectangle(cx, laneTopY + laneH / 2, colW - borderStroke, laneH - borderStroke, 0x000000, 0)
-        .setStrokeStyle(borderStroke, vividBorderColor(color), 1)
-        .setDepth(5);
-
-      // Sakura-pink toe-bean overlay. Uses the paws-only texture from
-      // Preloader.generatePawsOnlyTexture — paws are solid (full alpha),
-      // bar bg is transparent so the cat color underneath reads
-      // through. Pink chosen to match the Sakura cat tint
-      // (0xffc4de, not the prior hot-magenta 0xff4fb0).
-      if (this.textures.exists(AssetKeys.Image.RhythmBarPaws)) {
-        const paws = this.add.image(cx, laneTopY + laneH / 2, AssetKeys.Image.RhythmBarPaws);
-        paws.displayWidth = laneH;
-        paws.displayHeight = colW;
-        paws.setRotation(-Math.PI / 2);
-        paws.setTint(0xffc4de);
-        paws.setAlpha(1);
-        paws.setDepth(2);
-      }
-
       // Hit target at the bottom of the lane — the original "fuzzy ball"
       // target from horizontal rhythm. Notes get consumed when they reach it.
       // Targets stay opaque (they need to read against the lane).
       const target = this.add.image(cx, hitLineY, AssetKeys.Image.PspspsTargetWhite);
       target.setDisplaySize(72, 72);
       target.setTint(color);
-      // Catching fuzzball sits ABOVE the paw-overlay (depth 2) AND the
-      // lane border (depth 5) so neither layer paints over the target.
       target.setDepth(6);
       this.hitTargets[i] = target;
       // Snapshot the base scale after setDisplaySize so flash tweens always
