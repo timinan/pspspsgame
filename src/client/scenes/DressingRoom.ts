@@ -7,7 +7,11 @@ import { parentIdFor } from '@/entities/cat';
 import { CAT_EFFECT_BY_ID, type EffectHandle } from '@/effects/cat-effects';
 import type { PlayerState, OwnedCosmetic } from '@/../shared/state';
 
-const COSMETICS_PER_PAGE = 19;
+// 2 cols × 2 rows = 4 visible cells; last slot is the ✕ "clear slot"
+// tile, so up to 3 cosmetics fit per page. Cells are 2× wider + taller
+// than the prior 5×4 layout (≈ 4× area) so the cosmetic asset reads
+// clearly and the name has room to wrap to a second line.
+const COSMETICS_PER_PAGE = 3;
 const SLOT_TABS: { key: string; label: string }[] = [
   { key: 'head', label: 'HEAD' },
   { key: 'face', label: 'FACE' },
@@ -57,7 +61,10 @@ export class DressingRoom extends Scene {
     // change to those numbers needs to be reflected here too.
     const HERO_OFFSET_Y = 110;
     const GRID_OFFSET_FROM_HERO = 130;
-    const GRID_CONTENT_H = 4 * 48 + 3 * 8; // 4 rows × 48 + 3 × 8 gap = 216
+    // 2 rows × 104 + 1 × 8 gap = 216 — coincidentally the same height
+    // as the prior 4×48 grid, so the modal envelope didn't move when the
+    // cells got bigger.
+    const GRID_CONTENT_H = 2 * 104 + 1 * 8;
     const PAGINATION_GAP_FROM_GRID = 24;
     const BOTTOM_PADDING = 24;
     const contentH =
@@ -335,10 +342,19 @@ export class DressingRoom extends Scene {
 
     const start = this.page * COSMETICS_PER_PAGE;
     const slice = ownedInSlot.slice(start, start + COSMETICS_PER_PAGE);
-    const cellSize = 48;
+    // 2×2 cells, each 104px, 8px gap. Image sits in the top ~62% of the
+    // cell; the label sits below, wraps to a second line if needed, and
+    // is hard-capped at 2 lines so a long name can't push the layout.
+    const cellSize = 104;
     const gap = 8;
-    const cols = 5;
+    const cols = 2;
+    const visibleRows = 2;
     const gridStartX = (this.scale.width - (cellSize * cols + gap * (cols - 1))) / 2;
+    const imageYOffset = -20;          // image sits in the upper portion of the cell
+    const labelYOffset = 28;           // label drops below the image
+    const labelFontSize = 10;
+    const labelWrapWidth = cellSize - 14;
+    const labelMaxLines = 2;
 
     // The currently-equipped cosmetic in this slot (instance id).
     const equippedSlots = this.playerState.equippedCosmetics[this.catInstanceId] ?? {};
@@ -362,13 +378,17 @@ export class DressingRoom extends Scene {
       const effect = CAT_EFFECT_BY_ID[cosItem.type];
       if (effect) {
         const icon = this.add
-          .text(x, y - 6, effect.iconEmoji, { fontSize: '22px' })
+          .text(x, y + imageYOffset, effect.iconEmoji, { fontSize: '46px' })
           .setOrigin(0.5);
         const label = this.add
-          .text(x, y + 14, effect.name, {
+          .text(x, y + labelYOffset, effect.name, {
             fontFamily: '"Courier New", monospace',
-            fontSize: '7px',
+            fontStyle: 'bold',
+            fontSize: `${labelFontSize}px`,
             color: '#ffffff',
+            align: 'center',
+            wordWrap: { width: labelWrapWidth },
+            maxLines: labelMaxLines,
           })
           .setOrigin(0.5);
         this.gridContainer.add([icon, label]);
@@ -376,22 +396,36 @@ export class DressingRoom extends Scene {
         const renderId = parentIdFor(cos) ?? cos.id;
         const frame = `cosmetic_${renderId}_idle_00`;
         const sprite = this.add
-          .sprite(x, y, AssetKeys.Atlas.Cosmetics, frame)
-          .setScale(0.7);
+          .sprite(x, y + imageYOffset, AssetKeys.Atlas.Cosmetics, frame)
+          // 2× the old 0.7 scale to match the cell's 4× area. Effect
+          // emojis bumped to fontSize 46 above for the same reason.
+          .setScale(1.5);
         if (cos.tint) {
           sprite.setTint(parseInt(cos.tint.replace('#', ''), 16));
         }
-        this.gridContainer.add(sprite);
+        const label = this.add
+          .text(x, y + labelYOffset, cos.name.toUpperCase(), {
+            fontFamily: '"Courier New", monospace',
+            fontStyle: 'bold',
+            fontSize: `${labelFontSize}px`,
+            color: '#ffffff',
+            align: 'center',
+            wordWrap: { width: labelWrapWidth },
+            maxLines: labelMaxLines,
+          })
+          .setOrigin(0.5);
+        this.gridContainer.add([sprite, label]);
       }
 
       bg.on('pointerdown', () => this.equipInSlot(cosItem));
     });
 
-    // ✕ "clear slot" tile
+    // ✕ "clear slot" tile fills whatever cell sits after the last
+    // visible cosmetic. Drops if the page is so full there's no room.
     const noneIdx = slice.length;
     const col = noneIdx % cols;
     const row = Math.floor(noneIdx / cols);
-    if (row < 4) {
+    if (row < visibleRows) {
       const x = gridStartX + col * (cellSize + gap) + cellSize / 2;
       const y = row * (cellSize + gap) + cellSize / 2;
       const isNone = !equippedInstanceId;
@@ -400,14 +434,22 @@ export class DressingRoom extends Scene {
         .setStrokeStyle(2, 0xff5050, isNone ? 1 : 0.5)
         .setInteractive({ useHandCursor: true });
       const text = this.add
-        .text(x, y, '✕', {
+        .text(x, y + imageYOffset, '✕', {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '18px',
+          fontSize: '40px',
           color: '#ffffff',
         })
         .setOrigin(0.5);
-      this.gridContainer.add([bg, text]);
+      const label = this.add
+        .text(x, y + labelYOffset, 'NONE', {
+          fontFamily: '"Courier New", monospace',
+          fontStyle: 'bold',
+          fontSize: `${labelFontSize}px`,
+          color: '#ffffff',
+        })
+        .setOrigin(0.5);
+      this.gridContainer.add([bg, text, label]);
       bg.on('pointerdown', () => this.equipInSlot(null));
     }
   }
