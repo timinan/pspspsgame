@@ -166,13 +166,21 @@ export class MusicSystem {
     this.noteSynth.destroy();
   }
 
-  /** Pick the backing this chart should play. Filters by tempo AND
-   *  player-picked vibe; falls back to "any vibe at this tempo" if the
-   *  chart has no vibe yet (old saves) or the chosen vibe has no
-   *  catalog entries. Stable per saved version of the chart — the hash
-   *  includes `updatedAt`, so saving again may roll a different
-   *  backing within the same tempo+vibe bucket. */
+  /** Pick the backing this chart should play. Priority:
+   *   1. `chart.audioKey` exact match — the player picked a specific song
+   *      via SongPickerModal. Hard match wins over bucket fallback.
+   *   2. tempo + vibe bucket, hashed by the chart so the same saved
+   *      chart always picks the same song deterministically.
+   *   3. tempo-only bucket if the chosen vibe has no catalog entries.
+   *
+   *  Returns null only when the catalog has nothing at this tempo —
+   *  triggers a silent round so the gameplay still works.
+   */
   private pickBacking(): BackingTrack | null {
+    if (this.chart.audioKey) {
+      const exact = BACKING_CATALOG[this.chart.audioKey];
+      if (exact) return exact;
+    }
     const sameTempo = Object.values(BACKING_CATALOG).filter(
       (b) => b.bpm === this.chart.bpm,
     );

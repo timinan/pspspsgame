@@ -300,6 +300,10 @@ export interface Chart {
    *  without it default to the first available vibe at the chart's
    *  tempo on next editor open. */
   vibe?: BackingVibe;
+  /** Player-picked specific backing track id (e.g. 'neon-dash'). When set,
+   *  MusicSystem plays this exact song. When unset, MusicSystem picks from
+   *  the bpm+vibe bucket using the legacy chart-hash fallback. */
+  audioKey?: string;
   steps: ChartStep[];
   updatedAt: number;
 }

@@ -219,8 +219,8 @@ export class ChartEditor extends Scene {
       showStats: false,
       items: [
         {
-          label: 'SHOWTIME',
-          description: 'Play the show',
+          label: 'REHEARSE',
+          description: 'Practice your show',
           icon: '🎵',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },

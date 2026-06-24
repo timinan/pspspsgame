@@ -15,8 +15,10 @@ import { fetchState, loadChart } from '@/services/state-client';
 import { CAT_CATALOG, emptyChart } from '@/../shared/state';
 import type { PlayerState, LaneId, Chart, SeatId } from '@/../shared/state';
 import type { CatModel } from '@/types/game';
-import { generateChart } from '@/../shared/chart-generator';
+import { generateChart, type GenDifficulty } from '@/../shared/chart-generator';
 import { GenerateModal } from '@/ui/generate-modal';
+import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
+import { DifficultyPickerModal } from '@/ui/difficulty-picker-modal';
 import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
 
 /**
@@ -36,7 +38,7 @@ export class Game extends Scene {
   // When true, this round was launched from ChartEditor's TRY button. UI
   // wording + return paths swap: Ready modal calls it a "test", Summary
   // routes both buttons back to the editor, and the TopHud drawer adds a
-  // "← CHART" entry for mid-round bail.
+  // "← EDITOR" entry for mid-round bail.
   private testMode = false;
   private bg!: BackgroundManager;
   private cats: Cat[] = [];
@@ -78,6 +80,12 @@ export class Game extends Scene {
   private pendingStart = true;
   private readyModal: Phaser.GameObjects.Container | null = null;
   private generateModal: GenerateModal | null = null;
+  private songPicker: SongPickerModal | null = null;
+  private difficultyPicker: DifficultyPickerModal | null = null;
+  /** Carries the song picked in step 1 through to step 2 so the
+   *  difficulty modal's START can stamp the chart with the right
+   *  audioKey + bpm + vibe in one go. */
+  private pendingSong: SongPickerResult | null = null;
   /** Two-piece pill (rect + text) shown in the top-right while testMode
    *  is true. Cleaned up in doCleanup so it doesn't leak into the next
    *  scene if the player taps it mid-tween. */
@@ -164,11 +172,12 @@ export class Game extends Scene {
       await this.initChartPlayer();
       this.showReadyModal();
     } else {
-      // Fresh Play entry: skip Ready entirely, present the Generate
-      // modal so the player picks difficulty/tempo/vibe before the
-      // round starts. ChartPlayer + MusicSystem are wired off the
-      // generated chart inside the modal's onGenerate handler.
-      this.showGenerateModal();
+      // Fresh Rehearse entry: two-step picker. SongPicker (vibe → song
+      // list → preview + select) → DifficultyPicker (easy/normal/hard
+      // → START) → generate a chart at that song + difficulty, set
+      // chart.audioKey so MusicSystem locks to the picked backing,
+      // attach + begin the round.
+      this.showSongPicker();
     }
   }
 
@@ -397,7 +406,7 @@ export class Game extends Scene {
     const subtitle = this.add.text(
       cx,
       cy - 42,
-      this.testMode ? 'Try your beat before posting' : 'Play your beat',
+      this.testMode ? 'Try your beat before posting' : 'Rehearse your beat',
       {
         ...fontBase,
         fontSize: '11px',
@@ -411,7 +420,7 @@ export class Game extends Scene {
     const playW = 180;
     const playH = 44;
     const playBg = this.add.rectangle(cx, playY, playW, playH, 0xffd34d, 1);
-    const playText = this.add.text(cx, playY, '▶ PLAY', {
+    const playText = this.add.text(cx, playY, '▶ REHEARSE', {
       ...fontBase,
       fontStyle: 'bold',
       fontSize: '18px',
@@ -646,7 +655,7 @@ export class Game extends Scene {
     if (this.testMode) this.buildBackToChartChip();
   }
 
-  /** Floating "← CHART" pill rendered on top of the playfield while in
+  /** Floating "← EDITOR" pill rendered on top of the playfield while in
    *  test mode. Sits in the top-right corner just under the HUD strip
    *  so it never collides with the hit lanes. */
   private buildBackToChartChip(): void {
@@ -663,7 +672,7 @@ export class Game extends Scene {
       .setDepth(60)
       .setInteractive({ useHandCursor: true });
     const txt = this.add
-      .text(cx, cy, '← CHART', {
+      .text(cx, cy, '← EDITOR', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '11px',
@@ -1036,41 +1045,57 @@ export class Game extends Scene {
     void this.music.preload();
   }
 
-  /** Show the pre-round Generate modal (non-test entry). On generate,
-   *  build a chart that fills the round at the chosen tempo, wire
-   *  player + music, await the backing preload + start, then enable
-   *  taps and begin the round. */
-  private showGenerateModal(): void {
-    if (!this.generateModal) this.generateModal = new GenerateModal(this);
-    this.generateModal.open({
-      // Play scene is "pick + go", not "author a chart" — reuses the
-      // same modal but reads as PLAY so the player doesn't feel like
-      // they're being asked to build something before jamming.
-      title: 'READY TO PLAY?',
-      subtitle: 'Pick the vibe and start the round',
-      primaryLabel: '▶ PLAY',
+  /** Step 1 of the Rehearse pre-round flow: pick a song. Player picks
+   *  a vibe, then a specific backing from the list at that vibe. The
+   *  catalog id is carried forward as chart.audioKey so MusicSystem
+   *  locks to that exact song instead of hash-bucketing. */
+  private showSongPicker(): void {
+    if (!this.songPicker) this.songPicker = new SongPickerModal(this);
+    this.songPicker.open({
       initial: {
-        bpm: this.playerState?.chart?.bpm,
-        vibe: this.playerState?.chart?.vibe,
+        ...(this.pendingSong?.audioKey ? { audioKey: this.pendingSong.audioKey } : {}),
+        ...(this.pendingSong?.vibe
+          ? { vibe: this.pendingSong.vibe }
+          : this.playerState?.chart?.vibe
+            ? { vibe: this.playerState.chart.vibe }
+            : {}),
       },
-      onGenerate: (result) => {
-        const chart = generateChart({
-          authorId: this.playerState?.username ?? 'anon',
-          title: 'Generated',
-          difficulty: result.difficulty,
-          bpm: result.bpm,
-          vibe: result.vibe,
-          targetDurationMs: Balance.maxRoundMs,
-        });
-        this.attachChartAndMusic(chart);
-        void this.beginRound();
+      onPick: (result) => {
+        this.pendingSong = result;
+        this.showDifficultyPicker();
       },
-      // Generate is the only entry point for non-test mode; cancelling
-      // means the player wants out — kick them to Decorate which has its
-      // own hamburger nav.
       onCancel: () => {
         this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
       },
+    });
+  }
+
+  /** Step 2 of the Rehearse pre-round flow: pick a difficulty. Generates
+   *  the chart at the chosen song + difficulty, stamps audioKey, attaches
+   *  player + music, and kicks the round. */
+  private showDifficultyPicker(): void {
+    const song = this.pendingSong;
+    if (!song) {
+      this.showSongPicker();
+      return;
+    }
+    if (!this.difficultyPicker) this.difficultyPicker = new DifficultyPickerModal(this);
+    this.difficultyPicker.open({
+      initial: 'medium',
+      onStart: (difficulty: GenDifficulty) => {
+        const chart = generateChart({
+          authorId: this.playerState?.username ?? 'anon',
+          title: 'Rehearsal',
+          difficulty,
+          bpm: song.bpm,
+          vibe: song.vibe,
+          targetDurationMs: Balance.maxRoundMs,
+        });
+        chart.audioKey = song.audioKey;
+        this.attachChartAndMusic(chart);
+        void this.beginRound();
+      },
+      onBack: () => this.showSongPicker(),
     });
   }
 
@@ -1280,6 +1305,14 @@ export class Game extends Scene {
     tearDown('generate-modal', () => {
       this.generateModal?.destroy();
       this.generateModal = null;
+    });
+    tearDown('song-picker', () => {
+      this.songPicker?.destroy();
+      this.songPicker = null;
+    });
+    tearDown('difficulty-picker', () => {
+      this.difficultyPicker?.destroy();
+      this.difficultyPicker = null;
     });
     tearDown('back-to-chart-chip', () => {
       for (const g of this.backToChartChip) g.destroy();
