@@ -948,13 +948,17 @@ export class Game extends Scene {
     // shutdown will tear it down via `cleanup` when the player closes
     // the scene. Round-end isn't a hard "cut off the music" moment;
     // letting it ride keeps the room feeling alive.
-    // Switch every seated cat to a content "lick paw" pose so it
-    // visibly registers that the song's over and the cats are happy.
-    // Stagger celebration kick-offs by 200ms per cat so the cycle steps
-    // don't lockstep across the stage — feels more like a crowd reacting
-    // than a synchronized chorus.
+    // Branch on pass/fail BEFORE celebration kicks in. Cats either
+    // start a happy cycle (pass) or a hissing droop (fail) so the
+    // emotional read matches the meowcert outcome. Stagger by 200ms
+    // per cat so the reaction feels like a crowd, not a chorus.
+    const finalAccuracyPct = this.score.getAccuracy();
+    const failed = finalAccuracyPct < Balance.passAccuracyPct;
     this.cats.forEach((c, i) => {
-      this.time.delayedCall(i * 200, () => c.startCelebration());
+      this.time.delayedCall(i * 200, () => {
+        if (failed) c.startDisappointed();
+        else c.startCelebration();
+      });
     });
     // Repurpose the combo callout into the cats' end-of-show line. Same
     // slot above the lanes, shrunk and untweened so the message reads

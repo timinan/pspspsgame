@@ -376,6 +376,51 @@ export class Cat {
     });
   }
 
+  /** End-of-round disappointment — counterpart to startCelebration for a
+   *  failed rehearsal. Cat holds a hissing loop with a sad tint and a
+   *  recurring effect-dim pulse so its aura / particles visibly droop.
+   *  No auto-revert; ends when the scene tears down. */
+  startDisappointed(): void {
+    this.cancelRevert();
+    this.sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
+    this.celebrating = false;
+    this.celebrationPulseTimer?.remove(false);
+    // Loop the hiss animation. Falls back to idle if the breed has no
+    // hiss frames so we still cancel the cheerful cycle even on
+    // catalog churn.
+    const hissKey = Cat.animationKey(this.model.breed, 'hiss');
+    this.ensureAnimation(this.model.breed, 'hiss');
+    if (this.scene.anims.exists(hissKey)) {
+      this.sprite.play({ key: hissKey, repeat: -1 });
+      this.model.animation = 'hiss';
+      this.playCosmeticAnimation('hiss');
+    } else {
+      const idleKey = Cat.animationKey(this.model.breed, 'idle');
+      if (this.scene.anims.exists(idleKey)) {
+        this.sprite.play({ key: idleKey, repeat: -1 });
+      }
+    }
+    // Sad-pink tint on the sprite. Slightly shrink to read as the cat
+    // pulling away.
+    this.scene.tweens.add({
+      targets: this.sprite,
+      scaleX: this.baseScale * 0.95,
+      scaleY: this.baseScale * 0.95,
+      duration: 200,
+    });
+    this.sprite.setTint(0xff9aa0);
+    // Keep dimming the effect on a loop so the aura/particles read as
+    // visibly droopy for the whole summary screen. Reuses the
+    // pulseEffectMiss path the per-tap miss already uses.
+    this.celebrationPulseTimer?.remove(false);
+    this.celebrationPulseTimer = this.scene.time.addEvent({
+      delay: CELEBRATION_PULSE_MS,
+      loop: true,
+      startAt: CELEBRATION_PULSE_MS,
+      callback: () => this.pulseEffectMiss(),
+    });
+  }
+
   private cancelRevert(): void {
     if (this.revertTimer) {
       this.revertTimer.remove(false);
