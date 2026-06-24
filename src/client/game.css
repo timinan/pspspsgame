@@ -15,7 +15,10 @@ body {
   margin: 0;
   padding: 0;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #0f0f0f;
+  /* Matches the game's interior palette so the FIT letterbox bars on
+     desktop read as intentional black-space around the portrait canvas
+     instead of unrelated browser chrome. */
+  background-color: #0b041a;
   font-family: 'Pixeloid Sans', sans-serif;
 }
 

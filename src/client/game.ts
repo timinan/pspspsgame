@@ -9,25 +9,26 @@ import * as Phaser from 'phaser';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { Welcome } from './scenes/Welcome';
+import { DESIGN_W, DESIGN_H } from './constants/scene-layout';
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
   parent: 'game-container',
-  backgroundColor: '#028af8',
+  backgroundColor: '#0b041a',
   scale: {
-    // RESIZE lets the canvas fill whatever portrait/landscape area the
-    // Devvit web view gives us — important because FIT letterboxes the
-    // game with huge black bars in mobile/portrait. The trade-off is that
-    // when the viewport changes (DevTools opens, orientation flips),
-    // anything positioned in pixels at scene-create time goes out of
-    // place. We'll add a resize handler later if it becomes a real
-    // problem.
-    mode: Phaser.Scale.RESIZE,
+    // FIT preserves the 320×580 portrait aspect across every device: on
+    // mobile the canvas fills the iframe, on desktop it letterboxes
+    // black bars on the sides. We were on RESIZE before — that lets the
+    // canvas stretch to the iframe width, but the scenes lay out lane
+    // centers / cat positions relative to scene.scale.width, so the
+    // desktop iframe stretched the stage horizontally and made every
+    // asset look squashed.
+    mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 1024,
-    height: 768,
+    width: DESIGN_W,
+    height: DESIGN_H,
   },
   scene: [Boot, Preloader, MainMenu, Welcome, MainGame, Purchase, Decorate, DressingRoom, ChartEditor],
 };
