@@ -2,7 +2,7 @@ import { Scene, Scenes, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { TopHud } from '@/ui/top-hud';
 import { BackgroundManager } from '@/entities/background-manager';
-import { liftTowardWhite, BALL_BRIGHTNESS_LIFT, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
+import { liftTowardWhite, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
 import * as L from '@/constants/scene-layout';
 import { AssetKeys } from '@/constants/assets';
 import { saveChart } from '@/services/state-client';
@@ -390,9 +390,13 @@ export class ChartEditor extends Scene {
       for (let lane = 0; lane < L.LANE_COUNT; lane++) {
         const cx = this.colCenterXs[lane]!;
 
+        // Cell stroke is a soft purple instead of the prior near-invisible
+        // white-at-0.12 — Tim flagged the grid lines as too dark to read
+        // against the dark background. Purple at 0.45 alpha gives the grid
+        // a visible structure without competing with the active fuzzballs.
         const panel = this.add
           .rectangle(cx, cy, this.cellW - 6, this.cellH - 2, 0x0b041a, 0.35)
-          .setStrokeStyle(1, 0xffffff, 0.12)
+          .setStrokeStyle(1, 0xc678ff, 0.45)
           .setInteractive({ useHandCursor: true });
         const ls = localStep;
         const ln = lane;
@@ -400,14 +404,19 @@ export class ChartEditor extends Scene {
         this.cellPanels[localStep]![lane] = panel;
         this.root.add(panel);
 
-        const noteSize = Math.min(this.cellW - 10, this.cellH - 4, 64);
+        // Slightly bigger than the previous (cellW - 10) → fills more of
+        // the cell so the fuzzball pops on glance. Capped at 56 to keep
+        // some breathing room above + below in the half-height cells.
+        const noteSize = Math.min(this.cellW - 4, this.cellH + 2, 56);
         const noteContainer = this.add.container(cx, cy);
-        // Just the fuzzball — the PS letters overlay was reading muddy
-        // at the halved cell height in the 2-page view (Tim: "don't
-        // render the ps, just have the fuzzball").
+        // Mirror the in-game hit-target tint (raw lane color, no lift)
+        // so the editor preview matches what the player will see at the
+        // bottom of the lane. Was using BALL_BRIGHTNESS_LIFT (=0 anyway)
+        // — switching to the target color directly makes the intent
+        // explicit and easier to tune.
         const ball = this.add.image(0, 0, AssetKeys.Image.PspspsElementBallWhite);
         ball.setDisplaySize(noteSize, noteSize);
-        ball.setTint(liftTowardWhite(this.laneTints[lane]!, BALL_BRIGHTNESS_LIFT));
+        ball.setTint(this.laneTints[lane]!);
         noteContainer.add(ball);
         noteContainer.setDepth(40);
         noteContainer.setVisible(false);
@@ -433,12 +442,10 @@ export class ChartEditor extends Scene {
     const pageChipStyle = {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontStyle: 'bold',
-      fontSize: '15px',
+      fontSize: '11px',
       color: '#1a0a2e',
       backgroundColor: '#ffd34d',
-      padding: { x: 10, y: 3 },
-      stroke: '#1a0a2e',
-      strokeThickness: 2,
+      padding: { x: 6, y: 1 },
     } as const;
     this.pageBreakTopLabel = this.add
       .text(w / 2, topY, '', pageChipStyle)

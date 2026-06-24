@@ -1147,12 +1147,10 @@ export class Game extends Scene {
       .text(cx, laneTopY, `PAGE ${pageIdx + 1}`, {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '15px',
+        fontSize: '11px',
         color: '#1a0a2e',
         backgroundColor: '#ffd34d',
-        padding: { x: 10, y: 3 },
-        stroke: '#1a0a2e',
-        strokeThickness: 2,
+        padding: { x: 6, y: 1 },
       })
       .setOrigin(0.5)
       .setDepth(49);

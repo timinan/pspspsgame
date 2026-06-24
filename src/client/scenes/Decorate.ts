@@ -856,11 +856,16 @@ export class Decorate extends Scene {
     makeBtn(30, '◀', currentPage === 0, -1);
     makeBtn(width - 30, '▶', currentPage === totalPages - 1, 1);
 
+    // Pronounced page indicator — bigger, bold, brighter so the player
+    // can read it at a glance instead of squinting at the tiny grey 10 px.
     const pageLabel = this.add
-      .text(width / 2, y, `page ${currentPage + 1} / ${totalPages}`, {
-        fontFamily: '"Courier New", monospace',
-        fontSize: '10px',
-        color: '#c0a0e6',
+      .text(width / 2, y, `PAGE ${currentPage + 1} / ${totalPages}`, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '14px',
+        color: '#ffd34d',
+        stroke: '#1a0a2e',
+        strokeThickness: 3,
       })
       .setOrigin(0.5);
     this.trayContainer.add(pageLabel);
