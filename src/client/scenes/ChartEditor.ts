@@ -403,12 +403,14 @@ export class ChartEditor extends Scene {
       for (let lane = 0; lane < L.LANE_COUNT; lane++) {
         const cx = this.colCenterXs[lane]!;
 
-        // Cell stroke is a LIGHT overlay (white at 0.32 alpha) so the row
-        // dividers read as a soft highlight on top of the lane wash
-        // rather than a dark line cutting through it.
+        // Flipped per Tim's screenshot: DARK lines, LIGHT surfaces.
+        // Cell fill is transparent so the lane wash (the cat color)
+        // reads clean as the surface; the stroke is a dark indigo at
+        // ~0.65 alpha so the row + column dividers stand out as
+        // distinct dark grid lines instead of soft highlights.
         const panel = this.add
-          .rectangle(cx, cy, this.cellW - 6, this.cellH - 2, 0x0b041a, 0.18)
-          .setStrokeStyle(1, 0xffffff, 0.32)
+          .rectangle(cx, cy, this.cellW - 6, this.cellH - 2, 0x000000, 0)
+          .setStrokeStyle(1, 0x1a0a2e, 0.7)
           .setInteractive({ useHandCursor: true });
         const ls = localStep;
         const ln = lane;
