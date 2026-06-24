@@ -289,14 +289,16 @@ export class Game extends Scene {
       bar.setAlpha(0.78);
       this.laneRects.push(bar as unknown as Phaser.GameObjects.Rectangle);
 
-      // Opaque, VIVID cat-color border around the lane. Border uses
-      // vividBorderColor() to pump the saturation up so the pastel cat
-      // hues read as a confident frame instead of a faint outline.
-      // Stroke width 5 (was 3) so the frame is visually prominent.
-      // Depth 5 so it sits ABOVE the pink-paw overlay (depth 2).
+      // Opaque, vivid cat-color border around the lane. Rect shrunk
+      // by `borderStroke` on each axis so the stroke (which Phaser
+      // centers on the rect edge) sits entirely INSIDE the lane area.
+      // Without this, adjacent lanes' borders extended into each
+      // other and read as one combined 10 px line instead of two
+      // equally-shared cat-color frames.
+      const borderStroke = 5;
       this.add
-        .rectangle(cx, laneTopY + laneH / 2, colW, laneH, 0x000000, 0)
-        .setStrokeStyle(5, vividBorderColor(color), 1)
+        .rectangle(cx, laneTopY + laneH / 2, colW - borderStroke, laneH - borderStroke, 0x000000, 0)
+        .setStrokeStyle(borderStroke, vividBorderColor(color), 1)
         .setDepth(5);
 
       // Sakura-pink toe-bean overlay. Uses the paws-only texture from

@@ -160,32 +160,37 @@ export class Preloader extends Scene {
       ctx.drawImage(srcImage, 0, 0);
       const img = ctx.getImageData(0, 0, w, h);
       const data = img.data;
-      // SATURATION-based extraction (not brightness).
-      // Paws are saturated brown — they have one strong color
-      // channel and one weak one. The bar body is near-white (R≈G≈B
-      // high), the bar's edge gradient is near-grey (R≈G≈B low). All
-      // the false-positive cases that brightness-thresholding kept
-      // sweeping in are unsaturated; ONLY the paws are colored. So
-      // check colorfulness instead of darkness and the right pixels
-      // pop out regardless of how dark or light they are.
-      const SATURATION_THRESHOLD = 0.15;
+      // Combined check — neither brightness alone nor saturation
+      // alone got there cleanly. A pixel counts as a paw if it's
+      // EITHER medium-dark + colored (typical brown paw fill) OR
+      // outright dark (paw outline / dark grey shadow inside a paw).
+      // This catches the full paw shape regardless of whether the
+      // asset's paw browns are saturated or pretty close to grey,
+      // while still leaving the near-white bar body untouched.
+      const BRIGHT_OUTLINE = 130;     // anything this dark = paw
+      const BRIGHT_FILL    = 200;     // medium-dark fill ...
+      const SAT_FILL       = 0.06;    // ... PLUS slight color = paw
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i]!;
         const g = data[i + 1]!;
         const b = data[i + 2]!;
+        const brightness = (r + g + b) / 3;
         const max = Math.max(r, g, b);
         const min = Math.min(r, g, b);
         const saturation = max === 0 ? 0 : (max - min) / max;
-        if (saturation > SATURATION_THRESHOLD) {
-          // Paw pixel — flatten to white so the Phaser tint comes
-          // through clean as a solid color. Alpha is held at the
-          // source value so faint paw edges stay anti-aliased.
+        const isPaw =
+          brightness < BRIGHT_OUTLINE ||
+          (brightness < BRIGHT_FILL && saturation > SAT_FILL);
+        if (isPaw) {
+          // Flatten to opaque white so the Phaser tint comes through
+          // as a solid color. Alpha pinned to 255 explicitly — some
+          // browser image-loading paths leave premultiplied alpha
+          // surprises.
           data[i] = 255;
           data[i + 1] = 255;
           data[i + 2] = 255;
+          data[i + 3] = 255;
         } else {
-          // Bar body / edge / frame — all unsaturated. Transparent so
-          // the cat-color layer beneath shows through.
           data[i + 3] = 0;
         }
       }
