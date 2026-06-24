@@ -61,18 +61,20 @@ const PRESETS: Record<BackingVibe, TapPreset> = {
 const DEFAULT_VIBE: BackingVibe = 'upbeat';
 
 /**
- * Miss buzz — short low sawtooth that sits well under the song.
- * Goal is "you notice it" without "ouch don't tap there". Sawtooth
- * gives the buzzy harmonic content that classically reads as "wrong";
- * 120 Hz puts it in the sub-bass / kick range so it doesn't compete
- * with mid melodies or the per-lane tap notes; low gain keeps it
- * polite.
+ * Miss buzz — short sawtooth in the buzzy mid-range so it reads as
+ * "wrong" on any device. 120 Hz / 0.09 gain (the first attempt) was
+ * inaudible on laptop speakers, which roll off hard below ~150 Hz;
+ * 220 Hz puts the fundamental in the bass-guitar / kick-pluck range
+ * that every speaker reproduces cleanly. Gain bumped to 0.30 so the
+ * buzz registers without being abrasive. Sawtooth's harmonic stack
+ * (220 / 440 / 660 / 880 …) means there's always something in any
+ * speaker's bandwidth.
  */
 const MISS_PRESET = {
   waveform: 'sawtooth' as OscillatorType,
-  freqHz: 120,
-  releaseSec: 0.16,
-  peakGain: 0.09,
+  freqHz: 220,
+  releaseSec: 0.2,
+  peakGain: 0.3,
 };
 
 export class NoteSynth {
