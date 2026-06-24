@@ -52,7 +52,11 @@ export class DressingRoom extends Scene {
     const { width, height } = this.scale;
 
     const modalW = Math.min(width * 0.86, 420);
-    const modalH = Math.min(height * 0.78, 620);
+    // Was height * 0.78 — that came out to ~452 on the 580 design height
+    // and the bottom row of the cosmetic grid landed right on top of the
+    // pagination strip. height - 36 leaves a thin border above/below the
+    // modal and still caps at 620 so it can't blow up on a tall canvas.
+    const modalH = Math.min(height - 36, 620);
     const modalX = (width - modalW) / 2;
     const modalY = (height - modalH) / 2;
     const cx = width / 2;
@@ -152,11 +156,16 @@ export class DressingRoom extends Scene {
     this.renderSlotTabs();
 
     // Grid container — filtered by activeSlot, showing AVAILABLE cosmetics only.
-    this.gridContainer = this.add.container(0, this.heroSprite.y + 130);
+    const gridTop = this.heroSprite.y + 130;
+    this.gridContainer = this.add.container(0, gridTop);
     this.renderGrid();
 
-    // Pagination pinned to the bottom of the modal.
-    const paginationY = modalY + modalH - 24;
+    // Pagination anchored below the grid (not the modal) so the strip
+    // never overlaps the bottom row of cosmetics when the modal is
+    // shorter than the content's ideal height. The grid is 4 rows of
+    // 48 px cells with 8 px gaps → 216 px, plus 24 px breathing room.
+    const gridContentH = 4 * 48 + 3 * 8;
+    const paginationY = Math.min(gridTop + gridContentH + 24, modalY + modalH - 18);
     this.pageLabel = this.add
       .text(cx, paginationY, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',

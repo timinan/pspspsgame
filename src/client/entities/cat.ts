@@ -32,6 +32,11 @@ const ANIMATION_REPEATS_PER_STEP = 1;
  *  cat a beat to "reset" before the next animation kicks in so the
  *  paw-down → mouth-open transition doesn't read as a jump cut. */
 const CELEBRATION_BRIDGE_MS = 280;
+/** How often the equipped effect pulses brighter during the celebration.
+ *  Each pulse spikes intensity to HIT then decays back to REST over
+ *  ~600 ms, so a 1.1 s interval produces a "normal → pronounced →
+ *  normal → pronounced" rhythm the player can clearly see. */
+const CELEBRATION_PULSE_MS = 1100;
 
 /**
  * Pull the parent cosmetic id out of a tint variant's sourceFrame string
@@ -72,6 +77,7 @@ export class Cat {
   private revertTimer: Phaser.Time.TimerEvent | undefined;
   private celebrating = false;
   private celebrationStep = 0;
+  private celebrationPulseTimer: Phaser.Time.TimerEvent | undefined;
   /** Cached resting scale (from model.scale). Animations multiply this so a
    *  1.4× cat doesn't snap back to 1× when playIdle / playMeow tween scaleX. */
   private readonly baseScale: number;
@@ -290,6 +296,17 @@ export class Cat {
     this.sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
     this.celebrating = true;
     this.celebrationStep = 0;
+    // Kick off the equipped-effect pulse loop. pulseEffectHit fires the
+    // intensity spike + decay, so a recurring timer produces a steady
+    // alternation between resting and pronounced for the duration of
+    // the celebration.
+    this.celebrationPulseTimer?.remove(false);
+    this.celebrationPulseTimer = this.scene.time.addEvent({
+      delay: CELEBRATION_PULSE_MS,
+      loop: true,
+      startAt: CELEBRATION_PULSE_MS, // fire the first pulse immediately
+      callback: () => this.pulseEffectHit(),
+    });
     this.scene.tweens.add({
       targets: this.sprite,
       scaleX: this.baseScale,
@@ -359,6 +376,8 @@ export class Cat {
   destroy(): void {
     this.cancelRevert();
     this.celebrating = false;
+    this.celebrationPulseTimer?.remove(false);
+    this.celebrationPulseTimer = undefined;
     // sprite.off without an event name pulls every listener including
     // the celebration's ANIMATION_COMPLETE chain — safer than tracking
     // the listener handle ourselves through cycle restarts.
