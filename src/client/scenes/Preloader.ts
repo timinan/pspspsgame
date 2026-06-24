@@ -95,6 +95,14 @@ export class Preloader extends Scene {
     // would shift when the font finishes loading.
     await this.loadFontsOrTimeout(2500);
 
+    // Extract a paws-only mask from the bar texture. Phaser's setTint
+    // tints all pixels uniformly, so blend tricks can't isolate the
+    // dark paw shapes from the light bar background. Reading pixel
+    // data lets us keep only the dark pixels and emit them as a new
+    // texture which Game.drawLanes overlays on top of the cat-colored
+    // bar as a solid-pink layer.
+    this.generatePawsOnlyTexture();
+
     // Register all cat animations globally so every downstream scene
     // (Game, Decorate, DressingRoom, Purchase) can play them without each
     // scene needing its own lazy-registration pass. The Cat entity's
@@ -123,6 +131,60 @@ export class Preloader extends Scene {
       // they're ready. (Fresh state seeds 3 cats + seats them so this
       // works immediately without an empty Decorate screen.)
       this.scene.start(SceneKeys.Decorate, { playerState });
+    }
+  }
+
+  /** Build a paws-only mask from the bar-background texture. Pixels
+   *  darker than `paw threshold` are turned WHITE (so any tint reads
+   *  cleanly), pixels brighter become fully transparent. Game.drawLanes
+   *  renders this as a pink-tinted overlay on top of the cat-color bar
+   *  so the toe beans read SOLID pink instead of a darkened shade of
+   *  the cat color.
+   *
+   *  Registered under 'rhythm-bar-paws'. Safe to no-op (try/catch) on
+   *  any failure — the lane still falls back to the existing texture
+   *  with no pink overlay, just no toe-bean color call-out. */
+  private generatePawsOnlyTexture(): void {
+    const KEY = 'rhythm-bar-paws';
+    if (this.textures.exists(KEY)) return;
+    try {
+      const source = this.textures.get(AssetKeys.Image.RhythmBarBackgroundWhite);
+      const srcImage = source.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+      const w = srcImage.width;
+      const h = srcImage.height;
+      if (!w || !h) return;
+      const canvas = this.textures.createCanvas(KEY, w, h);
+      if (!canvas) return;
+      const ctx = canvas.getContext();
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(srcImage, 0, 0);
+      const img = ctx.getImageData(0, 0, w, h);
+      const data = img.data;
+      // Anything noticeably darker than the bar's white reads as a paw.
+      // Threshold tuned so faint anti-aliased paw edges still count.
+      const PAW_THRESHOLD = 200;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i]!;
+        const g = data[i + 1]!;
+        const b = data[i + 2]!;
+        const brightness = (r + g + b) / 3;
+        if (brightness < PAW_THRESHOLD) {
+          // Paw pixel — flatten to white so the Phaser tint comes
+          // through clean as a solid color. Alpha is held at the
+          // source value so faint paw edges stay anti-aliased.
+          data[i] = 255;
+          data[i + 1] = 255;
+          data[i + 2] = 255;
+        } else {
+          // Bar pixel — fully transparent so the cat-color layer
+          // beneath shows through unchanged.
+          data[i + 3] = 0;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      canvas.refresh();
+    } catch (err) {
+      console.warn('[Preloader] paws-only texture build failed:', err);
     }
   }
 

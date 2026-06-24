@@ -1,4 +1,4 @@
-import { Scene, Scenes, BlendModes } from 'phaser';
+import { Scene, Scenes } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { Cat } from '@/entities/cat';
 import { Note } from '@/entities/note';
@@ -285,21 +285,19 @@ export class Game extends Scene {
       bar.setAlpha(0.95);
       this.laneRects.push(bar as unknown as Phaser.GameObjects.Rectangle);
 
-      // Pink toe-bean overlay — second copy of the same texture, tinted
-      // bright pink, laid on top at full alpha in SCREEN blend. Screen
-      // at α=1 leaves white pixels of the bar essentially untouched
-      // (1 - (1-white)(1-pink) ≈ white) while pushing the dark paw
-      // pixels all the way up to bright solid pink. Net result: bar
-      // stays cat-colored, every toe-bean reads as a saturated solid
-      // pink shape on top. (Lower alphas read as a subtle pink wash —
-      // Tim wants the paws SOLID, not tinted.)
-      const paws = this.add.image(cx, laneTopY + laneH / 2, AssetKeys.Image.RhythmBarBackgroundWhite);
-      paws.displayWidth = laneH;
-      paws.displayHeight = colW;
-      paws.setRotation(-Math.PI / 2);
-      paws.setTint(0xff4fb0);
-      paws.setAlpha(1);
-      paws.setBlendMode(BlendModes.SCREEN);
+      // Solid-pink toe-bean overlay. Uses the paws-only texture built
+      // by Preloader.generatePawsOnlyTexture — the bar background is
+      // already transparent in that texture, so a plain pink tint at
+      // full alpha paints just the paw shapes solid pink on top of the
+      // cat-colored bar beneath. No blend mode trickery needed.
+      if (this.textures.exists(AssetKeys.Image.RhythmBarPaws)) {
+        const paws = this.add.image(cx, laneTopY + laneH / 2, AssetKeys.Image.RhythmBarPaws);
+        paws.displayWidth = laneH;
+        paws.displayHeight = colW;
+        paws.setRotation(-Math.PI / 2);
+        paws.setTint(0xff4fb0);
+        paws.setAlpha(1);
+      }
 
       // Hit target at the bottom of the lane — the original "fuzzy ball"
       // target from horizontal rhythm. Notes get consumed when they reach it.

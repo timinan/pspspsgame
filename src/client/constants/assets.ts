@@ -13,6 +13,12 @@ export const AssetKeys = {
      *  sampled bg tints render true instead of multiplying through the
      *  prototype's saturated original. */
     RhythmBarBackgroundWhite: 'rhythm-bar-background-white',
+    /** Paws-only mask extracted from RhythmBarBackgroundWhite at scene
+     *  init. Bar background is fully transparent; paw shapes are white
+     *  so any tint applies as a solid color. Layered on top of the
+     *  cat-color bar so toe beans read as SOLID pink instead of a
+     *  darkened multiply of the cat color. Generated in Preloader. */
+    RhythmBarPaws: 'rhythm-bar-paws',
     PspspsTarget: 'pspsps-target',
     /** White-base hit target — same reason as above. Game tints this
      *  with the sampled lane color so the targets visually anchor each

@@ -385,39 +385,70 @@ export class Cat {
     this.sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
     this.celebrating = false;
     this.celebrationPulseTimer?.remove(false);
-    // Loop the hiss animation. Falls back to idle if the breed has no
-    // hiss frames so we still cancel the cheerful cycle even on
-    // catalog churn.
+
+    const idleKey = Cat.animationKey(this.model.breed, 'idle');
     const hissKey = Cat.animationKey(this.model.breed, 'hiss');
+    this.ensureAnimation(this.model.breed, 'idle');
     this.ensureAnimation(this.model.breed, 'hiss');
-    if (this.scene.anims.exists(hissKey)) {
-      this.sprite.play({ key: hissKey, repeat: -1 });
-      this.model.animation = 'hiss';
-      this.playCosmeticAnimation('hiss');
-    } else {
-      const idleKey = Cat.animationKey(this.model.breed, 'idle');
-      if (this.scene.anims.exists(idleKey)) {
-        this.sprite.play({ key: idleKey, repeat: -1 });
-      }
+
+    // Tim's note: the failure animation should READ as a transition
+    // from bright/idle to dim/hiss, not just a snap into hiss.
+    //   Phase 1 — idle, full color, normal scale for ~450 ms.
+    //   Phase 2 — tween toward sad pink tint + slight shrink while
+    //             swapping to hiss looped.
+    if (this.scene.anims.exists(idleKey)) {
+      this.sprite.play({ key: idleKey, repeat: -1 });
+      this.model.animation = 'idle';
+      this.playCosmeticAnimation('idle');
     }
-    // Sad-pink tint on the sprite. Slightly shrink to read as the cat
-    // pulling away.
+    this.sprite.clearTint();
     this.scene.tweens.add({
       targets: this.sprite,
-      scaleX: this.baseScale * 0.95,
-      scaleY: this.baseScale * 0.95,
-      duration: 200,
+      scaleX: this.baseScale,
+      scaleY: this.baseScale,
+      duration: 120,
     });
-    this.sprite.setTint(0xff9aa0);
-    // Keep dimming the effect on a loop so the aura/particles read as
-    // visibly droopy for the whole summary screen. Reuses the
-    // pulseEffectMiss path the per-tap miss already uses.
-    this.celebrationPulseTimer?.remove(false);
-    this.celebrationPulseTimer = this.scene.time.addEvent({
-      delay: CELEBRATION_PULSE_MS,
-      loop: true,
-      startAt: CELEBRATION_PULSE_MS,
-      callback: () => this.pulseEffectMiss(),
+
+    const transitionDelay = 450;
+    this.scene.time.delayedCall(transitionDelay, () => {
+      if (!this.scene) return;
+      if (this.scene.anims.exists(hissKey)) {
+        this.sprite.play({ key: hissKey, repeat: -1 });
+        this.model.animation = 'hiss';
+        this.playCosmeticAnimation('hiss');
+      }
+      // Fade the tint in over ~300 ms so the dimming reads as a
+      // gradual mood shift rather than a flash.
+      const targetTint = Phaser.Display.Color.IntegerToColor(0xff9aa0);
+      const tintTween = { v: 0 };
+      this.scene.tweens.add({
+        targets: tintTween,
+        v: 1,
+        duration: 320,
+        onUpdate: () => {
+          const t = tintTween.v;
+          const r = Math.round(255 * (1 - t) + targetTint.red * t);
+          const g = Math.round(255 * (1 - t) + targetTint.green * t);
+          const b = Math.round(255 * (1 - t) + targetTint.blue * t);
+          this.sprite.setTint((r << 16) | (g << 8) | b);
+        },
+      });
+      this.scene.tweens.add({
+        targets: this.sprite,
+        scaleX: this.baseScale * 0.95,
+        scaleY: this.baseScale * 0.95,
+        duration: 320,
+      });
+      // Start dimming the effect on a loop now that we've committed
+      // to the disappointed pose. pulseEffectMiss reuses the per-tap
+      // miss path so the aura / particles droop visibly.
+      this.celebrationPulseTimer?.remove(false);
+      this.celebrationPulseTimer = this.scene.time.addEvent({
+        delay: CELEBRATION_PULSE_MS,
+        loop: true,
+        startAt: CELEBRATION_PULSE_MS,
+        callback: () => this.pulseEffectMiss(),
+      });
     });
   }
 

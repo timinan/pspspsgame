@@ -679,14 +679,15 @@ export class Decorate extends Scene {
       const seatedSeat = SEAT_ORDER.find((sid) => seatedCats[sid] === catInstance.id);
       const isSeated = Boolean(seatedSeat);
 
-      // Borderless on unseated cats — matches the dressing room cell
-      // treatment (Tim's rule: no border by default, highlight on the
-      // ACTIVE state only). Seated cats keep the yellow ring so the
-      // current stage lineup still pops.
+      // Match the dressing room cell treatment exactly: dim purple
+      // stroke on unseated / inactive thumbs, yellow ring (full alpha)
+      // when seated. Seated state ALSO bumps the fill alpha slightly so
+      // the active pick really pops, mirroring DressingRoom's tabs.
       const thumb = this.add
         .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, 0x0b041a, 0.6)
         .setInteractive({ useHandCursor: true });
       if (isSeated) thumb.setStrokeStyle(2, 0xffd34d, 1);
+      else thumb.setStrokeStyle(2, 0xc0a0e6, 0.35);
 
       const { frame, tint } = catThumbFrame(catEntry);
       // Reserve enough at the bottom for a two-line wrapped name label —
@@ -944,11 +945,12 @@ export class Decorate extends Scene {
             .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, 0x3b2a5c, 1)
             .setInteractive({ useHandCursor: true });
 
-      const border = isActive
-        ? this.add
-            .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, 0x000000, 0)
-            .setStrokeStyle(2, 0x4dffb4, 1)
-        : null;
+      // Match dressing-room cells: dim purple stroke when inactive,
+      // green ring when active. Border is always rendered now so the
+      // grid reads as a unified set of cells.
+      const border = this.add
+        .rectangle(x + thumbW / 2, y + thumbH / 2, thumbW, thumbH, 0x000000, 0)
+        .setStrokeStyle(2, isActive ? 0x4dffb4 : 0xc0a0e6, isActive ? 1 : 0.35);
 
       // Bigger than the 7px stub — backdrop labels read at 11px now and
       // wrap into the cell width if the name is too long for one line.
@@ -964,7 +966,7 @@ export class Decorate extends Scene {
       }).setOrigin(0.5, 1);
 
       this.trayContainer.add([thumb, label]);
-      if (border) this.trayContainer.add(border);
+      this.trayContainer.add(border);
 
       if (isActive) {
         const badge = this.add.circle(x + thumbW - 6, y + 6, 7, 0x4dffb4, 1);
