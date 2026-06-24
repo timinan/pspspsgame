@@ -81,4 +81,9 @@ export const Balance = {
   pointsPerfect: 100,
   pointsGreat: 50,
   catReactionMs: 500,
+  // Rehearsal pass gate. Author must hit at least this accuracy on their
+  // own chart (in editor → REHEARSE / testMode) before they're allowed to
+  // PUT ON A SHOW (post the chart). Stops players from posting charts
+  // that nobody — including themselves — can play.
+  passAccuracyPct: 75,
 } as const;

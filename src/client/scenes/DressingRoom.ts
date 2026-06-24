@@ -7,11 +7,12 @@ import { parentIdFor } from '@/entities/cat';
 import { CAT_EFFECT_BY_ID, type EffectHandle } from '@/effects/cat-effects';
 import type { PlayerState, OwnedCosmetic } from '@/../shared/state';
 
-// 2 cols × 2 rows = 4 visible cells; last slot is the ✕ "clear slot"
-// tile, so up to 3 cosmetics fit per page. Cells are 2× wider + taller
-// than the prior 5×4 layout (≈ 4× area) so the cosmetic asset reads
-// clearly and the name has room to wrap to a second line.
-const COSMETICS_PER_PAGE = 3;
+// 3 cols × 3 rows = 9 visible cells; last slot is the ✕ "clear slot"
+// tile, so up to 8 cosmetics fit per page. Cells are a middle ground
+// between the original 48 px grid and the briefly-tried 104 px grid —
+// big enough to read the asset + name clearly, small enough to keep
+// the page count low and let the modal envelope grow only modestly.
+const COSMETICS_PER_PAGE = 8;
 const SLOT_TABS: { key: string; label: string }[] = [
   { key: 'head', label: 'HEAD' },
   { key: 'face', label: 'FACE' },
@@ -61,10 +62,10 @@ export class DressingRoom extends Scene {
     // change to those numbers needs to be reflected here too.
     const HERO_OFFSET_Y = 110;
     const GRID_OFFSET_FROM_HERO = 130;
-    // 2 rows × 104 + 1 × 8 gap = 216 — coincidentally the same height
-    // as the prior 4×48 grid, so the modal envelope didn't move when the
-    // cells got bigger.
-    const GRID_CONTENT_H = 2 * 104 + 1 * 8;
+    // 3 rows × 76 + 2 × 8 = 244. Slightly taller than the original
+    // 4×48 grid (216) — the modal grows by ~30 px to accommodate the
+    // bigger, more readable cells without going off-screen.
+    const GRID_CONTENT_H = 3 * 76 + 2 * 8;
     const PAGINATION_GAP_FROM_GRID = 24;
     const BOTTOM_PADDING = 24;
     const contentH =
@@ -340,25 +341,48 @@ export class DressingRoom extends Scene {
       return slot === this.activeSlot;
     });
 
-    const start = this.page * COSMETICS_PER_PAGE;
-    const slice = ownedInSlot.slice(start, start + COSMETICS_PER_PAGE);
-    // 2×2 cells, each 104px, 8px gap. Image sits in the top ~62% of the
-    // cell; the label sits below, wraps to a second line if needed, and
-    // is hard-capped at 2 lines so a long name can't push the layout.
-    const cellSize = 104;
-    const gap = 8;
-    const cols = 2;
-    const visibleRows = 2;
-    const gridStartX = (this.scale.width - (cellSize * cols + gap * (cols - 1))) / 2;
-    const imageYOffset = -20;          // image sits in the upper portion of the cell
-    const labelYOffset = 28;           // label drops below the image
-    const labelFontSize = 10;
-    const labelWrapWidth = cellSize - 14;
-    const labelMaxLines = 2;
-
-    // The currently-equipped cosmetic in this slot (instance id).
+    // Currently-equipped cosmetic in this slot (instance id + type id).
+    // We include it in the display list alongside non-equipped owned
+    // cosmetics so the grid order stays stable: equipping/unequipping
+    // doesn't shift other items around. The equipped one is highlighted
+    // and tapping it toggles back to unequipped.
     const equippedSlots = this.playerState.equippedCosmetics[this.catInstanceId] ?? {};
     const equippedInstanceId = equippedSlots[this.activeSlot];
+    let equippedItem: OwnedCosmetic | null = null;
+    if (equippedInstanceId) {
+      const type = this.playerState.equippedCosmeticTypes?.[equippedInstanceId];
+      if (type) {
+        const eqCos = COSMETIC_CATALOG.find((c) => c.id === type);
+        if (eqCos?.slot === this.activeSlot) {
+          equippedItem = { id: equippedInstanceId, type };
+        }
+      }
+    }
+
+    // Merge + sort by instance id so the order is deterministic and
+    // doesn't shuffle between renders (equip / unequip preserved).
+    const merged: OwnedCosmetic[] = equippedItem
+      ? [equippedItem, ...ownedInSlot]
+      : [...ownedInSlot];
+    merged.sort((a, b) => a.id.localeCompare(b.id));
+
+    const start = this.page * COSMETICS_PER_PAGE;
+    const slice = merged.slice(start, start + COSMETICS_PER_PAGE);
+
+    // Middle-ground sizing — 3×3 cells of 76 px each; 8 px gap. Bigger
+    // than the original 5×4×48 but smaller than the briefly-tried
+    // 2×2×104. The image takes the upper portion of the cell, the label
+    // sits below in a 9 px font. Labels wrap to whatever the wordWrap
+    // width allows (no maxLines — Tim wanted no trailing "..." dot).
+    const cellSize = 76;
+    const gap = 8;
+    const cols = 3;
+    const visibleRows = 3;
+    const gridStartX = (this.scale.width - (cellSize * cols + gap * (cols - 1))) / 2;
+    const imageYOffset = -14;
+    const labelYOffset = 22;
+    const labelFontSize = 9;
+    const labelWrapWidth = cellSize - 10;
 
     slice.forEach((cosItem, i) => {
       const cos = COSMETIC_CATALOG.find((c) => c.id === cosItem.type);
@@ -378,7 +402,7 @@ export class DressingRoom extends Scene {
       const effect = CAT_EFFECT_BY_ID[cosItem.type];
       if (effect) {
         const icon = this.add
-          .text(x, y + imageYOffset, effect.iconEmoji, { fontSize: '46px' })
+          .text(x, y + imageYOffset, effect.iconEmoji, { fontSize: '32px' })
           .setOrigin(0.5);
         const label = this.add
           .text(x, y + labelYOffset, effect.name, {
@@ -388,7 +412,6 @@ export class DressingRoom extends Scene {
             color: '#ffffff',
             align: 'center',
             wordWrap: { width: labelWrapWidth },
-            maxLines: labelMaxLines,
           })
           .setOrigin(0.5);
         this.gridContainer.add([icon, label]);
@@ -397,9 +420,7 @@ export class DressingRoom extends Scene {
         const frame = `cosmetic_${renderId}_idle_00`;
         const sprite = this.add
           .sprite(x, y + imageYOffset, AssetKeys.Atlas.Cosmetics, frame)
-          // 2× the old 0.7 scale to match the cell's 4× area. Effect
-          // emojis bumped to fontSize 46 above for the same reason.
-          .setScale(1.5);
+          .setScale(1.05);
         if (cos.tint) {
           sprite.setTint(parseInt(cos.tint.replace('#', ''), 16));
         }
@@ -411,13 +432,20 @@ export class DressingRoom extends Scene {
             color: '#ffffff',
             align: 'center',
             wordWrap: { width: labelWrapWidth },
-            maxLines: labelMaxLines,
           })
           .setOrigin(0.5);
         this.gridContainer.add([sprite, label]);
       }
 
-      bg.on('pointerdown', () => this.equipInSlot(cosItem));
+      // Tap behavior:
+      //  - Tapping an unequipped cosmetic → equip it
+      //  - Tapping the currently-equipped cosmetic → unequip it (toggle)
+      // This matches Tim's request for a "click again to unselect"
+      // pattern that mirrors the song picker's select/deselect.
+      bg.on('pointerdown', () => {
+        if (isEquipped) this.equipInSlot(null);
+        else this.equipInSlot(cosItem);
+      });
     });
 
     // ✕ "clear slot" tile fills whatever cell sits after the last
@@ -437,7 +465,7 @@ export class DressingRoom extends Scene {
         .text(x, y + imageYOffset, '✕', {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '40px',
+          fontSize: '28px',
           color: '#ffffff',
         })
         .setOrigin(0.5);
@@ -541,11 +569,23 @@ export class DressingRoom extends Scene {
   }
 
   private countOwnedInSlot(): number {
-    return this.playerState.ownedCosmetics.filter((cosItem) => {
+    let count = this.playerState.ownedCosmetics.filter((cosItem) => {
       const cos = COSMETIC_CATALOG.find((c) => c.id === cosItem.type);
       const slot = cos?.slot ?? 'head';
       return slot === this.activeSlot;
     }).length;
+    // The equipped cosmetic for this slot lives outside ownedCosmetics
+    // but is shown in the grid (stable order), so include it here so
+    // pagination math matches what renderGrid actually displays.
+    const equippedInstanceId = this.playerState.equippedCosmetics[this.catInstanceId]?.[this.activeSlot];
+    if (equippedInstanceId) {
+      const type = this.playerState.equippedCosmeticTypes?.[equippedInstanceId];
+      if (type) {
+        const eqCos = COSMETIC_CATALOG.find((c) => c.id === type);
+        if (eqCos?.slot === this.activeSlot) count += 1;
+      }
+    }
+    return count;
   }
 
   private changePage(delta: number): void {

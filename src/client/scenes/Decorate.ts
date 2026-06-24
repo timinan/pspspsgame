@@ -455,7 +455,7 @@ export class Decorate extends Scene {
       items: [
         {
           label: 'REHEARSE',
-          description: 'Practice your show',
+          description: 'Practice your meowcert',
           icon: '🎵',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
@@ -473,8 +473,8 @@ export class Decorate extends Scene {
           onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
         },
         {
-          label: 'VISIT SHOWS',
-          description: 'Other players\' shows',
+          label: 'VISIT MEOWCERTS',
+          description: 'Other players\' meowcerts',
           icon: '🎪',
           onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
         },

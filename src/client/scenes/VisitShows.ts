@@ -33,7 +33,7 @@ export class VisitShows extends Scene {
       items: [
         {
           label: 'REHEARSE',
-          description: 'Practice your show',
+          description: 'Practice your meowcert',
           icon: '🎵',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
@@ -90,7 +90,7 @@ export class VisitShows extends Scene {
       .text(
         cx,
         cy + 28,
-        'Browse other players\' shows and jump straight into their reddit post.',
+        'Browse other players\' meowcerts and jump straight into their reddit post.',
         {
           ...fontBase,
           fontSize: '11px',

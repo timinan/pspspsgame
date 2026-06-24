@@ -58,7 +58,7 @@ export class Purchase extends Scene {
       items: [
         {
           label: 'REHEARSE',
-          description: 'Practice your show',
+          description: 'Practice your meowcert',
           icon: '🎵',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
@@ -75,8 +75,8 @@ export class Purchase extends Scene {
           onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
         },
         {
-          label: 'VISIT SHOWS',
-          description: 'Other players\' shows',
+          label: 'VISIT MEOWCERTS',
+          description: 'Other players\' meowcerts',
           icon: '🎪',
           onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
         },

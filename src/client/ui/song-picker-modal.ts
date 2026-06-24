@@ -105,19 +105,12 @@ export class SongPickerModal {
     // Decide which step to open on. If caller passed an initial audioKey
     // that's in the catalog, jump straight to the song list scrolled to
     // its page so the player sees their current pick highlighted.
-    // chart.audioKey is the catalog id (e.g. 'neon-dash'). Look it up
-    // and jump straight to the song list scrolled to that song's page.
-    const initialEntry = args.initial?.audioKey
-      ? BACKING_CATALOG[args.initial.audioKey]
-      : undefined;
-    if (initialEntry) {
-      this.selectedAudioKey = initialEntry.id;
-      this.showSongList(initialEntry.vibe);
-    } else if (args.initial?.vibe && availableVibes.includes(args.initial.vibe)) {
-      this.showSongList(args.initial.vibe);
-    } else {
-      this.showVibeStep(availableVibes);
-    }
+    // Always land on the vibe step — Tim's rule: don't pre-jump based on
+    // previous selection, the player picks fresh each time. `args.initial`
+    // is now only used inside the song list to highlight the previously
+    // chosen song when the user navigates to its vibe; selection state is
+    // NOT carried across modal opens.
+    this.showVibeStep(availableVibes);
   }
 
   close(): void {
@@ -144,6 +137,9 @@ export class SongPickerModal {
   private showVibeStep(vibes: BackingVibe[]): void {
     if (!this.container) return;
     this.clearStepChildren();
+    // Reset selectedVibe so re-picking the SAME vibe after a BACK also
+    // counts as "entering anew" and resets pagination.
+    this.selectedVibe = null;
     if (this.subtitleText) this.subtitleText.setText('Choose a vibe');
 
     const { width, height } = this.scene.scale;
@@ -196,25 +192,16 @@ export class SongPickerModal {
       this.showVibeStep(this.availableVibes());
       return;
     }
-    // Only auto-seek to the selected song's page when the user is just
-    // arriving at this song list (vibe step → song list, or initial open
-    // with a pre-set audioKey). Re-rendering the same list (e.g. after a
-    // pager click or a row tap) MUST preserve `this.page` — otherwise
-    // tapping ▶ would snap back to the selection's page and pagination
-    // appears broken.
+    // Per-vibe pagination: every transition from the vibe step into a
+    // song list resets the page to 0. Tim's rule: pages should be
+    // independent between vibes; clicking ▶ on melodic shouldn't pre-
+    // advance upbeat. Re-renders within the same list (pager click, row
+    // tap, preview toggle) preserve `this.page`.
     if (enteringSongList) {
-      if (this.selectedAudioKey) {
-        const idx = this.candidates.findIndex((b) => b.id === this.selectedAudioKey);
-        if (idx >= 0) {
-          this.page = Math.floor(idx / SONGS_PER_PAGE);
-        } else {
-          // Selection doesn't exist in the new vibe's candidates — drop
-          // it and reset to page 0 so the list opens clean.
-          this.selectedAudioKey = null;
-          this.page = 0;
-        }
-      } else {
-        this.page = 0;
+      this.page = 0;
+      // Drop selection if it doesn't belong to this vibe's candidates.
+      if (this.selectedAudioKey && !this.candidates.some((b) => b.id === this.selectedAudioKey)) {
+        this.selectedAudioKey = null;
       }
     }
 
@@ -436,6 +423,13 @@ export class SongPickerModal {
     cb?.(result);
   }
 
+  /** Every audio key we've ever started a preview for. Used by
+   *  stopPreview to nuke orphans — Phaser's scene-level sound manager
+   *  keeps Sound instances alive even after our `previewSound` ref is
+   *  null'd, and rapid preview/select cycles plus async loader callbacks
+   *  could otherwise leak a playing preview into the rehearsal scene. */
+  private startedKeys = new Set<string>();
+
   private startPreview(): void {
     this.stopPreview();
     if (!this.selectedAudioKey) return;
@@ -448,6 +442,7 @@ export class SongPickerModal {
         volume: PREVIEW_VOLUME,
       });
       this.previewSound = sound;
+      this.startedKeys.add(entry.audioKey);
       sound.play();
     };
     if (this.scene.cache.audio.exists(entry.audioKey)) {
@@ -466,9 +461,21 @@ export class SongPickerModal {
 
   private stopPreview(): void {
     if (this.previewSound) {
-      this.previewSound.stop();
-      this.previewSound.destroy();
+      try { this.previewSound.stop(); } catch {}
+      try { this.previewSound.destroy(); } catch {}
       this.previewSound = null;
     }
+    // Defense in depth: also kill ANY scene-level sounds for keys we
+    // ever previewed — covers orphans from rapid retap or late loader
+    // callbacks that could spawn a fresh Sound after `previewSound`
+    // was already cleared.
+    for (const key of this.startedKeys) {
+      const matches = this.scene.sound.getAll(key);
+      for (const s of matches) {
+        try { s.stop(); } catch {}
+        try { s.destroy(); } catch {}
+      }
+    }
+    this.startedKeys.clear();
   }
 }

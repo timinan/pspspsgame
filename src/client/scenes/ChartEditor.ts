@@ -289,7 +289,7 @@ export class ChartEditor extends Scene {
       items: [
         {
           label: 'REHEARSE',
-          description: 'Practice your show',
+          description: 'Practice your meowcert',
           icon: '🎵',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
@@ -306,8 +306,8 @@ export class ChartEditor extends Scene {
           onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
         },
         {
-          label: 'VISIT SHOWS',
-          description: 'Other players\' shows',
+          label: 'VISIT MEOWCERTS',
+          description: 'Other players\' meowcerts',
           icon: '🎪',
           onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
         },
@@ -462,7 +462,7 @@ export class ChartEditor extends Scene {
       .rectangle(tryX, barCenterY, btnW, btnH, 0xffd34d, 1)
       .setInteractive({ useHandCursor: true });
     this.tryBtnText = this.add
-      .text(tryX, barCenterY, 'TRY', {
+      .text(tryX, barCenterY, 'REHEARSE', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '14px',
@@ -583,7 +583,7 @@ export class ChartEditor extends Scene {
     this.time.delayedCall(900, () => {
       if (!this.scene.isActive()) return;
       this.tryBtnBg.setFillStyle(0xffd34d, 1);
-      this.tryBtnText.setText('TRY');
+      this.tryBtnText.setText('REHEARSE');
     });
   }
 
