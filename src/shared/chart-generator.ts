@@ -2,6 +2,7 @@ import {
   CHART_PAGE_SIZE,
   type Chart,
   type ChartStep,
+  type Hold,
   type LaneId,
   type BackingVibe,
 } from './state';
@@ -18,16 +19,22 @@ export type GenDifficulty = 'easy' | 'medium' | 'hard';
  *   chord3Chance  — given a firing step, fraction that fire on all 3
  *   minGapSteps   — minimum empty steps between any two firing steps
  *                   (prevents accidental triplet bursts on easy)
+ *   holdChance    — given a generated tap, fraction promoted to a hold
+ *   holdMinSteps  — minimum hold duration in steps (inclusive)
+ *   holdMaxSteps  — maximum hold duration in steps (inclusive)
  */
 const PROFILES: Record<GenDifficulty, {
   density: number;
   chord2Chance: number;
   chord3Chance: number;
   minGapSteps: number;
+  holdChance: number;
+  holdMinSteps: number;
+  holdMaxSteps: number;
 }> = {
-  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2 },
-  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1 },
-  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0 },
+  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.00, holdMinSteps: 2, holdMaxSteps: 3 },
+  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4 },
+  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6 },
 };
 
 /** Round a target step count UP to the nearest multiple of CHART_PAGE_SIZE.
@@ -107,6 +114,41 @@ export function generateChart(args: {
     stepsSinceLastFire = 0;
   }
 
+  // Second pass — promote a fraction of generated taps into holds. Done
+  // post-hoc so the tap-density profile stays predictable. A hold strips
+  // any subsequent taps it would overlap in the same lane (keeps the
+  // schema invariant: no tap on a hold's range, no overlapping holds).
+  // Easy = 0% chance, so this loop is a no-op there.
+  const holds: Hold[] = [];
+  if (profile.holdChance > 0) {
+    for (let i = 0; i < stepCount; i++) {
+      const step = steps[i]!;
+      // Snapshot lanes — we may splice during the loop.
+      for (const lane of [...step.lanes]) {
+        if (rng() >= profile.holdChance) continue;
+        const range = profile.holdMaxSteps - profile.holdMinSteps;
+        const durationSteps = profile.holdMinSteps + Math.floor(rng() * (range + 1));
+        let endStep = i + durationSteps;
+        if (endStep >= stepCount) endStep = stepCount - 1;
+        if (endStep <= i) continue;
+        // Skip if this would overlap an already-committed hold in same lane.
+        const overlaps = holds.some(
+          (h) => h.lane === lane && !(endStep < h.startStep || i > h.endStep),
+        );
+        if (overlaps) continue;
+        // Strip the tap at startStep + any conflicting taps in range.
+        const idx = step.lanes.indexOf(lane);
+        if (idx >= 0) step.lanes.splice(idx, 1);
+        for (let s = i + 1; s <= endStep; s++) {
+          const nextStep = steps[s]!;
+          const j = nextStep.lanes.indexOf(lane);
+          if (j >= 0) nextStep.lanes.splice(j, 1);
+        }
+        holds.push({ lane, startStep: i, endStep });
+      }
+    }
+  }
+
   return {
     authorId,
     title,
@@ -114,6 +156,7 @@ export function generateChart(args: {
     bpm,
     vibe,
     steps,
+    holds,
     updatedAt: Date.now(),
   };
 }
