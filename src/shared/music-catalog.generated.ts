@@ -21,4 +21,11 @@ export const BACKING_CATALOG: Record<string, BackingTrack> = {
   "neon-horizon-3": { id: "neon-horizon-3", displayName: "Neon Horizon (3)", speedLabel: "fast", vibe: "melodic", bpm: 130, audioKey: "backing-neon-horizon-3", loopDurationMs: 75000 },
   "neon-pulse": { id: "neon-pulse", displayName: "Neon Pulse", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-neon-pulse", loopDurationMs: 75000 },
   "neon-pulse-1": { id: "neon-pulse-1", displayName: "Neon Pulse (1)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-neon-pulse-1", loopDurationMs: 75000 },
+  "midnight-loop": { id: "midnight-loop", displayName: "Midnight Loop", speedLabel: "fast", vibe: "smooth", bpm: 130, audioKey: "backing-midnight-loop", loopDurationMs: 30000 },
+  "palm-shoreline-1": { id: "palm-shoreline-1", displayName: "Palm Shoreline (1)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-palm-shoreline-1", loopDurationMs: 30000 },
+  "palm-shoreline": { id: "palm-shoreline", displayName: "Palm Shoreline", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-palm-shoreline", loopDurationMs: 30000 },
+  "rainy-study-loop": { id: "rainy-study-loop", displayName: "Rainy Study Loop", speedLabel: "fast", vibe: "melodic", bpm: 130, audioKey: "backing-rainy-study-loop", loopDurationMs: 30000 },
+  "rainy-study-loop-1": { id: "rainy-study-loop-1", displayName: "Rainy Study Loop (1)", speedLabel: "fast", vibe: "melodic", bpm: 130, audioKey: "backing-rainy-study-loop-1", loopDurationMs: 30000 },
+  "lanterns-on-the-dock": { id: "lanterns-on-the-dock", displayName: "Lanterns on the Dock", speedLabel: "fast", vibe: "smooth", bpm: 130, audioKey: "backing-lanterns-on-the-dock", loopDurationMs: 30000 },
+  "lanterns-on-the-dock-1": { id: "lanterns-on-the-dock-1", displayName: "Lanterns on the Dock (1)", speedLabel: "fast", vibe: "smooth", bpm: 130, audioKey: "backing-lanterns-on-the-dock-1", loopDurationMs: 30000 },
 };

@@ -5,7 +5,7 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "bounce-bloom-2": {
     "id": "bounce-bloom-2",
@@ -13,7 +13,7 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "bouncy-bounce": {
     "id": "bouncy-bounce",
@@ -21,7 +21,7 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "cinematic-bossa-nova-1": {
     "id": "cinematic-bossa-nova-1",
@@ -29,7 +29,7 @@
     "speedLabel": "fast",
     "vibe": "smooth",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "cinematic-bossa-nova-2": {
     "id": "cinematic-bossa-nova-2",
@@ -37,7 +37,7 @@
     "speedLabel": "fast",
     "vibe": "smooth",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "midnight-coffee": {
     "id": "midnight-coffee",
@@ -45,7 +45,7 @@
     "speedLabel": "fast",
     "vibe": "melodic",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "neon-dash": {
     "id": "neon-dash",
@@ -53,7 +53,7 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "warmth-in-the-air": {
     "id": "warmth-in-the-air",
@@ -61,7 +61,7 @@
     "speedLabel": "fast",
     "vibe": "smooth",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "midnight-skyline": {
     "id": "midnight-skyline",
@@ -69,7 +69,7 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "midnight-skyline-1": {
     "id": "midnight-skyline-1",
@@ -77,7 +77,7 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "neon-horizon": {
     "id": "neon-horizon",
@@ -85,7 +85,7 @@
     "speedLabel": "fast",
     "vibe": "melodic",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 75000
   },
   "warmth-in-the-air-1": {
     "id": "warmth-in-the-air-1",
@@ -93,11 +93,75 @@
     "speedLabel": "fast",
     "vibe": "smooth",
     "bpm": 130,
+    "loopDurationMs": 75000
+  },
+  "neon-horizon-3": {
+    "id": "neon-horizon-3",
+    "displayName": "Neon Horizon (3)",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "bpm": 130,
+    "loopDurationMs": 75000
+  },
+  "neon-pulse": {
+    "id": "neon-pulse",
+    "displayName": "Neon Pulse",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 75000
+  },
+  "neon-pulse-1": {
+    "id": "neon-pulse-1",
+    "displayName": "Neon Pulse (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 75000
+  },
+  "midnight-loop": {
+    "id": "midnight-loop",
+    "displayName": "Midnight Loop",
+    "speedLabel": "fast",
+    "vibe": "smooth",
+    "bpm": 130,
     "loopDurationMs": 30000
   },
-  "neon-horizon-1": {
-    "id": "neon-horizon-1",
-    "displayName": "Neon Horizon (1)",
+  "palm-shoreline-1": {
+    "id": "palm-shoreline-1",
+    "displayName": "Palm Shoreline (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 30000
+  },
+  "palm-shoreline": {
+    "id": "palm-shoreline",
+    "displayName": "Palm Shoreline",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 30000
+  },
+  "rainy-study-loop": {
+    "id": "rainy-study-loop",
+    "displayName": "Rainy Study Loop",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "bpm": 130,
+    "loopDurationMs": 30000
+  },
+  "rainy-study-loop-1": {
+    "id": "rainy-study-loop-1",
+    "displayName": "Rainy Study Loop (1)",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "bpm": 130,
+    "loopDurationMs": 30000
+  },
+  "lanterns-on-the-dock": {
+    "id": "lanterns-on-the-dock",
+    "displayName": "Lanterns on the Dock",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
