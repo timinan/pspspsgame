@@ -17,6 +17,7 @@ import type { PlayerState, LaneId, Chart, SeatId } from '@/../shared/state';
 import type { CatModel } from '@/types/game';
 import { generateChart } from '@/../shared/chart-generator';
 import { GenerateModal } from '@/ui/generate-modal';
+import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
 
 /**
  * Phase 5 Game scene — vertical lane rhythm gameplay.
@@ -54,6 +55,11 @@ export class Game extends Scene {
    *  instead of compounding off whatever the previous (possibly killed mid-yoyo)
    *  tween left behind. setDisplaySize sets a non-1 scale, so we capture it. */
   private hitTargetBaseScale: number[] = [];
+  /** Per-lane equipped effect cosmetic type id (e.g. 'effect-red-glow').
+   *  Populated by seatCats from the seated cat's equipped cosmetics so
+   *  flashLaneEffect can spawn a brief burst of the cat's own aura/
+   *  particles on the hit target whenever the player lands a hit. */
+  private laneEffects: (string | null)[] = [null, null, null];
   private tapZones: Phaser.GameObjects.Rectangle[] = [];
   private notes: Note[] = [];
   private hud!: TopHud;
@@ -105,6 +111,7 @@ export class Game extends Scene {
     this.hitTargetBaseScale = [];
     this.tapZones = [];
     this.notes = [];
+    this.laneEffects = [null, null, null];
     this.hitFeedbackTexts = [];
     this.roundOver = false;
     this.startTimeMs = 0;
@@ -314,6 +321,16 @@ export class Game extends Scene {
         }
         if (Object.keys(resolved).length > 0) {
           model.equippedCosmetics = resolved;
+        }
+        // First effect cosmetic equipped on this cat wins for the lane.
+        // Slots are unordered; we only ever spawn one effect per hit so a
+        // cat with two effects equipped (rare, but possible) just picks
+        // whichever shows up first.
+        for (const typeId of Object.values(resolved)) {
+          if (typeId && isEffectCosmeticId(typeId)) {
+            this.laneEffects[laneIndex] = typeId;
+            break;
+          }
         }
       }
 
@@ -738,6 +755,25 @@ export class Game extends Scene {
     });
   }
 
+  /** Apply the seated cat's equipped effect to the lane's hit target for
+   *  a brief burst on a successful hit. No-op if the lane has no cat or
+   *  the cat has no effect cosmetic. The effect runs on the hit target
+   *  itself, scaled down to read at fuzzball size rather than cat size,
+   *  and self-destructs after EFFECT_BURST_MS. */
+  private flashLaneEffect(laneId: LaneId): void {
+    const effectId = this.laneEffects[laneId];
+    if (!effectId) return;
+    const target = this.hitTargets[laneId];
+    if (!target) return;
+    const effect = CAT_EFFECT_BY_ID[effectId];
+    if (!effect) return;
+    // Effects were sized against ~1.4× cat sprites; the fuzzball target
+    // is 72px, roughly half a cat's footprint, so 0.5 reads at the right
+    // visual weight without the glow eating the whole lane.
+    const handle = effect.apply(this, target, 0.5);
+    this.time.delayedCall(EFFECT_BURST_MS, () => handle.destroy());
+  }
+
   /** Pop the lane's grade text and float it upward. Reuses the same Text
    *  object — last tween wins if the player double-taps in the same lane. */
   private showHitFeedback(laneId: LaneId, grade: 'perfect' | 'great' | 'miss'): void {
@@ -846,7 +882,12 @@ export class Game extends Scene {
     // letting it ride keeps the room feeling alive.
     // Switch every seated cat to a content "lick paw" pose so it
     // visibly registers that the song's over and the cats are happy.
-    for (const c of this.cats) c.playLick();
+    // Stagger celebration kick-offs by 200ms per cat so the cycle steps
+    // don't lockstep across the stage — feels more like a crowd reacting
+    // than a synchronized chorus.
+    this.cats.forEach((c, i) => {
+      this.time.delayedCall(i * 200, () => c.startCelebration());
+    });
     this.showSummary();
   }
 
@@ -1100,6 +1141,7 @@ export class Game extends Scene {
       // tap costs combo but doesn't burn the note.
     } else {
       this.cats[laneId]?.playMeow(Balance.catReactionMs);
+      this.flashLaneEffect(laneId);
       note!.consumed = true;
       note!.recycle();
     }
@@ -1264,4 +1306,9 @@ export class Game extends Scene {
     tearDown('scale-resize', () => this.scale.off('resize'));
   }
 }
+
+/** How long a lane's hit-effect burst stays alive after a successful tap.
+ *  Long enough for glow flicker / a couple particles to read, short
+ *  enough that back-to-back hits don't stack into a constant emitter. */
+const EFFECT_BURST_MS = 650;
 

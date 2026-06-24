@@ -19,6 +19,13 @@ import { CAT_EFFECT_BY_ID, type EffectHandle } from '@/effects/cat-effects';
 const RAINBOW_RENDER_BREED: CatBreed = 'cat6';
 const RAINBOW_CYCLE_MS = 3000;
 
+/** End-round celebration step rotation. Cats cycle through these on a
+ *  fixed cadence so the post-round stage reads as "happy crowd" rather
+ *  than a single frozen pose. Breeds without `happy` frames silently
+ *  skip that step (playCelebrationStep early-returns). */
+const CELEBRATION_CYCLE: CatAnimationState[] = ['lick', 'meow', 'happy'];
+const CELEBRATION_INTERVAL_MS = 1100;
+
 /**
  * Pull the parent cosmetic id out of a tint variant's sourceFrame string
  * (`cosmetic_<parent>_idle_00`). Returns null for base cosmetics — they
@@ -56,6 +63,8 @@ export class Cat {
   private readonly postUpdate: () => void;
   private rainbowTween: Phaser.Tweens.Tween | null = null;
   private revertTimer: Phaser.Time.TimerEvent | undefined;
+  private celebrationTimer: Phaser.Time.TimerEvent | undefined;
+  private celebrationStep = 0;
   /** Cached resting scale (from model.scale). Animations multiply this so a
    *  1.4× cat doesn't snap back to 1× when playIdle / playMeow tween scaleX. */
   private readonly baseScale: number;
@@ -238,17 +247,38 @@ export class Cat {
     this.sprite.clearTint();
   }
 
-  /** Play the lick-paw loop indefinitely. Used at round-end to switch
-   *  every seated cat into a content "the show's over" pose. Cancels any
-   *  pending revert from a transient playAngry/playMeow so a cat that
-   *  just missed a note doesn't snap back to idle 500ms into the lick. */
-  playLick(): void {
+  /** Kick off an end-round celebration. Cycles every CELEBRATION_INTERVAL_MS
+   *  through whichever of happy/lick/meow the breed actually has frames
+   *  for. Cancels any pending transient revert so a cat that missed a
+   *  note in the last 500ms doesn't snap back to idle mid-celebration.
+   *
+   *  Idempotent — safe to call again while a celebration is already
+   *  running; the active timer is torn down and a new cycle starts from
+   *  step 0. Called once per cat from Game.endRound. */
+  startCelebration(): void {
     this.cancelRevert();
-    this.ensureAnimation(this.model.breed, 'lick');
-    const key = Cat.animationKey(this.model.breed, 'lick');
-    if (this.scene.anims.exists(key)) {
-      this.sprite.play(key, true);
-    }
+    this.celebrationTimer?.remove(false);
+    this.celebrationStep = 0;
+    this.playCelebrationStep();
+    this.celebrationTimer = this.scene.time.addEvent({
+      delay: CELEBRATION_INTERVAL_MS,
+      loop: true,
+      callback: () => {
+        this.celebrationStep = (this.celebrationStep + 1) % CELEBRATION_CYCLE.length;
+        this.playCelebrationStep();
+      },
+    });
+  }
+
+  /** Play the current step of the celebration cycle. Skips animations
+   *  the breed has no frames for so legacy breeds (no `happy`) silently
+   *  fall through to whichever step they DO have. */
+  private playCelebrationStep(): void {
+    const anim = CELEBRATION_CYCLE[this.celebrationStep]!;
+    const key = Cat.animationKey(this.model.breed, anim);
+    this.ensureAnimation(this.model.breed, anim);
+    if (!this.scene.anims.exists(key)) return;
+    this.sprite.play(key, true);
     this.scene.tweens.add({
       targets: this.sprite,
       scaleX: this.baseScale,
@@ -256,8 +286,8 @@ export class Cat {
       duration: 120,
     });
     this.sprite.clearTint();
-    this.model.animation = 'lick';
-    this.playCosmeticAnimation('lick');
+    this.model.animation = anim;
+    this.playCosmeticAnimation(anim);
   }
 
   private cancelRevert(): void {
@@ -269,6 +299,8 @@ export class Cat {
 
   destroy(): void {
     this.cancelRevert();
+    this.celebrationTimer?.remove(false);
+    this.celebrationTimer = undefined;
     this.scene.events.off(Scenes.Events.POST_UPDATE, this.postUpdate);
     this.rainbowTween?.stop();
     this.rainbowTween?.remove();
