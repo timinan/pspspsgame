@@ -32,10 +32,16 @@ const TAP_SAMPLE_VOLUME = 0.4;
 // playing at that beat (drums hitting + synth + meow stem from the
 // song, however it happens to land). Concurrent pulses extend the hold
 // instead of stacking so rapid taps don't blow the meter past clipping.
-const PULSE_PEAK_MULTIPLIER = 1.25;     // 1.0 = baseline, 1.25 = +25% boost
-const PULSE_ATTACK_SEC = 0.015;         // ramp up to peak
-const PULSE_HOLD_SEC = 0.03;            // sit at peak briefly
-const PULSE_DECAY_SEC = 0.2;            // exponential ride back to baseline
+// 1.25 -> 1.55: bumped after first playtest because the boost wasn't
+// reading as "oomph". 1.55× sits right at the clipping cliff for songs
+// mastered hot — if a particular backing distorts on peak hits, drop
+// this back to ~1.4 or trim that song's source level.
+const PULSE_PEAK_MULTIPLIER = 1.55;
+// Hold also doubled (30 → 60ms) so the punch sits at peak longer
+// before the ride down begins.
+const PULSE_ATTACK_SEC = 0.012;         // ramp up to peak
+const PULSE_HOLD_SEC = 0.06;            // sit at peak briefly
+const PULSE_DECAY_SEC = 0.24;           // exponential ride back to baseline
 
 export class MusicSystem {
   private backing: Sound.BaseSound | null = null;
