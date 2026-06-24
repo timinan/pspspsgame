@@ -104,6 +104,7 @@ export class Game extends Scene {
   private summaryAccuracyText!: Phaser.GameObjects.Text;
   private summaryComboText!: Phaser.GameObjects.Text;
   private summaryMissesText!: Phaser.GameObjects.Text;
+  private summaryHitsText!: Phaser.GameObjects.Text;
   /** Right-side primary button on the summary (POST or PUT ON A SHOW).
    *  Held so showSummary() can grey it out when the player rehearsed
    *  below the pass threshold. */
@@ -505,11 +506,14 @@ export class Game extends Scene {
     }).setOrigin(0.5, 0);
     container.add(this.summaryScoreText);
 
-    // Stats row: accuracy / max combo / misses
+    // Stats row: accuracy / max combo / hits / misses. Four equal cols
+    // so the player can read landed-vs-missed at a glance instead of
+    // just inferring it from the percentage.
     const statsY = cy - 8;
-    const col = panelW / 3;
-    const statLabels = ['ACCURACY', 'MAX COMBO', 'MISSES'];
-    const statXs = [cx - col, cx, cx + col];
+    const statLabels = ['ACCURACY', 'MAX COMBO', 'HITS', 'MISSES'];
+    const margin = 8;
+    const slotW = (panelW - margin * 2) / 4;
+    const statXs = statLabels.map((_, i) => cx - panelW / 2 + margin + slotW * (i + 0.5));
 
     for (let i = 0; i < statLabels.length; i++) {
       const lbl = this.add.text(statXs[i]!, statsY, statLabels[i]!, {
@@ -523,7 +527,7 @@ export class Game extends Scene {
     this.summaryAccuracyText = this.add.text(statXs[0]!, statsY + 14, '0%', {
       ...fontBase,
       fontStyle: 'bold',
-      fontSize: '16px',
+      fontSize: '15px',
       color: '#4dffb4',
     }).setOrigin(0.5, 0);
     container.add(this.summaryAccuracyText);
@@ -531,15 +535,23 @@ export class Game extends Scene {
     this.summaryComboText = this.add.text(statXs[1]!, statsY + 14, 'x0', {
       ...fontBase,
       fontStyle: 'bold',
-      fontSize: '16px',
+      fontSize: '15px',
       color: '#ffd34d',
     }).setOrigin(0.5, 0);
     container.add(this.summaryComboText);
 
-    this.summaryMissesText = this.add.text(statXs[2]!, statsY + 14, '0', {
+    this.summaryHitsText = this.add.text(statXs[2]!, statsY + 14, '0', {
       ...fontBase,
       fontStyle: 'bold',
-      fontSize: '16px',
+      fontSize: '15px',
+      color: '#a4ffb4',
+    }).setOrigin(0.5, 0);
+    container.add(this.summaryHitsText);
+
+    this.summaryMissesText = this.add.text(statXs[3]!, statsY + 14, '0', {
+      ...fontBase,
+      fontStyle: 'bold',
+      fontSize: '15px',
       color: '#ff6b6b',
     }).setOrigin(0.5, 0);
     container.add(this.summaryMissesText);
@@ -628,18 +640,18 @@ export class Game extends Scene {
       currentKey: SceneKeys.Game,
       items: [
         {
-          label: 'REHEARSE',
-          description: 'Pawractice makes purrfect',
-          icon: '🎵',
-          key: SceneKeys.Game,
-          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
-        },
-        {
           label: 'SET STAGE',
           description: 'Dress the band, light the room',
           icon: '😺',
           key: SceneKeys.Decorate,
           onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
+        },
+        {
+          label: 'REHEARSE',
+          description: 'Pawractice makes purrfect',
+          icon: '🎵',
+          key: SceneKeys.Game,
+          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
         {
           label: 'PUT ON A MEOWCERT',
@@ -961,6 +973,7 @@ export class Game extends Scene {
     const accuracyPct = this.score.getAccuracy();
     this.summaryAccuracyText.setText(`${accuracyPct.toFixed(0)}%`);
     this.summaryComboText.setText(`x${this.score.getMaxCombo()}`);
+    this.summaryHitsText.setText(String(this.score.getLanded()));
     this.summaryMissesText.setText(String(this.score.getMisses()));
 
     // Pass / fail gate. Only test mode (editor rehearsal) enforces it.

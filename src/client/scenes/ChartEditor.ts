@@ -314,18 +314,18 @@ export class ChartEditor extends Scene {
       currentKey: SceneKeys.ChartEditor,
       items: [
         {
-          label: 'REHEARSE',
-          description: 'Pawractice makes purrfect',
-          icon: '🎵',
-          key: SceneKeys.Game,
-          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
-        },
-        {
           label: 'SET STAGE',
           description: 'Dress the band, light the room',
           icon: '😺',
           key: SceneKeys.Decorate,
           onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
+        },
+        {
+          label: 'REHEARSE',
+          description: 'Pawractice makes purrfect',
+          icon: '🎵',
+          key: SceneKeys.Game,
+          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
         {
           label: 'PUT ON A MEOWCERT',
