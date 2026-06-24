@@ -54,28 +54,33 @@ export class TopHud {
     this.container.add([strip, stripBorder]);
 
     if (showStats) {
+      // Compact stat layout: leading icon + number, no "Score" / "Best"
+      // prefixes. At 5-6 digit numbers the old text was overflowing the
+      // hamburger on the right; this keeps the row inside 320 px even
+      // with five-digit scores.
       this.scoreText = scene.add
-        .text(14, TopHud.HEIGHT / 2, 'Score 0', {
+        .text(8, TopHud.HEIGHT / 2, '🎵 0', {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '14px',
+          fontSize: '13px',
           color: '#ffffff',
         })
         .setOrigin(0, 0.5);
 
       this.coinsText = scene.add
-        .text(120, TopHud.HEIGHT / 2, '🪙 0', {
+        .text(112, TopHud.HEIGHT / 2, '🪙 0', {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '14px',
+          fontSize: '13px',
           color: '#ffd34d',
         })
         .setOrigin(0, 0.5);
 
       this.bestText = scene.add
-        .text(212, TopHud.HEIGHT / 2, 'Best 0', {
+        .text(196, TopHud.HEIGHT / 2, '🏆 0', {
           fontFamily: 'Pixeloid Sans, sans-serif',
-          fontSize: '11px',
+          fontStyle: 'bold',
+          fontSize: '10px',
           color: '#c0a0e6',
         })
         .setOrigin(0, 0.5);
@@ -104,9 +109,9 @@ export class TopHud {
 
   /** Push score / coins / best updates. Call from the scene's update loop. */
   setStats(score: number, coins: number, best: number): void {
-    this.scoreText?.setText(`Score ${score.toLocaleString()}`);
+    this.scoreText?.setText(`🎵 ${score.toLocaleString()}`);
     this.coinsText?.setText(`🪙 ${coins}`);
-    this.bestText?.setText(`Best ${best.toLocaleString()}`);
+    this.bestText?.setText(`🏆 ${best.toLocaleString()}`);
   }
 
   /** Just the coins — handy for Boxes where score isn't tracked. */

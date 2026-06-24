@@ -52,11 +52,22 @@ export class DressingRoom extends Scene {
     const { width, height } = this.scale;
 
     const modalW = Math.min(width * 0.86, 420);
-    // Was height * 0.78 — that came out to ~452 on the 580 design height
-    // and the bottom row of the cosmetic grid landed right on top of the
-    // pagination strip. height - 36 leaves a thin border above/below the
-    // modal and still caps at 620 so it can't blow up on a tall canvas.
-    const modalH = Math.min(height - 36, 620);
+    // Modal sizes to its actual content — constants below mirror the
+    // positions used downstream (hero / tabs / grid / pagination). Any
+    // change to those numbers needs to be reflected here too.
+    const HERO_OFFSET_Y = 110;
+    const GRID_OFFSET_FROM_HERO = 130;
+    const GRID_CONTENT_H = 4 * 48 + 3 * 8; // 4 rows × 48 + 3 × 8 gap = 216
+    const PAGINATION_GAP_FROM_GRID = 24;
+    const BOTTOM_PADDING = 24;
+    const contentH =
+      HERO_OFFSET_Y + GRID_OFFSET_FROM_HERO + GRID_CONTENT_H +
+      PAGINATION_GAP_FROM_GRID + BOTTOM_PADDING;
+    // Cap at viewport - 36 so a tiny canvas never pushes the modal off
+    // the edge; the cap also bounds the lower limit so contentH wins on
+    // the normal 580-design canvas (the old height*0.78 left ~90 px of
+    // dead space below the pagination strip).
+    const modalH = Math.min(contentH, height - 36);
     const modalX = (width - modalW) / 2;
     const modalY = (height - modalH) / 2;
     const cx = width / 2;
@@ -129,8 +140,12 @@ export class DressingRoom extends Scene {
     // Hero sprite — use the breed for the atlas frame.
     const breed = catInstance?.breed ?? this.catInstanceId;
     const heroFrame = breed === 'rainbow' ? 'cat6_idle_00' : `${breed}_idle_00`;
-    const heroY = modalY + 100;
-    const heroScale = Math.min(2.2, modalW / 240);
+    const heroY = modalY + HERO_OFFSET_Y;
+    // 1.4× matches the seated-stage scale (Game.seatCats uses CAT_SCALE
+    // = 1.4) so the cat reads at the same size you remember from the
+    // round you just played. Cat is then anchored vertically so it
+    // never overlaps the DRESSING <NAME> title or the slot label below.
+    const heroScale = 1.4;
     this.heroSprite = this.add
       .image(cx, heroY, AssetKeys.Atlas.Cats, heroFrame)
       .setScale(heroScale)

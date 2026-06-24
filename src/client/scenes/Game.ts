@@ -491,7 +491,7 @@ export class Game extends Scene {
     const fontBase = { fontFamily: 'Pixeloid Sans, sans-serif' };
 
     // Title
-    const title = this.add.text(cx, cy - 112, 'CHALLENGE COMPLETE', {
+    const title = this.add.text(cx, cy - 112, 'SHOW COMPLETE!', {
       ...fontBase,
       fontStyle: 'bold',
       fontSize: '13px',
@@ -565,7 +565,7 @@ export class Game extends Scene {
     const btnGap = 12;
 
     // Left button: "Skip" (replay) in normal mode, "← Editor" in test mode.
-    const leftLabel = this.testMode ? '← Editor' : 'Skip';
+    const leftLabel = this.testMode ? '← Editor' : 'Encore';
     const leftBg = this.add.rectangle(
       cx - btnW / 2 - btnGap / 2, btnY, btnW, btnH, 0x2c1856, 1,
     ).setInteractive({ useHandCursor: true });
@@ -618,14 +618,14 @@ export class Game extends Scene {
       items: [
         // PLAY (self) is omitted — no point reloading the current scene
         {
-          label: 'DECORATE',
-          description: 'Cats & background',
+          label: 'SET STAGE',
+          description: 'Cats & backdrop',
           icon: '😺',
           onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
         },
         {
-          label: 'POST',
-          description: 'Build a beat',
+          label: 'SETLIST',
+          description: 'Write the beat',
           icon: '🎼',
           onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
         },

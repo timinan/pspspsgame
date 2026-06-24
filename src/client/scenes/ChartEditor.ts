@@ -219,14 +219,14 @@ export class ChartEditor extends Scene {
       showStats: false,
       items: [
         {
-          label: 'PLAY',
-          description: "This post's beat",
+          label: 'SHOWTIME',
+          description: 'Play the show',
           icon: '🎵',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
         {
-          label: 'DECORATE',
-          description: 'Cats & background',
+          label: 'SET STAGE',
+          description: 'Cats & backdrop',
           icon: '😺',
           onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
         },

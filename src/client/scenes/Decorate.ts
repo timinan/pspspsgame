@@ -449,15 +449,15 @@ export class Decorate extends Scene {
       showStats: false,
       items: [
         {
-          label: 'PLAY',
-          description: "This post's beat",
+          label: 'SHOWTIME',
+          description: 'Play the show',
           icon: '🎵',
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
         // DECORATE (self) is omitted
         {
-          label: 'POST',
-          description: 'Build a beat',
+          label: 'SETLIST',
+          description: 'Write the beat',
           icon: '🎼',
           onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
         },
@@ -472,7 +472,7 @@ export class Decorate extends Scene {
 
     const { width } = this.scale;
 
-    this.add.text(width / 2, TopHud.HEIGHT / 2, 'DECORATE', {
+    this.add.text(width / 2, TopHud.HEIGHT / 2, 'SET STAGE', {
       fontFamily: '"Courier New", monospace',
       fontStyle: 'bold',
       fontSize: '11px',
