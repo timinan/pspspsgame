@@ -54,7 +54,7 @@ export const GENERATED_CAT_CATALOG: readonly CatEntry[] = [
   },
   {
     id: "cat8",
-    name: "Black",
+    name: "Inky",
     rarity: "rare",
     scale: 1,
   },
