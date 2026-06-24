@@ -42,6 +42,34 @@
   .regen:hover { background: var(--accent); }
   .regen .icon { margin-right: 6px; }
 
+  .custom-bg {
+    background: var(--bg); border: 1px dashed var(--accent-2); border-radius: 8px;
+    padding: 16px 18px; margin-bottom: 16px;
+  }
+  .custom-bg-head {
+    display: flex; align-items: center; gap: 8px; color: var(--accent);
+    font-size: 13px; margin-bottom: 12px;
+  }
+  .custom-bg-head .label { color: var(--muted); }
+  .custom-bg-head .label b { color: var(--accent-2); }
+  .custom-bg-grid {
+    display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px;
+  }
+  .custom-bg-grid input, .custom-bg-grid textarea {
+    background: var(--panel); border: 1px solid var(--panel-2); color: #fff;
+    padding: 9px 11px; border-radius: 6px; font-family: inherit; font-size: 13px;
+    width: 100%; resize: vertical; min-height: 36px;
+  }
+  .custom-bg-grid input:focus, .custom-bg-grid textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .custom-bg-grid textarea { font-size: 12.5px; line-height: 1.5; }
+  .custom-bg-actions {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .custom-bg-actions .regen { margin-bottom: 0; }
+  .custom-bg-hint { color: var(--muted); font-size: 11px; }
+
   .bg-card {
     background: var(--bg); border-radius: 8px; padding: 14px 16px;
     margin-bottom: 12px; border: 1px solid var(--panel-2);
@@ -120,6 +148,25 @@
       from drifting.
     </p>
     <button class="regen" id="regen-bg"><span class="icon">🎲</span>Regenerate</button>
+
+    <div class="custom-bg">
+      <div class="custom-bg-head">
+        <span class="icon">✏️</span>
+        <span class="label"><b>Custom theme</b> — type an idea, get a full v8 prompt</span>
+      </div>
+      <div class="custom-bg-grid">
+        <input id="custom-title" type="text" placeholder="theme name (e.g. Underwater Jazz Bar)" />
+        <input id="custom-floor" type="text" placeholder="floor material (e.g. rippled sand floor with seashell pixels)" />
+        <textarea id="custom-above" rows="4" placeholder="above-horizon scene — list specific props, colors, lighting, atmosphere (the more concrete the better)"></textarea>
+        <input id="custom-failure" type="text" placeholder="failure-mode forbidden props on the floor (optional, e.g. tables, glasses, instruments)" />
+        <input id="custom-negative" type="text" placeholder="extra negative constraints (optional, e.g. no merpeople, no live fish)" />
+      </div>
+      <div class="custom-bg-actions">
+        <button class="regen" id="generate-custom"><span class="icon">🎨</span>Generate this prompt</button>
+        <span class="custom-bg-hint">added to the top of the list below — tap the card to copy</span>
+      </div>
+    </div>
+
     <div id="bg-list"></div>
   </section>
 
@@ -386,6 +433,38 @@ const BG_THEMES = [
     failureProps: 'stools, plates on the floor, chopsticks, soy sauce bottles',
     negativeExtras: 'no chefs, no diners, no people',
   },
+  // ─── Meowcert concert stages ─────────────────────────────────────────
+  // The brand-stage trio. Default stage candidates with the MEOWCERT
+  // wordmark in neon as the focal point. Note: image generators often
+  // mangle specific text by a letter or two — regen once or twice to
+  // land a clean wordmark.
+  {
+    title: 'Big Neon Rock Stage',
+    horizonContext: 'where the concert stage backdrop meets the polished stage floor',
+    floorMaterial: 'polished black hardwood stage floor with subtle reflective sheen catching colored neon highlights',
+    aboveHorizon:
+      'a massive glowing neon sign reading "MEOWCERT" dead center-back in chunky pixel block letters, hot pink outer tubing and electric cyan inner glow, mounted against a deep velvet stage curtain backdrop in wine-red. Stage truss spanning the very top of the frame with rows of colored spotlights — magenta, cyan, amber, lime — sending crisscrossing beams down through atmospheric fog. Stacks of Marshall-style amplifiers in the back corners. Hanging cardioid microphones suspended slightly above the stage area. A distant drum riser silhouette deep in the back. Large concert PA speakers framing both edges. Hanging banner pennants in neon orange and magenta along the upper truss. Cables snaking down from the rig. Volumetric light rays piercing through pink-tinted smoke',
+    failureProps: 'amps, speakers, microphone stands, drum risers, cables, instruments',
+    negativeExtras: 'no musicians, no audience',
+  },
+  {
+    title: 'Synthwave Cybershow',
+    horizonContext: 'where the synthwave stage backdrop meets the obsidian floor',
+    floorMaterial: 'glossy obsidian stage floor with a faint pink-magenta grid pattern receding into perspective',
+    aboveHorizon:
+      'a retro-future neon wordmark reading "MEOWCERT" dead center-back in 80s synthwave block lettering — hot pink outer glow, deep purple inner tubing, chrome-metallic edges with a faint reflective gleam. Geometric neon parallax lines radiating outward from the wordmark in pink and cyan. Vintage CRT video wall panels on either side flickering with VHS scan lines and abstract waveforms. Hanging laser arrays in lavender and aqua draped from the truss. Floating triangular wireframe shapes drifting through the air. Plasma globes glowing on tall back-corner pedestals. Neon palm tree silhouettes in the deep distant back. A synthwave sunset gradient — magenta to peach — visible behind everything at the very top of the frame. Holographic glitch artifacts scattered along the truss',
+    failureProps: 'DJ decks, CRT monitors, grid floor extensions, podiums',
+    negativeExtras: 'no DJs, no holographic figures of humans, no audience',
+  },
+  {
+    title: 'Cozy Marquee Theatre',
+    horizonContext: 'where the vintage theatre stage backdrop meets the cherry-wood floor',
+    floorMaterial: 'polished cherry-wood stage floor with subtle grain and a warm amber-tinted reflective sheen',
+    aboveHorizon:
+      'a vintage broadway-style theatre marquee reading "MEOWCERT" dead center-back, lit by warm amber rim-bulbs around the border and a soft neon under-glow in pale pink. A burgundy velvet stage curtain swagged from the truss above, draped in deep elegant folds with gold tasseled tiebacks. Hanging warm tungsten Edison-bulb strings strung in cascades across the upper frame. An upright piano silhouette in the back-left corner and a brass standing microphone in the back-right (both decorative — no performers). Antique sconces with flickering candle-style amber bulbs on the side walls. Ornate carved wooden trim along the very top edge of the proscenium. A small framed vintage poster reading "TONIGHT" tacked to one side. Tiny dust motes drifting through the warm spotlight pools',
+    failureProps: 'pianos, microphone stands, music stands, posters, cushions, instruments',
+    negativeExtras: 'no performers, no audience',
+  },
 ];
 
 // ─── Music vibes (Suno format — single-line, 130 BPM, no vocals) ─────────
@@ -563,6 +642,52 @@ function toast(msg) {
 
 document.getElementById('regen-bg').addEventListener('click', renderBackgrounds);
 document.getElementById('regen-music').addEventListener('click', renderMusic);
+
+// ─── Custom theme form ──────────────────────────────────────────────────
+// Tim types an idea + supporting details, the generator wraps them in
+// the v8 template and prepends the resulting card to the list. Missing
+// optional fields fall back to sensible defaults so a minimal input
+// (just title + above-horizon) still produces a complete prompt.
+
+const CUSTOM_DEFAULTS = {
+  floor: 'clean flat neutral floor with subtle texture appropriate to the scene',
+  failure: 'any props, furniture, or objects related to the scene',
+  negative: '',
+};
+
+function readCustomTheme() {
+  const v = (id) => document.getElementById(id).value.trim();
+  return {
+    title: v('custom-title') || 'Custom Theme',
+    floorMaterial: v('custom-floor') || CUSTOM_DEFAULTS.floor,
+    aboveHorizon: v('custom-above') ||
+      'a richly themed back wall with three layers of detail — mid-ground props in the lower part of the band, atmospheric mid-band elements, ceiling / sky / horizon at the top',
+    failureProps: v('custom-failure') || CUSTOM_DEFAULTS.failure,
+    negativeExtras: v('custom-negative') || CUSTOM_DEFAULTS.negative,
+    horizonContext: `where the ${(v('custom-title') || 'scene').toLowerCase()} backdrop meets the open floor`,
+  };
+}
+
+function generateCustomTheme() {
+  const theme = readCustomTheme();
+  const list = document.getElementById('bg-list');
+  const card = buildBgCard(theme);
+  // Prepend so the custom theme is the first card the user sees.
+  list.prepend(card);
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  toast('custom prompt generated — tap to copy');
+}
+
+document.getElementById('generate-custom').addEventListener('click', generateCustomTheme);
+// Enter inside the title or floor input also triggers generation.
+['custom-title', 'custom-floor', 'custom-failure', 'custom-negative'].forEach((id) => {
+  document.getElementById(id).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      generateCustomTheme();
+    }
+  });
+});
 
 renderBackgrounds();
 renderMusic();
