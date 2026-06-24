@@ -27,19 +27,29 @@ const BACKING_VOLUME = 0.85;
 // gain inside the synth so this constant is sample-only.
 const TAP_SAMPLE_VOLUME = 0.4;
 
-// Backing pulse — when a hit registers we briefly amplify the song
-// itself so the player gets a "bigger" momentary read of whatever was
-// playing at that beat (drums hitting + synth + meow stem from the
-// song, however it happens to land). Concurrent pulses extend the hold
-// instead of stacking so rapid taps don't blow the meter past clipping.
-const PULSE_PEAK_MULTIPLIER = 1.55;
-// No attack ramp + no hold: gain jumps straight to peak the instant
-// the tap registers and starts decaying. The previous 12 ms attack +
-// 60 ms hold meant the boost crested ~70 ms AFTER the tap — by which
-// point the song had moved forward to a different beat than the one
-// the player was trying to amplify. Instant jump matches the tap to
-// the right moment of audio.
-const PULSE_DECAY_SEC = 0.22;           // exponential ride back to baseline
+// Backing pulse — briefly amplifies the song on a hit so the player
+// feels the impact in the music too. Tuning has been iterative:
+//
+//   1.55× / 0 ms attack / 220 ms decay — first try. Felt clicky and
+//     amplified quiet song sections too hard ("song becomes quiet
+//     then hitting the beat makes it sound weird").
+//
+//   1.30× / 4 ms attack / 160 ms decay — current.
+//     - 4 ms ramp is below perception (~12 ms is the threshold) but
+//       eliminates the sample-level discontinuity that was creating
+//       a tiny click and reading as latency.
+//     - 1.30× boost is gentler so amplifying a quiet verse doesn't
+//       feel like the song "suddenly woke up" — the pulse glows
+//       instead of shouting.
+//     - 160 ms decay is brief enough that the amplification overlap
+//       on rapid taps stays small.
+//
+// The current gain value is anchored before the ramp so overlapping
+// pulses pick up smoothly from wherever the decay left off instead of
+// jumping back to peak.
+const PULSE_PEAK_MULTIPLIER = 1.3;
+const PULSE_ATTACK_SEC = 0.004;
+const PULSE_DECAY_SEC = 0.16;
 
 export class MusicSystem {
   private backing: Sound.BaseSound | null = null;
@@ -200,12 +210,19 @@ export class MusicSystem {
     const peak = baseline * PULSE_PEAK_MULTIPLIER;
     const now = ctx.currentTime;
 
-    // Instant jump to peak + exponential decay back. Same shape whether
-    // we're starting a fresh pulse or extending a still-decaying one —
-    // the only difference is which scheduled tail we're overwriting.
-    const decayEnd = now + PULSE_DECAY_SEC;
+    // Anchor the current gain value, then a brief linear ramp up to
+    // peak (smooths the discontinuity that a bare setValueAtTime
+    // would cause; ramp is short enough to be perceptually instant),
+    // then exponential decay back to baseline. Anchoring the
+    // currentValue means an overlapping pulse picks up smoothly from
+    // wherever the prior decay left off instead of jumping back to
+    // peak instantly.
+    const attackEnd = now + PULSE_ATTACK_SEC;
+    const decayEnd = attackEnd + PULSE_DECAY_SEC;
+    const currentValue = Math.max(node.gain.value, baseline * 0.01);
     node.gain.cancelScheduledValues(now);
-    node.gain.setValueAtTime(peak, now);
+    node.gain.setValueAtTime(currentValue, now);
+    node.gain.linearRampToValueAtTime(peak, attackEnd);
     node.gain.exponentialRampToValueAtTime(baseline, decayEnd);
     this.pulseEndsAt = decayEnd;
   }
