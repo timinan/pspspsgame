@@ -2,7 +2,7 @@ import { Scene, Scenes, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { TopHud } from '@/ui/top-hud';
 import { BackgroundManager } from '@/entities/background-manager';
-import { liftTowardWhite, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
+import { liftTowardWhite, darkenTowardBlack, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
 import * as L from '@/constants/scene-layout';
 import { AssetKeys } from '@/constants/assets';
 import { saveChart } from '@/services/state-client';
@@ -300,10 +300,9 @@ export class ChartEditor extends Scene {
       bar.setRotation(-Math.PI / 2);
       // Match Game.drawLanes: pastel the lane so the raw-color ball pops.
       bar.setTint(liftTowardWhite(color, LANE_BRIGHTNESS_LIFT));
-      // Editor lane wash fully opaque so the cat color reads cleanly
-      // against the chart grid (was 0.88 — still showed the busy bg
-      // through the lane top).
-      bar.setAlpha(1);
+      // See-through enough that the darkened fuzzball contrasts off the
+      // lane instead of blending into it.
+      bar.setAlpha(0.55);
       this.root.add(bar);
     }
   }
@@ -432,7 +431,7 @@ export class ChartEditor extends Scene {
         // read as the bottom catching fuzzball, not the falling ball.
         const ball = this.add.image(0, 0, AssetKeys.Image.PspspsTargetWhite);
         ball.setDisplaySize(noteSize, noteSize);
-        ball.setTint(this.laneTints[lane]!);
+        ball.setTint(darkenTowardBlack(this.laneTints[lane]!, 0.18));
         noteContainer.add(ball);
         noteContainer.setDepth(40);
         noteContainer.setVisible(false);

@@ -24,6 +24,17 @@ export function liftTowardWhite(rgb: number, amount: number): number {
   return (lr << 16) | (lg << 8) | lb;
 }
 
+/** Mix toward pure black by `amount` (0..1). Inverse of liftTowardWhite. */
+export function darkenTowardBlack(rgb: number, amount: number): number {
+  const r = (rgb >> 16) & 0xff;
+  const g = (rgb >> 8) & 0xff;
+  const b = rgb & 0xff;
+  const dr = Math.max(0, Math.round(r * (1 - amount)));
+  const dg = Math.max(0, Math.round(g * (1 - amount)));
+  const db = Math.max(0, Math.round(b * (1 - amount)));
+  return (dr << 16) | (dg << 8) | db;
+}
+
 /** Standard amount the falling note + chart-editor cell ball get lifted
  *  above the lane color. Currently 0 (no lift): we lift the LANE toward
  *  white instead (see `LANE_BRIGHTNESS_LIFT`) so the ball naturally
