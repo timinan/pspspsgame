@@ -292,17 +292,17 @@ export class ChartEditor extends Scene {
       const cx = this.colCenterXs[i]!;
       const cy = this.gridTop + colH / 2;
       const color = this.laneTints[i]!;
-      // White-base lane texture so the tint comes through clean — same
-      // change Game.drawLanes uses.
-      const bar = this.add.image(cx, cy, AssetKeys.Image.RhythmBarBackgroundWhite);
-      bar.displayWidth = colH;
-      bar.displayHeight = colW - 2;
-      bar.setRotation(-Math.PI / 2);
-      // Match Game.drawLanes: pastel the lane so the raw-color ball pops.
-      bar.setTint(liftTowardWhite(color, LANE_BRIGHTNESS_LIFT));
-      // See-through enough that the darkened fuzzball contrasts off the
-      // lane instead of blending into it.
-      bar.setAlpha(0.55);
+      // Plain pastel-color rectangle — editor skips the textured rhythm
+      // bar so the baked-in paws don't ride along, leaving a clean lane
+      // wash for the grid + fuzzballs to read against.
+      const bar = this.add.rectangle(
+        cx,
+        cy,
+        colW - 2,
+        colH,
+        liftTowardWhite(color, LANE_BRIGHTNESS_LIFT),
+        0.55,
+      );
       this.root.add(bar);
     }
   }
