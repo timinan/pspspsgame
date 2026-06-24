@@ -97,11 +97,6 @@ export class Game extends Scene {
   // -----------------------------------------------------------------------
   private hitFeedbackTexts: Phaser.GameObjects.Text[] = [];
   private comboText!: Phaser.GameObjects.Text;
-  /** Persistent "X / Y · Z%" running tally that sits to the side of the
-   *  combo callout. Combo stays the main character — this is a quieter
-   *  sibling that always reflects landed-of-judged so the player can
-   *  watch their accuracy in real time. */
-  private hitsIndicatorText!: Phaser.GameObjects.Text;
 
   // Summary overlay — built once in create(), shown by endRound()
   private summary: Phaser.GameObjects.Container | null = null;
@@ -747,37 +742,17 @@ export class Game extends Scene {
       .setAlpha(0)
       .setDepth(50);
 
-    // Hits running tally — sits on the right edge at combo height in a
-    // two-line stack (count on top, accuracy on the bottom) so it stays
-    // narrow next to combo + never overlaps it. Combo stays the visual
-    // main character; this is a tight, muted sibling.
-    this.hitsIndicatorText = this.add
-      .text(width - 8, comboY, '0 / 0\n0%', {
-        ...fontBase,
-        fontStyle: 'bold',
-        fontSize: '10px',
-        color: '#c0a0e6',
-        align: 'right',
-        lineSpacing: -1,
-        stroke: '#1a0a2e',
-        strokeThickness: 3,
-      })
-      .setOrigin(1, 0.5)
-      .setDepth(50);
+    // (Hits indicator lives in the TopHud now — the previous combo-
+    // side pill was retired so combo stays the only thing on this row.)
   }
 
-  /** Refresh score / coins / best in the TopHud. Cheap — call after every
+  /** Refresh score / coins / hits in the TopHud. Cheap — call after every
    *  judged tap or miss instead of every frame. */
   private updateHud(): void {
     const coins = this.playerState?.coins ?? 0;
-    const best = this.playerState?.bestScore ?? 0;
-    this.hud.setStats(this.score.get(), coins, Math.max(best, this.score.get()));
-    if (this.hitsIndicatorText) {
-      const landed = this.score.getLanded();
-      const judged = this.score.getJudged();
-      const pct = judged > 0 ? Math.round((landed / judged) * 100) : 0;
-      this.hitsIndicatorText.setText(`${landed} / ${judged}\n${pct}%`);
-    }
+    const landed = this.score.getLanded();
+    const judged = this.score.getJudged();
+    this.hud.setStats(this.score.get(), coins, landed, judged);
   }
 
   /** Punch the lane's hit target on a tap so the player sees their action

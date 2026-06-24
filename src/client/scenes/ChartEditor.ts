@@ -228,12 +228,15 @@ export class ChartEditor extends Scene {
   private computeGrid(): void {
     const { width, height } = this.scale;
     // HUD up top; bottom carved into page-nav row + controls strip + a
-    // bit of breathing room. Grid takes everything else.
+    // bit of breathing room. Grid takes everything else. We render TWO
+    // pages worth of cells at a time (EDITOR_VISIBLE_ROWS = 2 *
+    // CHART_PAGE_SIZE) so the author can see the next page coming up
+    // and decide note spacing across the page boundary.
     const topReserved = TopHud.HEIGHT + 8;
     const bottomReserved = PAGE_NAV_ROW_H + BOTTOM_STRIP_H + 8;
     this.gridTop = topReserved;
     this.gridBottom = height - bottomReserved;
-    this.cellH = (this.gridBottom - this.gridTop) / CHART_PAGE_SIZE;
+    this.cellH = (this.gridBottom - this.gridTop) / EDITOR_VISIBLE_ROWS;
     this.cellW = width / L.LANE_COUNT;
     for (let i = 0; i < L.LANE_COUNT; i++) {
       this.colCenterXs[i] = L.laneCenterX(i as 0 | 1 | 2, width);
@@ -360,30 +363,17 @@ export class ChartEditor extends Scene {
   }
 
   private buildGrid(): void {
-    for (let localStep = 0; localStep < CHART_PAGE_SIZE; localStep++) {
+    for (let localStep = 0; localStep < EDITOR_VISIBLE_ROWS; localStep++) {
       this.cellPanels[localStep] = [];
       this.cellNotes[localStep] = [];
       const cy = this.gridTop + localStep * this.cellH + this.cellH / 2;
-
-      // Beat-tier visual emphasis: every 2nd row (step 0/2/4/6) is a
-      // QUARTER-NOTE beat in the chart's 8th-note grid; among those,
-      // step 0 + 4 are the strong DOWNBEATS. We brighten + thicken those
-      // rows so the author can read note spacing at a glance and judge
-      // density against the song's beat — addresses Tim's "notes between
-      // pages" feedback by making the rhythmic grid explicit.
-      const isDownbeat = localStep % 4 === 0;
-      const isBeat = localStep % 2 === 0;
-      const cellAlpha = isDownbeat ? 0.5 : isBeat ? 0.42 : 0.32;
-      const strokeColor = isDownbeat ? 0xffd34d : isBeat ? 0xc678ff : 0xffffff;
-      const strokeAlpha = isDownbeat ? 0.55 : isBeat ? 0.32 : 0.12;
-      const strokeWidth = isDownbeat ? 2 : 1;
 
       for (let lane = 0; lane < L.LANE_COUNT; lane++) {
         const cx = this.colCenterXs[lane]!;
 
         const panel = this.add
-          .rectangle(cx, cy, this.cellW - 6, this.cellH - 4, 0x0b041a, cellAlpha)
-          .setStrokeStyle(strokeWidth, strokeColor, strokeAlpha)
+          .rectangle(cx, cy, this.cellW - 6, this.cellH - 2, 0x0b041a, 0.35)
+          .setStrokeStyle(1, 0xffffff, 0.12)
           .setInteractive({ useHandCursor: true });
         const ls = localStep;
         const ln = lane;
@@ -391,7 +381,7 @@ export class ChartEditor extends Scene {
         this.cellPanels[localStep]![lane] = panel;
         this.root.add(panel);
 
-        const noteSize = Math.min(this.cellW - 18, this.cellH - 12, 64);
+        const noteSize = Math.min(this.cellW - 10, this.cellH - 4, 64);
         const noteContainer = this.add.container(cx, cy);
         // Same white-base ball + lifted tint as the in-game falling note —
         // see `Note.configure` + `liftTowardWhite`. Keeps the editor's
@@ -408,6 +398,18 @@ export class ChartEditor extends Scene {
         this.root.add(noteContainer);
       }
     }
+
+    // Page-break line — horizontal yellow divider between the top page
+    // and the bottom page (rows 7 and 8 in the 16-row view). Same line
+    // treatment the rehearse mode uses for page boundaries; here it's
+    // static and sits permanently in the middle of the grid so the
+    // author can read "this is the seam between pages."
+    const pageBreakY = this.gridTop + CHART_PAGE_SIZE * this.cellH;
+    const pageBreakLine = this.add
+      .rectangle(this.scale.width / 2, pageBreakY, this.scale.width - 12, 2, 0xffd34d, 0.85)
+      .setDepth(45);
+    this.root.add(pageBreakLine);
+
     this.refreshPage();
   }
 
@@ -521,20 +523,28 @@ export class ChartEditor extends Scene {
   }
 
   private refreshPage(): void {
-    for (let localStep = 0; localStep < CHART_PAGE_SIZE; localStep++) {
+    for (let localStep = 0; localStep < EDITOR_VISIBLE_ROWS; localStep++) {
       const modelStep = this.scrollOffset + localStep;
       const step = this.chart.steps[modelStep];
+      // Cells beyond the end of the chart render empty + dim (no note,
+      // panel still visible but greyed out so the author sees where the
+      // chart "ends").
+      const beyondChart = modelStep >= this.chart.stepCount;
       for (let lane = 0; lane < L.LANE_COUNT; lane++) {
         const note = this.cellNotes[localStep]![lane]!;
         const active = step?.lanes.includes(lane as LaneId) ?? false;
         note.setVisible(active);
         note.setScale(1);
+        const panel = this.cellPanels[localStep]![lane]!;
+        panel.setAlpha(beyondChart ? 0.18 : 1);
       }
     }
     this.refreshPageLabel();
   }
 
   private refreshPageLabel(): void {
+    // Current page = the page sitting at the TOP of the visible 2-page
+    // view. Total pages = chart.stepCount / CHART_PAGE_SIZE.
     const page = Math.floor(this.scrollOffset / CHART_PAGE_SIZE) + 1;
     const totalPages = Math.max(1, Math.ceil(this.chart.stepCount / CHART_PAGE_SIZE));
     this.pageLabel.setText(`PAGE ${page} / ${totalPages}`);
@@ -549,7 +559,9 @@ export class ChartEditor extends Scene {
   }
 
   private onNextPage(): void {
-    const maxOffset = this.chart.stepCount - CHART_PAGE_SIZE;
+    // Cap at the LAST chart page sitting at the top of the view. Allows
+    // "page N at top, empty below" for the final page.
+    const maxOffset = Math.max(0, this.chart.stepCount - CHART_PAGE_SIZE);
     if (this.scrollOffset >= maxOffset) return;
     this.scrollOffset = Math.min(maxOffset, this.scrollOffset + CHART_PAGE_SIZE);
     this.refreshPage();
@@ -624,4 +636,9 @@ export class ChartEditor extends Scene {
 // buildBottomBar so the page-nav row and bottom strip stack cleanly.
 const PAGE_NAV_ROW_H = 36;
 const BOTTOM_STRIP_H = 72;
+// Editor shows TWO pages of cells at once stacked vertically (16 rows
+// = 2 * CHART_PAGE_SIZE) so the author can see the next page coming and
+// space notes against the page break — Tim's "page 3 at top, page 4 at
+// bottom" model. Pagination moves by one page (CHART_PAGE_SIZE = 8).
+const EDITOR_VISIBLE_ROWS = CHART_PAGE_SIZE * 2;
 

@@ -85,7 +85,7 @@ const MISS_PRESET = {
   filterHz: 800,
   filterQ: 0.7,
   releaseSec: 0.28,
-  peakGain: 0.32,          // halved-ish because two oscillators sum
+  peakGain: 0.5,           // bumped 0.32 → 0.5 — was getting drowned by backing
 };
 
 export class NoteSynth {
@@ -155,7 +155,9 @@ export class NoteSynth {
     osc.frequency.exponentialRampToValueAtTime(50, now + 0.06);
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.45, now);
+    // Peak bumped 0.45 → 0.7 — Tim: hit/miss sounds were being
+    // overshadowed by the backing track at 0.85 volume.
+    gain.gain.setValueAtTime(0.7, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     osc.connect(gain);

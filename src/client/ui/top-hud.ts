@@ -81,12 +81,17 @@ export class TopHud {
         })
         .setOrigin(0, 0.5);
 
+      // Slot 3: hits / total / percentage (replaced "best score"). Two
+      // compact lines stacked tight so the strip still fits inside
+      // 320 px with the hamburger on the right.
       this.bestText = scene.add
-        .text(196, TopHud.HEIGHT / 2, '🏆 0', {
+        .text(196, TopHud.HEIGHT / 2, '0/0\n0%', {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '10px',
+          fontSize: '9px',
           color: '#c0a0e6',
+          align: 'left',
+          lineSpacing: -1,
         })
         .setOrigin(0, 0.5);
 
@@ -113,10 +118,11 @@ export class TopHud {
   }
 
   /** Push score / coins / best updates. Call from the scene's update loop. */
-  setStats(score: number, coins: number, best: number): void {
+  setStats(score: number, coins: number, hits: number, judged: number): void {
     this.scoreText?.setText(`🎵 ${score.toLocaleString()}`);
     this.coinsText?.setText(`🪙 ${coins}`);
-    this.bestText?.setText(`🏆 ${best.toLocaleString()}`);
+    const pct = judged > 0 ? Math.round((hits / judged) * 100) : 0;
+    this.bestText?.setText(`${hits}/${judged}\n${pct}%`);
   }
 
   /** Just the coins — handy for Boxes where score isn't tracked. */
