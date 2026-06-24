@@ -85,6 +85,10 @@ export const Balance = {
    *  release pays out partial credit prorated by fraction held, no
    *  combo break. Full hold pays full (steps × pointsPerHoldStep). */
   pointsPerHoldStep: 50,
+  /** Hold notes: cadence (ms) at which the lane effect burst + cat
+   *  pulse re-fire while a hold is active. ~220ms reads as a steady
+   *  chug without strobing. */
+  holdEffectIntervalMs: 220,
   catReactionMs: 500,
   // Rehearsal pass gate. Author must hit at least this accuracy on their
   // own chart (in editor → REHEARSE / testMode) before they're allowed to

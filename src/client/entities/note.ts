@@ -28,6 +28,12 @@ export class Note extends GameObjects.Container {
    *  auto-end. */
   holdActive = false;
 
+  /** Game-time of the last recurring hold-effect emit. Game.tickHolds
+   *  re-fires the lane effect + cat pulse on a fixed cadence while the
+   *  hold is active so the hold feels alive instead of static. 0 until
+   *  the hold engages. */
+  holdLastEffectMs = 0;
+
   private ball: GameObjects.Image;
   private letters: GameObjects.Image;
   /** Stacked fuzzball images forming the hold tail above the head.
@@ -81,6 +87,7 @@ export class Note extends GameObjects.Container {
     this.hitAtMs = hitAtMs;
     this.consumed = false;
     this.holdActive = false;
+    this.holdLastEffectMs = 0;
     this.setPosition(x, startY);
     this.setActive(true).setVisible(true);
     this.setAlpha(1);
@@ -137,5 +144,6 @@ export class Note extends GameObjects.Container {
     this.isHold = false;
     this.holdActive = false;
     this.holdEndAtMs = 0;
+    this.holdLastEffectMs = 0;
   }
 }

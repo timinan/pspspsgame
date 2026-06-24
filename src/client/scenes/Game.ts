@@ -1378,8 +1378,10 @@ export class Game extends Scene {
       if (note!.isHold) {
         // Hold engaged. Don't consume — tickHolds + releaseHoldIfAny
         // own the lifecycle from here. Per-step bonus accumulates while
-        // the player keeps the lane pressed.
+        // the player keeps the lane pressed. holdLastEffectMs seeds the
+        // recurring lane-effect cadence (see tickHolds).
         note!.holdActive = true;
+        note!.holdLastEffectMs = this.time.now - this.startTimeMs;
       } else {
         note!.consumed = true;
         note!.recycle();
@@ -1455,14 +1457,24 @@ export class Game extends Scene {
   // -----------------------------------------------------------------------
 
   /** Per-frame check for active holds whose trailing edge has reached
-   *  the target. Auto-ends those with full credit. Release-on-finger-up
-   *  is handled by releaseHoldIfAny. */
+   *  the target. Auto-ends those with full credit. Also re-fires the
+   *  lane effect + cat pulse on a fixed cadence so the hold feels
+   *  satisfying instead of static. Release-on-finger-up is handled
+   *  by releaseHoldIfAny. */
   private tickHolds(): void {
     if (this.roundOver) return;
     const now = this.time.now - this.startTimeMs;
     for (let i = 0; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (!n.active || !n.isHold || !n.holdActive) continue;
+      // Recurring effect burst while held — same flashLaneEffect +
+      // cat pulse the head tap fires, just throttled to ~220 ms so it
+      // chugs instead of strobing.
+      if (now - n.holdLastEffectMs >= Balance.holdEffectIntervalMs) {
+        this.flashLaneEffect(n.laneId);
+        this.cats[n.laneId]?.pulseEffectHit();
+        n.holdLastEffectMs = now;
+      }
       if (now >= n.holdEndAtMs) {
         this.endActiveHold(n, /* fullCredit */ true);
       }
