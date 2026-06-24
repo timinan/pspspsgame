@@ -16,12 +16,12 @@ import type { PlayerState, SeatId } from '@/../shared/state';
 // Slightly punched-up vs the earlier picks.
 export const CAT_COLOR_BY_BREED: Record<string, number> = {
   rainbow:  0xe6a5ff,  // bumped lavender — rainbow cats hue-cycle, neutral resting tone
-  cat1:     0xfff7e8,  // Mochi — pearly cream
-  cat2:     0xf5c690,  // Biscuit — bright toasted tan
+  cat1:     0xf5a05a,  // Mochi — warm orange tabby (sprite is orange + white, not cream)
+  cat2:     0xb0bdce,  // Biscuit — cool blue-grey tabby (sprite reads grey, not biscuit-tan)
   cat3:     0xc4c4c4,  // Pebble — lifted cool grey
-  cat4:     0xeae3d0,  // Marble — bright marble cream
-  cat5:     0xffb04d,  // Saffron — sun-bright orange
-  cat6:     0x8f6cc7,  // Inkwell — vivid mid-purple (was muddy)
+  cat4:     0x8ea0b8,  // Marble — slate blue (sprite is grey-blue marble, not cream)
+  cat5:     0x6c7585,  // Saffron — dark slate (sprite reads dark grey, not saffron-orange)
+  cat6:     0xd28a4a,  // Inkwell — toasted tabby brown (sprite is orange-brown tabby, not purple)
   cat7:     0xffa7e0,  // Pinky — vivid pink
   cat8:     0x6c6c84,  // Inky — lifted slate (pure black washes flat)
   cat9:     0xeef3fb,  // Snow White — clean bright cool white
