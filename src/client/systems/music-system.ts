@@ -146,15 +146,25 @@ export class MusicSystem {
    */
   playTapForLane(lane: LaneId): void {
     if (this.destroyed) return;
+    // Layer 1: per-lane melodic content. Per-song sample when loaded,
+    // else per-vibe synth tone.
     const backing = this.pickBacking();
+    let played = false;
     if (backing) {
       const tapKey = `tap-${backing.id}-${lane}`;
       if (this.scene.cache.audio.exists(tapKey)) {
         this.scene.sound.play(tapKey, { volume: TAP_SAMPLE_VOLUME });
-        return;
+        played = true;
       }
     }
-    this.noteSynth.play(this.chart.vibe, lane);
+    if (!played) {
+      this.noteSynth.play(this.chart.vibe, lane);
+    }
+    // Layer 2: sub-bass kick. Content-independent thump so the hit
+    // always lands with impact, even when the song is in a quiet
+    // passage where the per-song sample sounds disconnected from the
+    // current backing content.
+    this.noteSynth.playKick();
   }
 
   /**

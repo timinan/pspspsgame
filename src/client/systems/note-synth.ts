@@ -133,6 +133,38 @@ export class NoteSynth {
   }
 
   /**
+   * Sub-bass kick — content-independent thump that gives every hit
+   * consistent impact regardless of what the backing is doing.
+   * Classic 808-style design: sine wave with a downward pitch glide
+   * (160 Hz → 50 Hz over 60 ms) provides the "thump" character; brief
+   * exponential gain decay (120 ms) makes it tight rather than droney.
+   *
+   * Sub-bass frequency range means it adds low-end presence without
+   * competing with the per-song tap sample's melodic content — the
+   * two layers sum constructively. Fires alongside playTapForLane on
+   * every successful hit; quiet song moments still feel punchy.
+   */
+  playKick(): void {
+    if (this.destroyed || !this.ctx) return;
+    if (this.ctx.state !== 'running') return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(50, now + 0.06);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.45, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
+  /**
    * Fire the miss hum-buzz. Two detuned sawtooth oscillators → shared
    * low-pass → gain → output. Both oscillators glide down in pitch
    * over the decay so the sound visibly "deflates". Instant peak gain.
