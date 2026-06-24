@@ -2,6 +2,7 @@ import { Scene, Scenes } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { Cat } from '@/entities/cat';
 import { Note } from '@/entities/note';
+import { liftTowardWhite, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
 import { BackgroundManager } from '@/entities/background-manager';
 import { ChartPlayer } from '@/systems/chart-player';
 import { ScoreSystem } from '@/systems/score-system';
@@ -213,7 +214,10 @@ export class Game extends Scene {
       bar.displayWidth = laneH;
       bar.displayHeight = colW;
       bar.setRotation(-Math.PI / 2);
-      bar.setTint(color);
+      // Pastel the lane (lift toward white) so the raw-color falling ball +
+      // hit target read as the darker shape against a lighter wash. Easier
+      // to spot than lifting the ball — same hue, just lower saturation.
+      bar.setTint(liftTowardWhite(color, LANE_BRIGHTNESS_LIFT));
       bar.setAlpha(0.55);
       this.laneRects.push(bar as unknown as Phaser.GameObjects.Rectangle);
 
@@ -810,7 +814,7 @@ export class Game extends Scene {
     // letting it ride keeps the room feeling alive.
     // Switch every seated cat to a content "lick paw" pose so it
     // visibly registers that the song's over and the cats are happy.
-    for (const c of this.cats) c.setAnimation('lick');
+    for (const c of this.cats) c.playLick();
     this.showSummary();
   }
 

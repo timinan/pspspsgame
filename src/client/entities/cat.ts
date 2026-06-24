@@ -238,6 +238,28 @@ export class Cat {
     this.sprite.clearTint();
   }
 
+  /** Play the lick-paw loop indefinitely. Used at round-end to switch
+   *  every seated cat into a content "the show's over" pose. Cancels any
+   *  pending revert from a transient playAngry/playMeow so a cat that
+   *  just missed a note doesn't snap back to idle 500ms into the lick. */
+  playLick(): void {
+    this.cancelRevert();
+    this.ensureAnimation(this.model.breed, 'lick');
+    const key = Cat.animationKey(this.model.breed, 'lick');
+    if (this.scene.anims.exists(key)) {
+      this.sprite.play(key, true);
+    }
+    this.scene.tweens.add({
+      targets: this.sprite,
+      scaleX: this.baseScale,
+      scaleY: this.baseScale,
+      duration: 120,
+    });
+    this.sprite.clearTint();
+    this.model.animation = 'lick';
+    this.playCosmeticAnimation('lick');
+  }
+
   private cancelRevert(): void {
     if (this.revertTimer) {
       this.revertTimer.remove(false);
