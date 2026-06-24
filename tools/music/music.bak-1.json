@@ -119,60 +119,52 @@
     "bpm": 130,
     "loopDurationMs": 62000
   },
-  "midnight-loop": {
-    "id": "midnight-loop",
-    "displayName": "Midnight Loop",
-    "speedLabel": "fast",
-    "vibe": "smooth",
-    "bpm": 130,
-    "loopDurationMs": 30000
-  },
-  "palm-shoreline-1": {
-    "id": "palm-shoreline-1",
-    "displayName": "Palm Shoreline (1)",
+  "bouncy-electro-house": {
+    "id": "bouncy-electro-house",
+    "displayName": "Bouncy Electro House",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 62000
   },
-  "palm-shoreline": {
-    "id": "palm-shoreline",
-    "displayName": "Palm Shoreline",
+  "bright-italo-disco": {
+    "id": "bright-italo-disco",
+    "displayName": "Bright Italo Disco",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 62000
   },
-  "rainy-study-loop": {
-    "id": "rainy-study-loop",
-    "displayName": "Rainy Study Loop",
-    "speedLabel": "fast",
-    "vibe": "melodic",
-    "bpm": 130,
-    "loopDurationMs": 30000
-  },
-  "rainy-study-loop-1": {
-    "id": "rainy-study-loop-1",
-    "displayName": "Rainy Study Loop (1)",
-    "speedLabel": "fast",
-    "vibe": "melodic",
-    "bpm": 130,
-    "loopDurationMs": 30000
-  },
-  "lanterns-on-the-dock": {
-    "id": "lanterns-on-the-dock",
-    "displayName": "Lanterns on the Dock",
+  "smooth-bossa-jazz": {
+    "id": "smooth-bossa-jazz",
+    "displayName": "Smooth Bossa Jazz",
     "speedLabel": "fast",
     "vibe": "smooth",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 62000
   },
-  "lanterns-on-the-dock-1": {
-    "id": "lanterns-on-the-dock-1",
-    "displayName": "Lanterns on the Dock (1)",
+  "melodic-chiptune-adventure": {
+    "id": "melodic-chiptune-adventure",
+    "displayName": "Melodic Chiptune Adventure",
     "speedLabel": "fast",
-    "vibe": "smooth",
+    "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 30000
+    "loopDurationMs": 62000
+  },
+  "uplifting-trance-pluck": {
+    "id": "uplifting-trance-pluck",
+    "displayName": "Uplifting Trance Pluck",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "smooth-chill-funk": {
+    "id": "smooth-chill-funk",
+    "displayName": "Smooth Chill Funk",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "bpm": 130,
+    "loopDurationMs": 62000
   }
 }
