@@ -15,6 +15,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { extractTapsForSong } from '../scripts/lib/extract-taps-for-song.mjs';
 
 const TOOL_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(TOOL_DIR, '..');
@@ -256,6 +257,7 @@ function indexHtml() {
 
 const BG_UPLOAD_DIR = path.join(PROJECT_ROOT, 'public', 'assets', 'themes');
 const MUSIC_UPLOAD_DIR = path.join(PROJECT_ROOT, 'public', 'assets', 'audio', 'backings');
+const TAPS_DIR = path.join(PROJECT_ROOT, 'public', 'assets', 'audio', 'taps');
 const MUSIC_JSON = path.join(TOOL_DIR, 'music', 'music.json');
 const COSMETIC_RAW_DIR = path.join(PROJECT_ROOT, 'assets-raw', 'cosmetic');
 const CAT_RAW_DIR = path.join(PROJECT_ROOT, 'assets-raw');
@@ -831,6 +833,19 @@ async function handleMusicUpload(req, res, slug) {
       await fs.writeFile(MUSIC_JSON, JSON.stringify(raw, null, 2) + '\n');
 
       const finalBytes = (await fs.stat(outPath)).size;
+
+      // Auto-extract the 3 per-lane tap samples for the new song. Lives
+      // in the same response cycle so the upload-complete UI signal
+      // means "song + taps are both ready". Failure here doesn't block
+      // the upload — MusicSystem falls back to the per-vibe NoteSynth
+      // for any lane whose sample is missing.
+      try {
+        await extractTapsForSong(outPath, TAPS_DIR, slug);
+        console.log(`[upload-music:${slug}] tap samples extracted`);
+      } catch (tapsErr) {
+        console.warn(`[upload-music:${slug}] tap-extract failed:`, tapsErr.message);
+      }
+
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({
         ok: true,
@@ -978,6 +993,11 @@ const server = http.createServer(async (req, res) => {
           await fs.writeFile(MUSIC_JSON, JSON.stringify(raw, null, 2) + '\n');
         }
         await fs.unlink(path.join(MUSIC_UPLOAD_DIR, `${slug}.mp3`)).catch(() => {});
+        // Tap samples follow the song. No-op-safely if they were never
+        // extracted (older songs or extract failures).
+        for (let lane = 0; lane < 3; lane++) {
+          await fs.unlink(path.join(TAPS_DIR, `${slug}-${lane}.wav`)).catch(() => {});
+        }
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ ok: true, slug }));
         console.log(`[delete-music:${slug}] removed`);
