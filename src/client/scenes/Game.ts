@@ -894,14 +894,15 @@ export class Game extends Scene {
       else if (dy <= maxHitDistance) grade = 'great';
     }
 
-    // Only fire a tap tone on a real hit — missed taps shouldn't reward
-    // the player with audio. Fire before grading-side effects so the
-    // tone lands as close to the tap moment as possible. pulseBacking
-    // briefly amplifies the song itself so the player feels the hit in
-    // the music as well as in the per-lane tap sample.
+    // Fire audio feedback before grading-side effects so the sound
+    // lands as close to the tap moment as possible.
+    //   non-miss: per-lane tap sample / synth + backing-amp pulse
+    //   miss:     low buzz tone — noticeable but doesn't ruin the song
     if (grade !== 'miss') {
       this.music?.playTapForLane(laneId);
       this.music?.pulseBacking();
+    } else {
+      this.music?.playMiss();
     }
 
     this.score.registerHit(grade);

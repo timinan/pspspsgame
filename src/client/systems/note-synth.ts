@@ -60,6 +60,21 @@ const PRESETS: Record<BackingVibe, TapPreset> = {
 
 const DEFAULT_VIBE: BackingVibe = 'upbeat';
 
+/**
+ * Miss buzz — short low sawtooth that sits well under the song.
+ * Goal is "you notice it" without "ouch don't tap there". Sawtooth
+ * gives the buzzy harmonic content that classically reads as "wrong";
+ * 120 Hz puts it in the sub-bass / kick range so it doesn't compete
+ * with mid melodies or the per-lane tap notes; low gain keeps it
+ * polite.
+ */
+const MISS_PRESET = {
+  waveform: 'sawtooth' as OscillatorType,
+  freqHz: 120,
+  releaseSec: 0.16,
+  peakGain: 0.09,
+};
+
 export class NoteSynth {
   private ctx: AudioContext | null = null;
   private destroyed = false;
@@ -102,6 +117,32 @@ export class NoteSynth {
     osc.start(now);
     // Stop slightly after release ends so the tail finishes cleanly.
     osc.stop(now + preset.attackSec + preset.releaseSec + 0.05);
+  }
+
+  /**
+   * Fire the miss buzz. Single low sawtooth note, instant attack,
+   * short exponential decay. Lane-independent — a miss is a miss.
+   */
+  playMiss(): void {
+    if (this.destroyed || !this.ctx) return;
+    if (this.ctx.state !== 'running') return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    osc.type = MISS_PRESET.waveform;
+    osc.frequency.value = MISS_PRESET.freqHz;
+
+    const gain = this.ctx.createGain();
+    // Instant peak (no attack ramp — same logic as the pulse, the buzz
+    // should land on the moment of the missed tap, not 10ms after) then
+    // exponential ride down.
+    gain.gain.setValueAtTime(MISS_PRESET.peakGain, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + MISS_PRESET.releaseSec);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + MISS_PRESET.releaseSec + 0.05);
   }
 
   destroy(): void {

@@ -166,6 +166,16 @@ export class MusicSystem {
   }
 
   /**
+   * Miss feedback — a brief low buzz so the player knows they missed
+   * without the song losing momentum. Lane-independent; never uses
+   * the per-song sample (would feel too rewarding for a miss).
+   */
+  playMiss(): void {
+    if (this.destroyed) return;
+    this.noteSynth.playMiss();
+  }
+
+  /**
    * Brief amplification pulse on the backing track for the "oomph" hit
    * feedback. Web Audio gain automation produces a click-free envelope:
    * 15 ms ramp up to +25% gain, 30 ms hold, 200 ms exponential decay
