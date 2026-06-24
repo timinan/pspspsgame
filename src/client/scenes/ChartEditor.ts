@@ -300,10 +300,10 @@ export class ChartEditor extends Scene {
       bar.setRotation(-Math.PI / 2);
       // Match Game.drawLanes: pastel the lane so the raw-color ball pops.
       bar.setTint(liftTowardWhite(color, LANE_BRIGHTNESS_LIFT));
-      // Higher alpha than Game (was 0.55) so the busy background detail
-      // up at the top of the lane stops bleeding through the cell grid
-      // — players said it made the upper steps hard to read.
-      bar.setAlpha(0.88);
+      // Editor lane wash fully opaque so the cat color reads cleanly
+      // against the chart grid (was 0.88 — still showed the busy bg
+      // through the lane top).
+      bar.setAlpha(1);
       this.root.add(bar);
     }
   }

@@ -281,11 +281,11 @@ export class Game extends Scene {
       // Pastel the lane (lift toward white) so the raw-color falling ball +
       // hit target read as the darker shape against a lighter wash. Easier
       // to spot than lifting the ball — same hue, just lower saturation.
-      // Lane FILL is now translucent (Tim's rule: see-through cat
-      // color so the meowcert bg + paws + border read on top). Border
-      // is rendered separately below in OPAQUE cat color.
+      // Lane fill kept a touch translucent so the meowcert bg ghosts
+      // through behind the playfield, but bumped from 0.45 → 0.78 —
+      // 0.45 was washing the cat color out completely.
       bar.setTint(liftTowardWhite(color, LANE_BRIGHTNESS_LIFT));
-      bar.setAlpha(0.45);
+      bar.setAlpha(0.78);
       this.laneRects.push(bar as unknown as Phaser.GameObjects.Rectangle);
 
       // Opaque cat-color BORDER around the lane. Drawn as a stroked
@@ -318,6 +318,9 @@ export class Game extends Scene {
       const target = this.add.image(cx, hitLineY, AssetKeys.Image.PspspsTargetWhite);
       target.setDisplaySize(72, 72);
       target.setTint(color);
+      // Catching fuzzball sits ABOVE the paw-overlay (depth 2) so the
+      // pink toe-bean texture never paints over the hit-target sprite.
+      target.setDepth(3);
       this.hitTargets[i] = target;
       // Snapshot the base scale after setDisplaySize so flash tweens always
       // start from the same value instead of compounding off prior inflations.
