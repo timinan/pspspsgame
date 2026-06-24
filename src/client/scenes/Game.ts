@@ -461,18 +461,29 @@ export class Game extends Scene {
 
   private buildSummaryOverlay(): void {
     const { width, height } = this.scale;
+    const scaleY = height / L.DESIGN_H;
     const cx = width / 2;
-    const cy = height / 2;
+    // Center the panel inside the lane area instead of at the canvas
+    // mid-point so the seated cats' end-round celebration stays visible
+    // above it. Backdrop is clipped to the lane band for the same
+    // reason — a full-canvas scrim would dim the cats too.
+    const laneTopY = L.LANE_TOP_Y * scaleY;
+    const laneBottomY = L.LANE_BOTTOM_Y * scaleY;
+    const laneBandH = laneBottomY - laneTopY;
+    const cy = laneTopY + laneBandH / 2;
 
     const container = this.add.container(0, 0).setDepth(300).setVisible(false);
 
-    // Full-canvas semi-transparent backdrop
-    const backdrop = this.add.rectangle(cx, cy, width, height, 0x000000, 0.7);
+    // Backdrop covers only the lane band — the cat-stage strip up top
+    // stays untouched so the celebration animation reads clearly.
+    const backdrop = this.add.rectangle(cx, cy, width, laneBandH, 0x000000, 0.7);
     container.add(backdrop);
 
-    // Centered panel
+    // Panel sized to fit cleanly inside the lane band on the 580px
+    // design height. Trimmed from 300 → 280 so the score / stats /
+    // buttons stack without any clip against the HIT_LINE region.
     const panelW = Math.min(280, width - 32);
-    const panelH = 300;
+    const panelH = Math.min(280, laneBandH - 12);
     const panel = this.add.rectangle(cx, cy, panelW, panelH, 0x1a0a2e, 1);
     panel.setStrokeStyle(2, 0xc678ff, 0.8);
     container.add(panel);
@@ -480,7 +491,7 @@ export class Game extends Scene {
     const fontBase = { fontFamily: 'Pixeloid Sans, sans-serif' };
 
     // Title
-    const title = this.add.text(cx, cy - 122, 'CHALLENGE COMPLETE', {
+    const title = this.add.text(cx, cy - 112, 'CHALLENGE COMPLETE', {
       ...fontBase,
       fontStyle: 'bold',
       fontSize: '13px',
@@ -489,18 +500,18 @@ export class Game extends Scene {
     container.add(title);
 
     // Divider line
-    const divider = this.add.rectangle(cx, cy - 104, panelW - 32, 1, 0xc0a0e6, 0.3);
+    const divider = this.add.rectangle(cx, cy - 94, panelW - 32, 1, 0xc0a0e6, 0.3);
     container.add(divider);
 
     // Final score label + value
-    const scoreLabel = this.add.text(cx, cy - 94, 'FINAL SCORE', {
+    const scoreLabel = this.add.text(cx, cy - 84, 'FINAL SCORE', {
       ...fontBase,
       fontSize: '10px',
       color: '#c0a0e6',
     }).setOrigin(0.5, 0);
     container.add(scoreLabel);
 
-    this.summaryScoreText = this.add.text(cx, cy - 78, '0', {
+    this.summaryScoreText = this.add.text(cx, cy - 68, '0', {
       ...fontBase,
       fontStyle: 'bold',
       fontSize: '32px',
@@ -509,7 +520,7 @@ export class Game extends Scene {
     container.add(this.summaryScoreText);
 
     // Stats row: accuracy / max combo / misses
-    const statsY = cy - 18;
+    const statsY = cy - 8;
     const col = panelW / 3;
     const statLabels = ['ACCURACY', 'MAX COMBO', 'MISSES'];
     const statXs = [cx - col, cx, cx + col];

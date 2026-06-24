@@ -19,12 +19,15 @@ import { CAT_EFFECT_BY_ID, type EffectHandle } from '@/effects/cat-effects';
 const RAINBOW_RENDER_BREED: CatBreed = 'cat6';
 const RAINBOW_CYCLE_MS = 3000;
 
-/** End-round celebration step rotation. Cats cycle through these on a
- *  fixed cadence so the post-round stage reads as "happy crowd" rather
- *  than a single frozen pose. Breeds without `happy` frames silently
- *  skip that step (playCelebrationStep early-returns). */
+/** End-round celebration step rotation. Cats cycle through these so the
+ *  post-round stage reads as "happy crowd" rather than a single frozen
+ *  pose. Breeds without `happy` frames silently skip that step. Each
+ *  step plays its animation through ANIMATION_REPEATS_PER_STEP full
+ *  loops before handing off to the next — animation-completion driven
+ *  instead of a wall-clock timer so the transition lands on a clean
+ *  frame boundary (no mid-meow cut to lick that reads as a jump). */
 const CELEBRATION_CYCLE: CatAnimationState[] = ['lick', 'meow', 'happy'];
-const CELEBRATION_INTERVAL_MS = 1100;
+const ANIMATION_REPEATS_PER_STEP = 1;
 
 /**
  * Pull the parent cosmetic id out of a tint variant's sourceFrame string
@@ -63,7 +66,7 @@ export class Cat {
   private readonly postUpdate: () => void;
   private rainbowTween: Phaser.Tweens.Tween | null = null;
   private revertTimer: Phaser.Time.TimerEvent | undefined;
-  private celebrationTimer: Phaser.Time.TimerEvent | undefined;
+  private celebrating = false;
   private celebrationStep = 0;
   /** Cached resting scale (from model.scale). Animations multiply this so a
    *  1.4× cat doesn't snap back to 1× when playIdle / playMeow tween scaleX. */
@@ -247,38 +250,24 @@ export class Cat {
     this.sprite.clearTint();
   }
 
-  /** Kick off an end-round celebration. Cycles every CELEBRATION_INTERVAL_MS
-   *  through whichever of happy/lick/meow the breed actually has frames
-   *  for. Cancels any pending transient revert so a cat that missed a
-   *  note in the last 500ms doesn't snap back to idle mid-celebration.
+  /** Kick off an end-round celebration. Cats rotate through happy/lick/
+   *  meow, advancing on each ANIMATION_COMPLETE so the swap always
+   *  lands on a clean frame boundary. Cancels any pending transient
+   *  revert so a cat that missed a note in the last 500 ms doesn't snap
+   *  back to idle mid-celebration.
    *
    *  Idempotent — safe to call again while a celebration is already
-   *  running; the active timer is torn down and a new cycle starts from
-   *  step 0. Called once per cat from Game.endRound. */
+   *  running; the active animation listener is torn down and a new
+   *  cycle starts from step 0. */
   startCelebration(): void {
     this.cancelRevert();
-    this.celebrationTimer?.remove(false);
+    // Strip any in-flight celebration listener from a previous call so a
+    // restart doesn't fire two step-advances on the next animation
+    // completion. Celebration is the only consumer of this event on
+    // the cat sprite, so blanket-clearing is safe.
+    this.sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
+    this.celebrating = true;
     this.celebrationStep = 0;
-    this.playCelebrationStep();
-    this.celebrationTimer = this.scene.time.addEvent({
-      delay: CELEBRATION_INTERVAL_MS,
-      loop: true,
-      callback: () => {
-        this.celebrationStep = (this.celebrationStep + 1) % CELEBRATION_CYCLE.length;
-        this.playCelebrationStep();
-      },
-    });
-  }
-
-  /** Play the current step of the celebration cycle. Skips animations
-   *  the breed has no frames for so legacy breeds (no `happy`) silently
-   *  fall through to whichever step they DO have. */
-  private playCelebrationStep(): void {
-    const anim = CELEBRATION_CYCLE[this.celebrationStep]!;
-    const key = Cat.animationKey(this.model.breed, anim);
-    this.ensureAnimation(this.model.breed, anim);
-    if (!this.scene.anims.exists(key)) return;
-    this.sprite.play(key, true);
     this.scene.tweens.add({
       targets: this.sprite,
       scaleX: this.baseScale,
@@ -286,8 +275,38 @@ export class Cat {
       duration: 120,
     });
     this.sprite.clearTint();
-    this.model.animation = anim;
-    this.playCosmeticAnimation(anim);
+    this.playCelebrationStep();
+  }
+
+  /** Play the current celebration step. The step's animation plays for
+   *  (ANIMATION_REPEATS_PER_STEP + 1) loops then fires
+   *  ANIMATION_COMPLETE, which advances us to the next step. Steps the
+   *  breed has no frames for are skipped so legacy breeds without
+   *  `happy` fall through to whatever they DO have. */
+  private playCelebrationStep(): void {
+    if (!this.celebrating) return;
+    // Find the next playable step, skipping any animation the breed has
+    // no frames for. Bounded by the cycle length so we never loop
+    // forever on a breed with zero matching frames.
+    let tries = 0;
+    while (tries < CELEBRATION_CYCLE.length) {
+      const anim = CELEBRATION_CYCLE[this.celebrationStep]!;
+      this.ensureAnimation(this.model.breed, anim);
+      const key = Cat.animationKey(this.model.breed, anim);
+      if (this.scene.anims.exists(key)) {
+        this.sprite.play({ key, repeat: ANIMATION_REPEATS_PER_STEP });
+        this.model.animation = anim;
+        this.playCosmeticAnimation(anim);
+        this.sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+          if (!this.celebrating) return;
+          this.celebrationStep = (this.celebrationStep + 1) % CELEBRATION_CYCLE.length;
+          this.playCelebrationStep();
+        });
+        return;
+      }
+      this.celebrationStep = (this.celebrationStep + 1) % CELEBRATION_CYCLE.length;
+      tries++;
+    }
   }
 
   private cancelRevert(): void {
@@ -299,8 +318,11 @@ export class Cat {
 
   destroy(): void {
     this.cancelRevert();
-    this.celebrationTimer?.remove(false);
-    this.celebrationTimer = undefined;
+    this.celebrating = false;
+    // sprite.off without an event name pulls every listener including
+    // the celebration's ANIMATION_COMPLETE chain — safer than tracking
+    // the listener handle ourselves through cycle restarts.
+    this.sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
     this.scene.events.off(Scenes.Events.POST_UPDATE, this.postUpdate);
     this.rainbowTween?.stop();
     this.rainbowTween?.remove();
