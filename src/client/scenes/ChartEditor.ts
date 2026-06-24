@@ -144,6 +144,11 @@ export class ChartEditor extends Scene {
 
     this.events.once(Scenes.Events.SHUTDOWN, () => this.cleanup());
     this.input.on('pointerup', this.onScenePointerUp, this);
+    // Scene-level pointermove for hold drag tracking — per-cell pointerover
+    // doesn't fire reliably during a touch drag (Phaser locks events to
+    // the pointerdown target), so we manually hit-test against cell
+    // bounds while a drag is in progress.
+    this.input.on('pointermove', this.onScenePointerMove, this);
 
     // Resume path: re-entering from rehearsal. Skip the pickers and
     // jump straight to the chart we just sent off (lives on
@@ -451,7 +456,6 @@ export class ChartEditor extends Scene {
         const ls = localStep;
         const ln = lane;
         panel.on('pointerdown', () => this.onCellPointerDown(ls, ln as LaneId));
-        panel.on('pointerover', () => this.onCellPointerOver(ls, ln as LaneId));
         this.cellPanels[localStep]![lane] = panel;
         this.root.add(panel);
 
@@ -643,16 +647,23 @@ export class ChartEditor extends Scene {
     this.dragCurrentLocal = localStep;
   }
 
-  private onCellPointerOver(localStep: number, lane: LaneId): void {
-    if (this.dragStartLocal === null || this.dragStartLane === null) return;
-    // Cross-lane drags are ignored — the hold is locked to the lane the
-    // author started in. Keeps the interaction predictable when the
-    // finger wanders sideways.
-    if (lane !== this.dragStartLane) return;
+  private onScenePointerMove = (pointer: Phaser.Input.Pointer): void => {
+    if (this.dragStartLane === null || !pointer.isDown) return;
+    const lane = this.dragStartLane;
+    // Y → localStep using the same gridTop / cellH layout buildGrid uses.
+    const localStep = Math.floor((pointer.y - this.gridTop) / this.cellH);
+    if (localStep < 0 || localStep >= EDITOR_VISIBLE_ROWS) return;
     const modelStep = this.scrollOffset + localStep;
     if (modelStep >= this.chart.stepCount) return;
+    // Cross-lane drags are ignored — the hold is locked to the lane the
+    // author started in. Use the originating lane's cell bounds at this
+    // row as the x-range so the gutter geometry stays consistent.
+    const panel = this.cellPanels[localStep]?.[lane];
+    if (!panel) return;
+    const bounds = panel.getBounds();
+    if (pointer.x < bounds.left || pointer.x > bounds.right) return;
     this.dragCurrentLocal = localStep;
-  }
+  };
 
   private onScenePointerUp = (): void => {
     if (this.dragStartLocal === null || this.dragStartLane === null) return;
