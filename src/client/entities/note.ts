@@ -30,17 +30,13 @@ export class Note extends GameObjects.Container {
 
   private ball: GameObjects.Image;
   private letters: GameObjects.Image;
-  /** Rendered behind the ball when isHold is true. Extends upward from
-   *  the ball (y < 0 in container space). Hidden + zero-height for taps. */
-  private tail: GameObjects.Rectangle;
+  /** Stacked fuzzball images forming the hold tail above the head.
+   *  Dynamically created on hold configure (sized to the tail length),
+   *  destroyed on recycle. Empty array for tap notes. */
+  private tailBalls: GameObjects.Image[] = [];
 
   constructor(scene: Scene) {
     super(scene, 0, 0);
-    // Tail FIRST so it renders behind the ball + letters when both are
-    // visible. Default hidden — only hold notes turn it on via configure().
-    this.tail = scene.add.rectangle(0, 0, 40, 0, 0xffffff, 0.85);
-    this.tail.setStrokeStyle(1, 0x1a0a2e, 0.7);
-    this.tail.setVisible(false);
     // 54px — matches the 50% bump applied to the lane hit targets (48 → 72)
     // so the falling notes read at the same visual weight as the target.
     // White-base ball — greyscale-stretched so the per-bg sampled tint
@@ -50,7 +46,7 @@ export class Note extends GameObjects.Container {
     this.ball.setDisplaySize(54, 54);
     this.letters = scene.add.image(0, 0, AssetKeys.Image.PspspsElementLetters);
     this.letters.setDisplaySize(54, 54);
-    this.add([this.tail, this.ball, this.letters]);
+    this.add([this.ball, this.letters]);
     // Render above cat-effect particles (cat sprite depth 0 → particles
     // depth +2). Without this, a cat with sparkles / fire / hearts equipped
     // visually obscures every falling note in its lane and the player
@@ -96,19 +92,33 @@ export class Note extends GameObjects.Container {
     // Letters stay white so the "PS" reads clearly on top of any lane tint.
     this.letters.clearTint();
 
+    // Tear down any tail balls from a previous pool use.
+    for (const tb of this.tailBalls) tb.destroy();
+    this.tailBalls = [];
+
     if (hold) {
       this.isHold = true;
       this.holdEndAtMs = hold.releaseAtMs;
-      this.tail.setVisible(true);
-      this.tail.setSize(hold.tailWidthPx, hold.tailHeightPx);
-      // Tail extends upward from ball center — sits at y = -tailHeight/2
-      // in container space so its BOTTOM edge meets the ball's center.
-      this.tail.setPosition(0, -hold.tailHeightPx / 2);
-      this.tail.setFillStyle(tintColor ?? LANE_COLORS[laneId], 0.85);
+      // Stacked fuzzballs forming a continuous fuzzy column above the
+      // head. Smaller than the head ball so the leading edge still
+      // reads as the cap. Slight overlap (size > stride) so edges blend
+      // into a soft column instead of distinct beads.
+      const tailBallSize = 32;
+      const stride = 18;
+      const count = Math.max(1, Math.ceil(hold.tailHeightPx / stride));
+      const tint = liftTowardWhite(tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT);
+      for (let i = 0; i < count; i++) {
+        const tb = this.scene.add.image(0, -stride * (i + 1), AssetKeys.Image.PspspsTargetWhite);
+        tb.setDisplaySize(tailBallSize, tailBallSize);
+        tb.setTint(tint);
+        // addAt(0) puts the new ball at index 0 (back of container) so
+        // the head ball + letters always render on top of the tail.
+        this.addAt(tb, 0);
+        this.tailBalls.push(tb);
+      }
     } else {
       this.isHold = false;
       this.holdEndAtMs = 0;
-      this.tail.setVisible(false);
     }
 
     this.scene.tweens.add({
@@ -122,7 +132,8 @@ export class Note extends GameObjects.Container {
   recycle(): void {
     this.scene.tweens.killTweensOf(this);
     this.setActive(false).setVisible(false);
-    this.tail.setVisible(false);
+    for (const tb of this.tailBalls) tb.destroy();
+    this.tailBalls = [];
     this.isHold = false;
     this.holdActive = false;
     this.holdEndAtMs = 0;

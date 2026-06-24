@@ -739,34 +739,41 @@ export class ChartEditor extends Scene {
       const localEnd = showEnd - visibleStart;
 
       const cx = this.colCenterXs[hold.lane]!;
-      const yTop = this.gridTop + localStart * this.cellH + 2;
-      const yBottom = this.gridTop + (localEnd + 1) * this.cellH - 2;
-      const yCenter = (yTop + yBottom) / 2;
-      const tailW = this.cellW - 14;
-      const tailH = yBottom - yTop;
+      const tint = darkenTowardBlack(this.laneTints[hold.lane]!, 0.18);
 
-      // Tail — solid lane-tint rectangle with the same dark stroke the
-      // grid cells use, so the hotdog reads as a contiguous shape over
-      // the lane wash.
-      const tail = this.add.rectangle(
-        cx, yCenter, tailW, tailH, this.laneTints[hold.lane]!, 0.85,
-      );
-      tail.setStrokeStyle(1, 0x1a0a2e, 0.7);
-      tail.setDepth(38);
-      this.root.add(tail);
-      this.holdGraphics.push(tail);
+      // Head at the BOTTOM of the visible hold range (= endStep cell)
+      // to mirror the in-game look: fuzzball at the catching position,
+      // tail extending up. If endStep is past the visible window, no
+      // head here — the tail just fills the visible portion.
+      const headInView = hold.endStep <= visibleEnd;
+      const headY = this.gridTop + localEnd * this.cellH + this.cellH / 2;
+      const headSize = Math.min(this.cellW - 4, this.cellH + 2, 56);
 
-      // Head fuzzball at the hold's startStep — the cell the author
-      // tapped down on. Sits on TOP of the tail so it reads as the
-      // "tap here first" marker. Skipped if startStep is above the
-      // visible window (the tail still draws to indicate continuity).
-      if (hold.startStep >= visibleStart) {
-        const headLocal = hold.startStep - visibleStart;
-        const headY = this.gridTop + headLocal * this.cellH + this.cellH / 2;
-        const headSize = Math.min(this.cellW - 4, this.cellH + 2, 56);
+      // Tail balls — stacked fuzzballs going up from just above the
+      // head. Matches game-side: small overlapping circles read as a
+      // continuous fuzzy column. Smaller than the head so the leading
+      // edge still pops.
+      const tailBallSize = 24;
+      const stride = 14;
+      const startBallY = headInView
+        ? headY - stride
+        : this.gridTop + (localEnd + 1) * this.cellH - stride / 2;
+      const topLimitY = this.gridTop + localStart * this.cellH;
+      let by = startBallY;
+      while (by + tailBallSize / 2 > topLimitY) {
+        const tb = this.add.image(cx, by, AssetKeys.Image.PspspsTargetWhite);
+        tb.setDisplaySize(tailBallSize, tailBallSize);
+        tb.setTint(tint);
+        tb.setDepth(38);
+        this.root.add(tb);
+        this.holdGraphics.push(tb);
+        by -= stride;
+      }
+
+      if (headInView) {
         const head = this.add.image(cx, headY, AssetKeys.Image.PspspsTargetWhite);
         head.setDisplaySize(headSize, headSize);
-        head.setTint(darkenTowardBlack(this.laneTints[hold.lane]!, 0.18));
+        head.setTint(tint);
         head.setDepth(40);
         this.root.add(head);
         this.holdGraphics.push(head);
