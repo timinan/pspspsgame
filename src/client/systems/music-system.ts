@@ -21,11 +21,6 @@ import { NoteSynth } from './note-synth';
  *   music.destroy();                      // scene shutdown
  */
 const BACKING_VOLUME = 0.85;
-// Per-song tap samples come from inside the song's own mix so they sit
-// at the song's own level. ~0.4 reads as confident but not louder than
-// the backing — tune in playtest. NoteSynth fallback handles its own
-// gain inside the synth so this constant is sample-only.
-const TAP_SAMPLE_VOLUME = 0.4;
 
 // Backing pulse was removed after the synth-taps iteration. The short
 // version of the design history: reactive amplification on tap fights
@@ -69,15 +64,8 @@ export class MusicSystem {
       this.loadPromise = Promise.resolve();
       return this.loadPromise;
     }
-    const tapKeys: [string, string, string] = [
-      `tap-${backing.id}-0`,
-      `tap-${backing.id}-1`,
-      `tap-${backing.id}-2`,
-    ];
     const cache = this.scene.cache.audio;
-    const needsBacking = !cache.exists(backing.audioKey);
-    const needsTaps = tapKeys.some((k) => !cache.exists(k));
-    if (!needsBacking && !needsTaps) {
+    if (cache.exists(backing.audioKey)) {
       this.loadPromise = Promise.resolve();
       return this.loadPromise;
     }
@@ -87,22 +75,12 @@ export class MusicSystem {
         loader.off('loaderror', onError);
         resolve();
       };
-      // Tap-sample load failures are silent — MusicSystem falls back to
-      // NoteSynth for any lane whose sample didn't load. Only a backing
-      // failure logs a warning since the round goes silent without it.
       const onError = (file: { key: string }) => {
         if (file.key === backing.audioKey) {
           console.warn(`[MusicSystem] backing load failed: ${backing.audioKey}`);
         }
       };
-      if (needsBacking) {
-        loader.audio(backing.audioKey, `assets/audio/backings/${backing.id}.mp3`);
-      }
-      for (let lane = 0; lane < 3; lane++) {
-        if (!cache.exists(tapKeys[lane]!)) {
-          loader.audio(tapKeys[lane]!, `assets/audio/taps/${backing.id}-${lane}.wav`);
-        }
-      }
+      loader.audio(backing.audioKey, `assets/audio/backings/${backing.id}.mp3`);
       loader.once(Loader.Events.COMPLETE, onComplete);
       loader.on('loaderror', onError);
       if (!loader.isLoading()) loader.start();
@@ -144,26 +122,16 @@ export class MusicSystem {
    * Songs without samples still feel coherent because the synth chooses
    * a waveform + envelope matched to the chart's vibe.
    */
-  playTapForLane(lane: LaneId): void {
+  // Hit feedback is now JUST the sub-bass kick. Layered alternatives
+  // (per-song tap sample, per-vibe synth tone) were both tied to song
+  // dynamics one way or another — the sample disconnected during quiet
+  // passages, the synth tone needed pitch awareness it couldn't get
+  // from the chart vibe alone. The kick is content-independent, lands
+  // the same regardless of what the song is doing, and feels punchy
+  // without trying to be "of the song".
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  playTapForLane(_lane: LaneId): void {
     if (this.destroyed) return;
-    // Layer 1: per-lane melodic content. Per-song sample when loaded,
-    // else per-vibe synth tone.
-    const backing = this.pickBacking();
-    let played = false;
-    if (backing) {
-      const tapKey = `tap-${backing.id}-${lane}`;
-      if (this.scene.cache.audio.exists(tapKey)) {
-        this.scene.sound.play(tapKey, { volume: TAP_SAMPLE_VOLUME });
-        played = true;
-      }
-    }
-    if (!played) {
-      this.noteSynth.play(this.chart.vibe, lane);
-    }
-    // Layer 2: sub-bass kick. Content-independent thump so the hit
-    // always lands with impact, even when the song is in a quiet
-    // passage where the per-song sample sounds disconnected from the
-    // current backing content.
     this.noteSynth.playKick();
   }
 
