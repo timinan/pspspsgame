@@ -1108,11 +1108,10 @@ export class Game extends Scene {
 
   /** Spawn a page-boundary line that falls top → hit line over the
    *  same noteFallMs the notes use, so it visually marks where the next
-   *  page begins. No floating label — the persistent banner above the
-   *  lanes already shows the current page number. Skip page 0 (round
-   *  start needs no marker). `pageIdx` is unused but kept for future
-   *  per-page styling (e.g. brighter line for downbeat pages). */
-  private spawnPageBoundaryLine(_pageIdx: number): void {
+   *  page begins. Carries a 'PAGE N' chip centered on the line for
+   *  parity with the editor's static page labels. Skip page 0 (round
+   *  start needs no marker). */
+  private spawnPageBoundaryLine(pageIdx: number): void {
     if (!this.scene.isActive() || this.roundOver) return;
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
@@ -1121,27 +1120,41 @@ export class Game extends Scene {
     const fallMs = Balance.noteFallMs;
 
     const cx = width / 2;
-    // Depth above notes (depth 40) so the boundary line reads over the
-    // falling balls instead of getting hidden behind them.
+    // Depth above notes (depth 40) so the boundary line + label read over
+    // the falling balls instead of getting hidden behind them.
     const line = this.add
       .rectangle(cx, laneTopY, width - 12, 2, 0xffd34d, 0.85)
       .setDepth(48);
+    const label = this.add
+      .text(cx, laneTopY, `PAGE ${pageIdx + 1}`, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '11px',
+        color: '#1a0a2e',
+        backgroundColor: '#ffd34d',
+        padding: { x: 6, y: 1 },
+      })
+      .setOrigin(0.5)
+      .setDepth(49);
 
-    this.tweens.add({
-      targets: line,
-      y: hitLineY,
-      duration: fallMs,
-      ease: 'Linear',
-      onComplete: () => {
-        this.tweens.add({
-          targets: line,
-          y: hitLineY + 28,
-          alpha: 0,
-          duration: 240,
-          onComplete: () => line.destroy(),
-        });
-      },
-    });
+    const fallTween = (target: Phaser.GameObjects.GameObject) =>
+      this.tweens.add({
+        targets: target,
+        y: hitLineY,
+        duration: fallMs,
+        ease: 'Linear',
+        onComplete: () => {
+          this.tweens.add({
+            targets: target,
+            y: hitLineY + 28,
+            alpha: 0,
+            duration: 240,
+            onComplete: () => target.destroy(),
+          });
+        },
+      });
+    fallTween(line);
+    fallTween(label);
   }
 
   /** Step 1 of the Rehearse pre-round flow: pick a song. Player picks
