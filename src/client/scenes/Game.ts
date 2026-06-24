@@ -1354,15 +1354,19 @@ export class Game extends Scene {
    *  without being tapped. No allocation. */
   private checkMisses(): void {
     if (this.roundOver) return;
-    // Miss is now position-based — the ball must leave the screen
-    // entirely before it counts. A late tap as the ball exits the target
-    // still counts as a great in registerTap.
-    const offScreenY = this.scale.height + 20;
+    // Tighter miss boundary — fire the moment the note drops past the
+    // great window's bottom edge (i.e. just behind the fuzzball) instead
+    // of waiting for it to clear the screen. Tim's rule: less forgiving;
+    // once the note slips behind the target it's a miss.
+    const scaleY = this.scale.height / L.DESIGN_H;
+    const targetY = L.HIT_LINE_Y * scaleY;
+    const maxHitDistance = 60;
+    const missY = targetY + maxHitDistance;
     let anyMissed = false;
     for (let i = 0; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (!n.active || n.consumed) continue;
-      if (n.y > offScreenY) {
+      if (n.y > missY) {
         this.score.registerHit('miss');
         // Same miss-buzz as a tap-but-missed grade so the player feels
         // a consistent "you lost that note" signal whether they tapped
