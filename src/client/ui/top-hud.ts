@@ -4,6 +4,10 @@ export interface DrawerItem {
   label: string;
   description: string;
   icon: string;
+  /** Stable scene key used to highlight the item matching the current
+   *  scene as "you are here" — its onTap becomes a no-op so the player
+   *  doesn't restart the scene they're already on. */
+  key?: string;
   onTap: () => void;
 }
 
@@ -14,6 +18,9 @@ interface TopHudOptions {
   items?: DrawerItem[];
   /** Show score / coins / best on the left? Defaults to true. */
   showStats?: boolean;
+  /** Scene key for the current scene — used to mark the matching
+   *  drawer entry as the active page. */
+  currentKey?: string;
 }
 
 /**
@@ -36,10 +43,12 @@ export class TopHud {
   private drawerScrim: GameObjects.Rectangle | null = null;
   private drawerPanel: GameObjects.Container | null = null;
   private items: DrawerItem[] = [];
+  private currentKey?: string;
   private modeContainer: GameObjects.Container | null = null;
 
   constructor(private scene: Scene, options: TopHudOptions = {}) {
     this.items = options.items ?? [];
+    if (options.currentKey !== undefined) this.currentKey = options.currentKey;
     const showStats = options.showStats !== false;
     const w = scene.scale.width;
 
@@ -238,52 +247,78 @@ export class TopHud {
     panel.add(panelBg);
 
     const header = this.scene.add
-      .text(panelW / 2, 22, 'MENU', {
+      .text(28, 24, 'MENU', {
         fontFamily: 'Pixeloid Sans, sans-serif',
-        fontSize: '11px',
+        fontSize: '14px',
         color: '#c0a0e6',
         fontStyle: 'bold',
       })
-      .setOrigin(0.5, 0);
+      .setOrigin(0, 0.5);
     panel.add(header);
 
-    // Smaller item layout so long labels like "PUT ON A MEOWCERT" don't
-    // overflow + the full list (up to ~6 items) fits comfortably in the
-    // 580 px portrait canvas without spilling off the bottom.
-    const itemH = 44;
-    const itemSpacing = 50;
-    const labelWrap = panelW - 32 - 56;
+    // Close ✕ button — top-right of the drawer panel. Standard
+    // convention: an explicit close affordance so the player isn't
+    // forced to tap outside the panel or stab the hamburger again.
+    const closeR = 14;
+    const closeX = panelW - 26;
+    const closeY = 24;
+    const closeBg = this.scene.add
+      .circle(closeX, closeY, closeR, 0x0b041a, 0.85)
+      .setStrokeStyle(2, 0xc0a0e6, 0.6)
+      .setInteractive({ useHandCursor: true });
+    const closeText = this.scene.add
+      .text(closeX, closeY, '✕', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '14px',
+        color: '#c0a0e6',
+      })
+      .setOrigin(0.5);
+    closeBg.on('pointerover', () => closeBg.setFillStyle(0x3d2566, 0.95));
+    closeBg.on('pointerout', () => closeBg.setFillStyle(0x0b041a, 0.85));
+    closeBg.on('pointerdown', () => this.closeDrawer());
+    panel.add([closeBg, closeText]);
+
+    // Bigger item layout — Tim's note: lots of space below the menu, so
+    // bump font + height. Labels stay one line (wordWrap + maxLines 1),
+    // description sits beneath in a slightly smaller font.
+    const itemH = 58;
+    const itemSpacing = 66;
+    const labelWrap = panelW - 32 - 64;
     for (let i = 0; i < this.items.length; i++) {
       const item = this.items[i]!;
-      const y = 56 + i * itemSpacing;
+      const isCurrent = !!this.currentKey && item.key === this.currentKey;
+      const y = 64 + i * itemSpacing;
       const itemBg = this.scene.add
-        .rectangle(16, y, panelW - 32, itemH, 0x0b041a, 0.6)
+        .rectangle(16, y, panelW - 32, itemH, isCurrent ? 0x4d2d8c : 0x0b041a, isCurrent ? 0.85 : 0.6)
         .setOrigin(0, 0)
-        .setInteractive({ useHandCursor: true });
-      itemBg.setStrokeStyle(1, 0xc0a0e6, 0.3);
+        .setInteractive({ useHandCursor: !isCurrent });
+      itemBg.setStrokeStyle(isCurrent ? 2 : 1, isCurrent ? 0xffd34d : 0xc0a0e6, isCurrent ? 1 : 0.3);
 
       const icon = this.scene.add
-        .text(40, y + itemH / 2, item.icon, {
-          fontSize: '16px',
+        .text(44, y + itemH / 2, item.icon, {
+          fontSize: '22px',
         })
         .setOrigin(0.5);
 
+      const labelColor = isCurrent ? '#ffd34d' : '#ffffff';
+      const descColor = isCurrent ? '#fff0aa' : '#c0a0e6';
       const label = this.scene.add
-        .text(68, y + 11, item.label, {
+        .text(76, y + 14, isCurrent ? `${item.label}  ●` : item.label, {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '12px',
-          color: '#ffffff',
+          fontSize: '14px',
+          color: labelColor,
           wordWrap: { width: labelWrap },
           maxLines: 1,
         })
         .setOrigin(0, 0);
 
       const desc = this.scene.add
-        .text(68, y + 26, item.description, {
+        .text(76, y + 33, isCurrent ? 'you are here' : item.description, {
           fontFamily: 'Pixeloid Sans, sans-serif',
-          fontSize: '9px',
-          color: '#c0a0e6',
+          fontSize: '10px',
+          color: descColor,
           wordWrap: { width: labelWrap },
           maxLines: 1,
         })
@@ -291,23 +326,23 @@ export class TopHud {
 
       panel.add([itemBg, icon, label, desc]);
 
-      itemBg.on('pointerover', () => itemBg.setFillStyle(0xffd34d, 0.18));
-      itemBg.on('pointerout', () => itemBg.setFillStyle(0x0b041a, 0.6));
-      itemBg.on('pointerdown', () => {
-        // Fire the action immediately. scene.start() handles its own teardown;
-        // we previously delayed by 180ms to let the close-tween play, but the
-        // delayedCall could be cancelled if the scene's time manager was torn
-        // down mid-flight, causing the nav to silently freeze. Synchronous nav
-        // is reliable; the closeDrawer tween continues animating until Phaser
-        // shuts the scene down.
-        this.closeDrawer();
-        try {
-          item.onTap();
-        } catch (err) {
-          // Surface destination-scene errors instead of swallowing them.
-          console.error('[TopHud] drawer item onTap threw:', err);
-        }
-      });
+      if (!isCurrent) {
+        itemBg.on('pointerover', () => itemBg.setFillStyle(0xffd34d, 0.18));
+        itemBg.on('pointerout', () => itemBg.setFillStyle(0x0b041a, 0.6));
+        itemBg.on('pointerdown', () => {
+          // Fire the action immediately. scene.start() handles its own teardown.
+          this.closeDrawer();
+          try {
+            item.onTap();
+          } catch (err) {
+            console.error('[TopHud] drawer item onTap threw:', err);
+          }
+        });
+      } else {
+        // "you are here" — tap closes the drawer so the player still gets a
+        // tactile response without restarting the current scene.
+        itemBg.on('pointerdown', () => this.closeDrawer());
+      }
     }
 
     const hint = this.scene.add

@@ -30,32 +30,43 @@ export class VisitShows extends Scene {
 
     this.topHud = new TopHud(this, {
       showStats: true,
+      currentKey: SceneKeys.VisitShows,
       items: [
         {
           label: 'REHEARSE',
-          description: 'Practice your meowcert',
+          description: 'Pawractice makes purrfect',
           icon: '🎵',
+          key: SceneKeys.Game,
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
         {
           label: 'SET STAGE',
-          description: 'Cats & backdrop',
+          description: 'Dress the band, light the room',
           icon: '😺',
+          key: SceneKeys.Decorate,
           onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
         },
         {
           label: 'PUT ON A MEOWCERT',
-          description: 'Pick song + author chart',
+          description: 'Cook up your next hit',
           icon: '🎼',
+          key: SceneKeys.ChartEditor,
           onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
         },
         {
           label: 'MERCH',
-          description: 'Cat + cosmetic drops',
+          description: 'Fresh drops at the merch table',
           icon: '🛒',
+          key: SceneKeys.Purchase,
           onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
         },
-        // VISIT SHOWS (self) is omitted
+        {
+          label: 'CATCH A MEOWCERT',
+          description: 'Front row for fellow artists',
+          icon: '🎪',
+          key: SceneKeys.VisitShows,
+          onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
+        },
       ],
     });
 
@@ -90,7 +101,7 @@ export class VisitShows extends Scene {
       .text(
         cx,
         cy + 28,
-        'Browse who\'s on stage and jump straight into their reddit post.',
+        'Soon you\'ll catch other cats\' meowcerts and jump straight into their reddit post.',
         {
           ...fontBase,
           fontSize: '11px',

@@ -384,27 +384,30 @@ function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
  *  radius 80 so the halo expands a full ball-width past the rim. */
 function makeGlowBurst(color: number): CatEffect['burst'] {
   return (scene, target, scale = 1) => {
+    // Aura now blooms as a RING outside the fuzzball — the previous
+    // filled circles covered the hit target itself, which muddied the
+    // sprite on every successful hit. Bumped peak alpha slightly so
+    // the ring still reads loud without filling the fuzzball.
     const g = scene.add.graphics();
     g.setPosition(target.x, target.y);
     g.setDepth(target.depth + 1);
-    const baseR = 32;
-    const layers: Array<{ r: number; a: number }> = [
-      { r: baseR * 1.00, a: 0.55 },
-      { r: baseR * 0.75, a: 0.42 },
-      { r: baseR * 0.50, a: 0.32 },
-      { r: baseR * 0.30, a: 0.22 },
+    const fuzzballR = 38 * scale;          // sits just outside the ~72 px target
+    const layers: Array<{ r: number; thickness: number; a: number }> = [
+      { r: fuzzballR + 4,  thickness: 8, a: 0.75 },
+      { r: fuzzballR + 14, thickness: 6, a: 0.6 },
+      { r: fuzzballR + 26, thickness: 4, a: 0.42 },
+      { r: fuzzballR + 38, thickness: 2, a: 0.28 },
     ];
     for (const l of layers) {
-      g.fillStyle(color, l.a);
-      g.fillCircle(0, 0, l.r);
+      g.lineStyle(l.thickness, color, l.a);
+      g.strokeCircle(0, 0, l.r);
     }
-    g.setScale(1.2 * scale);
     scene.tweens.add({
       targets: g,
-      scaleX: 2.5 * scale,
-      scaleY: 2.5 * scale,
+      scaleX: 1.9,
+      scaleY: 1.9,
       alpha: 0,
-      duration: 600,
+      duration: 700,
       ease: 'Quad.easeOut',
       onComplete: () => g.destroy(),
     });

@@ -289,29 +289,41 @@ export class ChartEditor extends Scene {
   private buildHud(): void {
     this.hud = new TopHud(this, {
       showStats: false,
+      currentKey: SceneKeys.ChartEditor,
       items: [
         {
           label: 'REHEARSE',
-          description: 'Practice your meowcert',
+          description: 'Pawractice makes purrfect',
           icon: '🎵',
+          key: SceneKeys.Game,
           onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState }),
         },
         {
           label: 'SET STAGE',
-          description: 'Cats & backdrop',
+          description: 'Dress the band, light the room',
           icon: '😺',
+          key: SceneKeys.Decorate,
           onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
         },
         {
+          label: 'PUT ON A MEOWCERT',
+          description: 'Cook up your next hit',
+          icon: '🎼',
+          key: SceneKeys.ChartEditor,
+          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
+        },
+        {
           label: 'MERCH',
-          description: 'Cat + cosmetic drops',
+          description: 'Fresh drops at the merch table',
           icon: '🛒',
+          key: SceneKeys.Purchase,
           onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
         },
         {
           label: 'CATCH A MEOWCERT',
-          description: 'See who\'s playing',
+          description: 'Front row for fellow artists',
           icon: '🎪',
+          key: SceneKeys.VisitShows,
           onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
         },
       ],
