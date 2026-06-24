@@ -13,7 +13,7 @@ import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
 import { fetchState, loadChart } from '@/services/state-client';
 import { CAT_CATALOG, emptyChart, CHART_PAGE_SIZE } from '@/../shared/state';
-import { CAT_COLOR_BY_BREED } from '@/constants/cat-colors';
+import { resolveLaneTintsFromSeatedCats } from '@/constants/cat-colors';
 import type { PlayerState, LaneId, Chart, SeatId } from '@/../shared/state';
 import type { CatModel } from '@/types/game';
 import { generateChart, type GenDifficulty } from '@/../shared/chart-generator';
@@ -290,13 +290,12 @@ export class Game extends Scene {
 
       // Opaque cat-color BORDER around the lane. Drawn as a stroked
       // rectangle the size of the lane bar so the lane reads as a
-      // framed column in its cat's color — Tim's green outline in the
-      // screenshot. Full opacity (the fill underneath is the
-      // see-through layer; this is the solid outline).
-      const border = this.add
+      // framed column in its cat's color. Depth -1 so it sits BEHIND
+      // the falling notes (depth 40) but in front of the bar fill.
+      this.add
         .rectangle(cx, laneTopY + laneH / 2, colW, laneH, 0x000000, 0)
-        .setStrokeStyle(3, color, 1);
-      border.setDepth(5);
+        .setStrokeStyle(3, color, 1)
+        .setDepth(1);
 
       // Sakura-pink toe-bean overlay. Uses the paws-only texture from
       // Preloader.generatePawsOnlyTexture — paws are solid (full alpha),
@@ -310,7 +309,7 @@ export class Game extends Scene {
         paws.setRotation(-Math.PI / 2);
         paws.setTint(0xffc4de);
         paws.setAlpha(1);
-        paws.setDepth(4);
+        paws.setDepth(2);
       }
 
       // Hit target at the bottom of the lane — the original "fuzzy ball"
@@ -332,53 +331,15 @@ export class Game extends Scene {
    *  the same shade). Falls back to the bg-sampled or default trio
    *  when no cats are seated at all. */
   private resolveLaneTints(): readonly [number, number, number] {
-    const SEAT_ORDER: SeatId[] = ['seat-left', 'seat-center', 'seat-right'];
-    const seatedCats = this.playerState?.seatedCats ?? {};
-    const ownedCats = this.playerState?.ownedCats ?? [];
-    const laneColors: (number | null)[] = [null, null, null];
-    for (let i = 0; i < 3; i++) {
-      const seatId = SEAT_ORDER[i]!;
-      const instanceId = seatedCats[seatId];
-      if (!instanceId) continue;
-      const catInstance = ownedCats.find((c) => c.id === instanceId);
-      if (!catInstance) continue;
-      const color = CAT_COLOR_BY_BREED[catInstance.breed];
-      if (color !== undefined) laneColors[i] = color;
-    }
-
-    // Fill empty lanes with the nearest occupied lane's color so a
-    // single-cat / two-cat lineup never mixes a cat tint with a stale
-    // default. Falls through to bg-sampled or default trio when ZERO
-    // lanes have a cat color.
-    const hasAny = laneColors.some((c) => c !== null);
-    if (!hasAny) {
-      const sampled = this.cache.json.get(AssetKeys.Json.BgLaneColors) as
-        | Record<string, [string, string, string]>
-        | undefined;
-      const activeBg = this.playerState?.activeBackground ?? 'stage';
-      const trio = sampled?.[activeBg];
-      if (!trio || trio.length !== 3) return L.LANE_COLORS;
-      return trio.map((hex) => parseInt(hex.replace('#', ''), 16)) as unknown as readonly [number, number, number];
-    }
-    for (let i = 0; i < 3; i++) {
-      if (laneColors[i] !== null) continue;
-      // Walk outward looking for an occupied neighbour color to copy.
-      for (let d = 1; d < 3; d++) {
-        const right = i + d;
-        const left = i - d;
-        const rightColor = right < 3 ? laneColors[right] : null;
-        if (rightColor !== null && rightColor !== undefined) {
-          laneColors[i] = rightColor;
-          break;
-        }
-        const leftColor = left >= 0 ? laneColors[left] : null;
-        if (leftColor !== null && leftColor !== undefined) {
-          laneColors[i] = leftColor;
-          break;
-        }
-      }
-    }
-    return [laneColors[0]!, laneColors[1]!, laneColors[2]!] as const;
+    const fromCats = resolveLaneTintsFromSeatedCats(this.playerState);
+    if (fromCats) return fromCats;
+    const sampled = this.cache.json.get(AssetKeys.Json.BgLaneColors) as
+      | Record<string, [string, string, string]>
+      | undefined;
+    const activeBg = this.playerState?.activeBackground ?? 'stage';
+    const trio = sampled?.[activeBg];
+    if (!trio || trio.length !== 3) return L.LANE_COLORS;
+    return trio.map((hex) => parseInt(hex.replace('#', ''), 16)) as unknown as readonly [number, number, number];
   }
 
   /**
@@ -1343,14 +1304,20 @@ export class Game extends Scene {
     // commit to a judgment so spamming the lane costs combo.
     const scaleY = this.scale.height / L.DESIGN_H;
     const targetY = L.HIT_LINE_Y * scaleY;
-    const maxHitDistance = 60;
     const perfectDistance = 15;
+    // Asymmetric great window: more forgiving on the way IN, tighter on
+    // the way OUT. Tapping a ball that has already half-cleared the
+    // fuzzball is treated harshly — should grade as miss.
+    const enterMaxHitDistance = 60;
+    const exitMaxHitDistance = 30;
 
     let grade: 'perfect' | 'great' | 'miss' = 'miss';
     if (note) {
-      const dy = Math.abs(note.y - targetY);
-      if (dy <= perfectDistance) grade = 'perfect';
-      else if (dy <= maxHitDistance) grade = 'great';
+      const dySigned = note.y - targetY;
+      const absDy = Math.abs(dySigned);
+      const greatWindow = dySigned <= 0 ? enterMaxHitDistance : exitMaxHitDistance;
+      if (absDy <= perfectDistance) grade = 'perfect';
+      else if (absDy <= greatWindow) grade = 'great';
     }
 
     // Fire audio feedback before grading-side effects so the sound
@@ -1412,8 +1379,11 @@ export class Game extends Scene {
     // once the note slips behind the target it's a miss.
     const scaleY = this.scale.height / L.DESIGN_H;
     const targetY = L.HIT_LINE_Y * scaleY;
-    const maxHitDistance = 60;
-    const missY = targetY + maxHitDistance;
+    // Asymmetric miss boundary — Tim's rule: less forgiving on the way
+    // OUT than on the way in. Auto-miss fires once the ball center is
+    // ~30 px past the target (more than half the ball outside the fuzz
+    // circle), even though the entry-side great window stays at 60 px.
+    const missY = targetY + 30;
     let anyMissed = false;
     for (let i = 0; i < this.notes.length; i++) {
       const n = this.notes[i]!;

@@ -18,6 +18,7 @@ import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
 import { TemplateOrScratchModal, type StartMode } from '@/ui/template-or-scratch-modal';
 import { DifficultyPickerModal } from '@/ui/difficulty-picker-modal';
 import { Balance } from '@/constants/balance';
+import { resolveLaneTintsFromSeatedCats } from '@/constants/cat-colors';
 
 /**
  * Chart editor — 3-lane × 32-step beat sequencer paged in 8-row windows.
@@ -261,10 +262,13 @@ export class ChartEditor extends Scene {
     }
   }
 
-  /** Look up the per-bg sampled lane tint trio from cache, matching the
-   *  exact same resolver `Game` uses. Falls back to LANE_COLORS defaults
-   *  when the JSON didn't load or the active bg isn't sampled. */
+  /** Lane tints follow the seated cats, matching what Game.drawLanes
+   *  does — same shared resolver so the editor preview always shows
+   *  the player's actual lineup colors. Falls back to bg-sampled then
+   *  default trio when no cats are seated. */
   private resolveLaneTints(): readonly [number, number, number] {
+    const fromCats = resolveLaneTintsFromSeatedCats(this.playerState);
+    if (fromCats) return fromCats;
     const sampled = this.cache.json.get(AssetKeys.Json.BgLaneColors) as
       | Record<string, [string, string, string]>
       | undefined;
