@@ -21,6 +21,11 @@ import { NoteSynth } from './note-synth';
  *   music.destroy();                      // scene shutdown
  */
 const BACKING_VOLUME = 0.85;
+// Per-song tap samples come from inside the song's own mix so they sit
+// at the song's own level. ~0.4 reads as confident but not louder than
+// the backing — tune in playtest. NoteSynth fallback handles its own
+// gain inside the synth so this constant is sample-only.
+const TAP_SAMPLE_VOLUME = 0.4;
 
 export class MusicSystem {
   private backing: Sound.BaseSound | null = null;
@@ -54,7 +59,15 @@ export class MusicSystem {
       this.loadPromise = Promise.resolve();
       return this.loadPromise;
     }
-    if (this.scene.cache.audio.exists(backing.audioKey)) {
+    const tapKeys: [string, string, string] = [
+      `tap-${backing.id}-0`,
+      `tap-${backing.id}-1`,
+      `tap-${backing.id}-2`,
+    ];
+    const cache = this.scene.cache.audio;
+    const needsBacking = !cache.exists(backing.audioKey);
+    const needsTaps = tapKeys.some((k) => !cache.exists(k));
+    if (!needsBacking && !needsTaps) {
       this.loadPromise = Promise.resolve();
       return this.loadPromise;
     }
@@ -64,15 +77,24 @@ export class MusicSystem {
         loader.off('loaderror', onError);
         resolve();
       };
+      // Tap-sample load failures are silent — MusicSystem falls back to
+      // NoteSynth for any lane whose sample didn't load. Only a backing
+      // failure logs a warning since the round goes silent without it.
       const onError = (file: { key: string }) => {
-        if (file.key !== backing.audioKey) return;
-        console.warn(`[MusicSystem] backing load failed: ${backing.audioKey}`);
-        loader.off(Phaser.Loader.Events.COMPLETE, onComplete);
-        resolve();
+        if (file.key === backing.audioKey) {
+          console.warn(`[MusicSystem] backing load failed: ${backing.audioKey}`);
+        }
       };
-      loader.audio(backing.audioKey, `assets/audio/backings/${backing.id}.mp3`);
+      if (needsBacking) {
+        loader.audio(backing.audioKey, `assets/audio/backings/${backing.id}.mp3`);
+      }
+      for (let lane = 0; lane < 3; lane++) {
+        if (!cache.exists(tapKeys[lane]!)) {
+          loader.audio(tapKeys[lane]!, `assets/audio/taps/${backing.id}-${lane}.wav`);
+        }
+      }
       loader.once(Loader.Events.COMPLETE, onComplete);
-      loader.once('loaderror', onError);
+      loader.on('loaderror', onError);
       if (!loader.isLoading()) loader.start();
     });
     return this.loadPromise;
@@ -102,13 +124,26 @@ export class MusicSystem {
   }
 
   /**
-   * Fire a tap tone in response to a successful lane tap. NoteSynth
-   * picks the per-vibe preset (upbeat / melodic / smooth) and the
-   * per-lane frequency within that preset, then schedules one
-   * oscillator + envelope on the audio clock.
+   * Fire a tap sound in response to a successful lane tap. Two layers:
+   *
+   *   1. If the song has per-lane sample WAVs in cache (preloaded
+   *      alongside the backing), play that — the sample is sliced from
+   *      the song itself so its timbre matches the backing exactly.
+   *   2. Otherwise fall back to NoteSynth's per-vibe synthesized tone.
+   *
+   * Songs without samples still feel coherent because the synth chooses
+   * a waveform + envelope matched to the chart's vibe.
    */
   playTapForLane(lane: LaneId): void {
     if (this.destroyed) return;
+    const backing = this.pickBacking();
+    if (backing) {
+      const tapKey = `tap-${backing.id}-${lane}`;
+      if (this.scene.cache.audio.exists(tapKey)) {
+        this.scene.sound.play(tapKey, { volume: TAP_SAMPLE_VOLUME });
+        return;
+      }
+    }
     this.noteSynth.play(this.chart.vibe, lane);
   }
 
