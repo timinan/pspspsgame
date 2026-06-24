@@ -397,21 +397,57 @@ export interface PlayerState {
  * Used by tests and the server-side state initializer.
  */
 export function createFreshPlayerState(username: string = ''): PlayerState {
-  // DEV: grant one instance of every cat in the catalog and seat the first
-  // three so the player lands in Decorate with a complete house and can
-  // hit Play immediately. Revert to first-three-only (`STARTER_BREEDS`)
-  // before shipping alongside DEV_RESET_ON_LOAD = false.
+  // DEV: grant one instance of every cat in the catalog and seat the three
+  // demo headliners — Snow White / Jade / Sakura — each with a thematic
+  // effect cosmetic pre-equipped so the playtest opens on a vibe-y stage
+  // instead of a bare lineup. Revert to first-three-only seat + no pre-
+  // equipped effects (`STARTER_BREEDS`) before shipping alongside
+  // DEV_RESET_ON_LOAD = false.
   const SEAT_IDS = ['seat-left', 'seat-center', 'seat-right'] as const;
   const starterCats: OwnedCat[] = GENERATED_CAT_CATALOG.map((entry) => ({
     id: makeInstanceId(),
     breed: entry.id,
     name: entry.name ?? entry.id,
   }));
+
+  // Resolve the three demo headliners by breed id. Falls back to the
+  // first owned cat for any missing breed so the state stays valid even
+  // if the catalog ids shift later.
+  const findCatByBreed = (breedId: string): OwnedCat | undefined =>
+    starterCats.find((c) => c.breed === breedId);
+  const headliners: Array<{ cat: OwnedCat | undefined; effectId: string }> = [
+    { cat: findCatByBreed('cat9'),  effectId: 'effect-sparkle' },     // Snow White → Sparkles
+    { cat: findCatByBreed('cat10'), effectId: 'effect-green-glow' },  // Jade → Green Aura
+    { cat: findCatByBreed('cat12'), effectId: 'effect-blossom' },     // Sakura → Blossoms
+  ];
+
   const seatedCats: Partial<Record<SeatId, string>> = {};
-  starterCats.slice(0, SEAT_IDS.length).forEach((cat, i) => {
+  headliners.forEach((h, i) => {
+    if (!h.cat) return;
     const seatId = SEAT_IDS[i];
-    if (seatId) seatedCats[seatId] = cat.id;
+    if (seatId) seatedCats[seatId] = h.cat.id;
   });
+
+  const ownedCosmetics: OwnedCosmetic[] = COSMETIC_CATALOG.map((e) => ({
+    id: makeInstanceId(),
+    type: e.id,
+  }));
+
+  // Pre-equip the headliner effects. Pull each chosen effect instance
+  // out of ownedCosmetics (the dressing room treats equipped items as
+  // living outside ownedCosmetics + tracked via equippedCosmeticTypes)
+  // and write the slot binding.
+  const equippedCosmetics: Partial<Record<string, Partial<Record<string, string>>>> = {};
+  const equippedCosmeticTypes: Record<string, string> = {};
+  for (const h of headliners) {
+    if (!h.cat) continue;
+    const cosIdx = ownedCosmetics.findIndex((c) => c.type === h.effectId);
+    if (cosIdx === -1) continue;
+    const cosmetic = ownedCosmetics[cosIdx]!;
+    ownedCosmetics.splice(cosIdx, 1);
+    equippedCosmetics[h.cat.id] = { effect: cosmetic.id };
+    equippedCosmeticTypes[cosmetic.id] = cosmetic.type;
+  }
 
   return {
     username,
@@ -421,12 +457,9 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
     // + effects) so the DressingRoom shows the full set without box-pull
     // RNG. Revert to box-pull-only (`[]`) before shipping alongside
     // DEV_RESET_ON_LOAD = false.
-    ownedCosmetics: COSMETIC_CATALOG.map((e) => ({
-      id: makeInstanceId(),
-      type: e.id,
-    })),
-    equippedCosmetics: {},
-    equippedCosmeticTypes: {},
+    ownedCosmetics,
+    equippedCosmetics,
+    equippedCosmeticTypes,
     bestScore: 0,
     // Skip the Welcome tutorial — players land straight in Decorate.
     onboardingDone: true,
