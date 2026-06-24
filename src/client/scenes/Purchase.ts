@@ -49,14 +49,9 @@ export class Purchase extends Scene {
   async create(): Promise<void> {
     const { width, height } = this.scale;
 
-    this.add.rectangle(0, 0, width, height, 0x1a0a2e, 1).setOrigin(0, 0);
-
-    // Subtle star field
-    const stars = this.add.graphics();
-    stars.fillStyle(0xffffff, 0.22);
-    for (let i = 0; i < 55; i++) {
-      stars.fillCircle(Math.random() * width, Math.random() * height, Math.random() * 1.4 + 0.4);
-    }
+    // Solid dark backdrop — no star field for the gated state; the empty
+    // dark canvas reads as "blocked" instead of "decorated but empty".
+    this.add.rectangle(0, 0, width, height, 0x0b041a, 1).setOrigin(0, 0);
 
     this.topHud = new TopHud(this, {
       showStats: true,
@@ -83,35 +78,57 @@ export class Purchase extends Scene {
       ],
     });
 
-    const titleFontSize = width >= 520 ? 28 : width >= 380 ? 20 : 16;
-    this.add
-      .text(width / 2, TopHud.HEIGHT + 10, 'PURCHASE', {
-        fontFamily: 'Pixeloid Sans, monospace',
+    // Pre-test gate: the box pulls + cosmetic economy aren't ready for
+    // the playtest cohort. Hamburger still navigates so testers can get
+    // out, but the scene's actual content is hidden until the launch
+    // build re-enables it. Drop this branch when boxes ship.
+    this.uiRoot = this.add.container(0, 0);
+    this.drawComingSoon();
+  }
+
+  /** Draws the "coming soon" placeholder used while the box economy is
+   *  parked. Centered title, supporting subtitle, faint lock glyph. */
+  private drawComingSoon(): void {
+    const { width, height } = this.scale;
+    const cx = width / 2;
+    const cy = height / 2;
+    const fontBase = { fontFamily: 'Pixeloid Sans, sans-serif' };
+
+    const lock = this.add
+      .text(cx, cy - 70, '🔒', {
+        ...fontBase,
+        fontSize: '48px',
+      })
+      .setOrigin(0.5);
+    this.uiRoot.add(lock);
+
+    const title = this.add
+      .text(cx, cy - 8, 'COMING SOON', {
+        ...fontBase,
         fontStyle: 'bold',
-        fontSize: `${titleFontSize}px`,
+        fontSize: '24px',
         color: '#ffd34d',
         stroke: '#000000',
         strokeThickness: 4,
-        align: 'center',
       })
+      .setOrigin(0.5);
+    this.uiRoot.add(title);
+
+    const sub = this.add
+      .text(
+        cx,
+        cy + 28,
+        'Boxes, crates, and pulls will land soon.\nFor now, jam the editor and play your beat.',
+        {
+          ...fontBase,
+          fontSize: '11px',
+          color: '#c0a0e6',
+          align: 'center',
+          wordWrap: { width: width - 48 },
+        },
+      )
       .setOrigin(0.5, 0);
-
-    this.uiRoot = this.add.container(0, 0);
-    this.drawCards();
-    this.refreshCoins();
-    this.refreshAffordability();
-
-    if (!this.playerState) {
-      try {
-        this.playerState = await fetchState();
-        this.refreshCoins();
-        this.refreshAffordability();
-      } catch (e) {
-        console.warn('[purchase] fetchState failed', e);
-      }
-    }
-
-    this.drawInventoryDebugPanel();
+    this.uiRoot.add(sub);
   }
 
   /**

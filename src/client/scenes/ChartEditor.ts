@@ -2,7 +2,7 @@ import { Scene, Scenes, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { TopHud } from '@/ui/top-hud';
 import { BackgroundManager } from '@/entities/background-manager';
-import { liftTowardWhite, BALL_BRIGHTNESS_LIFT } from '@/entities/note-colors';
+import { liftTowardWhite, BALL_BRIGHTNESS_LIFT, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
 import * as L from '@/constants/scene-layout';
 import { AssetKeys } from '@/constants/assets';
 import { saveChart } from '@/services/state-client';
@@ -204,8 +204,12 @@ export class ChartEditor extends Scene {
       bar.displayWidth = colH;
       bar.displayHeight = colW - 2;
       bar.setRotation(-Math.PI / 2);
-      bar.setTint(color);
-      bar.setAlpha(0.55);
+      // Match Game.drawLanes: pastel the lane so the raw-color ball pops.
+      bar.setTint(liftTowardWhite(color, LANE_BRIGHTNESS_LIFT));
+      // Higher alpha than Game (was 0.55) so the busy background detail
+      // up at the top of the lane stops bleeding through the cell grid
+      // — players said it made the upper steps hard to read.
+      bar.setAlpha(0.88);
       this.root.add(bar);
     }
   }

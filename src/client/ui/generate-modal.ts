@@ -33,6 +33,13 @@ export class GenerateModal {
 
   open(args: {
     initial?: Partial<GenerateModalResult>;
+    /** Optional copy overrides. The editor opens this modal as "GENERATE
+     *  BEAT" / "GENERATE" since the action authors content; the Play
+     *  scene reuses the same modal as a pre-round picker so it reads as
+     *  "READY TO PLAY?" / "PLAY". Defaults preserve the editor wording. */
+    title?: string;
+    subtitle?: string;
+    primaryLabel?: string;
     onGenerate: (result: GenerateModalResult) => void;
     onCancel?: () => void;
   }): void {
@@ -91,7 +98,7 @@ export class GenerateModal {
     this.container.add(panel);
 
     const title = this.scene.add
-      .text(cx, cy - panelH / 2 + 22, 'GENERATE BEAT', {
+      .text(cx, cy - panelH / 2 + 22, args.title ?? 'GENERATE BEAT', {
         ...fontBase,
         fontStyle: 'bold',
         fontSize: '18px',
@@ -101,7 +108,7 @@ export class GenerateModal {
     this.container.add(title);
 
     const subtitle = this.scene.add
-      .text(cx, cy - panelH / 2 + 48, 'A fresh chart that fills the round', {
+      .text(cx, cy - panelH / 2 + 48, args.subtitle ?? 'A fresh chart that fills the round', {
         ...fontBase,
         fontSize: '10px',
         color: '#c0a0e6',
@@ -174,7 +181,7 @@ export class GenerateModal {
       .rectangle(cx + footBtnW / 2 + footGap / 2, footerY, footBtnW, footBtnH, 0xffd34d, 1)
       .setInteractive({ useHandCursor: true });
     const genText = this.scene.add
-      .text(cx + footBtnW / 2 + footGap / 2, footerY, 'GENERATE', {
+      .text(cx + footBtnW / 2 + footGap / 2, footerY, args.primaryLabel ?? 'GENERATE', {
         ...fontBase,
         fontStyle: 'bold',
         fontSize: '14px',

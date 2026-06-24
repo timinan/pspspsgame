@@ -72,6 +72,10 @@ export class Game extends Scene {
   private pendingStart = true;
   private readyModal: Phaser.GameObjects.Container | null = null;
   private generateModal: GenerateModal | null = null;
+  /** Two-piece pill (rect + text) shown in the top-right while testMode
+   *  is true. Cleaned up in doCleanup so it doesn't leak into the next
+   *  scene if the player taps it mid-tween. */
+  private backToChartChip: Phaser.GameObjects.GameObject[] = [];
 
   // -----------------------------------------------------------------------
   // Live hit / miss feedback (one floating "PERFECT" / "GREAT" / "MISS"
@@ -581,42 +585,70 @@ export class Game extends Scene {
   }
 
   private buildHud(): void {
-    // In test mode the only useful drawer action is "bail back to the chart" —
-    // jumping to Decorate/Purchase mid-test would lose the in-progress
-    // round and re-entering the editor from there starts a fresh edit pass.
-    const testModeItems = [
-      {
-        label: '← CHART',
-        description: 'Back to editor',
-        icon: '🎼',
-        onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
-      },
-    ];
-    const normalItems = [
-      // PLAY (self) is omitted — no point reloading the current scene
-      {
-        label: 'DECORATE',
-        description: 'Cats & background',
-        icon: '😺',
-        onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
-      },
-      {
-        label: 'POST',
-        description: 'Build a beat',
-        icon: '🎼',
-        onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
-      },
-      {
-        label: 'PURCHASE',
-        description: 'Boxes',
-        icon: '🛒',
-        onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
-      },
-    ];
     this.hud = new TopHud(this, {
       showStats: true,
-      items: this.testMode ? testModeItems : normalItems,
+      items: [
+        // PLAY (self) is omitted — no point reloading the current scene
+        {
+          label: 'DECORATE',
+          description: 'Cats & background',
+          icon: '😺',
+          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
+        },
+        {
+          label: 'POST',
+          description: 'Build a beat',
+          icon: '🎼',
+          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
+        },
+        {
+          label: 'PURCHASE',
+          description: 'Boxes',
+          icon: '🛒',
+          onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
+        },
+      ],
     });
+
+    // Test-mode escape hatch: a visible chip in the top-right (just left
+    // of the hamburger trigger) that jumps straight back to the editor.
+    // Hamburger nav still shows the same pages so the player has the
+    // normal global nav too — this is the fast path for "I'm just
+    // previewing my chart, get me out of here."
+    if (this.testMode) this.buildBackToChartChip();
+  }
+
+  /** Floating "← CHART" pill rendered on top of the playfield while in
+   *  test mode. Sits in the top-right corner just under the HUD strip
+   *  so it never collides with the hit lanes. */
+  private buildBackToChartChip(): void {
+    const { width } = this.scale;
+    const padX = 10;
+    const padY = TopHud.HEIGHT + 6;
+    const w = 92;
+    const h = 26;
+    const cx = width - padX - w / 2;
+    const cy = padY + h / 2;
+    const bg = this.add
+      .rectangle(cx, cy, w, h, 0x1a0a2e, 0.92)
+      .setStrokeStyle(1, 0xffd34d, 0.85)
+      .setDepth(60)
+      .setInteractive({ useHandCursor: true });
+    const txt = this.add
+      .text(cx, cy, '← CHART', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '11px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5)
+      .setDepth(61);
+    bg.on('pointerover', () => bg.setFillStyle(0x2c1856, 0.95));
+    bg.on('pointerout', () => bg.setFillStyle(0x1a0a2e, 0.92));
+    bg.on('pointerup', () => {
+      this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState });
+    });
+    this.backToChartChip = [bg, txt];
   }
 
   /**
@@ -944,6 +976,12 @@ export class Game extends Scene {
   private showGenerateModal(): void {
     if (!this.generateModal) this.generateModal = new GenerateModal(this);
     this.generateModal.open({
+      // Play scene is "pick + go", not "author a chart" — reuses the
+      // same modal but reads as PLAY so the player doesn't feel like
+      // they're being asked to build something before jamming.
+      title: 'READY TO PLAY?',
+      subtitle: 'Pick the vibe and start the round',
+      primaryLabel: '▶ PLAY',
       initial: {
         bpm: this.playerState?.chart?.bpm,
         vibe: this.playerState?.chart?.vibe,
@@ -1171,6 +1209,10 @@ export class Game extends Scene {
     tearDown('generate-modal', () => {
       this.generateModal?.destroy();
       this.generateModal = null;
+    });
+    tearDown('back-to-chart-chip', () => {
+      for (const g of this.backToChartChip) g.destroy();
+      this.backToChartChip = [];
     });
 
     // Destroy entities BEFORE tweens.killAll so each owner can cleanly
