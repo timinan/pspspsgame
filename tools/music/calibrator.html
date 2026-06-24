@@ -120,7 +120,7 @@
       <br>Auto-processed: trim to 32s, mono, 96kbps. Catalog entry created with FAST · UPBEAT · 130 BPM defaults — tune below.
     </div>
     <button class="pick" type="button" onclick="document.getElementById('file-input').click()">Choose file…</button>
-    <input id="file-input" type="file" accept="audio/mpeg,audio/mp3,.mp3" />
+    <input id="file-input" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus,.webm" />
   </label>
 
   <table>
@@ -371,9 +371,13 @@ fileInput.addEventListener('change', () => {
 });
 
 async function uploadFile(file) {
-  if (!/\.mp3$/i.test(file.name) && file.type !== 'audio/mpeg' && file.type !== 'audio/mp3') {
-    toast('mp3 only', 'err');
-    return;
+  // No client-side format check — ffmpeg on the server accepts anything
+  // it can decode (mp3 / wav / m4a / aac / ogg / flac / opus / webm
+  // covered out of the box) and converts to the canonical 96 kbps mono
+  // mp3 we ship. If the browser tagged the file as non-audio, soft-warn
+  // but still try the upload.
+  if (file.type && !file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|aac|ogg|flac|opus|webm)$/i.test(file.name)) {
+    toast(`probably not audio (${file.type || 'unknown type'}) — trying anyway`);
   }
   // Derive a slug from the filename; let the calibrator UI override later.
   let baseName = file.name.replace(/\.[^.]+$/, '');
