@@ -314,17 +314,18 @@ export class TopHud {
 
       const labelColor = isCurrent ? '#ffd34d' : '#ffffff';
       const descColor = isCurrent ? '#fff0aa' : '#c0a0e6';
+      // Use the "●" prefix instead of suffix so the active-state marker
+      // never lands beyond the wrap width and forces "MEOWCERT" onto a
+      // truncated second line (Tim caught "PUT ON A" alone in the
+      // drawer). Single-line label, no wordWrap — the font is tuned so
+      // even the longest label ("PUT ON A MEOWCERT") fits in the slot.
+      const labelText = isCurrent ? `● ${item.label}` : item.label;
       const label = this.scene.add
-        .text(76, y + 14, isCurrent ? `${item.label}  ●` : item.label, {
+        .text(76, y + 14, labelText, {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          // 12 px keeps the longest label ("PUT ON A MEOWCERT") well
-          // inside the labelWrap budget — 14 was clipping with the
-          // current-scene "●" suffix appended.
-          fontSize: '12px',
+          fontSize: '11px',
           color: labelColor,
-          wordWrap: { width: labelWrap },
-          maxLines: 1,
         })
         .setOrigin(0, 0);
 
