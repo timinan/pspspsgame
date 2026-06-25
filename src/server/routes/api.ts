@@ -7,6 +7,7 @@ import type {
 } from '../../shared/api';
 import { state } from './state';
 import { chart } from './chart';
+import { social } from './social';
 
 type ErrorResponse = {
   status: 'error';
@@ -21,6 +22,10 @@ api.route('/', state);
 
 // Phase 5 chart routes: /api/chart/save, /api/chart?author=<username>.
 api.route('/chart', chart);
+
+// Phase 6 social-loop routes: /api/social/play, /leaderboard, /inbox,
+// /gift, /post-owner. See routes/social.ts for the full surface.
+api.route('/social', social);
 
 api.get('/init', async (c) => {
   const { postId } = context;
