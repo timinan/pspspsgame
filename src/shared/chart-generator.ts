@@ -380,6 +380,7 @@ export function generateChart(args: {
     holds,
     slides,
     slideReturns,
+    difficulty,
     updatedAt: Date.now(),
   };
 }

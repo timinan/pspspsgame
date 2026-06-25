@@ -24,6 +24,7 @@ import { SettingsModal } from '@/ui/settings-modal';
 import { CommentComposeModal } from '@/ui/comment-compose-modal';
 import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
 import { submitPlay } from '@/services/social-client';
+import { getBest, setBestIfHigher } from '@/services/rehearsal-best';
 import {
   classifyScore,
   rewardWithComment,
@@ -137,6 +138,11 @@ export class Game extends Scene {
   /** Pass/fail blurb shown only in test mode when accuracy is below
    *  Balance.passAccuracyPct. Empty + invisible otherwise. */
   private summaryGateText!: Phaser.GameObjects.Text;
+  /** Personal-best line for rehearsal — shows the player's best score on
+   *  this exact chart (audioKey + difficulty), with a NEW BEST flag when
+   *  the just-finished run beat it. Hidden outside test mode and on any
+   *  chart that lacks both audioKey + difficulty (scratch charts). */
+  private summaryBestText!: Phaser.GameObjects.Text;
   /** Summary title — swapped between 'SHOW COMPLETE!' and
    *  'SHOW FAILED' based on the rehearsal pass gate. */
   private summaryTitleText!: Phaser.GameObjects.Text;
@@ -619,6 +625,21 @@ export class Game extends Scene {
     });
     this.summaryRightBg = rightBg;
     this.summaryRightText = rightText;
+
+    // Personal-best line for rehearsal — sits just below the stats row.
+    // showSummary fills + toggles visibility based on testMode + whether
+    // the chart has an audioKey + difficulty (i.e. is keyable for best).
+    this.summaryBestText = this.add
+      .text(cx, statsY + 38, '', {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '11px',
+        color: '#ffd34d',
+        align: 'center',
+      })
+      .setOrigin(0.5, 0)
+      .setVisible(false);
+    container.add(this.summaryBestText);
 
     // Pass/fail message that sits between the stats row and the buttons.
     // Anchored to the BOTTOM of its bounding box so the text grows
@@ -1366,7 +1387,34 @@ export class Game extends Scene {
       this.comboText.setColor('#c6b3ff');
     }
 
+    this.updateBestScoreLine(passed);
+
     this.summary.setVisible(true);
+  }
+
+  /** Rehearsal-only: show the player's personal best on this exact chart
+   *  (keyed on audioKey + difficulty), and write a new best if the run
+   *  beat it. Hidden outside test mode and on charts without both pieces
+   *  (scratch charts can't be best-tracked since they may have been
+   *  edited between attempts). */
+  private updateBestScoreLine(passed: boolean): void {
+    const c = this.playerState?.chart;
+    const audioKey = c?.audioKey;
+    const difficulty = c?.difficulty;
+    if (!this.testMode || !audioKey || !difficulty) {
+      this.summaryBestText.setVisible(false);
+      return;
+    }
+    const score = this.score.get();
+    const prevBest = getBest(audioKey, difficulty);
+    const isNew = passed && score > prevBest && setBestIfHigher(audioKey, difficulty, score);
+    const shownBest = Math.max(score, prevBest);
+    const label = isNew
+      ? `⭐ NEW BEST: ${shownBest.toLocaleString()}`
+      : `BEST: ${shownBest.toLocaleString()}`;
+    this.summaryBestText.setText(label);
+    this.summaryBestText.setColor(isNew ? '#4dffb4' : '#ffd34d');
+    this.summaryBestText.setVisible(true);
   }
 
   // Skip = "play again" for now. Decorate has its own nav via the hamburger.
@@ -1967,25 +2015,33 @@ export class Game extends Scene {
     const scaleY = this.scale.height / L.DESIGN_H;
     const targetY = L.HIT_LINE_Y * scaleY;
     const perfectDistance = 15;
+    // Slides (single, double, slide-and-return) get a much wider perfect
+    // window — the gesture is harder than a single tap and players
+    // naturally start the drag early. Midpoint between perfect (15) and
+    // great (60) = 37, so a slide tap up to 37 px from the target still
+    // grades perfect instead of great. Encourages "start early rather
+    // than late" without giving away free perfects on regular taps.
+    const slidePerfectDistance = 37;
     // Asymmetric great window: more forgiving on the way IN, tighter on
     // the way OUT. Tapping a ball that has already half-cleared the
     // fuzzball is treated harshly — should grade as miss.
     const enterMaxHitDistance = 60;
     const exitMaxHitDistance = 30;
-    // Slides (single, double, slide-and-return) get a wider exit window —
-    // the tap is the START of a multi-step gesture, so a slightly late
-    // tap still has time to drag through. Symmetric 60 above / 60 below
-    // vs taps + holds' 60 / 30. Pairs with the wider auto-miss line in
-    // checkMisses so the engagement and auto-miss windows line up.
+    // Slides get a wider exit window too — the tap is the START of a
+    // multi-step gesture, so a slightly late tap still has time to drag
+    // through. Symmetric 60 above / 60 below vs taps + holds' 60 / 30.
+    // Pairs with the wider auto-miss line in checkMisses so engagement
+    // and auto-miss windows line up.
     const slideExitMaxHitDistance = 60;
 
     let grade: 'perfect' | 'great' | 'miss' = 'miss';
     if (note) {
       const dySigned = note.y - targetY;
       const absDy = Math.abs(dySigned);
+      const perfectWin = note.isSlide ? slidePerfectDistance : perfectDistance;
       const exitWin = note.isSlide ? slideExitMaxHitDistance : exitMaxHitDistance;
       const greatWindow = dySigned <= 0 ? enterMaxHitDistance : exitWin;
-      if (absDy <= perfectDistance) grade = 'perfect';
+      if (absDy <= perfectWin) grade = 'perfect';
       else if (absDy <= greatWindow) grade = 'great';
     }
 

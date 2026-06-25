@@ -398,6 +398,12 @@ export interface Chart {
   slides?: Slide[];
   /** Slide-and-return notes. Optional — adjacent lanes only. */
   slideReturns?: SlideReturn[];
+  /** Template-generated difficulty tier. Set by chart-generator; absent on
+   *  hand-authored ("scratch") charts. Used to key rehearsal best scores
+   *  and tag the chart for any future per-difficulty UI. Mirrors the
+   *  GenDifficulty union in chart-generator.ts — kept as a plain string
+   *  union here to avoid a shared/ import cycle. */
+  difficulty?: 'easy' | 'medium' | 'spicy' | 'hard' | 'insane';
   updatedAt: number;
 }
 
