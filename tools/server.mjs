@@ -1273,10 +1273,47 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+/**
+ * One-shot migration on server boot — backfill `addedAt` on existing
+ * music.json entries from the mp3's file mtime. Lets the calibrator's
+ * "newest / oldest" sort work for tracks uploaded before addedAt was
+ * stamped. Idempotent: entries that already have addedAt are skipped.
+ */
+async function backfillMusicAddedAt() {
+  let raw;
+  try {
+    raw = JSON.parse(await fs.readFile(MUSIC_JSON, 'utf8'));
+  } catch {
+    return; // no music.json yet — nothing to do
+  }
+  let changed = 0;
+  for (const [slug, entry] of Object.entries(raw)) {
+    if (typeof entry.addedAt === 'number') continue;
+    const mp3Path = path.join(MUSIC_UPLOAD_DIR, `${slug}.mp3`);
+    try {
+      const stat = await fs.stat(mp3Path);
+      entry.addedAt = stat.mtimeMs;
+      changed++;
+    } catch {
+      // mp3 missing — leave entry without addedAt (sort will park it at 0)
+    }
+  }
+  if (changed > 0) {
+    await rotateBackups(MUSIC_JSON);
+    await fs.writeFile(MUSIC_JSON, JSON.stringify(raw, null, 2) + '\n');
+    console.log(`[music] backfilled addedAt on ${changed} legacy entr${changed === 1 ? 'y' : 'ies'} from mp3 mtime`);
+  }
+}
+
+server.listen(PORT, async () => {
   console.log(`\n  pspsps tools server → http://localhost:${PORT}/`);
   for (const [name, t] of Object.entries(TOOLS)) {
     console.log(`    · ${name}: ${t.href}`);
   }
   console.log();
+  // Run-once migrations on boot — best-effort, swallow errors so a
+  // single bad file doesn't keep the server from coming up.
+  try { await backfillMusicAddedAt(); } catch (e) {
+    console.warn('[music] addedAt backfill failed:', e.message);
+  }
 });
