@@ -491,6 +491,13 @@ function render() {
     editClipBtn.title = 'Edit clip section (waveform)';
     editClipBtn.addEventListener('click', () => openClipEditor(id));
     previewCell.appendChild(editClipBtn);
+    const editMetaBtn = document.createElement('button');
+    editMetaBtn.className = 'preview-btn';
+    editMetaBtn.style.marginLeft = '6px';
+    editMetaBtn.textContent = '✏️';
+    editMetaBtn.title = 'Edit metadata (name / vibe / genre / mood / tempo / bpm)';
+    editMetaBtn.addEventListener('click', () => openMetaModalForExisting(id));
+    previewCell.appendChild(editMetaBtn);
     tr.appendChild(previewCell);
 
     // Delete button
@@ -655,6 +662,7 @@ function openMetaModal(file) {
 function closeMetaModal() {
   document.getElementById('meta-modal-scrim').style.display = 'none';
   metaModalState.file = null;
+  metaModalState.editingExistingId = null;
 }
 
 document.getElementById('meta-modal-cancel').addEventListener('click', () => {
@@ -666,24 +674,78 @@ document.getElementById('meta-modal-cancel').addEventListener('click', () => {
 });
 
 document.getElementById('meta-modal-apply').addEventListener('click', () => {
-  const file = metaModalState.file;
-  if (!file) return;
   const meta = {
-    displayName: document.getElementById('meta-name').value || metaModalState.baseName,
+    displayName: document.getElementById('meta-name').value || metaModalState.baseName || '',
     vibe: document.getElementById('meta-vibe').value,
     speedLabel: document.getElementById('meta-tempo').value,
     bpm: Number(document.getElementById('meta-bpm').value) || 130,
     genre: document.getElementById('meta-genre').value,
     mood: document.getElementById('meta-mood').value,
   };
+  // Two paths: edit-existing vs new upload. Same form, different commit.
+  if (metaModalState.editingExistingId) {
+    const id = metaModalState.editingExistingId;
+    const entry = catalog[id];
+    if (entry) {
+      entry.displayName = meta.displayName;
+      entry.vibe = meta.vibe;
+      entry.speedLabel = meta.speedLabel;
+      entry.bpm = meta.bpm;
+      entry.genre = meta.genre;
+      entry.mood = meta.mood;
+      scheduleSave();
+      render();
+      toast(`updated "${entry.displayName}"`, 'ok');
+    }
+    closeMetaModal();
+    return;
+  }
+  const file = metaModalState.file;
   closeMetaModal();
-  uploadFile(file, { meta });
+  if (file) uploadFile(file, { meta });
 });
 
 document.getElementById('meta-modal-close').addEventListener('click', closeMetaModal);
 document.getElementById('meta-modal-scrim').addEventListener('click', (e) => {
   if (e.target.id === 'meta-modal-scrim') closeMetaModal();
 });
+
+/** Open the tune-metadata modal for an EXISTING catalog entry. Same UI
+ *  as the upload-time modal, just pre-populated with the row's current
+ *  values + applies in place (no re-upload — just patches music.json). */
+function openMetaModalForExisting(id) {
+  const entry = catalog[id];
+  if (!entry) return;
+  const genreSel = document.getElementById('meta-genre');
+  genreSel.innerHTML = '';
+  for (const g of GENRE_OPTIONS) {
+    const o = document.createElement('option');
+    o.value = g;
+    o.textContent = g.replace(/-/g, ' ').toUpperCase();
+    genreSel.appendChild(o);
+  }
+  const moodSel = document.getElementById('meta-mood');
+  moodSel.innerHTML = '';
+  for (const m of MOOD_OPTIONS) {
+    const o = document.createElement('option');
+    o.value = m;
+    o.textContent = m.toUpperCase();
+    moodSel.appendChild(o);
+  }
+  const guess = guessGenreMood(id);
+  document.getElementById('meta-name').value = entry.displayName || id;
+  document.getElementById('meta-vibe').value = entry.vibe || 'upbeat';
+  document.getElementById('meta-tempo').value = entry.speedLabel || 'fast';
+  document.getElementById('meta-bpm').value = entry.bpm || 130;
+  document.getElementById('meta-genre').value = entry.genre || guess.genre;
+  document.getElementById('meta-mood').value = entry.mood || guess.mood;
+  document.getElementById('meta-modal-title').textContent = `Edit metadata — ${entry.displayName || id}`;
+  // Flag the modal state so the apply handler knows this is an in-place
+  // edit (not a new upload) — see meta-modal-apply listener below.
+  metaModalState.editingExistingId = id;
+  metaModalState.file = null;
+  document.getElementById('meta-modal-scrim').style.display = 'flex';
+}
 
 // ── Filter + sort wiring ───────────────────────────────────────────────
 
