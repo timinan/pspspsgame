@@ -107,11 +107,12 @@ export class Note extends GameObjects.Container {
       this.isHold = true;
       this.holdEndAtMs = hold.releaseAtMs;
       // Stacked fuzzballs forming a continuous fuzzy column above the
-      // head. Smaller than the head ball so the leading edge still
-      // reads as the cap. Slight overlap (size > stride) so edges blend
-      // into a soft column instead of distinct beads.
-      const tailBallSize = 32;
-      const stride = 18;
+      // head. Very tight stride (stride ≪ size) so adjacent balls
+      // overlap heavily and the rim of one sits well inside the body of
+      // the next — eliminates the visible seam-lines that made the tail
+      // look like a row of distinct notes.
+      const tailBallSize = 22;
+      const stride = 6;
       const count = Math.max(1, Math.ceil(hold.tailHeightPx / stride));
       const tint = liftTowardWhite(tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT);
       for (let i = 0; i < count; i++) {

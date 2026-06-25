@@ -750,11 +750,11 @@ export class ChartEditor extends Scene {
       const headSize = Math.min(this.cellW - 4, this.cellH + 2, 56);
 
       // Tail balls — stacked fuzzballs going up from just above the
-      // head. Matches game-side: small overlapping circles read as a
-      // continuous fuzzy column. Smaller than the head so the leading
-      // edge still pops.
-      const tailBallSize = 24;
-      const stride = 14;
+      // head. Matches game-side: aggressively overlapping (stride ≪ size)
+      // so the column reads as a single fuzzy tail with no visible
+      // seams between balls.
+      const tailBallSize = 16;
+      const stride = 5;
       const startBallY = headInView
         ? headY - stride
         : this.gridTop + (localEnd + 1) * this.cellH - stride / 2;
