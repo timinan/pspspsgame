@@ -323,9 +323,12 @@ export class Note extends GameObjects.Container {
     this.ball.setVisible(!headPast);
     this.letters.setVisible(!headPast);
     if (this.holdActive) {
-      // ~36 Hz oscillation — fast enough to read as vibration, slow
-      // enough to look intentional rather than glitchy.
-      this.tail.x = Math.sin(this.scene.time.now * 0.04) * jitterPx;
+      // Two layered sines for an organic vibration — primary at ~24 Hz
+      // (sin * 0.15), secondary at ~10 Hz (sin * 0.06) at smaller
+      // amplitude. Single sine alone reads as a predictable wobble;
+      // layering breaks the symmetry so it feels like a real shake.
+      const t = this.scene.time.now;
+      this.tail.x = Math.sin(t * 0.15) * jitterPx + Math.sin(t * 0.06) * (jitterPx * 0.35);
     } else {
       this.tail.x = 0;
     }
