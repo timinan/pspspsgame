@@ -4,6 +4,7 @@ import {
   type ChartStep,
   type Hold,
   type LaneId,
+  type Slide,
   type BackingVibe,
 } from './state';
 
@@ -31,10 +32,14 @@ const PROFILES: Record<GenDifficulty, {
   holdChance: number;
   holdMinSteps: number;
   holdMaxSteps: number;
+  /** Per-tap chance of promotion to a slide (tap → drag to adjacent lane).
+   *  Slides strip the underlying tap on commit. Easy gets a tiny dose so
+   *  beginners are exposed to the gesture without overwhelming them. */
+  slideChance: number;
 }> = {
-  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.00, holdMinSteps: 2, holdMaxSteps: 3 },
-  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4 },
-  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6 },
+  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04 },
+  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10 },
+  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18 },
 };
 
 /** Round a target step count UP to the nearest multiple of CHART_PAGE_SIZE.
@@ -149,6 +154,33 @@ export function generateChart(args: {
     }
   }
 
+  // Third pass — promote a fraction of remaining taps into slides
+  // (tap-and-drag-to-adjacent-lane). Strips the tap on commit; refuses
+  // if the source cell is inside a hold or already promoted. Adjacent
+  // lanes only: lane 0 ↔ 1 and lane 1 ↔ 2 (no 2-lane jumps). Easy gets
+  // a tiny dose to expose the gesture without overwhelming beginners.
+  const slides: Slide[] = [];
+  if (profile.slideChance > 0) {
+    for (let i = 0; i < stepCount; i++) {
+      const step = steps[i]!;
+      for (const lane of [...step.lanes]) {
+        if (rng() >= profile.slideChance) continue;
+        // Pick an adjacent target lane.
+        let target: LaneId;
+        if (lane === 0) target = 1;
+        else if (lane === 2) target = 1;
+        else target = rng() < 0.5 ? 0 : 2;
+        // Skip if source is inside a hold or already has a slide here.
+        if (holds.some((h) => h.lane === lane && i >= h.startStep && i <= h.endStep)) continue;
+        if (slides.some((s) => s.startStep === i && s.sourceLane === lane)) continue;
+        // Strip the tap from this cell.
+        const idx = step.lanes.indexOf(lane);
+        if (idx >= 0) step.lanes.splice(idx, 1);
+        slides.push({ startStep: i, sourceLane: lane, targetLane: target });
+      }
+    }
+  }
+
   return {
     authorId,
     title,
@@ -157,6 +189,7 @@ export function generateChart(args: {
     vibe,
     steps,
     holds,
+    slides,
     updatedAt: Date.now(),
   };
 }
