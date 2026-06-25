@@ -373,17 +373,24 @@ export class Note extends GameObjects.Container {
 
   /** Switch the tail's tint — both body TileSprite + end cap Image so
    *  they stay color-matched. Game calls this on hold engage to flip
-   *  from the lane color to the mint "success" tint. */
+   *  from the lane color to the mint "success" tint. Head fuzzball
+   *  flips too so the catch point reads as "you got this" the moment
+   *  the player taps — matches the great/perfect grade flash color. */
   setHoldTint(color: number): void {
     this.tail.setTint(color);
     this.tailCap.setTint(color);
+    this.ball.setTint(color);
   }
 
   /** Overwrite the slide tube's gradient with a solid color (no per-
    *  corner tints) — Game calls this on slide engage to flip the tube
-   *  to the same mint "great" color a successful tap shows. */
+   *  to the same mint "great" color a successful tap shows. Head
+   *  fuzzball flips too so the dragged ball matches the engaged tube
+   *  and visually communicates "you're doing this right" while it
+   *  travels across to the target lane. */
   setSlideEngagedTint(color: number): void {
     this.slideTube.setTint(color);
+    this.ball.setTint(color);
   }
 
   /** Evenly-spaced world-y points along the VISIBLE portion of the
