@@ -136,16 +136,15 @@
   <section class="section">
     <div class="section-head">
       <h2>🖼  Backgrounds</h2>
-      <span class="hint">chunky pixel art · 1024×1856 (matches 320×580 canvas) · decoration STRICTLY in top 3/10 · horizon at y ≈ 557</span>
+      <span class="hint">chunky pixel art · 1024×1856 (matches 320×580 canvas) · decoration STRICTLY in top 1/5 · horizon at y ≈ 371</span>
     </div>
     <p class="blurb">
-      v11 composition rule: <b>1024×1856 portrait</b> — this exactly matches the
-      in-game canvas aspect ratio (320×580 = 16:29). v10's 1820 was subtly off
-      (1:1.778 vs canvas 1:1.8125) so the model's image got non-uniformly scaled
-      to fit, throwing off where decoration landed vs cat seating. Densely-
-      decorated <b>top 3/10</b> above horizon at y ≈ 557, completely empty floor
-      in the <b>bottom 7/10</b> where cats sit. The 3/10 rule is hammered at top,
-      middle, and end of the prompt because single mentions kept getting ignored.
+      v12 composition rule: <b>1024×1856 portrait</b> matching canvas aspect (16:29)
+      + back to <b>top 1/5</b> for decoration (v8's expansion to 3/10 let too much
+      bleed into the cat-seating zone). Densely-decorated <b>top 1/5</b> above
+      horizon at y ≈ 371, completely empty floor in the <b>bottom 4/5</b> where
+      cats sit. The 1/5 rule is hammered at top, middle, and end of the prompt
+      because single mentions kept getting ignored.
     </p>
     <button class="regen" id="regen-bg"><span class="icon">🎲</span>Regenerate</button>
 
@@ -193,19 +192,19 @@ const MUSIC_PROMPTS_PER_BATCH = 6;
 
 // ─── Background themes ───────────────────────────────────────────────────
 //
-// Each theme is a structured object that fills the v11 template:
+// Each theme is a structured object that fills the v12 template:
 //
 //   HEADER (constant pixel-art preamble, 1024×1856 portrait — matches
-//           the 320×580 game canvas exactly + 3/10 rule stated up front
+//           the 320×580 game canvas exactly + 1/5 rule stated up front
 //           so it lands before any scene description)
-//   COMPOSITION RULE: horizon at y ≈ 557 (top 3/10 of the 1856-tall
+//   COMPOSITION RULE: horizon at y ≈ 371 (top 1/5 of the 1856-tall
 //                     image), what's above/below
 //   ABOVE HORIZON: dense scene-specific props + atmosphere packed
-//                  into the upper 3/10 strip
+//                  into the upper 1/5 strip
 //   BELOW HORIZON: floor material with subtle texture filling the
-//                  bottom 7/10 of the image
+//                  bottom 4/5 of the image
 //   FAILURE MODE: theme-specific forbidden props below the line +
-//                 "don't let decoration creep past the top 3/10"
+//                 "don't let decoration creep past the top 1/5"
 //   NEGATIVE: explicit no-cats, plus theme-specific exclusions
 //
 // Quality > quantity — these mirror the depth of the 10 hand-written v6
@@ -214,11 +213,11 @@ const MUSIC_PROMPTS_PER_BATCH = 6;
 
 const BG_HEADER =
   '⚠️ CRITICAL COMPOSITION RULE — READ THIS FIRST, OBEY STRICTLY: ALL ' +
-  'scene decoration must stay STRICTLY within the TOP 30% of the image. ' +
-  'The BOTTOM 70% is a COMPLETELY EMPTY FLOOR — zero objects, zero ' +
-  'props, zero decoration of any kind in the lower 70%. This is ' +
+  'scene decoration must stay STRICTLY within the TOP 20% of the image. ' +
+  'The BOTTOM 80% is a COMPLETELY EMPTY FLOOR — zero objects, zero ' +
+  'props, zero decoration of any kind in the lower 80%. This is ' +
   'non-negotiable: the game engine seats cats on the empty floor and ' +
-  'ANY decoration below the top 30% will break the layout. The full ' +
+  'ANY decoration below the top 20% will break the layout. The full ' +
   'detail of the rule with exact pixel boundaries follows below — read ' +
   'and apply it. \n\n' +
   'Chunky retro pixel art, 16-bit / SNES era style. Blocky pixels, ' +
@@ -548,17 +547,17 @@ function bgPromptFromTheme(theme) {
   return [
     BG_HEADER,
     '',
-    `**Composition rule (read this first — ⚠️ THIS IS THE MOST IMPORTANT INSTRUCTION):** Image is 1024 × 1856 portrait (16:29 aspect, exactly matching the in-game canvas). The decorated scene occupies ONLY the top 3/10 of the image (image y 0 to 557). The horizon line ${theme.horizonContext} sits at image y ≈ 557 (three-tenths of the way down the 1856-tall portrait). Below that line (image y 557 to 1856) is a COMPLETELY EMPTY ${theme.floorMaterial} — that's the bottom 7/10 of the image, a clear floor that fills the in-game playfield. Above the line (image y 0 to 557) is the densely decorated ${theme.title.toLowerCase()} packed into the upper region. ⚠️ The 3/10 rule is the single most-violated instruction — re-read it before generating.`,
+    `**Composition rule (read this first — ⚠️ THIS IS THE MOST IMPORTANT INSTRUCTION):** Image is 1024 × 1856 portrait (16:29 aspect, exactly matching the in-game canvas). The decorated scene occupies ONLY the top 1/5 of the image (image y 0 to 371). The horizon line ${theme.horizonContext} sits at image y ≈ 371 (one-fifth of the way down the 1856-tall portrait). Below that line (image y 371 to 1856) is a COMPLETELY EMPTY ${theme.floorMaterial} — that's the bottom 4/5 of the image, a clear floor that fills the in-game playfield. Above the line (image y 0 to 371) is the densely decorated ${theme.title.toLowerCase()} packed into the upper region. ⚠️ The 1/5 rule is the single most-violated instruction — re-read it before generating.`,
     '',
-    `**Above the horizon (image y 0 to 557 ONLY — the top 3/10):** ${theme.aboveHorizon}. Pack this upper region densely with no large empty zones — the decorated band has real vertical space so use it: foreground props at the bottom of the band, mid-ground in the middle, ceiling / sky / distant atmosphere at the very top. Reminder: every single prop listed must sit ABOVE image y 557.`,
+    `**Above the horizon (image y 0 to 371 ONLY — the top 1/5):** ${theme.aboveHorizon}. Pack this upper region densely with no large empty zones — the decorated band is narrow so prioritize: foreground props at the bottom of the band, mid-ground in the middle, ceiling / sky / distant atmosphere at the very top. Reminder: every single prop listed must sit ABOVE image y 371.`,
     '',
-    `**Below the horizon (image y 557 to 1856 — the bottom 7/10):** clean flat ${theme.floorMaterial}. NO props, NO objects, NO decoration of any kind. Completely empty — this is the entire bottom seven-tenths of the image and it must read as one continuous empty floor. If you are tempted to add a prop here, DO NOT — move it above y 557 or omit it.`,
+    `**Below the horizon (image y 371 to 1856 — the bottom 4/5):** clean flat ${theme.floorMaterial}. NO props, NO objects, NO decoration of any kind. Completely empty — this is the entire bottom four-fifths of the image and it must read as one continuous empty floor. If you are tempted to add a prop here, DO NOT — move it above y 371 or omit it.`,
     '',
-    `**FAILURE MODE — do NOT do this:** do not put any ${theme.failureProps}, or any other objects below image y 557 (the game draws the cats on top of the floor — the bg must NOT include cat seating). Do not let the decoration leak past the top 3/10 of the image. Do not leave the upper region sparse. Do not put the horizon line significantly lower than y 557 — the floor needs the full bottom seven-tenths of the image.`,
+    `**FAILURE MODE — do NOT do this:** do not put any ${theme.failureProps}, or any other objects below image y 371 (the game draws the cats on top of the floor — the bg must NOT include cat seating). Do not let the decoration leak past the top 1/5 of the image. Do not leave the upper region sparse. Do not put the horizon line significantly lower than y 371 — the floor needs the full bottom four-fifths of the image.`,
     '',
     `No cats, no characters, no people${theme.negativeExtras ? ', ' + theme.negativeExtras : ''}, no animals anywhere in the scene. Chunky pixel art, not smooth illustration.`,
     '',
-    `⚠️ FINAL REMINDER (last chance before generation): The TOP 30% (image y 0 to 557) contains ALL the decoration. The BOTTOM 70% (image y 557 to 1856) is EMPTY FLOOR. If your draft has anything in the bottom 70% other than floor texture, redo it. This rule overrides every other instruction — when in doubt, push detail UP, leave the floor BARE.`,
+    `⚠️ FINAL REMINDER (last chance before generation): The TOP 20% (image y 0 to 371) contains ALL the decoration. The BOTTOM 80% (image y 371 to 1856) is EMPTY FLOOR. If your draft has anything in the bottom 80% other than floor texture, redo it. This rule overrides every other instruction — when in doubt, push detail UP, leave the floor BARE.`,
   ].join('\n');
 }
 
