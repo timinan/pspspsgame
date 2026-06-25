@@ -98,7 +98,7 @@ export class MusicSystem {
    * No-op if the chart's BPM has no matching backing in the catalog
    * (silent round; meow taps still fire).
    */
-  async start(): Promise<void> {
+  async start(startOffsetMs: number = 0): Promise<void> {
     if (this.destroyed) return;
     await this.preload();
     if (this.destroyed) return;
@@ -109,7 +109,18 @@ export class MusicSystem {
       loop: true,
       volume: BACKING_VOLUME * getEffectiveMusicVolume(),
     });
-    this.backing.play();
+    // Seek the backing track to startOffsetMs (modulo loop length) so
+    // rehearse-from-editor lands the music where the chart picked up.
+    // Plain Rehearse passes 0 = play from clip start as before.
+    const playOpts: Sound.SoundConfig = {};
+    if (startOffsetMs > 0) {
+      // Sound.play accepts a `seek` config (seconds) to start mid-clip.
+      // Modulo by loopDurationMs so a chart whose startStep crosses the
+      // backing loop seam still lands inside the clip.
+      const loopMs = backing.loopDurationMs || 65000;
+      playOpts.seek = (startOffsetMs % loopMs) / 1000;
+    }
+    this.backing.play(playOpts);
     // Re-apply volume live when the user moves the volume slider or
     // flips mute. WebAudio Sound exposes a `volume` setter that takes
     // effect instantly. Listener torn down on destroy().

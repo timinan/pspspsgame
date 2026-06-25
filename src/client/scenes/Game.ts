@@ -100,6 +100,10 @@ export class Game extends Scene {
   private generateModal: GenerateModal | null = null;
   private settingsModal: SettingsModal | null = null;
   private commentModal: CommentComposeModal | null = null;
+  /** Chart step the round should START playing from. Editor rehearse
+   *  sets this to its current page so the author lands on the section
+   *  they were authoring. Plain Rehearse always uses 0. */
+  private initialStartStep = 0;
   private songPicker: SongPickerModal | null = null;
   private difficultyPicker: DifficultyPickerModal | null = null;
   /** Carries the song picked in step 1 through to step 2 so the
@@ -149,9 +153,13 @@ export class Game extends Scene {
     super(SceneKeys.Game);
   }
 
-  init(data: { playerState?: PlayerState | null; testMode?: boolean }): void {
+  init(data: { playerState?: PlayerState | null; testMode?: boolean; startStep?: number }): void {
     this.playerState = data?.playerState ?? null;
     this.testMode = data?.testMode === true;
+    // Editor passes its current scrollOffset here so rehearsal starts
+    // at the author's working page (chart + music both seek). Defaults
+    // to 0 = start at the top.
+    this.initialStartStep = typeof data?.startStep === 'number' ? Math.max(0, data.startStep) : 0;
     this.cats = [];
     this.seatedNameLabels = [];
     this.laneRects = [];
@@ -1572,6 +1580,10 @@ export class Game extends Scene {
       loopCount,
       noteFallMs: Balance.noteFallMs,
       maxTotalMs: spawnCutoffMs,
+      // Editor rehearse passes initialStartStep so the chart begins
+      // at the page the author was working on. Plain Rehearse leaves
+      // it at 0 (full chart from the top).
+      startStep: this.initialStartStep,
     });
 
     this.player.onSpawn((lane, hitAt) => this.spawnNote(lane, hitAt));
@@ -1786,13 +1798,16 @@ export class Game extends Scene {
   }
 
   /** Common round kick-off used after the Generate path. Awaits the
-   *  music start, then unblocks input + records startTimeMs. */
+   *  music start, then unblocks input + records startTimeMs. Music
+   *  seeks to the chart-player's startOffsetMs so editor-rehearse
+   *  lands chart + music in sync at the author's current page. */
   private async beginRound(): Promise<void> {
     if (!this.scene.isActive()) return;
-    await this.music?.start();
+    const startOffsetMs = this.player?.startOffsetMs ?? 0;
+    await this.music?.start(startOffsetMs);
     if (!this.scene.isActive()) return;
     for (const z of this.tapZones) z.setInteractive();
-    this.startTimeMs = this.time.now;
+    this.startTimeMs = this.time.now - startOffsetMs;
     this.pendingStart = false;
   }
 

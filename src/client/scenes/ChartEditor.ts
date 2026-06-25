@@ -1225,9 +1225,14 @@ export class ChartEditor extends Scene {
     if (this.playerState) {
       this.playerState.chart = this.chart;
     }
+    // Carry the editor's current page into the rehearsal so playback
+    // starts where the author was working instead of always at step 0.
+    // scrollOffset is already in CHART steps (scrollOffset is a
+    // multiple of CHART_PAGE_SIZE), so just pass it through.
     this.scene.start(SceneKeys.Game, {
       playerState: this.playerState,
       testMode: true,
+      startStep: this.scrollOffset,
     });
   }
 

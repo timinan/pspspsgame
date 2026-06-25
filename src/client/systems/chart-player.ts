@@ -7,6 +7,10 @@ export interface ChartPlayerOpts {
    *  uses this to enforce a spawn cutoff so the last note finishes before
    *  the round-end wall-clock. When omitted, totalMs = loopCount × pass. */
   maxTotalMs?: number;
+  /** Chart step the player should START at (in CHART steps, not loop
+   *  steps). Editor rehearse passes its scrollOffset so the author
+   *  lands on the page they were working on. Defaults to 0. */
+  startStep?: number;
 }
 
 export class ChartPlayer {
@@ -27,6 +31,24 @@ export class ChartPlayer {
     this.msPerStep = 60000 / (chart.bpm * 2);
     const naturalTotal = this.msPerStep * chart.stepCount * opts.loopCount;
     this.totalMs = Math.min(naturalTotal, opts.maxTotalMs ?? Number.POSITIVE_INFINITY);
+    // Editor rehearse path: skip nextEmitStep ahead to startStep so
+    // first emitted notes are from that page. Bound the start to keep
+    // it inside [0, chart.stepCount) so we don't blast past the loop.
+    const startStep = opts.startStep ?? 0;
+    if (startStep > 0 && chart.stepCount > 0) {
+      this.nextEmitStep = Math.max(0, Math.min(chart.stepCount - 1, Math.floor(startStep)));
+      // elapsedMs needs to advance accordingly so the advance() loop's
+      // `t < startSpawnAt` skip-past-the-past check still works.
+      this.elapsedMs = this.nextEmitStep * this.msPerStep;
+    }
+  }
+
+  /** Ms offset corresponding to the configured startStep. Game.ts
+   *  reads this to seek MusicSystem's backing audio so the music
+   *  starts in sync with where the chart picked up. */
+  get startOffsetMs(): number {
+    const startStep = this.opts.startStep ?? 0;
+    return Math.max(0, startStep * this.msPerStep);
   }
 
   onSpawn(fn: (lane: LaneId, hitAt: number) => void): void {
