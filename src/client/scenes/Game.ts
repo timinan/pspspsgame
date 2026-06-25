@@ -1140,11 +1140,19 @@ export class Game extends Scene {
    *  TRY path resolves via initChartPlayer; the Generate path passes the
    *  freshly generated chart directly. */
   private attachChartAndMusic(playChart: Chart): void {
-    // Loop the chart enough times to fill the round-duration cap. +1
-    // buffer so chart-finished doesn't beat the wall-clock check by a
-    // frame and stop note spawning early.
+    // Loop the chart enough passes to fill the round, but STOP spawning
+    // early enough that the last note (incl. fall time + worst-case hold
+    // duration) has finished by the round-end wall-clock. Without this
+    // cutoff, notes still on screen get yanked when the summary fires.
+    // ~2000 ms covers a 6-step hold at 120 bpm; noteFallMs covers the
+    // fall time. Clamp at 1 pass minimum so very short charts still
+    // play at least once.
     const onePassMs = (60000 / (playChart.bpm * 2)) * playChart.stepCount;
-    const loopCount = Math.max(1, Math.ceil(Balance.maxRoundMs / onePassMs) + 1);
+    const spawnCutoffMs = Math.max(
+      onePassMs,
+      Balance.maxRoundMs - Balance.noteFallMs - 2000,
+    );
+    const loopCount = Math.max(1, Math.floor(spawnCutoffMs / onePassMs));
 
     this.player = new ChartPlayer(playChart, {
       loopCount,

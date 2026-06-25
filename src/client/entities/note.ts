@@ -5,6 +5,11 @@ import { LANE_COLORS, liftTowardWhite, BALL_BRIGHTNESS_LIFT } from './note-color
 
 export { LANE_COLORS };
 
+/** Hold-tail TileSprite width — narrower than the 54px head ball so the
+ *  trailing column reads as a tail, not a second note. Must match the
+ *  'tail-stripe' texture width in Preloader.generateTailStripeTexture(). */
+const TAIL_WIDTH = 18;
+
 /**
  * A falling rhythm note rendered as the original Phase 1 "PS element" ball
  * (the colored ball that slid down the horizontal rhythm bar). Pooled —
@@ -36,22 +41,24 @@ export class Note extends GameObjects.Container {
 
   private ball: GameObjects.Image;
   private letters: GameObjects.Image;
-  /** Single Graphics shape drawn as a vertical pill (rounded rectangle)
-   *  for hold-note tails — solid fill, thick white outline, no internal
-   *  seams. Cleared for tap notes. Clipped to the lane band via a
-   *  GeometryMask applied from Game on spawn. */
-  private tail: GameObjects.Graphics;
-  /** Cached tail dims so setHoldTint can redraw without re-passing them
-   *  and so pickRandomVisibleTailWorldPos can locate the tail's bounds. */
-  private currentTailWidth = 0;
+  /** TileSprite using the Preloader-generated 'tail-stripe' texture
+   *  (a 1px-tall horizontal slice from the fuzzy ball's widest row).
+   *  Vertically tiled, the column inherits the ball's fuzzy left/right
+   *  edges — narrow tail with the same visual treatment. Clipped to
+   *  the lane band via a GeometryMask applied from Game on spawn. */
+  private tail: GameObjects.TileSprite;
+  /** Cached tail height so pickRandomVisibleTailWorldPos can locate
+   *  the tail's bounds without poking at TileSprite internals. */
   private currentTailHeight = 0;
-  private currentTailFill = 0xffffff;
 
   constructor(scene: Scene) {
     super(scene, 0, 0);
-    // Tail Graphics FIRST so it renders behind the ball + letters when
-    // both are visible. Empty by default — only hold notes draw into it.
-    this.tail = scene.add.graphics();
+    // Tail TileSprite FIRST so it renders behind the ball + letters.
+    // Origin (0.5, 1) anchors it at bottom-center so it grows UPWARD
+    // from the ball's center as we resize. Initial height 0 = invisible
+    // for tap notes; hold configure resizes to the actual tail length.
+    this.tail = scene.add.tileSprite(0, 0, TAIL_WIDTH, 0, 'tail-stripe');
+    this.tail.setOrigin(0.5, 1);
     // 54px — matches the 50% bump applied to the lane hit targets (48 → 72)
     // so the falling notes read at the same visual weight as the target.
     // White-base ball — greyscale-stretched so the per-bg sampled tint
@@ -117,19 +124,22 @@ export class Note extends GameObjects.Container {
     if (hold) {
       this.isHold = true;
       this.holdEndAtMs = hold.releaseAtMs;
-      this.currentTailWidth = hold.tailWidthPx;
       this.currentTailHeight = hold.tailHeightPx;
-      this.currentTailFill = liftTowardWhite(
-        tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT,
+      // Resize the TileSprite to the actual tail length. Width is the
+      // fixed narrow TAIL_WIDTH (the stripe texture's width); height
+      // tiles vertically. Tint colors the white-base stripe.
+      this.tail.setSize(TAIL_WIDTH, hold.tailHeightPx);
+      this.tail.setTint(
+        liftTowardWhite(tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT),
       );
-      this.drawTail();
+      this.tail.setVisible(true);
       this.tail.x = 0;
     } else {
       this.isHold = false;
       this.holdEndAtMs = 0;
-      this.currentTailWidth = 0;
       this.currentTailHeight = 0;
-      this.tail.clear();
+      this.tail.setVisible(false);
+      this.tail.setSize(TAIL_WIDTH, 0);
     }
 
     this.scene.tweens.add({
@@ -140,27 +150,9 @@ export class Note extends GameObjects.Container {
     });
   }
 
-  /** Repaint the tail pill — solid lane-color fill with a thick white
-   *  outline. Called from configure on spawn, from setHoldTint when the
-   *  hold engages (fill flips to mint), and from drawTail directly. */
-  private drawTail(): void {
-    this.tail.clear();
-    if (this.currentTailHeight <= 0) return;
-    const w = this.currentTailWidth;
-    const h = this.currentTailHeight;
-    const radius = Math.min(w / 2, h / 2);
-    // Pill extends UP from the head: x ∈ [-w/2, +w/2], y ∈ [-h, 0]
-    this.tail.fillStyle(this.currentTailFill, 1);
-    this.tail.fillRoundedRect(-w / 2, -h, w, h, radius);
-    // Thick white outline — reads as a defined column edge instead of
-    // fuzzy ball-stack seams.
-    this.tail.lineStyle(3, 0xffffff, 0.9);
-    this.tail.strokeRoundedRect(-w / 2, -h, w, h, radius);
-  }
-
-  /** Apply the lane-band GeometryMask to the tail Graphics so the pill
-   *  only renders inside [laneTopY, targetY] regardless of where the
-   *  container's position puts it. Called by Game on spawn. */
+  /** Apply the lane-band GeometryMask to the tail TileSprite so the
+   *  stripe only renders inside [laneTopY, targetY] regardless of
+   *  where the container's position puts it. Called by Game on spawn. */
   applyTailMask(mask: Phaser.Display.Masks.GeometryMask): void {
     this.tail.setMask(mask);
   }
@@ -168,20 +160,19 @@ export class Note extends GameObjects.Container {
   recycle(): void {
     this.scene.tweens.killTweensOf(this);
     this.setActive(false).setVisible(false);
-    this.tail.clear();
+    this.tail.setVisible(false);
+    this.tail.setSize(TAIL_WIDTH, 0);
     this.isHold = false;
     this.holdActive = false;
     this.holdEndAtMs = 0;
     this.holdLastEffectMs = 0;
-    this.currentTailWidth = 0;
     this.currentTailHeight = 0;
   }
 
-  /** Switch the tail's fill color and repaint. Game calls this on hold
-   *  engage to flip from the lane color to the mint "success" tint. */
+  /** Switch the tail's tint. Game calls this on hold engage to flip
+   *  from the lane color to the mint "success" tint. */
   setHoldTint(color: number): void {
-    this.currentTailFill = color;
-    this.drawTail();
+    this.tail.setTint(color);
   }
 
   /** Pick a uniformly random point along the VISIBLE portion of the

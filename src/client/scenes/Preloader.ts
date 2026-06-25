@@ -107,6 +107,13 @@ export class Preloader extends Scene {
     // bar as a solid-pink layer.
     this.generatePawsOnlyTexture();
 
+    // Hold-note tail stripe — a narrow 1-row slice of the fuzzy ball's
+    // widest horizontal row. Tiled vertically (TileSprite) it forms a
+    // narrow pillar with the same fuzzy left/right edges the ball has,
+    // so the tail reads as part of the same visual family rather than
+    // a flat painted bar.
+    this.generateTailStripeTexture();
+
     // Register all cat animations globally so every downstream scene
     // (Game, Decorate, DressingRoom, Purchase) can play them without each
     // scene needing its own lazy-registration pass. The Cat entity's
@@ -148,6 +155,36 @@ export class Preloader extends Scene {
    *  Registered under 'rhythm-bar-paws'. Safe to no-op (try/catch) on
    *  any failure — the lane still falls back to the existing texture
    *  with no pink overlay, just no toe-bean color call-out. */
+  /** Build a narrow 1-pixel-tall stripe from the fuzzy ball's widest
+   *  horizontal row. Note.ts wraps this in a vertically-tiled TileSprite
+   *  for hold tails, so the column inherits the ball's fuzzy left + right
+   *  edge fade. White-base so Phaser tint paints it cleanly with the
+   *  lane color (or the mint active-hold color). Safe no-op on any
+   *  failure — the tail still draws as a flat TileSprite. */
+  private generateTailStripeTexture(): void {
+    const KEY = 'tail-stripe';
+    const TAIL_W = 18;
+    if (this.textures.exists(KEY)) return;
+    try {
+      const source = this.textures.get(AssetKeys.Image.PspspsTargetWhite);
+      const srcImage = source.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+      const srcW = srcImage.width;
+      const srcH = srcImage.height;
+      if (!srcW || !srcH) return;
+      const canvas = this.textures.createCanvas(KEY, TAIL_W, 1);
+      if (!canvas) return;
+      const ctx = canvas.getContext();
+      ctx.clearRect(0, 0, TAIL_W, 1);
+      // 1-row slice from the vertical middle (= the widest row of the
+      // ball) scaled down to TAIL_W so the fuzzy edge fade compresses
+      // proportionally into a narrow stripe.
+      ctx.drawImage(srcImage, 0, Math.floor(srcH / 2), srcW, 1, 0, 0, TAIL_W, 1);
+      canvas.refresh();
+    } catch (err) {
+      console.warn('[Preloader] tail-stripe texture build failed:', err);
+    }
+  }
+
   private generatePawsOnlyTexture(): void {
     const KEY = 'rhythm-bar-paws';
     if (this.textures.exists(KEY)) return;
