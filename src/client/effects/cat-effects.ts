@@ -307,7 +307,7 @@ function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
           // pixel-art look instead of crisp anti-aliased emoji.
           // Padding prevents crop on tall emoji like ❤️/⭐ whose glyph
           // extends above Phaser's text auto-measure baseline.
-          resolution: 0.33,
+          resolution: 0.42,
           padding: { x: 4, y: 6 },
         })
         .setAlpha(startAlpha)
@@ -467,7 +467,7 @@ function makeParticleBurst(
           // resolution: 0.5 + NEAREST filter (below) = real pixel-art
           // emoji, not just low-res anti-aliased ones. Padding stops
           // crop on tall glyphs like ❤️/⭐.
-          resolution: 0.33,
+          resolution: 0.42,
           padding: { x: 4, y: 6 },
         })
         .setAlpha(BURST_ALPHA)
