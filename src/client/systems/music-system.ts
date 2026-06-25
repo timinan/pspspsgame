@@ -6,6 +6,7 @@ import {
   type BackingTrack,
 } from '@/../shared/state';
 import { NoteSynth } from './note-synth';
+import { getEffectiveMusicVolume, onUserSettingsChange } from './user-settings';
 
 /**
  * Audio runtime for one round. Owns:
@@ -106,10 +107,20 @@ export class MusicSystem {
     if (!this.scene.cache.audio.exists(backing.audioKey)) return;
     this.backing = this.scene.sound.add(backing.audioKey, {
       loop: true,
-      volume: BACKING_VOLUME,
+      volume: BACKING_VOLUME * getEffectiveMusicVolume(),
     });
     this.backing.play();
+    // Re-apply volume live when the user moves the volume slider or
+    // flips mute. WebAudio Sound exposes a `volume` setter that takes
+    // effect instantly. Listener torn down on destroy().
+    this.settingsUnsubscribe = onUserSettingsChange(() => {
+      if (!this.backing) return;
+      const s = this.backing as Sound.WebAudioSound;
+      s.setVolume(BACKING_VOLUME * getEffectiveMusicVolume());
+    });
   }
+
+  private settingsUnsubscribe: (() => void) | null = null;
 
   /**
    * Fire a tap sound in response to a successful lane tap. Two layers:
@@ -163,6 +174,8 @@ export class MusicSystem {
       this.backing.destroy();
       this.backing = null;
     }
+    this.settingsUnsubscribe?.();
+    this.settingsUnsubscribe = null;
     this.noteSynth.destroy();
   }
 

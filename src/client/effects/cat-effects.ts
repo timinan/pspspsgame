@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { Scene, Scenes, GameObjects, Tweens } from 'phaser';
+import { getUserSettings } from '@/systems/user-settings';
 
 /**
  * Catalog of "effect cosmetics" — visual flair attached to a cat sprite via
@@ -299,12 +300,15 @@ function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
       // Floating particles sit BEHIND the cat (depth-1) outside the play
       // area, so we want them to read clearly without competing with the
       // gameplay. +0.35 offset bumps REST (0.55) → 0.9 alpha, much more
-      // visible than the prior +0.05 → 0.6 ghost-y look. Capped at 1.
-      const startAlpha = Math.min(1, intensity.v + 0.35);
+      // visible than the prior +0.05 → 0.6 ghost-y look. User settings
+      // multiplier lets the player dial all effects up/down live.
+      const { effectAlphaMul, effectSizeMul } = getUserSettings();
+      const startAlpha = Math.min(1, (intensity.v + 0.35) * effectAlphaMul);
+      const liveSize = Math.max(1, Math.round(size * effectSizeMul));
       const riseDistancePx = baseRise * (0.6 + intensity.v * 0.5);
       const t = scene.add
         .text(foot.x + offsetX, startY, opts.emoji, {
-          fontSize: `${size}px`,
+          fontSize: `${liveSize}px`,
           // resolution: 0.5 renders the emoji into a HALF-size internal
           // canvas; combined with NEAREST filter below, the engine then
           // upscales those chunky source pixels with no smoothing → real
@@ -453,11 +457,13 @@ function makeParticleBurst(
     // Burst particles fire from the hit-target fuzz-ball during play,
     // sitting in the player's read zone. Keep them smaller + tighter +
     // more transparent so they're celebratory without blocking incoming
-    // notes. Existing fade-out takes alpha to 0 over the last 55% of life.
+    // notes. User-settings multipliers let the player dial all effects
+    // up/down live without restarting the round.
+    const { effectAlphaMul, effectSizeMul } = getUserSettings();
     const baseDist = 56 * scale;
     const lifeMs = 720;
-    const px = Math.round(size * scale * 1.15);
-    const BURST_ALPHA = alphaOverride ?? 0.6;
+    const px = Math.max(1, Math.round(size * scale * 1.15 * effectSizeMul));
+    const BURST_ALPHA = Math.max(0, Math.min(1, (alphaOverride ?? 0.6) * effectAlphaMul));
     for (let i = 0; i < count; i++) {
       const slice = (Math.PI * 2) / count;
       const angle = i * slice + (Math.random() - 0.5) * slice * 0.7;
