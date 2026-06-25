@@ -68,8 +68,9 @@ export class Note extends GameObjects.Container {
   /** Direction chevron at the target end of the slide tube. */
   private slideArrow: GameObjects.Text;
   /** Cached tail height so pickRandomVisibleTailWorldPos can locate
-   *  the tail's bounds. */
-  private currentTailHeight = 0;
+   *  the tail's bounds. Public so Game.showHoldScorePop can position
+   *  the hold's tick popup at the tail's top edge. */
+  currentTailHeight = 0;
 
   constructor(scene: Scene) {
     super(scene, 0, 0);

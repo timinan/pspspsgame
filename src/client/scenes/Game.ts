@@ -1778,7 +1778,7 @@ export class Game extends Scene {
         const points = Math.round(dt * (Balance.pointsPerHoldStep / this.playMsPerStep));
         if (points > 0) {
           this.score.add(points);
-          this.showHoldScorePop(n.laneId, points);
+          this.showHoldScorePop(n, points);
         }
         this.flashLaneEffect(n.laneId);
         this.cats[n.laneId]?.pulseEffectHit();
@@ -1813,7 +1813,7 @@ export class Game extends Scene {
       const points = Math.round(dt * (Balance.pointsPerHoldStep / this.playMsPerStep));
       if (points > 0) {
         this.score.add(points);
-        this.showHoldScorePop(note.laneId, points);
+        this.showHoldScorePop(note, points);
       }
     }
     note.holdActive = false;
@@ -1822,15 +1822,20 @@ export class Game extends Scene {
     this.updateHud();
   }
 
-  /** One-shot tiny "+N" popup at the catch line for the given lane —
-   *  used by hold ticks to show score climbing live. Auto-destroys
-   *  after the float-up + fade. */
-  private showHoldScorePop(laneId: LaneId, points: number): void {
+  /** One-shot tiny "+N" popup at the TOP of the hold's visible tail
+   *  (not at the catch) — used by hold ticks to show score climbing
+   *  where the player's eye is following the tail's trailing edge.
+   *  Auto-destroys after the float-up + fade. */
+  private showHoldScorePop(note: Note, points: number): void {
     const scaleY = this.scale.height / L.DESIGN_H;
-    const targetY = L.HIT_LINE_Y * scaleY;
-    const cx = L.laneCenterX(laneId, this.scale.width);
+    const laneTopY = L.LANE_TOP_Y * scaleY;
+    const cx = L.laneCenterX(note.laneId, this.scale.width);
+    // Tail top in world space, clipped to the lane band (so the popup
+    // doesn't spawn above the lane). Falls back to a sensible spot at
+    // the lane top if the tail isn't measurable yet.
+    const tailTopWorld = Math.max(note.y - note.currentTailHeight, laneTopY);
     const txt = this.add
-      .text(cx, targetY - 12, `+${points}`, {
+      .text(cx, tailTopWorld, `+${points}`, {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '9px',
@@ -1842,7 +1847,7 @@ export class Game extends Scene {
       .setDepth(50);
     this.tweens.add({
       targets: txt,
-      y: targetY - 36,
+      y: tailTopWorld - 24,
       alpha: 0,
       duration: 450,
       ease: 'Quad.easeOut',
