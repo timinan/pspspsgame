@@ -901,11 +901,11 @@ export class Game extends Scene {
   /** Scale-punch tween for the combo text — tracked by ref so the
    *  vibration tween (separate, targets x) doesn't get clobbered by
    *  the scale tween. */
-  private comboPulseTween?: Phaser.Tweens.Tween;
+  private comboPulseTween: Phaser.Tweens.Tween | undefined;
   /** Continuous wobble tween on the combo text's x — runs only while
    *  the combo is in the top tier (≥ 100). Targets only x, so it
    *  composes cleanly with the scale-punch tween. */
-  private comboVibrationTween?: Phaser.Tweens.Tween;
+  private comboVibrationTween: Phaser.Tweens.Tween | undefined;
   /** Cached tier key so we only restyle / start-stop the vibration
    *  tween on tier transitions, not every tap. */
   private currentComboTierKey = '';
