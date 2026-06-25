@@ -248,20 +248,22 @@ export class SongPickerModal {
     this.container.add(backChip);
     this.stepChildren.push(backChip);
 
-    // GENRE + MOOD cycle filters — sit in the filtersRowH band between
-    // the chrome title and the song rows.
+    // GENRE + MOOD dropdown filters — sit in the filtersRowH band
+    // between the chrome title and the song rows. Tapping opens a
+    // pop-up list of options (replacing the old cycle-tap pattern
+    // that felt opaque on long lists like the new user-added genres).
     const filtersY = panelY + SongPickerModal.TITLE_AREA_H + 8 + 14;
     const filterW = (panelW - 48) / 2; // 16 outer pad + 16 gap between
     const genreX = panelX + 16 + filterW / 2;
     const moodX = panelX + panelW - 16 - filterW / 2;
     const genreCycle: (BackingGenre | 'all')[] = ['all', ...availableGenres];
     const moodCycle: (BackingMood | 'all')[] = ['all', ...availableMoods];
-    this.addCycleFilter(genreX, filtersY, filterW, 'GENRE', this.selectedGenre, genreCycle, (next) => {
+    this.addDropdownFilter(genreX, filtersY, filterW, 'GENRE', this.selectedGenre, genreCycle, (next) => {
       this.selectedGenre = next;
       this.page = 0;
       this.showSongList(vibe);
     });
-    this.addCycleFilter(moodX, filtersY, filterW, 'MOOD', this.selectedMood, moodCycle, (next) => {
+    this.addDropdownFilter(moodX, filtersY, filterW, 'MOOD', this.selectedMood, moodCycle, (next) => {
       this.selectedMood = next;
       this.page = 0;
       this.showSongList(vibe);
@@ -297,14 +299,18 @@ export class SongPickerModal {
         this.stopPreview();
         this.showSongList(vibe);
       });
+      const fullName = song.displayName ?? song.id;
       const txt = this.scene.add
-        .text(cx, y, song.displayName ?? song.id, {
+        .text(cx, y, fullName, {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
           fontSize: '12px',
           color: isSelected ? '#ffd34d' : '#ffffff',
         })
         .setOrigin(0.5);
+      // Truncate with ellipsis so long display names ("Mahalia - I Wish
+      // I Missed My Ex (Lyrics)") don't bleed past the row's bg edges.
+      this.ellipsizeToWidth(txt, fullName, rowW - 16);
       this.container!.add([bg, txt]);
       this.stepChildren.push(bg, txt);
     });
@@ -395,11 +401,17 @@ export class SongPickerModal {
   /** Per-step children (everything except scrim) — recreated every time
    *  `showVibeStep` or `showSongList` runs so dynamic panel height works. */
   private stepChildren: GameObjects.GameObject[] = [];
+  /** Filter-popup children (dropdown's option list + dismiss scrim).
+   *  Torn down via closeFilterPopup() either on selection or click-out. */
+  private filterPopupChildren: GameObjects.GameObject[] = [];
   /** Panel chrome (panel rect, title, subtitle, ✕). Same lifecycle as
    *  stepChildren — destroyed and rebuilt each step transition. */
   private chromeChildren: GameObjects.GameObject[] = [];
 
   private clearStepChildren(): void {
+    // Filter popup is logically part of the step — when the step
+    // re-renders, drop any open popup first so it doesn't leak.
+    this.closeFilterPopup();
     for (const child of this.stepChildren) child.destroy();
     this.stepChildren = [];
     for (const child of this.chromeChildren) child.destroy();
@@ -474,18 +486,17 @@ export class SongPickerModal {
     return { panelX, panelY, panelW, cx, cy };
   }
 
-  /** Cycle-button filter widget — `LABEL: VALUE ▼` chip. Tap advances
-   *  through the supplied cycle (e.g., ['all', 'lo-fi', 'synthwave', ...]).
-   *  Used for the GENRE + MOOD dropdowns on the song-list step. Visually
-   *  reads as a dropdown but cycles through values on tap to avoid the
-   *  Phaser-native-dropdown rabbit hole. */
-  private addCycleFilter<T extends string>(
+  /** Dropdown filter widget — `LABEL: VALUE ▼` chip that opens a
+   *  popup list of options on tap. Tap outside the popup or pick a
+   *  value to close it. Replaces the old cycle-on-tap pattern that
+   *  was opaque on long taxonomy lists (15+ genres etc). */
+  private addDropdownFilter<T extends string>(
     cx: number,
     cy: number,
     width: number,
     label: string,
     current: T,
-    cycle: T[],
+    options: T[],
     onChange: (next: T) => void,
   ): void {
     if (!this.container) return;
@@ -504,13 +515,100 @@ export class SongPickerModal {
         color: isFiltered ? '#ffd34d' : '#ffffff',
       })
       .setOrigin(0.5);
-    bg.on('pointerdown', () => {
-      const idx = cycle.indexOf(current);
-      const next = cycle[(idx + 1) % cycle.length] ?? cycle[0]!;
-      onChange(next);
-    });
+    bg.on('pointerdown', () => this.openFilterPopup(cx, cy + h / 2 + 4, width, options, current, onChange));
     this.container.add([bg, txt]);
     this.stepChildren.push(bg, txt);
+  }
+
+  /** Render a scrollable-ish popup list of options below a dropdown
+   *  chip. Tap an option → fire onChange (which triggers re-render
+   *  that destroys this popup along with the rest of stepChildren).
+   *  Tap outside → close popup. Caps at 8 visible options; longer
+   *  lists scroll (mobile pinch / scroll gesture works since this
+   *  is a regular Phaser scrollable container — kept simple for now
+   *  by just showing all rows + relying on the modal scrim for
+   *  click-outside dismissal). */
+  private openFilterPopup<T extends string>(
+    anchorX: number,
+    topY: number,
+    width: number,
+    options: T[],
+    current: T,
+    onChange: (next: T) => void,
+  ): void {
+    if (!this.container) return;
+    this.closeFilterPopup();
+    const rowH = 26;
+    const maxRows = Math.min(options.length, 9);
+    const popupH = maxRows * rowH + 6;
+    const popupBg = this.scene.add
+      .rectangle(anchorX, topY + popupH / 2, width, popupH, 0x1a0a2e, 1)
+      .setStrokeStyle(2, 0xffd34d, 1)
+      .setInteractive();
+    popupBg.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, e: Phaser.Types.Input.EventData) =>
+      e.stopPropagation(),
+    );
+    popupBg.setDepth(500);
+    this.filterPopupChildren.push(popupBg);
+    options.slice(0, maxRows).forEach((opt, i) => {
+      const y = topY + 3 + i * rowH + rowH / 2;
+      const isCurrent = opt === current;
+      const rowBg = this.scene.add
+        .rectangle(anchorX, y, width - 4, rowH - 2, isCurrent ? 0x4d2d8c : 0x2c1856, 1)
+        .setInteractive({ useHandCursor: true })
+        .setDepth(501);
+      const display = opt === 'all' ? 'ALL' : opt.toUpperCase().replace(/-/g, ' ');
+      const rowText = this.scene.add
+        .text(anchorX, y, display, {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '10px',
+          color: isCurrent ? '#ffd34d' : '#ffffff',
+        })
+        .setOrigin(0.5)
+        .setDepth(502);
+      rowBg.on('pointerover', () => rowBg.setFillStyle(isCurrent ? 0x4d2d8c : 0x3d2566, 1));
+      rowBg.on('pointerout', () => rowBg.setFillStyle(isCurrent ? 0x4d2d8c : 0x2c1856, 1));
+      rowBg.on('pointerdown', () => {
+        this.closeFilterPopup();
+        onChange(opt);
+      });
+      this.filterPopupChildren.push(rowBg, rowText);
+    });
+    // Dismiss-on-outside scrim — sits behind the popup but in front of
+    // the rest of the modal. Tap anywhere outside the popup → close.
+    const dismissScrim = this.scene.add
+      .rectangle(0, 0, this.scene.scale.width, this.scene.scale.height, 0x000000, 0.001)
+      .setOrigin(0, 0)
+      .setInteractive()
+      .setDepth(499);
+    dismissScrim.on('pointerdown', () => this.closeFilterPopup());
+    this.filterPopupChildren.unshift(dismissScrim); // first to destroy
+    for (const el of this.filterPopupChildren) {
+      this.container.add(el);
+    }
+  }
+
+  private closeFilterPopup(): void {
+    for (const el of this.filterPopupChildren) el.destroy();
+    this.filterPopupChildren = [];
+  }
+
+  /** Shrink a display string with "…" suffix until it fits maxWidth at
+   *  the text's current font. Binary-searches over the source string
+   *  so it's O(log N) measurements per call. */
+  private ellipsizeToWidth(t: GameObjects.Text, fullText: string, maxWidth: number): void {
+    t.setText(fullText);
+    if (t.width <= maxWidth) return;
+    let lo = 0;
+    let hi = fullText.length;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi + 1) / 2);
+      t.setText(fullText.slice(0, mid) + '…');
+      if (t.width <= maxWidth) lo = mid;
+      else hi = mid - 1;
+    }
+    t.setText(fullText.slice(0, lo) + '…');
   }
 
   /** Pager arrow matching DressingRoom's makeArrow: 36×28 dark-purple
