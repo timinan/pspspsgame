@@ -882,40 +882,97 @@ export class Game extends Scene {
     });
   }
 
-  /** Pop the combo callout. Hides itself when combo drops to 0. Also
-   *  fires a milestone burst (camera shake + bigger scale punch) when
-   *  combo crosses a Balance.comboMilestones value exactly. */
+  /** Escalating tier for the combo callout — bigger, hotter color,
+   *  vibration at the top tier. Returns the active config for the
+   *  given combo count. */
+  private getComboTier(combo: number): {
+    fontSize: string;
+    color: string;
+    strokeThickness: number;
+    vibrate: boolean;
+  } {
+    if (combo >= 100) return { fontSize: '38px', color: '#ff44dd', strokeThickness: 6, vibrate: true };
+    if (combo >= 50) return { fontSize: '34px', color: '#ff4444', strokeThickness: 5, vibrate: false };
+    if (combo >= 25) return { fontSize: '30px', color: '#ff8800', strokeThickness: 5, vibrate: false };
+    if (combo >= 10) return { fontSize: '26px', color: '#ffb000', strokeThickness: 4, vibrate: false };
+    return { fontSize: '22px', color: '#ffd34d', strokeThickness: 4, vibrate: false };
+  }
+
+  /** Scale-punch tween for the combo text — tracked by ref so the
+   *  vibration tween (separate, targets x) doesn't get clobbered by
+   *  the scale tween. */
+  private comboPulseTween?: Phaser.Tweens.Tween;
+  /** Continuous wobble tween on the combo text's x — runs only while
+   *  the combo is in the top tier (≥ 100). Targets only x, so it
+   *  composes cleanly with the scale-punch tween. */
+  private comboVibrationTween?: Phaser.Tweens.Tween;
+  /** Cached tier key so we only restyle / start-stop the vibration
+   *  tween on tier transitions, not every tap. */
+  private currentComboTierKey = '';
+
+  /** Pop the combo callout — escalates size + color + vibration with
+   *  combo count. Hides on combo === 0. Milestone touches (10/25/50/
+   *  100/200) also trigger a camera shake. */
   private pulseCombo(): void {
     const combo = this.score.getCombo();
     if (combo <= 0) {
-      this.tweens.killTweensOf(this.comboText);
+      this.comboPulseTween?.remove();
+      this.comboPulseTween = undefined;
+      this.comboVibrationTween?.remove();
+      this.comboVibrationTween = undefined;
       this.comboText.setAlpha(0);
+      this.comboText.setScale(1);
+      this.comboText.x = this.scale.width / 2;
+      this.currentComboTierKey = '';
       return;
     }
+
+    const tier = this.getComboTier(combo);
+    const tierKey = `${tier.fontSize}|${tier.color}|${tier.vibrate}`;
+    if (tierKey !== this.currentComboTierKey) {
+      this.currentComboTierKey = tierKey;
+      this.comboText.setStyle({
+        fontSize: tier.fontSize,
+        color: tier.color,
+        strokeThickness: tier.strokeThickness,
+      });
+      // Start / stop continuous vibration when crossing into / out of
+      // the top tier. Composes with the scale-punch tween (different
+      // property — x vs scale).
+      if (tier.vibrate && !this.comboVibrationTween) {
+        const baseX = this.scale.width / 2;
+        this.comboText.x = baseX;
+        this.comboVibrationTween = this.tweens.add({
+          targets: this.comboText,
+          x: baseX + 3,
+          duration: 60,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.inOut',
+        });
+      } else if (!tier.vibrate && this.comboVibrationTween) {
+        this.comboVibrationTween.remove();
+        this.comboVibrationTween = undefined;
+        this.comboText.x = this.scale.width / 2;
+      }
+    }
+
     this.comboText.setText(`x${combo} COMBO`);
-    this.tweens.killTweensOf(this.comboText);
     this.comboText.setAlpha(1);
+
     const isMilestone = (Balance.comboMilestones as readonly number[]).includes(combo);
+    const scaleFrom = isMilestone ? 1.9 : 1.3;
+    const duration = isMilestone ? 280 : 140;
+    this.comboPulseTween?.remove();
+    this.comboText.setScale(scaleFrom);
+    this.comboPulseTween = this.tweens.add({
+      targets: this.comboText,
+      scale: 1,
+      duration,
+      ease: 'Back.easeOut',
+    });
     if (isMilestone) {
-      // Bigger scale punch on milestone — twice the normal pop, with
-      // a Back.easeOut so it overshoots before settling.
-      this.comboText.setScale(1.9);
-      this.tweens.add({
-        targets: this.comboText,
-        scale: 1,
-        duration: 280,
-        ease: 'Back.easeOut',
-      });
-      // Camera shake — gentle horizontal nudge, not jarring.
       this.cameras.main.shake(140, 0.005);
-    } else {
-      this.comboText.setScale(1.3);
-      this.tweens.add({
-        targets: this.comboText,
-        scale: 1,
-        duration: 140,
-        ease: 'Back.easeOut',
-      });
     }
   }
 
