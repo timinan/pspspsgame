@@ -307,7 +307,7 @@ function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
           // pixel-art look instead of crisp anti-aliased emoji.
           // Padding prevents crop on tall emoji like ❤️/⭐ whose glyph
           // extends above Phaser's text auto-measure baseline.
-          resolution: 0.5,
+          resolution: 0.33,
           padding: { x: 4, y: 6 },
         })
         .setAlpha(startAlpha)
@@ -436,18 +436,25 @@ function makeGlowBurst(color: number): CatEffect['burst'] {
  *  feel like a celebratory explosion (was reading too polite). Particles
  *  start slightly larger and hold size for the first 30% of life before
  *  fading. */
-function makeParticleBurst(emoji: string, size: number, count = 12): CatEffect['burst'] {
+function makeParticleBurst(
+  emoji: string,
+  size: number,
+  count = 12,
+  /** Optional per-effect override of the default burst alpha. Bubbles
+   *  need to read more solid (their natural transparency looks weak at
+   *  the default 0.78), so the catalog passes a higher value for that. */
+  alphaOverride?: number,
+): CatEffect['burst'] {
   return (scene, target, scale = 1) => {
     const baseDist = 72 * scale;
     const lifeMs = 720;
     const px = Math.round(size * scale * 1.35);
     // Burst particles fire from the hit-target / fuzz-ball during play
-    // so they sit RIGHT in the player's read zone. Cap initial alpha at
-    // 0.55 so they read as a celebratory pop without blocking the next
-    // falling notes; the existing fade-out tween takes them to 0. The
-    // ambient floating particles (makeParticles) stay vivid — they're
-    // around the cat's feet, not in the play area.
-    const BURST_ALPHA = 0.55;
+    // so they sit RIGHT in the player's read zone. Default alpha 0.78
+    // is the middle ground between fully-opaque (vision-blocking) and
+    // the 0.55 "too washed out" attempt — readable celebration without
+    // hiding the next falling notes. Existing fade-out takes it to 0.
+    const BURST_ALPHA = alphaOverride ?? 0.78;
     for (let i = 0; i < count; i++) {
       const slice = (Math.PI * 2) / count;
       const angle = i * slice + (Math.random() - 0.5) * slice * 0.7;
@@ -460,7 +467,7 @@ function makeParticleBurst(emoji: string, size: number, count = 12): CatEffect['
           // resolution: 0.5 + NEAREST filter (below) = real pixel-art
           // emoji, not just low-res anti-aliased ones. Padding stops
           // crop on tall glyphs like ❤️/⭐.
-          resolution: 0.5,
+          resolution: 0.33,
           padding: { x: 4, y: 6 },
         })
         .setAlpha(BURST_ALPHA)
@@ -557,7 +564,10 @@ export const CAT_EFFECTS: CatEffect[] = [
   {
     id: 'effect-bubbles',     name: 'Bubbles',     iconEmoji: '🫧', rarity: 'uncommon',
     apply: makeParticles({ emoji: '🫧', size: 14, spawnIntervalMs: 220, riseDistancePx: 100, lifeMs: 2000, spreadX: 40, wobbleX: 6 }),
-    burst: makeParticleBurst('🫧', 14),
+    // Bubble emoji is inherently translucent — at the default 0.78 it
+    // reads as ghostly. Bump to 0.95 so it has visual weight to match
+    // the others.
+    burst: makeParticleBurst('🫧', 14, 12, 0.95),
   },
   {
     id: 'effect-butterfly',   name: 'Butterflies', iconEmoji: '🦋', rarity: 'legendary',
