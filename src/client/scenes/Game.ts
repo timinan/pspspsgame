@@ -817,7 +817,10 @@ export class Game extends Scene {
     const scaleY = this.scale.height / L.DESIGN_H;
     const laneTopY = L.LANE_TOP_Y * scaleY;
     const targetY = L.HIT_LINE_Y * scaleY;
-    const points = n.getVisibleTailWorldPoints(laneTopY, targetY, 4);
+    // 2 burst points (was 4) — halves the GameObject churn from
+    // tmp-target Image creation + delayed destroy. Visually still
+    // reads as "tail emitting" but lighter on the renderer.
+    const points = n.getVisibleTailWorldPoints(laneTopY, targetY, 2);
     for (const p of points) {
       const tmp = this.add.image(p.x, p.y, AssetKeys.Image.PspspsTargetWhite);
       tmp.setVisible(false);
@@ -1465,11 +1468,14 @@ export class Game extends Scene {
    *  three yoyo tweens total, running for the whole round. Killed
    *  inside cleanup via the scene's tween manager. */
   private startLanePulse(): void {
+    // Subtler amplitude (was 0.78↔0.92) — too much contrast made
+    // falling notes look jittery against the pulsing wash. 0.82↔0.90
+    // is still a perceivable breath without compounding visual noise.
     for (const lane of this.laneRects) {
       this.tweens.add({
         targets: lane,
-        alpha: { from: 0.92, to: 0.78 },
-        duration: this.playMsPerStep * 2, // half-beat to half-beat
+        alpha: { from: 0.90, to: 0.82 },
+        duration: this.playMsPerStep * 2,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.inOut',
