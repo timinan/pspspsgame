@@ -7,7 +7,8 @@
     "genre": "bubblegum-pop",
     "mood": "playful",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296008344.4204
   },
   "bounce-bloom-2": {
     "id": "bounce-bloom-2",
@@ -17,7 +18,8 @@
     "genre": "bubblegum-pop",
     "mood": "playful",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296012750.8586
   },
   "bouncy-bounce": {
     "id": "bouncy-bounce",
@@ -27,7 +29,8 @@
     "genre": "bubblegum-pop",
     "mood": "playful",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296017077.1924
   },
   "cinematic-bossa-nova-1": {
     "id": "cinematic-bossa-nova-1",
@@ -37,7 +40,8 @@
     "genre": "bossa-nova",
     "mood": "dramatic",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296021834.0664
   },
   "cinematic-bossa-nova-2": {
     "id": "cinematic-bossa-nova-2",
@@ -47,7 +51,8 @@
     "genre": "bossa-nova",
     "mood": "dramatic",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296026146.9438
   },
   "midnight-coffee": {
     "id": "midnight-coffee",
@@ -57,7 +62,8 @@
     "genre": "lo-fi",
     "mood": "chill",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296030584.6353
   },
   "neon-dash": {
     "id": "neon-dash",
@@ -67,7 +73,8 @@
     "genre": "synthwave",
     "mood": "energetic",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296035205.5894
   },
   "warmth-in-the-air": {
     "id": "warmth-in-the-air",
@@ -77,7 +84,8 @@
     "genre": "acoustic-folk",
     "mood": "romantic",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296039706.0178
   },
   "midnight-skyline": {
     "id": "midnight-skyline",
@@ -87,7 +95,8 @@
     "genre": "lo-fi",
     "mood": "nostalgic",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296044289.7292
   },
   "midnight-skyline-1": {
     "id": "midnight-skyline-1",
@@ -97,7 +106,8 @@
     "genre": "lo-fi",
     "mood": "nostalgic",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296048889.8618
   },
   "neon-horizon": {
     "id": "neon-horizon",
@@ -107,7 +117,8 @@
     "genre": "synthwave",
     "mood": "dreamy",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296053544.7112
   },
   "warmth-in-the-air-1": {
     "id": "warmth-in-the-air-1",
@@ -117,7 +128,8 @@
     "genre": "acoustic-folk",
     "mood": "romantic",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296067109.4282
   },
   "neon-horizon-3": {
     "id": "neon-horizon-3",
@@ -127,7 +139,8 @@
     "genre": "synthwave",
     "mood": "dreamy",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296071669.1807
   },
   "neon-pulse": {
     "id": "neon-pulse",
@@ -137,7 +150,8 @@
     "genre": "synthwave",
     "mood": "energetic",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296058109.6328
   },
   "neon-pulse-1": {
     "id": "neon-pulse-1",
@@ -147,17 +161,19 @@
     "genre": "synthwave",
     "mood": "energetic",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782296062707.2124
   },
   "basement-spin": {
     "id": "basement-spin",
     "displayName": "Basement Spin",
     "speedLabel": "fast",
-    "vibe": "upbeat",
+    "vibe": "melodic",
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "lo-fi",
-    "mood": "chill"
+    "mood": "test",
+    "addedAt": 1782380982027.096
   },
   "bloom-select": {
     "id": "bloom-select",
@@ -167,7 +183,8 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "bubblegum-pop",
-    "mood": "playful"
+    "mood": "playful",
+    "addedAt": 1782380982458.349
   },
   "late-night-loop-remove-section": {
     "id": "late-night-loop-remove-section",
@@ -177,7 +194,8 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "lo-fi",
-    "mood": "chill"
+    "mood": "chill",
+    "addedAt": 1782380982887.5183
   },
   "s-club-7-happy-90s": {
     "id": "s-club-7-happy-90s",
@@ -187,7 +205,8 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "house",
-    "mood": "energetic"
+    "mood": "energetic",
+    "addedAt": 1782380983297.8428
   },
   "star-candy-select-1": {
     "id": "star-candy-select-1",
@@ -197,7 +216,8 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "bubblegum-pop",
-    "mood": "chill"
+    "mood": "chill",
+    "addedAt": 1782380983727.0981
   },
   "star-candy-select-2": {
     "id": "star-candy-select-2",
@@ -207,7 +227,8 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "bubblegum-pop",
-    "mood": "chill"
+    "mood": "chill",
+    "addedAt": 1782380984163.2637
   },
   "star-candy-select": {
     "id": "star-candy-select",
@@ -217,7 +238,8 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "lo-fi",
-    "mood": "chill"
+    "mood": "chill",
+    "addedAt": 1782380984593.8804
   },
   "the-great-awakening": {
     "id": "the-great-awakening",
@@ -227,7 +249,8 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "lo-fi",
-    "mood": "chill"
+    "mood": "chill",
+    "addedAt": 1782380985006.3652
   },
   "vice-circuit-1": {
     "id": "vice-circuit-1",
@@ -237,7 +260,8 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "lo-fi",
-    "mood": "chill"
+    "mood": "chill",
+    "addedAt": 1782380985415.2627
   },
   "vice-circuit": {
     "id": "vice-circuit",
@@ -247,7 +271,8 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "lo-fi",
-    "mood": "chill"
+    "mood": "chill",
+    "addedAt": 1782380985845.3691
   },
   "basement-spin-2": {
     "id": "basement-spin-2",
@@ -255,7 +280,10 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782381963746.9548,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "neon-pulse-remove-section": {
     "id": "neon-pulse-remove-section",
@@ -263,7 +291,10 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782381980049.1377,
+    "genre": "synthwave",
+    "mood": "energetic"
   },
   "bounce-on-repeat-remove-section-1": {
     "id": "bounce-on-repeat-remove-section-1",
@@ -271,7 +302,10 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782383685747.5188,
+    "genre": "bubblegum-pop",
+    "mood": "playful"
   },
   "bounce-on-repeat-remove-section": {
     "id": "bounce-on-repeat-remove-section",
@@ -279,7 +313,10 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782383686171.6392,
+    "genre": "bubblegum-pop",
+    "mood": "playful"
   },
   "neon-pulse-2": {
     "id": "neon-pulse-2",
@@ -287,7 +324,10 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782384113985.0242,
+    "genre": "synthwave",
+    "mood": "energetic"
   },
   "the-big-cheese": {
     "id": "the-big-cheese",
@@ -295,7 +335,10 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782384114334.6394,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "the-last-train-to-nowhere": {
     "id": "the-last-train-to-nowhere",
@@ -303,7 +346,10 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782384156079.0537,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "the-quiet-between-notes": {
     "id": "the-quiet-between-notes",
@@ -311,79 +357,255 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "addedAt": 1782384156493.0435,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
-  "blink-182-all-the-small-things-official-": {
-    "id": "blink-182-all-the-small-things-official-",
-    "displayName": "blink-182 - All The Small Things (Official Music Video)",
+  "jawny-honeypie-lyrics": {
+    "id": "jawny-honeypie-lyrics",
+    "displayName": "JAWNY - Honeypie (Lyrics)",
+    "speedLabel": "fast",
+    "vibe": "illegal",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 12.233,
+    "addedAt": 1782416015021,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "ravyn-lenae-love-me-not-lyrics-1": {
+    "id": "ravyn-lenae-love-me-not-lyrics-1",
+    "displayName": "Ravyn Lenae - Love Me Not (Lyrics) (1)",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 65000,
+    "clipStartS": 58,
+    "addedAt": 1782416017001,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
-  "outkast-hey-ya-lyrics": {
-    "id": "outkast-hey-ya-lyrics",
-    "displayName": "OutKast - Hey Ya! (Lyrics)",
+  "ravyn-lenae-love-me-not-lyrics": {
+    "id": "ravyn-lenae-love-me-not-lyrics",
+    "displayName": "Ravyn Lenae - Love Me Not (Lyrics)",
     "speedLabel": "fast",
-    "vibe": "upbeat",
+    "vibe": "illegal",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 65000,
+    "clipStartS": 16.86,
+    "addedAt": 1782416019057,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
-  "outkast-hey-ya-lyrics-2": {
-    "id": "outkast-hey-ya-lyrics-2",
-    "displayName": "OutKast - Hey Ya! (Lyrics)",
+  "the-last-one": {
+    "id": "the-last-one",
+    "displayName": "The Last One",
     "speedLabel": "fast",
-    "vibe": "upbeat",
+    "vibe": "illegal",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 65000,
+    "clipStartS": 8.685,
+    "addedAt": 1782416020908,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
-  "moti-headphones-official-visualizer": {
-    "id": "moti-headphones-official-visualizer",
-    "displayName": "MOTi - Headphones (Official Visualizer)",
+  "hozier-too-sweet-lyrics": {
+    "id": "hozier-too-sweet-lyrics",
+    "displayName": "Hozier - Too Sweet (Lyrics)",
     "speedLabel": "fast",
-    "vibe": "upbeat",
+    "vibe": "illegal",
     "bpm": 130,
-    "loopDurationMs": 62000
-  },
-  "disclosure-you-me-flume-remix-westend-lo": {
-    "id": "disclosure-you-me-flume-remix-westend-lo",
-    "displayName": "Disclosure - You & Me (Flume Remix) [Westend & Local Singles Edit]",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000
-  },
-  "mahalia-i-wish-i-missed-my-ex-lyrics": {
-    "id": "mahalia-i-wish-i-missed-my-ex-lyrics",
-    "displayName": "Mahalia - I Wish I Missed My Ex (Lyrics)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000
-  },
-  "daft-punk-one-more-time-official-audio": {
-    "id": "daft-punk-one-more-time-official-audio",
-    "displayName": "Daft Punk - One More Time (Official Audio)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000
-  },
-  "justin-bieber-yummy-lyrics": {
-    "id": "justin-bieber-yummy-lyrics",
-    "displayName": "Justin Bieber - Yummy (Lyrics)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 65000,
+    "clipStartS": 0,
+    "addedAt": 1782416023305,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "halsey-you-should-be-sad-lyrics": {
     "id": "halsey-you-should-be-sad-lyrics",
     "displayName": "Halsey - You should be sad (Lyrics)",
     "speedLabel": "fast",
+    "vibe": "illegal",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 122.852,
+    "addedAt": 1782416025250,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "justin-bieber-yummy-lyrics": {
+    "id": "justin-bieber-yummy-lyrics",
+    "displayName": "Justin Bieber - Yummy (Lyrics)",
+    "speedLabel": "fast",
+    "vibe": "illegal",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 6.21,
+    "addedAt": 1782416027176,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "mahalia-i-wish-i-missed-my-ex-lyrics": {
+    "id": "mahalia-i-wish-i-missed-my-ex-lyrics",
+    "displayName": "Mahalia - I Wish I Missed My Ex (Lyrics)",
+    "speedLabel": "fast",
+    "vibe": "illegal",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 101.927,
+    "addedAt": 1782416029217,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "daft-punk-one-more-time-official-audio": {
+    "id": "daft-punk-one-more-time-official-audio",
+    "displayName": "Daft Punk - One More Time (Official Audio)",
+    "speedLabel": "fast",
+    "vibe": "illegal",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 60.173,
+    "addedAt": 1782416032593,
+    "genre": "rock",
+    "mood": "energetic"
+  },
+  "disclosure-you-me-flume-remix-westend-lo": {
+    "id": "disclosure-you-me-flume-remix-westend-lo",
+    "displayName": "Disclosure - You & Me (Flume Remix) [Westend & Local Singles Edit]",
+    "speedLabel": "fast",
+    "vibe": "illegal",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 37.454,
+    "addedAt": 1782416034729,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "moti-headphones-official-visualizer": {
+    "id": "moti-headphones-official-visualizer",
+    "displayName": "MOTi - Headphones (Official Visualizer)",
+    "speedLabel": "fast",
+    "vibe": "illegal",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 0,
+    "addedAt": 1782416036208,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "outkast-hey-ya-lyrics": {
+    "id": "outkast-hey-ya-lyrics",
+    "displayName": "OutKast - Hey Ya! (Lyrics)",
+    "speedLabel": "fast",
+    "vibe": "illegal",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 0,
+    "addedAt": 1782416038605,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "blink-182-all-the-small-things-official-": {
+    "id": "blink-182-all-the-small-things-official-",
+    "displayName": "blink-182 - All The Small Things (Official Music Video)",
+    "speedLabel": "fast",
+    "vibe": "illegal",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 17.646,
+    "addedAt": 1782416040295,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "red-hot-chili-peppers-by-the-way-officia": {
+    "id": "red-hot-chili-peppers-by-the-way-officia",
+    "displayName": "Red Hot Chili Peppers - By The Way [Official Music Video]",
+    "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 0
+    "clipStartS": 126.127,
+    "addedAt": 1782418564961
+  },
+  "weezer-island-in-the-sun-lyrics": {
+    "id": "weezer-island-in-the-sun-lyrics",
+    "displayName": "Weezer - Island In The Sun (Lyrics)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 4,
+    "addedAt": 1782418566902
+  },
+  "backstreet-boys-everybody-backstreet-s-b": {
+    "id": "backstreet-boys-everybody-backstreet-s-b",
+    "displayName": "Backstreet Boys - Everybody (Backstreet's Back) (Lyrics)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 53.388,
+    "addedAt": 1782419020216
+  },
+  "s-club-7-04-s-club-party-lyrics": {
+    "id": "s-club-7-04-s-club-party-lyrics",
+    "displayName": "S Club 7_ 04. S Club Party (Lyrics)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 6.777,
+    "addedAt": 1782419022342
+  },
+  "panic-at-the-disco-i-write-sins-not-trag": {
+    "id": "panic-at-the-disco-i-write-sins-not-trag",
+    "displayName": "Panic! At The Disco - I Write Sins Not Tragedies (lyrics)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 33.61,
+    "addedAt": 1782419231672
+  },
+  "panic-at-the-disco-high-hopes-lyrics": {
+    "id": "panic-at-the-disco-high-hopes-lyrics",
+    "displayName": "Panic! At the Disco - High Hopes (Lyrics)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 0,
+    "addedAt": 1782419233489
+  },
+  "my-chemical-romance-cemetery-drive-lyric": {
+    "id": "my-chemical-romance-cemetery-drive-lyric",
+    "displayName": "My Chemical Romance - Cemetery Drive Lyrics",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 58.176,
+    "addedAt": 1782419377596
+  },
+  "thirty-seconds-to-mars-the-kill-bury-me-": {
+    "id": "thirty-seconds-to-mars-the-kill-bury-me-",
+    "displayName": "Thirty Seconds To Mars - The Kill (Bury Me) (Lyrics)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 0,
+    "addedAt": 1782419379666
+  },
+  "my-chemical-romance-the-ghost-of-you-lyr": {
+    "id": "my-chemical-romance-the-ghost-of-you-lyr",
+    "displayName": "My Chemical Romance - The Ghost of You Lyrics",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 59.512,
+    "addedAt": 1782419381624
   }
 }
