@@ -60,20 +60,28 @@ const PROFILES: Record<GenDifficulty, {
    *  another lane" 2-finger combo. Off by default; only insane sets
    *  it because the gesture is genuinely hard. */
   slideOnChords?: boolean;
+  /** When a slide-and-return is being placed from an OUTER lane (0 or
+   *  2), chance the target is the OPPOSITE outer lane (full-width 2-
+   *  lane SR through the middle) instead of the adjacent middle lane.
+   *  Easy + medium = 0 (gesture is reserved for hard difficulties).
+   *  Spicy gets a non-zero chance so at least one 2-lane SR typically
+   *  ships per chart; hard + insane lean into it harder. */
+  slideReturn2LaneChance: number;
 }> = {
-  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00, slideReturnChance: 0.02, slideReturnCooldownSteps: 4 },
-  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30, slideReturnChance: 0.07, slideReturnCooldownSteps: 3 },
+  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00, slideReturnChance: 0.02, slideReturnCooldownSteps: 4, slideReturn2LaneChance: 0.00 },
+  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30, slideReturnChance: 0.07, slideReturnCooldownSteps: 3, slideReturn2LaneChance: 0.00 },
   // Spicy sits between medium and hard — meaningful step-up without
-  // jumping straight to the chord-heavy hard profile.
-  spicy:  { density: 0.55, chord2Chance: 0.25, chord3Chance: 0.03, minGapSteps: 1, holdChance: 0.15, holdMinSteps: 2, holdMaxSteps: 5, slideChance: 0.14, slide2LaneChance: 0.40, slideReturnChance: 0.10, slideReturnCooldownSteps: 2 },
-  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18, slide2LaneChance: 0.50, slideReturnChance: 0.12, slideReturnCooldownSteps: 2 },
+  // jumping straight to the chord-heavy hard profile. Spicy is the
+  // lowest tier where 2-lane SRs appear at all.
+  spicy:  { density: 0.55, chord2Chance: 0.25, chord3Chance: 0.03, minGapSteps: 1, holdChance: 0.15, holdMinSteps: 2, holdMaxSteps: 5, slideChance: 0.14, slide2LaneChance: 0.40, slideReturnChance: 0.10, slideReturnCooldownSteps: 2, slideReturn2LaneChance: 0.30 },
+  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18, slide2LaneChance: 0.50, slideReturnChance: 0.12, slideReturnCooldownSteps: 2, slideReturn2LaneChance: 0.45 },
   // Insane — top tier. Sliders + double-slides feature heavily, taps
   // dense + chord-rich, holds longer, AND slides can land on chord
   // steps (slide-with-tap combos) for genuine 2-finger work. Cooldown
   // 1.5 = half the slide-returns get 1 step recovery, half get 2 —
   // averages to "tight but possible to clear at 100% with practice".
   // Tim's rule: people work for 75%, but 100% is still achievable.
-  insane: { density: 0.82, chord2Chance: 0.45, chord3Chance: 0.16, minGapSteps: 0, holdChance: 0.24, holdMinSteps: 3, holdMaxSteps: 7, slideChance: 0.34, slide2LaneChance: 0.70, slideReturnChance: 0.22, slideReturnCooldownSteps: 1.5, slideOnChords: true },
+  insane: { density: 0.82, chord2Chance: 0.45, chord3Chance: 0.16, minGapSteps: 0, holdChance: 0.24, holdMinSteps: 3, holdMaxSteps: 7, slideChance: 0.34, slide2LaneChance: 0.70, slideReturnChance: 0.22, slideReturnCooldownSteps: 1.5, slideOnChords: true, slideReturn2LaneChance: 0.60 },
 };
 
 /** Round a target step count UP to the nearest multiple of CHART_PAGE_SIZE.
@@ -255,16 +263,55 @@ export function generateChart(args: {
       if (slides.some((s) => s.startStep === i)) continue;
       const lane = step.lanes[0]!;
       if (rng() >= profile.slideReturnChance) continue;
-      // Adjacent target: from middle (1) pick 0 or 2 randomly; from an
-      // outer lane there's only one adjacent option (lane 1).
-      const target: LaneId = lane === 1 ? (rng() < 0.5 ? 0 : 2) : 1;
-      // Finger-conflict guard: source + target lanes must both be
-      // hold-free at this step (mirrors validator + commitSlideReturn).
+      // Target picker:
+      //   - From middle (1): adjacent only (0 or 2 random) — no 2-lane
+      //     gesture is possible from middle.
+      //   - From outer (0 or 2): roll slideReturn2LaneChance for the
+      //     opposite-outer (full-width 2-lane SR through middle); else
+      //     adjacent middle (lane 1).
+      let target: LaneId;
+      if (lane === 1) {
+        target = rng() < 0.5 ? 0 : 2;
+      } else {
+        const opposite: LaneId = lane === 0 ? 2 : 0;
+        target = rng() < profile.slideReturn2LaneChance ? opposite : 1;
+      }
+      // Finger-conflict guard: every lane the gesture touches (source +
+      // target, plus middle for 2-lane variants) must be hold-free at
+      // this step. Mirrors validator + commitSlideReturn.
+      const involved: LaneId[] = Math.abs(lane - target) === 2 ? [lane, 1, target] : [lane, target];
       if (holds.some(
-        (h) => (h.lane === lane || h.lane === target) && i >= h.startStep && i <= h.endStep,
+        (h) => involved.includes(h.lane) && i >= h.startStep && i <= h.endStep,
       )) continue;
       step.lanes.splice(0, 1);
       slideReturns.push({ startStep: i, sourceLane: lane, targetLane: target });
+    }
+  }
+
+  // Guarantee: if the difficulty allows 2-lane SRs but the random pass
+  // produced none (probability roll just missed), promote the last
+  // outer-lane SR to its opposite-outer target. Spicy's spec is "at
+  // least 1 included" — this enforces that floor without inflating
+  // the slideReturn2LaneChance to unreasonably-high values.
+  if (profile.slideReturn2LaneChance > 0 && slideReturns.length > 0) {
+    const has2Lane = slideReturns.some((sr) => Math.abs(sr.sourceLane - sr.targetLane) === 2);
+    if (!has2Lane) {
+      for (let k = slideReturns.length - 1; k >= 0; k--) {
+        const sr = slideReturns[k]!;
+        if (sr.sourceLane === 0 || sr.sourceLane === 2) {
+          const opposite: LaneId = sr.sourceLane === 0 ? 2 : 0;
+          // Verify the new path is hold-free before flipping. Skip the
+          // promotion if any lane on the new path conflicts.
+          const newInvolved: LaneId[] = [sr.sourceLane, 1, opposite];
+          const conflict = holds.some(
+            (h) => newInvolved.includes(h.lane) && sr.startStep >= h.startStep && sr.startStep <= h.endStep,
+          );
+          if (!conflict) {
+            sr.targetLane = opposite;
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -282,7 +329,13 @@ export function generateChart(args: {
       const extraChance = cooldownBase - floorN;
       const cooldownN = floorN + (rng() < extraChance ? 1 : 0);
       if (cooldownN <= 0) continue;
-      const involvedLanes: LaneId[] = [sr.sourceLane, sr.targetLane];
+      // 2-lane SRs traverse the middle lane (twice — out + back), so
+      // it gets the cooldown too. Single-lane SRs touch only source +
+      // target.
+      const srSpan = Math.abs(sr.sourceLane - sr.targetLane);
+      const involvedLanes: LaneId[] = srSpan === 2
+        ? [sr.sourceLane, 1 as LaneId, sr.targetLane]
+        : [sr.sourceLane, sr.targetLane];
       const cooldownEnd = Math.min(stepCount - 1, sr.startStep + cooldownN);
       for (let j = sr.startStep + 1; j <= cooldownEnd; j++) {
         const s = steps[j];

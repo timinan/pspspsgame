@@ -530,19 +530,25 @@ export function validateChart(c: Chart): { ok: true } | { ok: false; reason: str
       if (sr.startStep < 0 || sr.startStep >= c.stepCount) {
         return { ok: false, reason: 'slide-return step out of range' };
       }
-      // Slide-and-return is ADJACENT-LANE ONLY (per Tim's spec). 2-lane
-      // back-and-forth would be too physical for mobile.
-      if (Math.abs(sr.sourceLane - sr.targetLane) !== 1) {
-        return { ok: false, reason: 'slide-return must be adjacent lanes (|target-source| === 1)' };
+      // Slide-and-return spans 1 lane (adjacent) or 2 lanes (full-width
+      // 0↔2 path passing through middle). 2-lane variant is reserved for
+      // spicy/hard/insane via generator weighting; validator allows
+      // both shapes here so hand-authored 2-lane SRs work too.
+      const srDelta = Math.abs(sr.sourceLane - sr.targetLane);
+      if (srDelta !== 1 && srDelta !== 2) {
+        return { ok: false, reason: 'slide-return must span 1 or 2 lanes (|target-source| === 1 or 2)' };
       }
       if (c.steps[sr.startStep]!.lanes.includes(sr.sourceLane)) {
         return { ok: false, reason: 'slide-return startStep + sourceLane cell also has a tap' };
       }
-      // Same finger-conflict rule as a regular slide: both source AND
-      // target lanes must be hold-free at the startStep.
+      // Finger-conflict rule: every lane the gesture passes through must
+      // be hold-free at startStep. 2-lane SRs traverse the middle lane
+      // twice (out + back) so it counts.
+      const srInvolved: LaneId[] = srDelta === 2
+        ? [sr.sourceLane, 1 as LaneId, sr.targetLane]
+        : [sr.sourceLane, sr.targetLane];
       const conflict = c.holds?.find((h) =>
-        (h.lane === sr.sourceLane || h.lane === sr.targetLane) &&
-        sr.startStep >= h.startStep && sr.startStep <= h.endStep,
+        srInvolved.includes(h.lane) && sr.startStep >= h.startStep && sr.startStep <= h.endStep,
       );
       if (conflict) {
         return { ok: false, reason: `slide-return startStep falls inside a hold on lane ${conflict.lane}` };
