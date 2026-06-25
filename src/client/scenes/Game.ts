@@ -20,6 +20,7 @@ import { generateChart, type GenDifficulty } from '@/../shared/chart-generator';
 import { GenerateModal } from '@/ui/generate-modal';
 import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
 import { DifficultyPickerModal } from '@/ui/difficulty-picker-modal';
+import { SettingsModal } from '@/ui/settings-modal';
 import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
 
 /**
@@ -89,6 +90,7 @@ export class Game extends Scene {
    *  started. */
   private pendingStart = true;
   private generateModal: GenerateModal | null = null;
+  private settingsModal: SettingsModal | null = null;
   private songPicker: SongPickerModal | null = null;
   private difficultyPicker: DifficultyPickerModal | null = null;
   /** Carries the song picked in step 1 through to step 2 so the
@@ -665,6 +667,12 @@ export class Game extends Scene {
           icon: '🎪',
           key: SceneKeys.VisitShows,
           onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
+        },
+        {
+          label: 'SETTINGS',
+          description: 'Tune effects + audio to taste',
+          icon: '⚙️',
+          onTap: () => this.openSettings(),
         },
       ],
     });
@@ -2085,6 +2093,10 @@ export class Game extends Scene {
       this.generateModal?.destroy();
       this.generateModal = null;
     });
+    tearDown('settings-modal', () => {
+      this.settingsModal?.destroy();
+      this.settingsModal = null;
+    });
     tearDown('song-picker', () => {
       this.songPicker?.destroy();
       this.songPicker = null;
@@ -2145,6 +2157,15 @@ export class Game extends Scene {
       this.input.keyboard?.removeAllListeners();
     });
     tearDown('scale-resize', () => this.scale.off('resize'));
+  }
+
+  /** Open the SETTINGS modal from the hamburger drawer. Lazy-instantiated
+   *  so the modal + its preview timer only spin up when the player opens
+   *  it. Scene cleanup tears it down via the tearDown('settings-modal')
+   *  block above. */
+  private openSettings(): void {
+    if (!this.settingsModal) this.settingsModal = new SettingsModal(this);
+    this.settingsModal.open();
   }
 }
 

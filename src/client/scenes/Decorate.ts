@@ -6,6 +6,7 @@ import { Cat } from '@/entities/cat';
 import { RemoveBadge } from '@/entities/remove-badge';
 import { TopHud } from '@/ui/top-hud';
 import { ContextMenu, buildCatMenu } from '@/ui/context-menu';
+import { SettingsModal } from '@/ui/settings-modal';
 import * as L from '@/constants/scene-layout';
 import { CAT_CATALOG, COSMETIC_CATALOG, BACKGROUND_CATALOG } from '@/../shared/state';
 import { CAT_EFFECT_BY_ID } from '@/effects/cat-effects';
@@ -64,6 +65,7 @@ export class Decorate extends Scene {
 
   // Tap-menu + placement state
   private contextMenu!: ContextMenu;
+  private settingsModal: SettingsModal | null = null;
   /** Cat instance id being placed, or null. */
   private placingCatInstanceId: string | null = null;
   private placementZones: GameObjects.Container | null = null;
@@ -490,6 +492,13 @@ export class Decorate extends Scene {
           icon: '🎪',
           key: SceneKeys.VisitShows,
           onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
+        },
+        {
+          label: 'SETTINGS',
+          description: 'Tune effects + audio to taste',
+          icon: '⚙️',
+          // No scene to navigate to — modal opens in place.
+          onTap: () => this.openSettings(),
         },
       ],
     });
@@ -1027,8 +1036,18 @@ export class Decorate extends Scene {
     this.removeBadges = [];
     for (const l of this.seatedNameLabels) l.destroy();
     this.seatedNameLabels = [];
+    this.settingsModal?.destroy();
+    this.settingsModal = null;
     this.root?.destroy(true);
     this.hud?.destroy();
+  }
+
+  /** Open the settings modal from the drawer. Lazy-instantiated so the
+   *  modal's preview timer only spins up when the player actually opens
+   *  it. Scene tear-down kills it via the SHUTDOWN handler above. */
+  private openSettings(): void {
+    if (!this.settingsModal) this.settingsModal = new SettingsModal(this);
+    this.settingsModal.open();
   }
 }
 
