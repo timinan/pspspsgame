@@ -930,39 +930,46 @@ document.getElementById('clip-editor-play').addEventListener('click', () => {
   const audio = document.getElementById('clip-editor-audio');
   audio.pause();
   const stopAt = clipEditor.selStart + clipEditor.selDur;
-  // Tear down any prior timeupdate from a previous play click — without
-  // this they stack and old listeners fire on every new playback.
+  // Tear down any prior listeners from previous clicks. They stack
+  // otherwise and old onTime handlers + onSeeked closures fire on the
+  // new playback.
   if (clipEditor._onTime) {
     audio.removeEventListener('timeupdate', clipEditor._onTime);
+    clipEditor._onTime = null;
   }
-  clipEditor._onTime = () => {
-    if (audio.currentTime >= stopAt) {
-      audio.pause();
-      audio.removeEventListener('timeupdate', clipEditor._onTime);
-      clipEditor._onTime = null;
-    }
-  };
-  audio.addEventListener('timeupdate', clipEditor._onTime);
+  if (clipEditor._onCanPlay) {
+    audio.removeEventListener('canplay', clipEditor._onCanPlay);
+    clipEditor._onCanPlay = null;
+  }
 
-  // CRITICAL FIX: setting currentTime IMMEDIATELY after assigning src
-  // is silently ignored because the new audio buffer hasn't loaded yet
-  // — playback starts from 0s instead of the user's selection. Wait
-  // for `loadedmetadata` before seeking + playing on fresh loads. If
-  // the source is already loaded (replay same selection or move the
-  // brush on the same source), seek + play directly.
-  const desiredSrc = `/music-source/${encodeURIComponent(clipEditor.slug)}`;
-  const startPlayback = () => {
-    audio.currentTime = clipEditor.selStart;
+  // CRITICAL: setting `audio.currentTime` before the new src is fully
+  // loaded silently fails (resets to 0 on some browsers, ignored on
+  // others). The only reliable sequence is:
+  //   1. attach `canplay` listener FIRST (before setting src — so we
+  //      never miss the event when it fires from cache hit)
+  //   2. set src + force `audio.load()` to kick fresh download
+  //   3. inside `canplay`: set currentTime, then attach the timeupdate
+  //      stop-at-end listener, then play()
+  // Forcing fresh load via cache-bust query string sidesteps any
+  // browser's "same src = no event" quirk.
+  clipEditor._onCanPlay = () => {
+    try { audio.currentTime = clipEditor.selStart; } catch {}
+    clipEditor._onTime = () => {
+      if (audio.currentTime >= stopAt) {
+        audio.pause();
+        if (clipEditor._onTime) {
+          audio.removeEventListener('timeupdate', clipEditor._onTime);
+          clipEditor._onTime = null;
+        }
+      }
+    };
+    audio.addEventListener('timeupdate', clipEditor._onTime);
     audio.play().catch((e) => console.warn('[clip-editor] play failed:', e));
+    clipEditor._onCanPlay = null;
   };
-  const currentSrc = audio.src.replace(/\?.*$/, '').replace(window.location.origin, '');
-  if (currentSrc === desiredSrc && audio.readyState >= 1) {
-    startPlayback();
-  } else {
-    audio.src = desiredSrc;
-    audio.addEventListener('loadedmetadata', startPlayback, { once: true });
-    audio.load();
-  }
+  audio.addEventListener('canplay', clipEditor._onCanPlay, { once: true });
+  audio.src = `/music-source/${encodeURIComponent(clipEditor.slug)}?_t=${Date.now()}`;
+  audio.load();
 });
 
 document.getElementById('clip-editor-auto').addEventListener('click', async () => {
