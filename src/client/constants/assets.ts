@@ -37,9 +37,13 @@ export const AssetKeys = {
     PspspsTubeWhite: 'pspsps-tube-white',
     /** Tile-able body section cut from PspspsTubeWhite's middle band
      *  (parallel-sided, no rounded caps, uniform vertically). Used as
-     *  a TileSprite for hold tails + slide tubes so long stretches
-     *  TILE the texture instead of stretching it (no taper distortion). */
+     *  a TileSprite for hold tails so long stretches TILE the texture
+     *  instead of stretching it (no taper distortion). */
     TailBody: 'tail-body',
+    /** Rounded end-cap for hold tails — top portion of PspspsTubeWhite
+     *  with the rounded crown. Sat on top of the tail-body TileSprite
+     *  so the tail terminates with a proper cap instead of a flat edge. */
+    TailCap: 'tail-cap',
     // Background textures load via Preloader.ts iteration over
     // BACKGROUND_CATALOG — keys live on the catalog entries themselves
     // (`entry.backdropKey`), no per-bg AssetKey needed.

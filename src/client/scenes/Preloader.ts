@@ -109,9 +109,10 @@ export class Preloader extends Scene {
     this.generatePawsOnlyTexture();
 
     // Tile-able body section from PspspsTubeWhite's middle band — used
-    // by Note's TileSprite tail + slide tube so long stretches REPEAT
-    // the texture instead of stretching it (no taper distortion).
+    // by Note's TileSprite tail so long stretches REPEAT the texture
+    // instead of stretching it (no taper distortion).
     this.generateTailBodyTile();
+    this.generateTailCapTexture();
 
     // Register all cat animations globally so every downstream scene
     // (Game, Decorate, DressingRoom, Purchase) can play them without each
@@ -182,6 +183,35 @@ export class Preloader extends Scene {
       canvas.refresh();
     } catch (err) {
       console.warn('[Preloader] tail-body texture build failed:', err);
+    }
+  }
+
+  /** Generate the rounded end-cap texture from the TOP slice of
+   *  PspspsTubeWhite. Sits on top of the body TileSprite so the tail
+   *  terminates with a proper rounded end instead of a flat tile edge.
+   *  44 × 32 to match TAIL_WIDTH × cap height. */
+  private generateTailCapTexture(): void {
+    const KEY = 'tail-cap';
+    const TARGET_W = 44;
+    const TARGET_H = 32;
+    const BAND_FRACTION = 0.25;
+    if (this.textures.exists(KEY)) return;
+    try {
+      const source = this.textures.get(AssetKeys.Image.PspspsTubeWhite);
+      const srcImage = source.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+      const srcW = srcImage.width;
+      const srcH = srcImage.height;
+      if (!srcW || !srcH) return;
+      const bandH = Math.max(1, Math.floor(srcH * BAND_FRACTION));
+      const canvas = this.textures.createCanvas(KEY, TARGET_W, TARGET_H);
+      if (!canvas) return;
+      const ctx = canvas.getContext();
+      ctx.clearRect(0, 0, TARGET_W, TARGET_H);
+      // Top slice of the source — preserves the rounded crown.
+      ctx.drawImage(srcImage, 0, 0, srcW, bandH, 0, 0, TARGET_W, TARGET_H);
+      canvas.refresh();
+    } catch (err) {
+      console.warn('[Preloader] tail-cap texture build failed:', err);
     }
   }
 

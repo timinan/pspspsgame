@@ -12,6 +12,9 @@ const TAIL_WIDTH = 44;
  *  the hold tail so the sideways path reads as the primary corridor
  *  the head will travel. */
 const SLIDE_TUBE_THICKNESS = 64;
+/** Hold-tail end cap height — must match the generated 'tail-cap'
+ *  texture height in Preloader. */
+const TAIL_CAP_HEIGHT = 32;
 
 /**
  * A falling rhythm note rendered as the original Phase 1 "PS element" ball
@@ -63,10 +66,15 @@ export class Note extends GameObjects.Container {
    *  stretching, so long-hold tails stay consistent without taper
    *  distortion. */
   private tail: GameObjects.TileSprite;
-  /** Horizontal sideways tube for slide notes — also a TileSprite of
-   *  the same tail-body texture, rotated 90°. Stays anchored in
-   *  container space while the head ball moves toward target lane. */
-  private slideTube: GameObjects.TileSprite;
+  /** Rounded end cap that sits ON TOP of the tail TileSprite — gives
+   *  the column a proper rounded crown instead of a flat tile edge. */
+  private tailCap: GameObjects.Image;
+  /** Horizontal sideways tube for slide notes — Image of PspspsTubeWhite
+   *  rotated 90°, stretched to span source→target. Slides are short
+   *  enough that the rounded-cap stretch isn't a visible problem.
+   *  TileSprite was tried but the per-vertex gradient tint + rotation
+   *  combination didn't render correctly. */
+  private slideTube: GameObjects.Image;
   /** Direction chevron at the target end of the slide tube. */
   private slideArrow: GameObjects.Text;
   /** Cached tail height so pickRandomVisibleTailWorldPos can locate
@@ -83,11 +91,18 @@ export class Note extends GameObjects.Container {
     this.tail = scene.add.tileSprite(0, 0, TAIL_WIDTH, 0, AssetKeys.Image.TailBody);
     this.tail.setOrigin(0.5, 1);
     this.tail.setVisible(false);
-    // Slide tube — same body tile rotated 90° so the texture's
-    // parallel sides sit on top + bottom, extending sideways from
-    // source to target lane. Stays anchored in container space while
-    // head ball moves on drag.
-    this.slideTube = scene.add.tileSprite(0, 0, SLIDE_TUBE_THICKNESS, 0, AssetKeys.Image.TailBody);
+    // Tail end cap — rounded crown that sits on top of the tail body
+    // so the column terminates cleanly instead of with a flat tile.
+    // Origin (0.5, 1) anchors its BOTTOM edge so it stacks above the
+    // tail body naturally.
+    this.tailCap = scene.add.image(0, 0, AssetKeys.Image.TailCap);
+    this.tailCap.setOrigin(0.5, 1);
+    this.tailCap.setVisible(false);
+    // Slide tube — Image (not TileSprite). Slides are short enough
+    // that stretch distortion is invisible, AND TileSprite breaks
+    // the per-vertex gradient tint that paints the source→target
+    // lane color across the tube.
+    this.slideTube = scene.add.image(0, 0, AssetKeys.Image.PspspsTubeWhite);
     this.slideTube.setVisible(false);
     // 54px — matches the 50% bump applied to the lane hit targets (48 → 72)
     // so the falling notes read at the same visual weight as the target.
@@ -107,8 +122,9 @@ export class Note extends GameObjects.Container {
       stroke: '#1a0a2e',
       strokeThickness: 3,
     }).setOrigin(0.5).setVisible(false);
-    // Order: tail + slideTube behind, ball + letters in front, arrow on top.
-    this.add([this.tail, this.slideTube, this.ball, this.letters, this.slideArrow]);
+    // Order: tail body + cap + slideTube behind, ball + letters in
+    // front, arrow on top.
+    this.add([this.tail, this.tailCap, this.slideTube, this.ball, this.letters, this.slideArrow]);
     // Render above cat-effect particles (cat sprite depth 0 → particles
     // depth +2). Without this, a cat with sparkles / fire / hearts equipped
     // visually obscures every falling note in its lane and the player
@@ -172,19 +188,25 @@ export class Note extends GameObjects.Container {
       this.isHold = true;
       this.holdEndAtMs = hold.releaseAtMs;
       this.currentTailHeight = hold.tailHeightPx;
-      // TileSprite tiles its texture across the rect — vertical
-      // dimension grows by repeating the body tile, no stretch.
-      this.tail.setSize(TAIL_WIDTH, hold.tailHeightPx);
-      this.tail.setTint(
-        liftTowardWhite(tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT),
-      );
+      const tint = liftTowardWhite(tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT);
+      // Body tiles the rest of the tail (height minus cap).
+      const bodyHeight = Math.max(0, hold.tailHeightPx - TAIL_CAP_HEIGHT);
+      this.tail.setSize(TAIL_WIDTH, bodyHeight);
+      this.tail.setTint(tint);
       this.tail.setVisible(true);
       this.tail.x = 0;
+      // Cap sits on top of the body — its BOTTOM edge meets the body's
+      // TOP edge in container-local coords.
+      this.tailCap.setDisplaySize(TAIL_WIDTH, TAIL_CAP_HEIGHT);
+      this.tailCap.setPosition(0, -bodyHeight);
+      this.tailCap.setTint(tint);
+      this.tailCap.setVisible(true);
     } else {
       this.isHold = false;
       this.holdEndAtMs = 0;
       this.currentTailHeight = 0;
       this.tail.setVisible(false);
+      this.tailCap.setVisible(false);
     }
 
     if (slide) {
@@ -192,13 +214,13 @@ export class Note extends GameObjects.Container {
       this.slideDeltaX = slide.deltaX;
       this.slideActive = false;
       this.slidePointerId = -1;
-      // TileSprite — tiles the body texture along its long axis instead
-      // of stretching. Pre-rotation size: SLIDE_TUBE_THICKNESS wide ×
-      // tubeLen tall. After 90° CW rotation on screen: tubeLen wide ×
+      // Image (not TileSprite) so per-vertex setTint paints the
+      // source→target gradient cleanly. Pre-rotation displaySize so
+      // the post-90°-rotation screen size is `abs(deltaX)` wide ×
       // SLIDE_TUBE_THICKNESS tall, centered between source (x=0) and
       // target (x=deltaX) in container coords.
       const tubeLen = Math.abs(slide.deltaX);
-      this.slideTube.setSize(SLIDE_TUBE_THICKNESS, tubeLen);
+      this.slideTube.setDisplaySize(SLIDE_TUBE_THICKNESS, tubeLen);
       this.slideTube.setRotation(Math.PI / 2);
       this.slideTube.setPosition(slide.deltaX / 2, 0);
       // Per-vertex tint paints a lane-to-lane gradient. Image's TOP
@@ -251,6 +273,7 @@ export class Note extends GameObjects.Container {
     this.scene.tweens.killTweensOf(this);
     this.setActive(false).setVisible(false);
     this.tail.setVisible(false);
+    this.tailCap.setVisible(false);
     this.slideTube.setVisible(false);
     this.slideArrow.setVisible(false);
     this.isHold = false;
@@ -273,12 +296,11 @@ export class Note extends GameObjects.Container {
     this.ball.x = localX;
     this.letters.x = localX;
     // Remaining tube spans [localX, deltaX]. Recenter + resize the
-    // TileSprite (setSize tiles, no stretch) so the visible tube only
-    // covers the not-yet-covered portion.
+    // Image so the visible tube only covers the not-yet-covered path.
     const remainingLen = Math.abs(this.slideDeltaX - localX);
     const center = (localX + this.slideDeltaX) / 2;
     this.slideTube.setPosition(center, 0);
-    this.slideTube.setSize(SLIDE_TUBE_THICKNESS, remainingLen);
+    this.slideTube.setDisplaySize(SLIDE_TUBE_THICKNESS, remainingLen);
   }
 
   /** Current head ball local-x (= 0 at source, deltaX at target). */
@@ -335,21 +357,30 @@ export class Note extends GameObjects.Container {
     this.ball.setVisible(showHead);
     this.letters.setVisible(showHead);
 
-    // Hold tail — bottom anchored at container.y (local 0); top
-    // extends UP by currentTailHeight. Clip the visible portion to
-    // [laneTopY, container.y] in world space and resize the TileSprite
-    // to match. TileSprite tiles the body texture, no stretch.
+    // Hold tail body — bottom anchored at container.y (local 0); top
+    // extends UP by (currentTailHeight - capHeight). Clip the visible
+    // portion to [laneTopY, container.y] in world space and resize
+    // the TileSprite to match. TileSprite tiles the body texture.
     if (this.currentTailHeight > 0) {
-      const tailBottomWorld = Math.min(this.y, disappearY);
-      const tailTopWorld = Math.max(this.y - this.currentTailHeight, laneTopY);
-      const visibleHeight = Math.max(0, tailBottomWorld - tailTopWorld);
-      if (visibleHeight <= 0) {
+      const bodyMaxHeight = Math.max(0, this.currentTailHeight - TAIL_CAP_HEIGHT);
+      const bodyBottomWorld = Math.min(this.y, disappearY);
+      const bodyTopWorld = Math.max(this.y - bodyMaxHeight, laneTopY);
+      const visibleBodyHeight = Math.max(0, bodyBottomWorld - bodyTopWorld);
+      if (visibleBodyHeight <= 0) {
         this.tail.setVisible(false);
       } else {
         this.tail.setVisible(true);
-        this.tail.setSize(TAIL_WIDTH, visibleHeight);
-        this.tail.y = tailBottomWorld - this.y;
+        this.tail.setSize(TAIL_WIDTH, visibleBodyHeight);
+        this.tail.y = bodyBottomWorld - this.y;
       }
+      // Cap — only visible when its bottom edge has descended past
+      // the lane top. Cap sits ABOVE the body's max-height region in
+      // container-local coords, so its world y is fixed relative to
+      // container.y.
+      const capBottomWorld = this.y - bodyMaxHeight;
+      const capTopWorld = capBottomWorld - TAIL_CAP_HEIGHT;
+      const capInLane = capBottomWorld >= laneTopY && capTopWorld <= disappearY;
+      this.tailCap.setVisible(capInLane);
     }
 
     // Slide tube + arrow — same lane-top gate. Slide tube is
