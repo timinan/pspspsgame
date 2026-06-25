@@ -50,8 +50,16 @@ const PROFILES: Record<GenDifficulty, {
   /** Steps after a slide-and-return where notes are stripped from BOTH
    *  the source AND target lanes — the gesture is the hardest move in
    *  the game, so the player gets a breath. Larger gap on easier
-   *  difficulties; never zero so even hard provides some recovery. */
+   *  difficulties; never zero so even insane provides some recovery.
+   *  Fractional values are supported via a per-slide-return rng roll —
+   *  e.g., 1.5 = 50% chance of 1-step cooldown, 50% chance of 2-step. */
   slideReturnCooldownSteps: number;
+  /** When true, the slide-promotion pass is allowed to fire on CHORD
+   *  steps (>1 lane firing) — the slide takes its source lane, the
+   *  other lanes keep their taps, producing the "slide + tap on
+   *  another lane" 2-finger combo. Off by default; only insane sets
+   *  it because the gesture is genuinely hard. */
+  slideOnChords?: boolean;
 }> = {
   easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00, slideReturnChance: 0.02, slideReturnCooldownSteps: 4 },
   medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30, slideReturnChance: 0.07, slideReturnCooldownSteps: 3 },
@@ -60,10 +68,12 @@ const PROFILES: Record<GenDifficulty, {
   spicy:  { density: 0.55, chord2Chance: 0.25, chord3Chance: 0.03, minGapSteps: 1, holdChance: 0.15, holdMinSteps: 2, holdMaxSteps: 5, slideChance: 0.14, slide2LaneChance: 0.40, slideReturnChance: 0.10, slideReturnCooldownSteps: 2 },
   hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18, slide2LaneChance: 0.50, slideReturnChance: 0.12, slideReturnCooldownSteps: 2 },
   // Insane — top tier. Sliders + double-slides feature heavily, taps
-  // dense + chord-rich, holds longer. Cooldown stays at 2 (1 felt
-  // impossible per playtest) — even on insane the slide-return needs
-  // breathing room around it because it's the hardest move.
-  insane: { density: 0.78, chord2Chance: 0.42, chord3Chance: 0.12, minGapSteps: 0, holdChance: 0.22, holdMinSteps: 3, holdMaxSteps: 7, slideChance: 0.26, slide2LaneChance: 0.65, slideReturnChance: 0.18, slideReturnCooldownSteps: 2 },
+  // dense + chord-rich, holds longer, AND slides can land on chord
+  // steps (slide-with-tap combos) for genuine 2-finger work. Cooldown
+  // 1.5 = half the slide-returns get 1 step recovery, half get 2 —
+  // averages to "tight but possible to clear at 100% with practice".
+  // Tim's rule: people work for 75%, but 100% is still achievable.
+  insane: { density: 0.82, chord2Chance: 0.45, chord3Chance: 0.16, minGapSteps: 0, holdChance: 0.24, holdMinSteps: 3, holdMaxSteps: 7, slideChance: 0.34, slide2LaneChance: 0.70, slideReturnChance: 0.22, slideReturnCooldownSteps: 1.5, slideOnChords: true },
 };
 
 /** Round a target step count UP to the nearest multiple of CHART_PAGE_SIZE.
@@ -192,9 +202,17 @@ export function generateChart(args: {
       const step = steps[i]!;
       // Skip chord steps entirely — slide + simultaneous tap on another
       // lane reads as a 2-finger contortion most players can't pull off.
-      if (step.lanes.length !== 1) continue;
+      // EXCEPT on insane (`slideOnChords: true`) where the contortion
+      // IS the point: the slide takes its source lane, other lanes
+      // keep their taps, producing slide-with-tap combos.
+      if (step.lanes.length !== 1 && !profile.slideOnChords) continue;
+      if (step.lanes.length === 0) continue;
       // Already a slide at this step from a prior iteration's restart?
       if (slides.some((s) => s.startStep === i)) continue;
+      // Pick lane: if the cell has multiple firing lanes, prefer one
+      // that exists in the step. For chord steps on insane, pick the
+      // first lane that doesn't violate the hold-conflict guard below;
+      // single-tap steps just use the only lane present.
       const lane = step.lanes[0]!;
       if (rng() >= profile.slideChance) continue;
       if (holds.some((h) => h.lane === lane && i >= h.startStep && i <= h.endStep)) continue;
@@ -253,12 +271,17 @@ export function generateChart(args: {
   // Cooldown pass — for every slide-and-return, strip taps + holds +
   // slides in BOTH the source and target lanes for the next N steps.
   // Slide-and-return is the hardest move in the game; the player needs
-  // a moment to recover. N comes from the difficulty profile (easy 4,
-  // medium 3, spicy 2, hard 1) so harder players get less relief but
-  // still some.
-  const cooldownN = profile.slideReturnCooldownSteps;
-  if (cooldownN > 0 && slideReturns.length > 0) {
+  // a moment to recover. N comes from the difficulty profile (easy 4 →
+  // insane 1.5). Fractional values resolve per-slide-return via rng:
+  // 1.5 = 50% of slide-returns get 1-step cooldown, 50% get 2-step.
+  // Net effect on insane: tight but possible to clear at 100%.
+  const cooldownBase = profile.slideReturnCooldownSteps;
+  if (cooldownBase > 0 && slideReturns.length > 0) {
     for (const sr of slideReturns) {
+      const floorN = Math.floor(cooldownBase);
+      const extraChance = cooldownBase - floorN;
+      const cooldownN = floorN + (rng() < extraChance ? 1 : 0);
+      if (cooldownN <= 0) continue;
       const involvedLanes: LaneId[] = [sr.sourceLane, sr.targetLane];
       const cooldownEnd = Math.min(stepCount - 1, sr.startStep + cooldownN);
       for (let j = sr.startStep + 1; j <= cooldownEnd; j++) {
