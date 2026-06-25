@@ -31,6 +31,10 @@ export const AssetKeys = {
      *  with the per-bg sampled lane tint so notes match their target. */
     PspspsElementBallWhite: 'pspsps-element-ball-white',
     PspspsElementLetters: 'pspsps-element-letters',
+    /** Vertical fuzzy capsule — hand-authored to match the fuzzball's
+     *  edge treatment. Used by Note for hold tails (narrow) and slide
+     *  trails (wider). White-base for tint. */
+    PspspsTubeWhite: 'pspsps-tube-white',
     // Background textures load via Preloader.ts iteration over
     // BACKGROUND_CATALOG — keys live on the catalog entries themselves
     // (`entry.backdropKey`), no per-bg AssetKey needed.

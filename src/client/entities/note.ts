@@ -5,11 +5,10 @@ import { LANE_COLORS, liftTowardWhite, BALL_BRIGHTNESS_LIFT } from './note-color
 
 export { LANE_COLORS };
 
-/** Hold-tail width — narrower than the 54px head ball so the trailing
- *  column reads as a tail, not a second note. Matches the 'tail-cylinder'
- *  texture width in Preloader.generateTailCylinderTexture() so we render
- *  the source band at its natural width (no horizontal scaling). */
-const TAIL_WIDTH = 24;
+/** Hold-tail width — much narrower than the 54px head ball (Tim's spec)
+ *  so the trailing column reads as a thin strand, not a second note.
+ *  PspspsTubeWhite gets scaled down horizontally to this width. */
+const TAIL_WIDTH = 18;
 
 /**
  * A falling rhythm note rendered as the original Phase 1 "PS element" ball
@@ -58,7 +57,7 @@ export class Note extends GameObjects.Container {
     // (0.5, 1) anchors it at bottom-center so it grows UPWARD from the
     // ball's center when we resize via setDisplaySize. Hidden by default;
     // hold configure flips it on and sets the actual tail length.
-    this.tail = scene.add.image(0, 0, 'tail-cylinder');
+    this.tail = scene.add.image(0, 0, AssetKeys.Image.PspspsTubeWhite);
     this.tail.setOrigin(0.5, 1);
     this.tail.setVisible(false);
     // 54px — matches the 50% bump applied to the lane hit targets (48 → 72)
