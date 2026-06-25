@@ -58,6 +58,15 @@ export class Note extends GameObjects.Container {
   /** Pointer id locked to this slide's drag. -1 when not active. Lets
    *  multi-touch resolve which finger to follow per note. */
   slidePointerId = -1;
+  /** Target lane (where the slide ends). Set when Game spawns the note.
+   *  completeSlide uses this so the grade text + fuzzball flash + cat
+   *  reaction fire on the lane the player slid TO, not the source. */
+  slideTargetLane: LaneId | -1 = -1;
+  /** Absolute time.now at the moment the slide was engaged (pointer-down
+   *  in the source lane's hit window). Recorded so completeSlide can
+   *  grade perfect-vs-great based on tap-in timing instead of release
+   *  timing (the release happens much later, after the drag completes). */
+  slideEngageMs = 0;
 
   private ball: GameObjects.Image;
   private letters: GameObjects.Image;
@@ -245,6 +254,8 @@ export class Note extends GameObjects.Container {
       this.slideDeltaX = 0;
       this.slideActive = false;
       this.slidePointerId = -1;
+      this.slideTargetLane = -1;
+      this.slideEngageMs = 0;
       this.slideTube.setVisible(false);
       this.slideArrow.setVisible(false);
     }
@@ -285,6 +296,8 @@ export class Note extends GameObjects.Container {
     this.slideActive = false;
     this.slideDeltaX = 0;
     this.slidePointerId = -1;
+    this.slideTargetLane = -1;
+    this.slideEngageMs = 0;
   }
 
   /** Set the head ball's local x within the container. Game calls this

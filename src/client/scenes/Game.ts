@@ -1151,16 +1151,29 @@ export class Game extends Scene {
     }
   };
 
-  /** Grade a successful slide release as a tap-grade hit. Same scoring
-   *  as a great-grade tap (the gesture itself is the challenge). */
+  /** Grade a successful slide release as a tap-grade hit. Grade perfect
+   *  vs great based on the engage timing (tap-down vs hitAtMs) — the
+   *  RELEASE timing happens much later, after the drag completes, so
+   *  it's not a meaningful precision signal. Feedback fires on the
+   *  TARGET lane (where the finger ended) so the player's eye lands on
+   *  the lane they slid TO, not the source they slid FROM. */
   private completeSlide(n: Note): void {
-    this.score.registerHit('great');
-    this.showHitFeedback(n.laneId, 'great');
-    this.flashTarget(n.laneId, 'great');
-    this.cats[n.laneId]?.playMeow(Balance.catReactionMs);
-    this.cats[n.laneId]?.pulseEffectHit();
-    this.flashLaneEffect(n.laneId);
-    this.music?.playTapForLane(n.laneId);
+    const targetLane: LaneId = (n.slideTargetLane >= 0
+      ? n.slideTargetLane
+      : n.laneId) as LaneId;
+    const engageDt = n.slideEngageMs > 0
+      ? Math.abs(n.slideEngageMs - n.hitAtMs)
+      : Balance.perfectWindowMs + 1; // unknown engage → fall back to great
+    const grade: 'perfect' | 'great' = engageDt <= Balance.perfectWindowMs
+      ? 'perfect'
+      : 'great';
+    this.score.registerHit(grade);
+    this.showHitFeedback(targetLane, grade);
+    this.flashTarget(targetLane, grade);
+    this.cats[targetLane]?.playMeow(Balance.catReactionMs);
+    this.cats[targetLane]?.pulseEffectHit();
+    this.flashLaneEffect(targetLane);
+    this.music?.playTapForLane(targetLane);
     n.consumed = true;
     n.recycle();
     this.pulseCombo();
@@ -1716,6 +1729,7 @@ export class Game extends Scene {
         targetTint: this.laneTints[targetLane],
       },
     );
+    note.slideTargetLane = targetLane;
   }
 
   /** Build the lane-band GeometryMask used to clip hold tails. The
@@ -1823,6 +1837,7 @@ export class Game extends Scene {
         // flashes so the player gets immediate "you caught it" feedback.
         note!.slideActive = true;
         note!.slidePointerId = pointer.id;
+        note!.slideEngageMs = this.time.now;
         note!.setSlideEngagedTint(Balance.holdActiveTint);
       } else {
         note!.consumed = true;

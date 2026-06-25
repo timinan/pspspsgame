@@ -627,15 +627,20 @@ export class Cat {
       sprite.play(key, true);
       return;
     }
-    // No frames for the requested anim. If the cosmetic is already
-    // playing SOMETHING, leave it — falling through to idle here was
-    // the visible "cosmetic swapped to something else then back"
-    // glitch during the celebration cycle: the cosmetics atlas has
-    // idle/lick/happy but no meow, so meow steps were snapping every
-    // hat / bow / glasses back to its idle pose mid-cycle, which
-    // reads as a different cosmetic when its idle frame looks
-    // markedly different from its lick/happy pose.
-    if (sprite.anims.isPlaying) return;
+    // No frames for the requested anim. Two bad alternatives exist:
+    //   (a) snap to idle anim — the original "swap to idle" glitch
+    //       (visible pop when idle frame 0 differs from mid-lick pose).
+    //   (b) leave the cosmetic playing whatever it was on — produces a
+    //       wrong-anim mismatch (cat is mid-meow but cosmetic is still
+    //       looping its lick poses).
+    // Compromise: STOP the cosmetic on its current frame, so it just
+    // freezes in pose for the duration of the unsupported anim. No
+    // snap, no continued wrong-anim playback. If nothing is currently
+    // playing (fresh sprite), fall back to idle frame 0 as last resort.
+    if (sprite.anims.isPlaying) {
+      sprite.anims.stop();
+      return;
+    }
     const idleKey = Cat.cosmeticAnimationKey(renderId, 'idle');
     this.ensureCosmeticAnimation(renderId, 'idle');
     if (this.scene.anims.exists(idleKey)) {
