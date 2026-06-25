@@ -108,10 +108,11 @@ export class Preloader extends Scene {
     // bar as a solid-pink layer.
     this.generatePawsOnlyTexture();
 
-    // Hold-note tail uses a generated PARALLEL-SIDED cylinder cut from
-    // the middle of PspspsTubeWhite (strips the rounded end caps so
-    // long tails stretch uniformly without tapering).
-    this.generateTailStretchTexture();
+    // Hold-note tail uses PspspsTubeWhite directly. Tried generating
+    // a parallel-sided stretch texture (commit 3c8307b) to fix long-
+    // hold tapering, but the result looked worse than the native
+    // capsule. Reverted; revisit later if long-hold distortion needs
+    // a proper fix.
 
     // Register all cat animations globally so every downstream scene
     // (Game, Decorate, DressingRoom, Purchase) can play them without each
@@ -154,41 +155,6 @@ export class Preloader extends Scene {
    *  Registered under 'rhythm-bar-paws'. Safe to no-op (try/catch) on
    *  any failure — the lane still falls back to the existing texture
    *  with no pink overlay, just no toe-bean color call-out. */
-  /** Generate a parallel-sided stretchable cylinder from the middle
-   *  band of PspspsTubeWhite. The hand-authored capsule has rounded
-   *  end caps which look fine at the asset's native height, but when
-   *  Note stretches the Image to long-hold heights (10× or more), the
-   *  rounded caps stretch into long taper points. Sampling just the
-   *  middle 40 % gives a parallel-sided source so the stretch is
-   *  uniform — no tapering, fuzzy edges preserved. */
-  private generateTailStretchTexture(): void {
-    const KEY = 'tail-stretch';
-    const TARGET_W = 44; // matches TAIL_WIDTH in Note
-    const TARGET_H = 256; // tall enough that scaling to long heights stays smooth
-    const BAND_FRACTION = 0.4; // middle 40 % = the parallel-sided region
-    if (this.textures.exists(KEY)) return;
-    try {
-      const source = this.textures.get(AssetKeys.Image.PspspsTubeWhite);
-      const srcImage = source.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
-      const srcW = srcImage.width;
-      const srcH = srcImage.height;
-      if (!srcW || !srcH) return;
-      const bandH = Math.max(1, Math.floor(srcH * BAND_FRACTION));
-      const bandY = Math.floor((srcH - bandH) / 2);
-      const canvas = this.textures.createCanvas(KEY, TARGET_W, TARGET_H);
-      if (!canvas) return;
-      const ctx = canvas.getContext();
-      ctx.clearRect(0, 0, TARGET_W, TARGET_H);
-      // Source band → target canvas, stretched vertically to fill the
-      // tall target. Band has parallel sides + uniform vertical texture
-      // so the result is a clean fuzzy-edged cylinder.
-      ctx.drawImage(srcImage, 0, bandY, srcW, bandH, 0, 0, TARGET_W, TARGET_H);
-      canvas.refresh();
-    } catch (err) {
-      console.warn('[Preloader] tail-stretch texture build failed:', err);
-    }
-  }
-
   private generatePawsOnlyTexture(): void {
     const KEY = 'rhythm-bar-paws';
     if (this.textures.exists(KEY)) return;

@@ -35,11 +35,6 @@ export const AssetKeys = {
      *  edge treatment. Used by Note for hold tails (narrow) and slide
      *  trails (wider). White-base for tint. */
     PspspsTubeWhite: 'pspsps-tube-white',
-    /** Parallel-sided stretchable cylinder generated at preload from
-     *  the middle band of PspspsTubeWhite — strips off the rounded
-     *  end caps so long-hold tails stretch uniformly without tapering
-     *  into points. Note uses this as the tail Image source. */
-    TailStretch: 'tail-stretch',
     // Background textures load via Preloader.ts iteration over
     // BACKGROUND_CATALOG — keys live on the catalog entries themselves
     // (`entry.backdropKey`), no per-bg AssetKey needed.

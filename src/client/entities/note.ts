@@ -78,7 +78,7 @@ export class Note extends GameObjects.Container {
     // (0.5, 1) anchors it at bottom-center so it grows UPWARD from the
     // ball's center when we resize via setDisplaySize. Hidden by default;
     // hold configure flips it on and sets the actual tail length.
-    this.tail = scene.add.image(0, 0, AssetKeys.Image.TailStretch);
+    this.tail = scene.add.image(0, 0, AssetKeys.Image.PspspsTubeWhite);
     this.tail.setOrigin(0.5, 1);
     this.tail.setVisible(false);
     // Slide tube — same fuzzy capsule rotated 90° so its rounded ends
