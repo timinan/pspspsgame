@@ -1,3 +1,4 @@
+import * as Phaser from 'phaser';
 import { Scene, Scenes, GameObjects, Tweens } from 'phaser';
 
 /**
@@ -300,18 +301,25 @@ function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
       const t = scene.add
         .text(foot.x + offsetX, startY, opts.emoji, {
           fontSize: `${size}px`,
-          // resolution: 1 overrides game.ts's DPR text patch (which sets
-          // 2-3× for crisp UI text). For emoji particles we WANT the
-          // chunky low-res look so they read as pixel art matching the
-          // rest of the scene instead of high-res emoji floating in
-          // pixel-art world.
-          resolution: 1,
+          // resolution: 0.5 renders the emoji into a HALF-size internal
+          // canvas; combined with NEAREST filter below, the engine then
+          // upscales those chunky source pixels with no smoothing → real
+          // pixel-art look instead of crisp anti-aliased emoji.
+          // Padding prevents crop on tall emoji like ❤️/⭐ whose glyph
+          // extends above Phaser's text auto-measure baseline.
+          resolution: 0.5,
+          padding: { x: 4, y: 6 },
         })
         .setAlpha(startAlpha)
         .setOrigin(0.5)
         // Render BEHIND the cat — particles are ambience around the
         // sprite, not foreground noise on top of it.
         .setDepth(sprite.depth - 1);
+      // NEAREST filter on the rendered text texture forces chunky-pixel
+      // upscaling instead of the default LINEAR blur. Paired with the
+      // resolution: 0.5 above this is what makes the emoji actually look
+      // pixelated rather than just low-res anti-aliased.
+      t.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
       live.push(t);
 
       // Movement tween — rise (and optionally wobble) over the full life.
@@ -449,14 +457,17 @@ function makeParticleBurst(emoji: string, size: number, count = 12): CatEffect['
       const p = scene.add
         .text(target.x, target.y, emoji, {
           fontSize: `${px}px`,
-          // Chunky pixelated emoji (override game.ts's high-DPI text
-          // patch) so the burst matches the pixel-art style.
-          resolution: 1,
+          // resolution: 0.5 + NEAREST filter (below) = real pixel-art
+          // emoji, not just low-res anti-aliased ones. Padding stops
+          // crop on tall glyphs like ❤️/⭐.
+          resolution: 0.5,
+          padding: { x: 4, y: 6 },
         })
         .setAlpha(BURST_ALPHA)
         .setOrigin(0.5)
         .setDepth(target.depth + 1)
         .setScale(0.6);
+      p.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
       // Pop in fast, then drift outward + fade. Holds peak alpha for
       // the first half of life so the burst reads loud, then fades.
       scene.tweens.add({
