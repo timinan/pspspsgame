@@ -47,14 +47,19 @@ const PROFILES: Record<GenDifficulty, {
    *  difficulty gets some so every player is exposed to the gesture
    *  (Tim's rule). */
   slideReturnChance: number;
+  /** Steps after a slide-and-return where notes are stripped from BOTH
+   *  the source AND target lanes — the gesture is the hardest move in
+   *  the game, so the player gets a breath. Larger gap on easier
+   *  difficulties; never zero so even hard provides some recovery. */
+  slideReturnCooldownSteps: number;
 }> = {
-  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00, slideReturnChance: 0.02 },
-  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30, slideReturnChance: 0.05 },
+  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00, slideReturnChance: 0.02, slideReturnCooldownSteps: 4 },
+  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30, slideReturnChance: 0.05, slideReturnCooldownSteps: 3 },
   // Spicy sits between medium and hard — meaningful step-up without
   // jumping straight to the chord-heavy hard profile. All numbers
   // linearly between medium and hard.
-  spicy:  { density: 0.55, chord2Chance: 0.25, chord3Chance: 0.03, minGapSteps: 1, holdChance: 0.15, holdMinSteps: 2, holdMaxSteps: 5, slideChance: 0.14, slide2LaneChance: 0.40, slideReturnChance: 0.08 },
-  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18, slide2LaneChance: 0.50, slideReturnChance: 0.12 },
+  spicy:  { density: 0.55, chord2Chance: 0.25, chord3Chance: 0.03, minGapSteps: 1, holdChance: 0.15, holdMinSteps: 2, holdMaxSteps: 5, slideChance: 0.14, slide2LaneChance: 0.40, slideReturnChance: 0.08, slideReturnCooldownSteps: 2 },
+  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18, slide2LaneChance: 0.50, slideReturnChance: 0.12, slideReturnCooldownSteps: 1 },
 };
 
 /** Round a target step count UP to the nearest multiple of CHART_PAGE_SIZE.
@@ -238,6 +243,40 @@ export function generateChart(args: {
       )) continue;
       step.lanes.splice(0, 1);
       slideReturns.push({ startStep: i, sourceLane: lane, targetLane: target });
+    }
+  }
+
+  // Cooldown pass — for every slide-and-return, strip taps + holds +
+  // slides in BOTH the source and target lanes for the next N steps.
+  // Slide-and-return is the hardest move in the game; the player needs
+  // a moment to recover. N comes from the difficulty profile (easy 4,
+  // medium 3, spicy 2, hard 1) so harder players get less relief but
+  // still some.
+  const cooldownN = profile.slideReturnCooldownSteps;
+  if (cooldownN > 0 && slideReturns.length > 0) {
+    for (const sr of slideReturns) {
+      const involvedLanes: LaneId[] = [sr.sourceLane, sr.targetLane];
+      const cooldownEnd = Math.min(stepCount - 1, sr.startStep + cooldownN);
+      for (let j = sr.startStep + 1; j <= cooldownEnd; j++) {
+        const s = steps[j];
+        if (s) {
+          s.lanes = s.lanes.filter((l) => !involvedLanes.includes(l));
+        }
+      }
+      // Drop any hold whose startStep falls in the cooldown on an involved lane.
+      for (let k = holds.length - 1; k >= 0; k--) {
+        const h = holds[k]!;
+        if (involvedLanes.includes(h.lane) && h.startStep > sr.startStep && h.startStep <= cooldownEnd) {
+          holds.splice(k, 1);
+        }
+      }
+      // Drop any slide whose startStep falls in the cooldown on an involved lane.
+      for (let k = slides.length - 1; k >= 0; k--) {
+        const s = slides[k]!;
+        if (involvedLanes.includes(s.sourceLane) && s.startStep > sr.startStep && s.startStep <= cooldownEnd) {
+          slides.splice(k, 1);
+        }
+      }
     }
   }
 

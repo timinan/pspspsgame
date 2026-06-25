@@ -1126,19 +1126,16 @@ export class Game extends Scene {
       const localX = pointer.x - n.x;
       if (n.isSlideReturn) {
         // Phase 1 (outbound, not yet reached target): finger must move
-        // toward target. Wrong-direction past 10px = immediate miss.
+        // toward target. EXTREMELY FORGIVING per Tim — this is the
+        // hardest move in the game. We do NOT immediately fail on
+        // wrong-direction; if the player wiggles back briefly before
+        // committing, the gesture still counts. We only mark target
+        // reached when the finger genuinely crossed enough.
         if (!n.slideReturnReachedTarget) {
-          if (
-            (n.slideDeltaX > 0 && localX < -10) ||
-            (n.slideDeltaX < 0 && localX > 10)
-          ) {
-            this.failSlide(n);
-            return;
-          }
-          // Mark target-reached at ≥70% of deltaX. After this, the tube
-          // starts erasing on the return leg.
+          // Lowered from 0.7 → 0.5 — touching halfway is enough to count
+          // as "they made it" in the slide-and-return's outbound phase.
           const fractionOut = n.slideDeltaX !== 0 ? localX / n.slideDeltaX : 0;
-          if (fractionOut >= 0.7) {
+          if (fractionOut >= 0.5) {
             n.slideReturnReachedTarget = true;
           }
         }
@@ -1182,11 +1179,15 @@ export class Game extends Scene {
           this.failSlide(n);
           continue;
         }
-        // Ball must be back near source — fraction ≤ 0.15 of deltaX.
+        // EXTREMELY FORGIVING return threshold per Tim — the hardest
+        // move in the game shouldn't drop on a near-miss. As long as
+        // they made the out-and-back gesture (target reached + ball
+        // back at ≤50% of deltaX), count it as a pass even if the
+        // finger didn't perfectly return to source.
         const fraction = n.slideDeltaX !== 0
           ? Math.abs(n.getSlideHeadX() / n.slideDeltaX)
           : 0;
-        if (fraction <= 0.15) {
+        if (fraction <= 0.5) {
           this.completeSlide(n);
         } else {
           this.failSlide(n);
