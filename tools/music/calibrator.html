@@ -842,16 +842,44 @@ function drawWaveform() {
     ctx.fillText('no waveform — analyzing…', 12, H / 2);
     return;
   }
+  // Compute per-PIXEL average RMS first — max-per-pixel made every
+  // pixel-bin look tall because any pixel containing a transient peak
+  // got clamped to ~full height. Average gives the actual envelope.
   const binsPerPx = clipEditor.bins.length / W;
+  const pxValues = new Float32Array(W);
   for (let x = 0; x < W; x++) {
     const startBin = Math.floor(x * binsPerPx);
     const endBin = Math.max(startBin + 1, Math.floor((x + 1) * binsPerPx));
-    let maxVal = -60;
+    let sum = 0;
+    let count = 0;
     for (let i = startBin; i < endBin && i < clipEditor.bins.length; i++) {
-      if (clipEditor.bins[i] > maxVal) maxVal = clipEditor.bins[i];
+      sum += clipEditor.bins[i];
+      count++;
     }
-    // Map -60..0 dB → 0..1 of bar height; clamp for visibility.
-    const norm = Math.max(0, Math.min(1, (maxVal + 60) / 60));
+    pxValues[x] = count > 0 ? sum / count : -60;
+  }
+  // Per-song dynamic range — find min/max across this song's pixels and
+  // map THAT range to bar height. Music typically clusters in
+  // -25..-8 dB; a fixed -60..0 map compresses everyone into the same
+  // visual blob. Skipping near-silence (<-50) on the upper bound so
+  // intro fades don't crush the dynamic range.
+  let minVal = Infinity;
+  let maxVal = -Infinity;
+  for (let x = 0; x < W; x++) {
+    const v = pxValues[x];
+    if (v < minVal) minVal = v;
+    if (v > maxVal && v > -55) maxVal = v;
+  }
+  // Floor: if signal is flat (single sustained tone) or empty,
+  // gracefully fall back to a fixed -50..0 mapping.
+  if (!Number.isFinite(minVal) || !Number.isFinite(maxVal) || maxVal - minVal < 3) {
+    minVal = -50;
+    maxVal = 0;
+  }
+  const range = maxVal - minVal;
+  for (let x = 0; x < W; x++) {
+    const v = pxValues[x];
+    const norm = Math.max(0, Math.min(1, (v - minVal) / range));
     const barH = Math.max(1, Math.round(norm * (H - 4)));
     ctx.fillStyle = '#c678ff';
     ctx.fillRect(x, H - barH - 2, 1, barH);
