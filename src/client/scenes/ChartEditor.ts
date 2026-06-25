@@ -800,19 +800,23 @@ export class ChartEditor extends Scene {
       const srcTint = darkenTowardBlack(this.laneTints[slide.sourceLane]!, 0.18);
       const tgtTint = darkenTowardBlack(this.laneTints[slide.targetLane]!, 0.18);
 
-      // Sideways tube — PSTube-white stretched horizontally between
-      // source and target lane centers. Tube is naturally vertical so
-      // we just override the displaySize to use it horizontally (no
-      // rotation needed in the editor's smaller cells). Per-vertex
-      // tint paints a source→target lane-color gradient like game-side.
+      // Sideways tube — match the game's rendering exactly: rotate 90°
+      // and use displaySize(thickness, tubeLen) so the capsule shape
+      // stays proportional and the bar spans the FULL distance from
+      // source to target (the natural-vertical PSTube image has
+      // transparent padding that would shrink the visible bar if we
+      // stretched it horizontally without rotation). Per-vertex tint
+      // paints the source→target lane gradient. After 90° CW rotation:
+      // image TOP → screen RIGHT, BOTTOM → screen LEFT.
+      const tubeThickness = 40;
       const tubeLen = Math.abs(tgtX - srcX);
       const tubeMidX = (srcX + tgtX) / 2;
       const tube = this.add.image(tubeMidX, cy, AssetKeys.Image.PspspsTubeWhite);
-      tube.setDisplaySize(tubeLen, 28);
-      // Left side = source if source is to the left of target, else target.
-      const leftTint = slide.targetLane > slide.sourceLane ? srcTint : tgtTint;
-      const rightTint = slide.targetLane > slide.sourceLane ? tgtTint : srcTint;
-      tube.setTint(leftTint, rightTint, leftTint, rightTint);
+      tube.setDisplaySize(tubeThickness, tubeLen);
+      tube.setRotation(Math.PI / 2);
+      const topColor = slide.targetLane > slide.sourceLane ? tgtTint : srcTint;
+      const bottomColor = slide.targetLane > slide.sourceLane ? srcTint : tgtTint;
+      tube.setTint(topColor, topColor, bottomColor, bottomColor);
       tube.setDepth(38);
       this.root.add(tube);
       this.holdGraphics.push(tube);
