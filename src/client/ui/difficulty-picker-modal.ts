@@ -11,6 +11,7 @@ interface DifficultyOption {
 const OPTIONS: DifficultyOption[] = [
   { id: 'easy',   label: 'EASY',   blurb: 'Sparse beats, generous timing', color: 0x70d76b },
   { id: 'medium', label: 'NORMAL', blurb: 'Balanced — the default rehearsal', color: 0xffd34d },
+  { id: 'spicy',  label: 'SPICY',  blurb: 'Step up: more chords + holds + slides', color: 0xff9a3c },
   { id: 'hard',   label: 'HARD',   blurb: 'Dense chart, tight windows', color: 0xff6b6b },
 ];
 
@@ -61,7 +62,9 @@ export class DifficultyPickerModal {
     this.container.add(scrim);
 
     const panelW = Math.min(284, width - 24);
-    const panelH = 420;
+    // Bumped 420 → 460 to fit the 4-difficulty stack (EASY/NORMAL/SPICY/HARD)
+    // without colliding with the START/BACK bottom buttons.
+    const panelH = 460;
     const panel = this.scene.add
       .rectangle(cx, cy, panelW, panelH, 0x1a0a2e, 1)
       .setStrokeStyle(2, 0xffd34d, 0.85)
@@ -112,10 +115,10 @@ export class DifficultyPickerModal {
       .setOrigin(0.5);
     this.container.add(subtitle);
 
-    // Stacked option buttons
+    // Stacked option buttons — shrunk from 58→48 + gap 10→8 to fit 4 rows
     const btnW = panelW - 48;
-    const btnH = 58;
-    const gap = 10;
+    const btnH = 48;
+    const gap = 8;
     const topY = cy - panelH / 2 + 88 + btnH / 2;
 
     OPTIONS.forEach((opt, i) => {

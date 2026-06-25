@@ -1,13 +1,30 @@
 import { GameObjects, Scene, Sound, Loader } from 'phaser';
 import {
   BACKING_CATALOG,
+  BACKING_GENRES,
+  BACKING_MOODS,
   type BackingTrack,
   type BackingVibe,
+  type BackingGenre,
+  type BackingMood,
 } from '@/../shared/state';
 
 const VIBE_ORDER: BackingVibe[] = ['upbeat', 'melodic', 'smooth'];
 const SONGS_PER_PAGE = 5;
 const PREVIEW_VOLUME = 0.6;
+
+/** Dedupe + return in the catalog's canonical order. Keeps the cycle
+ *  buttons predictable instead of "whatever order Object.values gave us". */
+function uniqueSorted<T extends string>(values: T[]): T[] {
+  const seen = new Set<T>(values);
+  // Preserve canonical ordering when the set members are known constants.
+  const order = (BACKING_GENRES as readonly string[]).concat(BACKING_MOODS as readonly string[]);
+  const inOrder = order.filter((v) => seen.has(v as T)) as T[];
+  // Anything not in the canonical lists (shouldn't happen, but defensive)
+  // appends at the end in original input order.
+  const extras = values.filter((v, i) => values.indexOf(v) === i && !inOrder.includes(v));
+  return [...inOrder, ...extras];
+}
 
 export interface SongPickerResult {
   audioKey: string;
@@ -32,6 +49,11 @@ export class SongPickerModal {
   /** Songs available at the chosen vibe, in catalog order. */
   private candidates: BackingTrack[] = [];
   private selectedVibe: BackingVibe | null = null;
+  /** Optional genre filter — 'all' means no filter. Cycles through
+   *  available genres + 'all' on the song-list step's GENRE dropdown. */
+  private selectedGenre: BackingGenre | 'all' = 'all';
+  /** Optional mood filter — same shape as selectedGenre. */
+  private selectedMood: BackingMood | 'all' = 'all';
   private selectedAudioKey: string | null = null;
   private page = 0;
   private onPickRef: ((result: SongPickerResult) => void) | null = null;
@@ -141,13 +163,36 @@ export class SongPickerModal {
     if (!this.container) return;
     const enteringSongList = this.selectedVibe !== vibe;
     this.selectedVibe = vibe;
-    this.candidates = Object.values(BACKING_CATALOG).filter((b) => b.vibe === vibe);
-    if (this.candidates.length === 0) {
+    // Step 1: vibe filter (existing behavior). The full vibe pool is what
+    // the genre/mood dropdowns later filter against.
+    const vibePool = Object.values(BACKING_CATALOG).filter((b) => b.vibe === vibe);
+    if (vibePool.length === 0) {
       // Defensive: shouldn't happen because availableVibes() filters
       // empty vibes out. Fall back to vibe step.
       this.showVibeStep(this.availableVibes());
       return;
     }
+    // Step 2: layered genre + mood filters (cycle dropdowns). 'all' is
+    // the no-filter sentinel. Compute available options BEFORE filtering
+    // so the dropdown can only offer values that actually exist in the
+    // vibe pool — otherwise tapping the dropdown could land on a value
+    // with zero results.
+    const availableGenres = uniqueSorted(vibePool.map((b) => b.genre).filter(Boolean) as BackingGenre[]);
+    const availableMoods = uniqueSorted(vibePool.map((b) => b.mood).filter(Boolean) as BackingMood[]);
+    // If the selected filter is no longer in the pool (vibe changed),
+    // snap it back to 'all'.
+    if (this.selectedGenre !== 'all' && !availableGenres.includes(this.selectedGenre)) {
+      this.selectedGenre = 'all';
+    }
+    if (this.selectedMood !== 'all' && !availableMoods.includes(this.selectedMood)) {
+      this.selectedMood = 'all';
+    }
+    this.candidates = vibePool.filter((b) => {
+      if (this.selectedGenre !== 'all' && b.genre !== this.selectedGenre) return false;
+      if (this.selectedMood !== 'all' && b.mood !== this.selectedMood) return false;
+      return true;
+    });
+
     // Per-vibe pagination: every transition from the vibe step into a
     // song list resets the page to 0. Tim's rule: pages should be
     // independent between vibes; clicking ▶ on melodic shouldn't pre-
@@ -165,17 +210,21 @@ export class SongPickerModal {
     const rowGap = 6;
     const start = this.page * SONGS_PER_PAGE;
     const visible = this.candidates.slice(start, start + SONGS_PER_PAGE);
-    const totalPages = Math.ceil(this.candidates.length / SONGS_PER_PAGE);
-    const rowsH = visible.length * rowH + (visible.length - 1) * rowGap;
+    const totalPages = Math.max(1, Math.ceil(this.candidates.length / SONGS_PER_PAGE));
+    const rowsH = Math.max(rowH, visible.length * rowH + (visible.length - 1) * rowGap);
+    // Filter cycle-buttons row (GENRE + MOOD) sits between the title
+    // chrome and the song rows. 28px row height + 8px gap above + 8px
+    // gap below. Always present so the filters are always available.
+    const filtersRowH = 28 + 8 + 8;
 
     // Footer below rows: PREVIEW + SELECT (38h) if a row is highlighted,
     // else just CANCEL (32h). Gap above footer 12.
     const footerH = this.selectedAudioKey ? 38 : 32;
     // Pager strip at the very bottom (28h + 14 gap above) when multi-page.
     const pagerStripH = totalPages > 1 ? 28 + 14 : 0;
-    const contentH = rowsH + 12 + footerH + pagerStripH;
+    const contentH = filtersRowH + rowsH + 12 + footerH + pagerStripH;
     const desiredH = SongPickerModal.TITLE_AREA_H + contentH + 20;
-    const maxH = Math.min(440, this.scene.scale.height - 60);
+    const maxH = Math.min(480, this.scene.scale.height - 60);
     const panelH = Math.min(maxH, desiredH);
 
     const { panelX, panelW, panelY, cx } = this.renderChrome(panelH, 'PICK A SONG', vibe.toUpperCase());
@@ -200,9 +249,41 @@ export class SongPickerModal {
     this.container.add(backChip);
     this.stepChildren.push(backChip);
 
+    // GENRE + MOOD cycle filters — sit in the filtersRowH band between
+    // the chrome title and the song rows.
+    const filtersY = panelY + SongPickerModal.TITLE_AREA_H + 8 + 14;
+    const filterW = (panelW - 48) / 2; // 16 outer pad + 16 gap between
+    const genreX = panelX + 16 + filterW / 2;
+    const moodX = panelX + panelW - 16 - filterW / 2;
+    const genreCycle: (BackingGenre | 'all')[] = ['all', ...availableGenres];
+    const moodCycle: (BackingMood | 'all')[] = ['all', ...availableMoods];
+    this.addCycleFilter(genreX, filtersY, filterW, 'GENRE', this.selectedGenre, genreCycle, (next) => {
+      this.selectedGenre = next;
+      this.page = 0;
+      this.showSongList(vibe);
+    });
+    this.addCycleFilter(moodX, filtersY, filterW, 'MOOD', this.selectedMood, moodCycle, (next) => {
+      this.selectedMood = next;
+      this.page = 0;
+      this.showSongList(vibe);
+    });
+
     // Song rows
-    const rowsTop = panelY + SongPickerModal.TITLE_AREA_H;
+    const rowsTop = panelY + SongPickerModal.TITLE_AREA_H + filtersRowH;
     const rowW = panelW - 32;
+
+    if (visible.length === 0) {
+      // Filters yielded nothing — show a friendly message in place of rows.
+      const empty = this.scene.add
+        .text(cx, rowsTop + rowH / 2, 'No songs match these filters', {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontSize: '11px',
+          color: '#c0a0e6',
+        })
+        .setOrigin(0.5);
+      this.container.add(empty);
+      this.stepChildren.push(empty);
+    }
 
     visible.forEach((song, i) => {
       const y = rowsTop + i * (rowH + rowGap) + rowH / 2;
@@ -392,6 +473,45 @@ export class SongPickerModal {
     this.container!.add([panel, titleText, subtitleText, closeBg, closeGlyph]);
     this.chromeChildren.push(panel, titleText, subtitleText, closeBg, closeGlyph);
     return { panelX, panelY, panelW, cx, cy };
+  }
+
+  /** Cycle-button filter widget — `LABEL: VALUE ▼` chip. Tap advances
+   *  through the supplied cycle (e.g., ['all', 'lo-fi', 'synthwave', ...]).
+   *  Used for the GENRE + MOOD dropdowns on the song-list step. Visually
+   *  reads as a dropdown but cycles through values on tap to avoid the
+   *  Phaser-native-dropdown rabbit hole. */
+  private addCycleFilter<T extends string>(
+    cx: number,
+    cy: number,
+    width: number,
+    label: string,
+    current: T,
+    cycle: T[],
+    onChange: (next: T) => void,
+  ): void {
+    if (!this.container) return;
+    const h = 28;
+    const isFiltered = current !== 'all';
+    const bg = this.scene.add
+      .rectangle(cx, cy, width, h, 0x2c1856, 1)
+      .setStrokeStyle(1, isFiltered ? 0xffd34d : 0xc0a0e6, isFiltered ? 1 : 0.5)
+      .setInteractive({ useHandCursor: true });
+    const display = current === 'all' ? 'ALL' : current.toUpperCase().replace(/-/g, ' ');
+    const txt = this.scene.add
+      .text(cx, cy, `${label}: ${display} ▼`, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '10px',
+        color: isFiltered ? '#ffd34d' : '#ffffff',
+      })
+      .setOrigin(0.5);
+    bg.on('pointerdown', () => {
+      const idx = cycle.indexOf(current);
+      const next = cycle[(idx + 1) % cycle.length] ?? cycle[0]!;
+      onChange(next);
+    });
+    this.container.add([bg, txt]);
+    this.stepChildren.push(bg, txt);
   }
 
   /** Pager arrow matching DressingRoom's makeArrow: 36×28 dark-purple

@@ -224,7 +224,12 @@ export type BackingGenre =
   | 'jazz'
   | 'funk'
   | 'ambient'
-  | 'house';
+  | 'house'
+  | 'rock'
+  | 'dance-pop'
+  | 'trance'
+  | 'hip-hop'
+  | 'world';
 
 /** Emotional mood — how the song feels regardless of genre. Songs in
  *  the same genre can swing across many moods. */
@@ -244,6 +249,7 @@ export type BackingMood =
 export const BACKING_GENRES: readonly BackingGenre[] = [
   'bubblegum-pop', 'synthwave', 'lo-fi', 'bossa-nova', 'acoustic-folk',
   'chiptune', 'jazz', 'funk', 'ambient', 'house',
+  'rock', 'dance-pop', 'trance', 'hip-hop', 'world',
 ] as const;
 export const BACKING_MOODS: readonly BackingMood[] = [
   'energetic', 'chill', 'playful', 'romantic', 'mysterious',

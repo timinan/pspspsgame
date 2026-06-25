@@ -150,6 +150,7 @@ const VIBE_CYCLE = ['upbeat', 'melodic', 'smooth'];
 const GENRE_OPTIONS = [
   'bubblegum-pop', 'synthwave', 'lo-fi', 'bossa-nova', 'acoustic-folk',
   'chiptune', 'jazz', 'funk', 'ambient', 'house',
+  'rock', 'dance-pop', 'trance', 'hip-hop', 'world',
 ];
 const MOOD_OPTIONS = [
   'energetic', 'chill', 'playful', 'romantic', 'mysterious',
@@ -160,16 +161,21 @@ const MOOD_OPTIONS = [
  *  the seed guesses we used for the initial 15 tracks. */
 function guessGenreMood(id) {
   const s = id.toLowerCase();
-  if (s.includes('bounce') || s.includes('bouncy') || s.includes('bloom')) return { genre: 'bubblegum-pop', mood: 'playful' };
-  if (s.includes('neon')) return { genre: 'synthwave', mood: 'energetic' };
-  if (s.includes('midnight') || s.includes('lofi') || s.includes('coffee')) return { genre: 'lo-fi', mood: 'chill' };
+  if (s.includes('bounce') || s.includes('bouncy') || s.includes('bloom') || s.includes('candy')) return { genre: 'bubblegum-pop', mood: 'playful' };
+  if (s.includes('neon') || s.includes('vice') || s.includes('miami') || s.includes('outrun')) return { genre: 'synthwave', mood: 'energetic' };
+  if (s.includes('midnight') || s.includes('lofi') || s.includes('coffee') || s.includes('basement') || s.includes('late-night') || s.includes('study')) return { genre: 'lo-fi', mood: 'chill' };
   if (s.includes('bossa') || s.includes('cinematic')) return { genre: 'bossa-nova', mood: 'dramatic' };
-  if (s.includes('warmth') || s.includes('warm') || s.includes('acoustic')) return { genre: 'acoustic-folk', mood: 'romantic' };
-  if (s.includes('chip') || s.includes('8bit')) return { genre: 'chiptune', mood: 'playful' };
+  if (s.includes('warmth') || s.includes('warm') || s.includes('acoustic') || s.includes('folk')) return { genre: 'acoustic-folk', mood: 'romantic' };
+  if (s.includes('chip') || s.includes('8bit') || s.includes('pixel')) return { genre: 'chiptune', mood: 'playful' };
   if (s.includes('jazz')) return { genre: 'jazz', mood: 'chill' };
   if (s.includes('funk')) return { genre: 'funk', mood: 'energetic' };
-  if (s.includes('ambient') || s.includes('drift')) return { genre: 'ambient', mood: 'dreamy' };
+  if (s.includes('ambient') || s.includes('drift') || s.includes('awakening')) return { genre: 'ambient', mood: 'dreamy' };
   if (s.includes('house') || s.includes('club') || s.includes('edm')) return { genre: 'house', mood: 'energetic' };
+  if (s.includes('rock') || s.includes('punk') || s.includes('grunge') || s.includes('guitar')) return { genre: 'rock', mood: 'energetic' };
+  if (s.includes('s-club') || s.includes('90s') || s.includes('00s') || s.includes('boyband') || s.includes('y2k')) return { genre: 'dance-pop', mood: 'bright' };
+  if (s.includes('trance') || s.includes('uplift') || s.includes('progressive')) return { genre: 'trance', mood: 'energetic' };
+  if (s.includes('hip-hop') || s.includes('hiphop') || s.includes('rap') || s.includes('boom') || s.includes('trap')) return { genre: 'hip-hop', mood: 'chill' };
+  if (s.includes('world') || s.includes('latin') || s.includes('samba') || s.includes('afro') || s.includes('indian')) return { genre: 'world', mood: 'bright' };
   return { genre: 'lo-fi', mood: 'chill' };
 }
 

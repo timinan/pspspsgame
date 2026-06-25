@@ -8,7 +8,7 @@ import {
   type BackingVibe,
 } from './state';
 
-export type GenDifficulty = 'easy' | 'medium' | 'hard';
+export type GenDifficulty = 'easy' | 'medium' | 'spicy' | 'hard';
 
 /**
  * Per-difficulty knobs for the procedural chart generator. Tuned by feel
@@ -44,6 +44,10 @@ const PROFILES: Record<GenDifficulty, {
 }> = {
   easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00 },
   medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30 },
+  // Spicy sits between medium and hard — meaningful step-up without
+  // jumping straight to the chord-heavy hard profile. All numbers
+  // linearly between medium and hard.
+  spicy:  { density: 0.55, chord2Chance: 0.25, chord3Chance: 0.03, minGapSteps: 1, holdChance: 0.15, holdMinSteps: 2, holdMaxSteps: 5, slideChance: 0.14, slide2LaneChance: 0.40 },
   hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18, slide2LaneChance: 0.50 },
 };
 
