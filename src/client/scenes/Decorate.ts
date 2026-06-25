@@ -69,6 +69,11 @@ export class Decorate extends Scene {
   private placementZones: GameObjects.Container | null = null;
   /** Named callback for the dressingroom:closed listener so cleanup() can detach it precisely. */
   private onDressingRoomClosed: (() => void) | undefined;
+  /** Named callback for the TextureManager 'addtexture' event — re-renders
+   *  the bg tray when a lazy-loaded theme bg lands so the picker swaps
+   *  the solid-color placeholder for the real thumbnail without the
+   *  player needing to leave and re-enter the screen. */
+  private onBgTextureAdded: ((key: string) => void) | undefined;
 
   // Tab state — each tab tracks its own page index so swapping back-and-forth
   // doesn't lose your spot.
@@ -160,6 +165,22 @@ export class Decorate extends Scene {
     // get a clean run first. By the time the player opens the SET
     // STAGE picker, most/all thumbnails will be ready.
     this.time.delayedCall(1000, () => BackgroundManager.prefetchAll(this));
+
+    // Live-refresh the tray when prefetched bg textures land. Without
+    // this, a player who opens SET STAGE before a bg finishes loading
+    // sees a solid-color placeholder that never updates — they'd have
+    // to back out and reopen to see the real thumbnail.
+    this.onBgTextureAdded = (key: string) => {
+      const isBg = Object.values(BACKGROUND_CATALOG).some(
+        (b) => b.backdropKey === key,
+      );
+      if (!isBg) return;
+      // Re-render whatever's currently in the tray — if it's the bgs
+      // tab, the new texture replaces the solid-color box; if it's
+      // some other tab, the redraw is harmless + cheap.
+      if (this.trayContainer) this.renderTray();
+    };
+    this.textures.on(Phaser.Textures.Events.ADD, this.onBgTextureAdded);
   }
 
   // ---------------------------------------------------------------------------
@@ -1021,6 +1042,10 @@ export class Decorate extends Scene {
     if (this.onDressingRoomClosed) {
       this.events.off('dressingroom:closed', this.onDressingRoomClosed);
       this.onDressingRoomClosed = undefined;
+    }
+    if (this.onBgTextureAdded) {
+      this.textures.off(Phaser.Textures.Events.ADD, this.onBgTextureAdded);
+      this.onBgTextureAdded = undefined;
     }
     this.contextMenu?.destroy();
     this.placementZones?.destroy(true);

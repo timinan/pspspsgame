@@ -36,13 +36,22 @@ export class Note extends GameObjects.Container {
 
   private ball: GameObjects.Image;
   private letters: GameObjects.Image;
-  /** Stacked fuzzball images forming the hold tail above the head.
-   *  Dynamically created on hold configure (sized to the tail length),
-   *  destroyed on recycle. Empty array for tap notes. */
-  private tailBalls: GameObjects.Image[] = [];
+  /** Single Graphics shape drawn as a vertical pill (rounded rectangle)
+   *  for hold-note tails — solid fill, thick white outline, no internal
+   *  seams. Cleared for tap notes. Clipped to the lane band via a
+   *  GeometryMask applied from Game on spawn. */
+  private tail: GameObjects.Graphics;
+  /** Cached tail dims so setHoldTint can redraw without re-passing them
+   *  and so pickRandomVisibleTailWorldPos can locate the tail's bounds. */
+  private currentTailWidth = 0;
+  private currentTailHeight = 0;
+  private currentTailFill = 0xffffff;
 
   constructor(scene: Scene) {
     super(scene, 0, 0);
+    // Tail Graphics FIRST so it renders behind the ball + letters when
+    // both are visible. Empty by default — only hold notes draw into it.
+    this.tail = scene.add.graphics();
     // 54px — matches the 50% bump applied to the lane hit targets (48 → 72)
     // so the falling notes read at the same visual weight as the target.
     // White-base ball — greyscale-stretched so the per-bg sampled tint
@@ -52,7 +61,7 @@ export class Note extends GameObjects.Container {
     this.ball.setDisplaySize(54, 54);
     this.letters = scene.add.image(0, 0, AssetKeys.Image.PspspsElementLetters);
     this.letters.setDisplaySize(54, 54);
-    this.add([this.ball, this.letters]);
+    this.add([this.tail, this.ball, this.letters]);
     // Render above cat-effect particles (cat sprite depth 0 → particles
     // depth +2). Without this, a cat with sparkles / fire / hearts equipped
     // visually obscures every falling note in its lane and the player
@@ -72,10 +81,10 @@ export class Note extends GameObjects.Container {
      *  sampled color from `Game.laneTints` so the falling note matches
      *  its lane's hit target. Omit / pass undefined for the default. */
     tintColor?: number,
-    /** Optional hold config. When set, the note renders with a tail
-     *  rectangle extending upward from the ball (= the trailing portion
-     *  yet to be held) and records `holdEndAtMs` so Game.ts can auto-end
-     *  when the tail's top crosses the target line. */
+    /** Optional hold config. When set, the tail Graphics is drawn as a
+     *  vertical pill extending upward from the ball (= the trailing
+     *  portion yet to be held) and `holdEndAtMs` is recorded so Game
+     *  can auto-end when the trailing edge crosses the target. */
     hold?: { tailHeightPx: number; tailWidthPx: number; releaseAtMs: number },
   ): void {
     // Kill any in-flight tween from the pool's previous use FIRST. If we
@@ -105,34 +114,22 @@ export class Note extends GameObjects.Container {
     // Letters stay white so the "PS" reads clearly on top of any lane tint.
     this.letters.clearTint();
 
-    // Tear down any tail balls from a previous pool use.
-    for (const tb of this.tailBalls) tb.destroy();
-    this.tailBalls = [];
-
     if (hold) {
       this.isHold = true;
       this.holdEndAtMs = hold.releaseAtMs;
-      // Stacked fuzzballs forming a continuous fuzzy column above the
-      // head. Very tight stride (stride ≪ size) so adjacent balls
-      // overlap heavily and the rim of one sits well inside the body of
-      // the next — eliminates the visible seam-lines that made the tail
-      // look like a row of distinct notes.
-      const tailBallSize = 22;
-      const stride = 6;
-      const count = Math.max(1, Math.ceil(hold.tailHeightPx / stride));
-      const tint = liftTowardWhite(tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT);
-      for (let i = 0; i < count; i++) {
-        const tb = this.scene.add.image(0, -stride * (i + 1), AssetKeys.Image.PspspsTargetWhite);
-        tb.setDisplaySize(tailBallSize, tailBallSize);
-        tb.setTint(tint);
-        // addAt(0) puts the new ball at index 0 (back of container) so
-        // the head ball + letters always render on top of the tail.
-        this.addAt(tb, 0);
-        this.tailBalls.push(tb);
-      }
+      this.currentTailWidth = hold.tailWidthPx;
+      this.currentTailHeight = hold.tailHeightPx;
+      this.currentTailFill = liftTowardWhite(
+        tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT,
+      );
+      this.drawTail();
+      this.tail.x = 0;
     } else {
       this.isHold = false;
       this.holdEndAtMs = 0;
+      this.currentTailWidth = 0;
+      this.currentTailHeight = 0;
+      this.tail.clear();
     }
 
     this.scene.tweens.add({
@@ -143,71 +140,76 @@ export class Note extends GameObjects.Container {
     });
   }
 
+  /** Repaint the tail pill — solid lane-color fill with a thick white
+   *  outline. Called from configure on spawn, from setHoldTint when the
+   *  hold engages (fill flips to mint), and from drawTail directly. */
+  private drawTail(): void {
+    this.tail.clear();
+    if (this.currentTailHeight <= 0) return;
+    const w = this.currentTailWidth;
+    const h = this.currentTailHeight;
+    const radius = Math.min(w / 2, h / 2);
+    // Pill extends UP from the head: x ∈ [-w/2, +w/2], y ∈ [-h, 0]
+    this.tail.fillStyle(this.currentTailFill, 1);
+    this.tail.fillRoundedRect(-w / 2, -h, w, h, radius);
+    // Thick white outline — reads as a defined column edge instead of
+    // fuzzy ball-stack seams.
+    this.tail.lineStyle(3, 0xffffff, 0.9);
+    this.tail.strokeRoundedRect(-w / 2, -h, w, h, radius);
+  }
+
+  /** Apply the lane-band GeometryMask to the tail Graphics so the pill
+   *  only renders inside [laneTopY, targetY] regardless of where the
+   *  container's position puts it. Called by Game on spawn. */
+  applyTailMask(mask: Phaser.Display.Masks.GeometryMask): void {
+    this.tail.setMask(mask);
+  }
+
   recycle(): void {
     this.scene.tweens.killTweensOf(this);
     this.setActive(false).setVisible(false);
-    for (const tb of this.tailBalls) tb.destroy();
-    this.tailBalls = [];
+    this.tail.clear();
     this.isHold = false;
     this.holdActive = false;
     this.holdEndAtMs = 0;
     this.holdLastEffectMs = 0;
+    this.currentTailWidth = 0;
+    this.currentTailHeight = 0;
   }
 
-  /** Retint every tail ball — called by Game on hold engage to flip
-   *  the column to the mint "active hold" color. Head ball is left
-   *  alone (it disappears past the target soon anyway). */
+  /** Switch the tail's fill color and repaint. Game calls this on hold
+   *  engage to flip from the lane color to the mint "success" tint. */
   setHoldTint(color: number): void {
-    for (const tb of this.tailBalls) tb.setTint(color);
+    this.currentTailFill = color;
+    this.drawTail();
   }
 
-  /** Pick a uniformly random VISIBLE tail ball and return its world
-   *  position. Game uses this to spawn the recurring effect burst on
-   *  the tail itself so the column emits along its length. Returns
-   *  null if no tail balls are currently visible (e.g., hold just
-   *  spawned and tail is still entirely above the lane top). */
-  pickRandomVisibleTailWorldPos(): { x: number; y: number } | null {
-    const visible: GameObjects.Image[] = [];
-    for (const tb of this.tailBalls) {
-      if (tb.visible) visible.push(tb);
-    }
-    if (visible.length === 0) return null;
-    const tb = visible[Math.floor(Math.random() * visible.length)]!;
-    return { x: this.x + tb.x, y: this.y + tb.y };
+  /** Pick a uniformly random point along the VISIBLE portion of the
+   *  tail and return its world position. Used by Game to spawn the
+   *  recurring effect burst along the tail. Returns null if no part
+   *  of the tail is currently inside the lane band. */
+  pickRandomVisibleTailWorldPos(laneTopY: number, targetY: number): { x: number; y: number } | null {
+    if (this.currentTailHeight <= 0) return null;
+    const tailTopWorld = this.y - this.currentTailHeight;
+    const tailBottomWorld = this.y;
+    const visTop = Math.max(tailTopWorld, laneTopY);
+    const visBottom = Math.min(tailBottomWorld, targetY);
+    if (visBottom <= visTop) return null;
+    const y = visTop + Math.random() * (visBottom - visTop);
+    return { x: this.x, y };
   }
 
-  /** Per-frame visibility + vibration update for active and falling
-   *  hold notes. Clips rendering to the lane band so nothing leaks
-   *  into the cat-stage area above; hides the head once it's past
-   *  the disappear line so the note ends at the same Y a tap note
-   *  would; jitters visible tail balls while the hold is engaged. */
-  updateHoldVisuals(laneTopY: number, targetY: number, disappearY: number, jitterPx: number): void {
+  /** Per-frame update for active and falling hold notes. Mask handles
+   *  tail clipping; this just hides the head past the disappear line
+   *  and applies x-jitter to the tail while engaged. */
+  updateHoldVisuals(_laneTopY: number, _targetY: number, disappearY: number, jitterPx: number): void {
     const headPast = this.y > disappearY;
     this.ball.setVisible(!headPast);
     this.letters.setVisible(!headPast);
-    for (const tb of this.tailBalls) {
-      const worldY = this.y + tb.y;
-      // Above the lane top → hide (Tim's rule: tail appears from the
-      // lane top, not above it into the cat-stage strip).
-      if (worldY < laneTopY) {
-        tb.setVisible(false);
-        continue;
-      }
-      if (this.holdActive) {
-        // Engaged: only show within [laneTop, target]. Below target =
-        // already "drained through" the catching position.
-        if (worldY > targetY) {
-          tb.setVisible(false);
-        } else {
-          tb.setVisible(true);
-          tb.x = (Math.random() - 0.5) * 2 * jitterPx;
-        }
-      } else {
-        // Not engaged yet — show normally (no jitter, no target-clip)
-        // so the falling hold reads as one continuous note approaching.
-        tb.setVisible(true);
-        tb.x = 0;
-      }
+    if (this.holdActive) {
+      this.tail.x = (Math.random() - 0.5) * 2 * jitterPx;
+    } else {
+      this.tail.x = 0;
     }
   }
 }

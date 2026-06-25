@@ -65,6 +65,11 @@ export class Game extends Scene {
   private laneEffects: (string | null)[] = [null, null, null];
   private tapZones: Phaser.GameObjects.Rectangle[] = [];
   private notes: Note[] = [];
+  /** Shared GeometryMask that clips hold-note tails to the lane band
+   *  [LANE_TOP_Y, HIT_LINE_Y]. Built once in create(), applied per
+   *  spawn so the pill renders inside the lane only — no leak into
+   *  the cat-stage area above, no draw below the catching position. */
+  private holdLaneMask?: Phaser.Display.Masks.GeometryMask;
   private hud!: TopHud;
   private player!: ChartPlayer;
   private score!: ScoreSystem;
@@ -165,6 +170,7 @@ export class Game extends Scene {
     this.bg.setBackground(activeBg);
 
     this.drawLanes();
+    this.holdLaneMask = this.buildHoldLaneMask();
     this.seatCats();
     this.buildHud();
     this.buildFeedback();
@@ -801,7 +807,10 @@ export class Game extends Scene {
     if (!effectId) return;
     const effect = CAT_EFFECT_BY_ID[effectId];
     if (!effect) return;
-    const worldPos = n.pickRandomVisibleTailWorldPos();
+    const scaleY = this.scale.height / L.DESIGN_H;
+    const laneTopY = L.LANE_TOP_Y * scaleY;
+    const targetY = L.HIT_LINE_Y * scaleY;
+    const worldPos = n.pickRandomVisibleTailWorldPos(laneTopY, targetY);
     if (!worldPos) return;
     // Tiny invisible Image at the chosen tail position — burst reads
     // its x/y for placement. Self-destroys after a beat so it doesn't
@@ -1329,6 +1338,22 @@ export class Game extends Scene {
       laneId, x, startY, endY, totalFallMs, hitAtMs, this.laneTints[laneId],
       { tailHeightPx, tailWidthPx, releaseAtMs },
     );
+    if (this.holdLaneMask) note.applyTailMask(this.holdLaneMask);
+  }
+
+  /** Build the lane-band GeometryMask used to clip hold tails. The
+   *  mask Graphics itself isn't visible — only its shape is consumed
+   *  by the mask system. Fixed dimensions (canvas is locked to portrait
+   *  320×580 FIT), so this is a one-time build. */
+  private buildHoldLaneMask(): Phaser.Display.Masks.GeometryMask {
+    const scaleY = this.scale.height / L.DESIGN_H;
+    const laneTopY = L.LANE_TOP_Y * scaleY;
+    const targetY = L.HIT_LINE_Y * scaleY;
+    const shape = this.add.graphics();
+    shape.fillStyle(0xffffff);
+    shape.fillRect(0, laneTopY, this.scale.width, targetY - laneTopY);
+    shape.setVisible(false);
+    return shape.createGeometryMask();
   }
 
   /** Hot path: scan pre-allocated pool for an inactive note. Allocates only
