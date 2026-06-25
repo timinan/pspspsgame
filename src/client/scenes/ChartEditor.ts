@@ -13,7 +13,7 @@ import {
   CHART_PAGE_SIZE,
   BACKING_CATALOG,
 } from '@/../shared/state';
-import type { PlayerState, Chart, LaneId, Hold, Slide } from '@/../shared/state';
+import type { PlayerState, Chart, LaneId, Hold, Slide, SlideReturn } from '@/../shared/state';
 import { generateChart, stepsForDuration, type GenDifficulty } from '@/../shared/chart-generator';
 import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
 import { TemplateOrScratchModal, type StartMode } from '@/ui/template-or-scratch-modal';
@@ -73,6 +73,11 @@ export class ChartEditor extends Scene {
   private dragStartLane: LaneId | null = null;
   private dragCurrentLocal: number | null = null;
   private dragCurrentLane: LaneId | null = null;
+  /** All distinct lanes the pointer has entered during the current drag
+   *  (including the start lane). Used to detect a slide-and-return: the
+   *  pointer visited a non-start lane, then returned to the start lane
+   *  on release. Captures intent the regular slide path can't. */
+  private dragVisitedLanes = new Set<LaneId>();
 
   // Page-break labels — refresh per page so the author sees the actual
   // top-page + bottom-page numbers as they navigate.
@@ -650,6 +655,9 @@ export class ChartEditor extends Scene {
     if (this.chart.slides) {
       this.chart.slides = this.chart.slides.filter((s) => s.startStep < cutoffStep);
     }
+    if (this.chart.slideReturns) {
+      this.chart.slideReturns = this.chart.slideReturns.filter((s) => s.startStep < cutoffStep);
+    }
   }
 
   private toggleCell(localStep: number, lane: LaneId): void {
@@ -687,6 +695,14 @@ export class ChartEditor extends Scene {
       this.resetDrag();
       return;
     }
+    // Tap on an existing slide-and-return → delete it.
+    const existingSR = this.findSlideReturnAtCell(modelStep, lane);
+    if (existingSR) {
+      this.removeSlideReturn(existingSR);
+      this.refreshPage();
+      this.resetDrag();
+      return;
+    }
     // Tap inside an existing hold removes it whole — easier than a
     // dedicated delete mode. Same-lane requirement keeps cross-lane
     // taps from accidentally clearing holds in neighboring lanes.
@@ -701,6 +717,7 @@ export class ChartEditor extends Scene {
     this.dragStartLane = lane;
     this.dragCurrentLocal = localStep;
     this.dragCurrentLane = lane;
+    this.dragVisitedLanes = new Set([lane]);
   }
 
   private onScenePointerMove = (pointer: Phaser.Input.Pointer): void => {
@@ -726,6 +743,7 @@ export class ChartEditor extends Scene {
     if (pointerLane === null) return;
     this.dragCurrentLocal = localStep;
     this.dragCurrentLane = pointerLane;
+    this.dragVisitedLanes.add(pointerLane);
   };
 
   private onScenePointerUp = (): void => {
@@ -734,7 +752,31 @@ export class ChartEditor extends Scene {
     const startLane = this.dragStartLane;
     const currentLocal = this.dragCurrentLocal ?? startLocal;
     const currentLane = this.dragCurrentLane ?? startLane;
+    const visited = new Set(this.dragVisitedLanes);
     this.resetDrag();
+
+    // Slide-and-return: pointer visited a different lane AND returned to
+    // the start lane on release. Adjacent-only — if multiple non-start
+    // lanes were visited, pick the adjacent one closest to start; if
+    // none is adjacent, fall through to other commit paths (the gesture
+    // wasn't a clean adjacent-flick-and-back).
+    if (currentLane === startLane && visited.size >= 2) {
+      const adjacents: LaneId[] = [];
+      for (const v of visited) {
+        if (v !== startLane && Math.abs(v - startLane) === 1) adjacents.push(v);
+      }
+      if (adjacents.length > 0) {
+        // Prefer the lane visited LAST before returning — most natural
+        // intent. Iteration order on a Set preserves insertion, so the
+        // last non-start lane in the visited set is the player's target.
+        let chosen = adjacents[0]!;
+        for (const v of visited) {
+          if (v !== startLane && adjacents.includes(v)) chosen = v;
+        }
+        this.commitSlideReturn(this.scrollOffset + startLocal, startLane, chosen);
+        return;
+      }
+    }
 
     // Cross-lane drag → slide. Anchored to the START cell's step; the
     // current cell's lane is the target. 1-lane and 2-lane slides are
@@ -757,6 +799,7 @@ export class ChartEditor extends Scene {
     this.dragStartLocal = null;
     this.dragStartLane = null;
     this.dragCurrentLocal = null;
+    this.dragVisitedLanes.clear();
     this.dragCurrentLane = null;
   }
 
@@ -821,6 +864,100 @@ export class ChartEditor extends Scene {
     if (!this.chart.slides) return;
     const idx = this.chart.slides.indexOf(slide);
     if (idx >= 0) this.chart.slides.splice(idx, 1);
+  }
+
+  private findSlideReturnAtCell(modelStep: number, lane: LaneId): SlideReturn | null {
+    if (!this.chart.slideReturns) return null;
+    for (const sr of this.chart.slideReturns) {
+      if (sr.startStep === modelStep && sr.sourceLane === lane) return sr;
+    }
+    return null;
+  }
+
+  private removeSlideReturn(sr: SlideReturn): void {
+    if (!this.chart.slideReturns) return;
+    const idx = this.chart.slideReturns.indexOf(sr);
+    if (idx >= 0) this.chart.slideReturns.splice(idx, 1);
+  }
+
+  private commitSlideReturn(startStep: number, sourceLane: LaneId, targetLane: LaneId): void {
+    if (sourceLane === targetLane) return;
+    if (Math.abs(sourceLane - targetLane) !== 1) return; // adjacent only
+    if (startStep >= this.getCutoffStep()) return;
+    // Refuse if a slide OR slide-return already exists at this source cell.
+    if (this.chart.slides?.some(
+      (s) => s.startStep === startStep && s.sourceLane === sourceLane,
+    )) return;
+    if (this.chart.slideReturns?.some(
+      (s) => s.startStep === startStep && s.sourceLane === sourceLane,
+    )) return;
+    // Same finger-conflict rule as regular slide: source + target lanes
+    // must be hold-free at startStep.
+    if (this.chart.holds?.some(
+      (h) => (h.lane === sourceLane || h.lane === targetLane) &&
+             startStep >= h.startStep && startStep <= h.endStep,
+    )) return;
+    // Strip any conflicting tap on the source cell so the schema stays clean.
+    const step = this.chart.steps[startStep];
+    if (step) {
+      const idx = step.lanes.indexOf(sourceLane);
+      if (idx >= 0) step.lanes.splice(idx, 1);
+    }
+    if (!this.chart.slideReturns) this.chart.slideReturns = [];
+    this.chart.slideReturns.push({ startStep, sourceLane, targetLane });
+    this.refreshPage();
+  }
+
+  private refreshSlideReturns(): void {
+    if (!this.chart.slideReturns || this.chart.slideReturns.length === 0) return;
+    const visibleStart = this.scrollOffset;
+    const visibleEnd = this.scrollOffset + EDITOR_VISIBLE_ROWS - 1;
+    for (const sr of this.chart.slideReturns) {
+      if (sr.startStep < visibleStart || sr.startStep > visibleEnd) continue;
+      const localStep = sr.startStep - visibleStart;
+      const cy = this.gridTop + localStep * this.cellH + this.cellH / 2;
+      const srcX = this.colCenterXs[sr.sourceLane]!;
+      const tgtX = this.colCenterXs[sr.targetLane]!;
+      const srcTint = darkenTowardBlack(this.laneTints[sr.sourceLane]!, 0.18);
+      const tgtTint = darkenTowardBlack(this.laneTints[sr.targetLane]!, 0.18);
+      // Tube + head — same construction as a regular slide.
+      const tubeThickness = 40;
+      const tubeLen = Math.abs(tgtX - srcX);
+      const tubeMidX = (srcX + tgtX) / 2;
+      const tube = this.add.image(tubeMidX, cy, AssetKeys.Image.PspspsTubeWhite);
+      tube.setDisplaySize(tubeThickness, tubeLen);
+      tube.setRotation(Math.PI / 2);
+      const topColor = sr.targetLane > sr.sourceLane ? tgtTint : srcTint;
+      const bottomColor = sr.targetLane > sr.sourceLane ? srcTint : tgtTint;
+      tube.setTint(topColor, topColor, bottomColor, bottomColor);
+      tube.setDepth(38);
+      this.root.add(tube);
+      this.holdGraphics.push(tube);
+      const headSize = Math.min(this.cellW - 4, this.cellH + 2, 56);
+      const head = this.add.image(srcX, cy, AssetKeys.Image.PspspsTargetWhite);
+      head.setDisplaySize(headSize, headSize);
+      head.setTint(srcTint);
+      head.setDepth(40);
+      this.root.add(head);
+      this.holdGraphics.push(head);
+      // Two-sided arrow at the TARGET end — signals out-and-back motion.
+      const arrowGlyph = sr.targetLane > sr.sourceLane ? '◀▶' : '◀▶';
+      const arrow = this.add.text(
+        tgtX + (sr.targetLane > sr.sourceLane ? -14 : 14),
+        cy,
+        arrowGlyph,
+        {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '14px',
+          color: '#ffd34d',
+          stroke: '#1a0a2e',
+          strokeThickness: 3,
+        },
+      ).setOrigin(0.5).setDepth(41);
+      this.root.add(arrow);
+      this.holdGraphics.push(arrow);
+    }
   }
 
   private commitSlide(startStep: number, sourceLane: LaneId, targetLane: LaneId): void {
@@ -1033,6 +1170,7 @@ export class ChartEditor extends Scene {
     }
     this.refreshHolds();
     this.refreshSlides();
+    this.refreshSlideReturns();
     this.refreshPageLabel();
   }
 
@@ -1065,6 +1203,7 @@ export class ChartEditor extends Scene {
     for (const step of this.chart.steps) step.lanes = [];
     if (this.chart.holds) this.chart.holds = [];
     if (this.chart.slides) this.chart.slides = [];
+    if (this.chart.slideReturns) this.chart.slideReturns = [];
     this.refreshPage();
   }
 

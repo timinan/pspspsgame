@@ -68,6 +68,18 @@ export class Note extends GameObjects.Container {
    *  timing (the release happens much later, after the drag completes). */
   slideEngageMs = 0;
 
+  /** Slide-and-return: drag to target and back to source. Adjacent-lane
+   *  only. The outbound leg keeps the tube fully visible; the return
+   *  leg erases the tube behind the ball as it slides home. Grading is
+   *  the same as a regular slide (engage timing decides perfect/great)
+   *  but completion requires reaching ≥70% of deltaX AND returning to
+   *  ≤10% on the way back. */
+  isSlideReturn = false;
+  /** True once the slide-and-return ball has reached the target side
+   *  (≥70% of deltaX). After this, the tube starts erasing on the way
+   *  back, and a release that brings the ball back to ≤10% is a hit. */
+  slideReturnReachedTarget = false;
+
   private ball: GameObjects.Image;
   private letters: GameObjects.Image;
   /** TileSprite using the generated tail-body tile (middle band of
@@ -164,7 +176,7 @@ export class Note extends GameObjects.Container {
      *  toward x=deltaX (= target lane center) under player input.
      *  sourceTint + targetTint paint a lane-to-lane gradient along the
      *  tube via per-vertex setTint. */
-    slide?: { deltaX: number; sourceTint: number; targetTint: number },
+    slide?: { deltaX: number; sourceTint: number; targetTint: number; isReturn?: boolean },
   ): void {
     // Kill any in-flight tween from the pool's previous use FIRST. If we
     // set position before killing, a still-running fall tween from the
@@ -220,6 +232,8 @@ export class Note extends GameObjects.Container {
 
     if (slide) {
       this.isSlide = true;
+      this.isSlideReturn = !!slide.isReturn;
+      this.slideReturnReachedTarget = false;
       this.slideDeltaX = slide.deltaX;
       this.slideActive = false;
       this.slidePointerId = -1;
@@ -242,15 +256,18 @@ export class Note extends GameObjects.Container {
       const bottomColor = slide.deltaX > 0 ? srcLifted : tgtLifted;
       this.slideTube.setTint(topColor, topColor, bottomColor, bottomColor);
       this.slideTube.setVisible(true);
-      // Arrow at the target end, pointing toward target. ▶ for right
-      // (deltaX > 0), ◀ for left.
-      const arrowSym = slide.deltaX > 0 ? '▶' : '◀';
+      // Arrow at the target end. For slide-and-return, a two-sided
+      // arrow ◀▶ signals the out-and-back motion. For a regular slide,
+      // a single chevron in the direction of travel.
+      const arrowSym = slide.isReturn ? '◀▶' : (slide.deltaX > 0 ? '▶' : '◀');
       const arrowInset = slide.deltaX > 0 ? -14 : 14;
       this.slideArrow.setText(arrowSym);
       this.slideArrow.setPosition(slide.deltaX + arrowInset, 0);
       this.slideArrow.setVisible(true);
     } else {
       this.isSlide = false;
+      this.isSlideReturn = false;
+      this.slideReturnReachedTarget = false;
       this.slideDeltaX = 0;
       this.slideActive = false;
       this.slidePointerId = -1;
@@ -293,6 +310,8 @@ export class Note extends GameObjects.Container {
     this.holdLastEffectMs = 0;
     this.currentTailHeight = 0;
     this.isSlide = false;
+    this.isSlideReturn = false;
+    this.slideReturnReachedTarget = false;
     this.slideActive = false;
     this.slideDeltaX = 0;
     this.slidePointerId = -1;
@@ -314,6 +333,31 @@ export class Note extends GameObjects.Container {
     const center = (localX + this.slideDeltaX) / 2;
     this.slideTube.setPosition(center, 0);
     this.slideTube.setDisplaySize(SLIDE_TUBE_THICKNESS, remainingLen);
+  }
+
+  /** Slide-and-return variant. Outbound (ball moving toward target):
+   *  tube stays FULLY visible (covers source→target the whole time).
+   *  Return (ball moving back to source after reaching target): tube
+   *  erases behind the ball, shrinking to cover only ball→target. So
+   *  on the way home, the tube visibly retreats toward the target. */
+  setSlideReturnHeadX(localX: number): void {
+    this.ball.x = localX;
+    this.letters.x = localX;
+    if (!this.slideReturnReachedTarget) {
+      // Outbound — keep tube fully visible (full source→target span).
+      const tubeLen = Math.abs(this.slideDeltaX);
+      this.slideTube.setPosition(this.slideDeltaX / 2, 0);
+      this.slideTube.setDisplaySize(SLIDE_TUBE_THICKNESS, tubeLen);
+    } else {
+      // Return — erase the portion between source (x=0) and the ball.
+      // Remaining tube spans [ball, target]. Same math as the regular
+      // slide's tube erasure, just relative to the (now reversed)
+      // motion direction.
+      const remainingLen = Math.abs(this.slideDeltaX - localX);
+      const center = (localX + this.slideDeltaX) / 2;
+      this.slideTube.setPosition(center, 0);
+      this.slideTube.setDisplaySize(SLIDE_TUBE_THICKNESS, remainingLen);
+    }
   }
 
   /** Current head ball local-x (= 0 at source, deltaX at target). */

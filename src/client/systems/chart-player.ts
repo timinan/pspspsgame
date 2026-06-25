@@ -15,6 +15,7 @@ export class ChartPlayer {
   private listeners: Array<(lane: LaneId, hitAt: number) => void> = [];
   private holdListeners: Array<(lane: LaneId, hitAt: number, releaseAt: number) => void> = [];
   private slideListeners: Array<(sourceLane: LaneId, targetLane: LaneId, hitAt: number) => void> = [];
+  private slideReturnListeners: Array<(sourceLane: LaneId, targetLane: LaneId, hitAt: number) => void> = [];
   private msPerStep: number;
   private totalMs: number;
 
@@ -45,6 +46,13 @@ export class ChartPlayer {
     this.slideListeners.push(fn);
   }
 
+  /** Fires when a slide-and-return note should be spawned. Same shape
+   *  as onSlideSpawn — the player must tap source, drag to target, then
+   *  drag back to source. Adjacent lanes only. */
+  onSlideReturnSpawn(fn: (sourceLane: LaneId, targetLane: LaneId, hitAt: number) => void): void {
+    this.slideReturnListeners.push(fn);
+  }
+
   advance(dtMs: number): void {
     const prevMs = this.elapsedMs;
     this.elapsedMs += dtMs;
@@ -52,6 +60,7 @@ export class ChartPlayer {
     const stopSpawnAt = Math.min(this.elapsedMs, this.totalMs);
     const holds = this.chart.holds ?? [];
     const slides = this.chart.slides ?? [];
+    const slideReturns = this.chart.slideReturns ?? [];
     while (this.nextEmitStep * this.msPerStep <= stopSpawnAt) {
       const t = this.nextEmitStep * this.msPerStep;
       if (t < startSpawnAt && this.nextEmitStep > 0) {
@@ -76,6 +85,11 @@ export class ChartPlayer {
       for (const slide of slides) {
         if (slide.startStep !== stepIdx) continue;
         for (const fn of this.slideListeners) fn(slide.sourceLane, slide.targetLane, hitAt);
+      }
+      // Slide-and-returns — same modulo loop treatment.
+      for (const sr of slideReturns) {
+        if (sr.startStep !== stepIdx) continue;
+        for (const fn of this.slideReturnListeners) fn(sr.sourceLane, sr.targetLane, hitAt);
       }
       this.nextEmitStep += 1;
     }

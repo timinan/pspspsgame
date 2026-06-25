@@ -1117,13 +1117,40 @@ export class Game extends Scene {
   /** Per-frame-ish pointer update for active slide notes. Updates the
    *  head ball's local x so it follows the finger; an immediate miss
    *  fires if the player drags in the wrong direction past a small
-   *  threshold. */
+   *  threshold. Branches on `isSlideReturn` for the out-and-back variant. */
   private onScenePointerMoveSlide = (pointer: Phaser.Input.Pointer): void => {
     if (this.roundOver || !pointer.isDown) return;
     for (let i = 0; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (!n.active || !n.isSlide || !n.slideActive || n.slidePointerId !== pointer.id) continue;
       const localX = pointer.x - n.x;
+      if (n.isSlideReturn) {
+        // Phase 1 (outbound, not yet reached target): finger must move
+        // toward target. Wrong-direction past 10px = immediate miss.
+        if (!n.slideReturnReachedTarget) {
+          if (
+            (n.slideDeltaX > 0 && localX < -10) ||
+            (n.slideDeltaX < 0 && localX > 10)
+          ) {
+            this.failSlide(n);
+            return;
+          }
+          // Mark target-reached at ≥70% of deltaX. After this, the tube
+          // starts erasing on the return leg.
+          const fractionOut = n.slideDeltaX !== 0 ? localX / n.slideDeltaX : 0;
+          if (fractionOut >= 0.7) {
+            n.slideReturnReachedTarget = true;
+          }
+        }
+        // Clamp to [0, deltaX] regardless of phase so the ball can't
+        // teleport past either endpoint when the finger drifts wide.
+        const clamped = n.slideDeltaX > 0
+          ? Math.max(0, Math.min(n.slideDeltaX, localX))
+          : Math.min(0, Math.max(n.slideDeltaX, localX));
+        n.setSlideReturnHeadX(clamped);
+        continue;
+      }
+      // Regular slide path (one-way to target).
       // Wrong-direction guard — drag opposite to the slide's required
       // direction past 10 px is an immediate miss.
       if (
@@ -1141,15 +1168,33 @@ export class Game extends Scene {
     }
   };
 
-  /** Pointerup handler for slides. Checks if the head's final position
-   *  landed in the target lane's bounds; success grades as a tap. */
+  /** Pointerup handler for slides. Regular slides: success if ≥70% of
+   *  the way to target. Slide-and-returns: success if target was
+   *  reached AND ball is back to ≤15% of deltaX (= near source). */
   private onScenePointerUpSlide = (pointer: Phaser.Input.Pointer): void => {
     if (this.roundOver) return;
     for (let i = 0; i < this.notes.length; i++) {
       const n = this.notes[i]!;
       if (!n.active || !n.isSlide || !n.slideActive || n.slidePointerId !== pointer.id) continue;
-      // Success threshold — head must have crossed at least 70 % of the
-      // way toward the target lane. Anything less = miss.
+      if (n.isSlideReturn) {
+        if (!n.slideReturnReachedTarget) {
+          // Released without ever reaching target = miss.
+          this.failSlide(n);
+          continue;
+        }
+        // Ball must be back near source — fraction ≤ 0.15 of deltaX.
+        const fraction = n.slideDeltaX !== 0
+          ? Math.abs(n.getSlideHeadX() / n.slideDeltaX)
+          : 0;
+        if (fraction <= 0.15) {
+          this.completeSlide(n);
+        } else {
+          this.failSlide(n);
+        }
+        continue;
+      }
+      // Regular slide — head must have crossed at least 70 % of the way
+      // toward the target lane. Anything less = miss.
       const fraction = n.getSlideHeadX() / n.slideDeltaX; // always positive when on the right side
       if (fraction >= 0.7) {
         this.completeSlide(n);
@@ -1162,13 +1207,15 @@ export class Game extends Scene {
   /** Grade a successful slide release as a tap-grade hit. Grade perfect
    *  vs great based on the engage timing (tap-down vs hitAtMs) — the
    *  RELEASE timing happens much later, after the drag completes, so
-   *  it's not a meaningful precision signal. Feedback fires on the
-   *  TARGET lane (where the finger ended) so the player's eye lands on
-   *  the lane they slid TO, not the source they slid FROM. */
+   *  it's not a meaningful precision signal. For a regular slide,
+   *  feedback fires on the TARGET lane (where the finger ended). For a
+   *  slide-and-return, the finger ends BACK at the source — so feedback
+   *  fires on the source lane instead. The player's eye lands wherever
+   *  the gesture actually ended. */
   private completeSlide(n: Note): void {
-    const targetLane: LaneId = (n.slideTargetLane >= 0
-      ? n.slideTargetLane
-      : n.laneId) as LaneId;
+    const targetLane: LaneId = n.isSlideReturn
+      ? n.laneId
+      : ((n.slideTargetLane >= 0 ? n.slideTargetLane : n.laneId) as LaneId);
     const engageDt = n.slideEngageMs > 0
       ? Math.abs(n.slideEngageMs - n.hitAtMs)
       : Balance.perfectWindowMs + 1; // unknown engage → fall back to great
@@ -1444,6 +1491,7 @@ export class Game extends Scene {
     this.player.onSpawn((lane, hitAt) => this.spawnNote(lane, hitAt));
     this.player.onHoldSpawn((lane, hitAt, releaseAt) => this.spawnHoldNote(lane, hitAt, releaseAt));
     this.player.onSlideSpawn((src, tgt, hitAt) => this.spawnSlideNote(src, tgt, hitAt));
+    this.player.onSlideReturnSpawn((src, tgt, hitAt) => this.spawnSlideReturnNote(src, tgt, hitAt));
 
     // Cache chart-derived timing so update() can drive the page-boundary
     // lines without going through ChartPlayer internals. Test mode only —
@@ -1735,6 +1783,35 @@ export class Game extends Scene {
         deltaX,
         sourceTint: this.laneTints[sourceLane],
         targetTint: this.laneTints[targetLane],
+      },
+    );
+    note.slideTargetLane = targetLane;
+  }
+
+  /** Spawn a slide-and-return note. Same setup as a regular slide but
+   *  with `isReturn: true` so the Note's tube + arrow render the round-
+   *  trip variant. The pointer-move + pointer-up handlers route to
+   *  different completion logic for these (see updateSlideReturnDrag +
+   *  releaseSlideReturn). Adjacent-lane only — schema validates that. */
+  private spawnSlideReturnNote(sourceLane: LaneId, targetLane: LaneId, hitAtMs: number): void {
+    const note = this.acquireNote();
+    const sourceX = L.laneCenterX(sourceLane, this.scale.width);
+    const targetX = L.laneCenterX(targetLane, this.scale.width);
+    const deltaX = targetX - sourceX;
+    const scaleY = this.scale.height / L.DESIGN_H;
+    const startY = L.LANE_TOP_Y * scaleY;
+    const hitY = L.HIT_LINE_Y * scaleY;
+    const endY = this.scale.height + 80;
+    const totalFallMs = ((endY - startY) / (hitY - startY)) * Balance.noteFallMs;
+    note.configure(
+      sourceLane, sourceX, startY, endY, totalFallMs, hitAtMs,
+      this.laneTints[sourceLane],
+      undefined,
+      {
+        deltaX,
+        sourceTint: this.laneTints[sourceLane],
+        targetTint: this.laneTints[targetLane],
+        isReturn: true,
       },
     );
     note.slideTargetLane = targetLane;

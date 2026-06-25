@@ -387,6 +387,19 @@ export interface Slide {
   targetLane: LaneId;
 }
 
+/** A slide-and-return note: tap in `sourceLane` at `startStep`, drag
+ *  horizontally to `targetLane`, then drag BACK to `sourceLane` before
+ *  the timing window closes. Adjacent lanes ONLY (|target - source| === 1).
+ *  Visual: same fuzzball + tube but with a two-sided arrow ◀▶ and the
+ *  return-leg portion of the tube erases as the ball moves back to source
+ *  (outbound leg stays fully visible). Grade is determined by the engage
+ *  timing (tap-down vs hitAtMs) like a regular slide. */
+export interface SlideReturn {
+  startStep: number;
+  sourceLane: LaneId;
+  targetLane: LaneId;
+}
+
 export interface Chart {
   authorId: string;
   title: string;
@@ -410,6 +423,8 @@ export interface Chart {
   /** Slide notes. Optional — pre-slide charts omit it; editor + game treat
    *  undefined as `[]`. Validator enforces adjacent-lane targeting only. */
   slides?: Slide[];
+  /** Slide-and-return notes. Optional — adjacent lanes only. */
+  slideReturns?: SlideReturn[];
   updatedAt: number;
 }
 
@@ -435,6 +450,7 @@ export function emptyChart(
     steps: Array.from({ length: stepCount }, () => ({ lanes: [] })),
     holds: [],
     slides: [],
+    slideReturns: [],
     updatedAt: Date.now(),
   };
 }
@@ -495,6 +511,40 @@ export function validateChart(c: Chart): { ok: true } | { ok: false; reason: str
       );
       if (conflict) {
         return { ok: false, reason: `slide startStep falls inside a hold on lane ${conflict.lane} (touched by source→target path)` };
+      }
+    }
+  }
+  if (c.slideReturns) {
+    for (const sr of c.slideReturns) {
+      if (sr.sourceLane !== 0 && sr.sourceLane !== 1 && sr.sourceLane !== 2) {
+        return { ok: false, reason: `bad slide-return sourceLane ${sr.sourceLane}` };
+      }
+      if (sr.targetLane !== 0 && sr.targetLane !== 1 && sr.targetLane !== 2) {
+        return { ok: false, reason: `bad slide-return targetLane ${sr.targetLane}` };
+      }
+      if (sr.startStep < 0 || sr.startStep >= c.stepCount) {
+        return { ok: false, reason: 'slide-return step out of range' };
+      }
+      // Slide-and-return is ADJACENT-LANE ONLY (per Tim's spec). 2-lane
+      // back-and-forth would be too physical for mobile.
+      if (Math.abs(sr.sourceLane - sr.targetLane) !== 1) {
+        return { ok: false, reason: 'slide-return must be adjacent lanes (|target-source| === 1)' };
+      }
+      if (c.steps[sr.startStep]!.lanes.includes(sr.sourceLane)) {
+        return { ok: false, reason: 'slide-return startStep + sourceLane cell also has a tap' };
+      }
+      // Same finger-conflict rule as a regular slide: both source AND
+      // target lanes must be hold-free at the startStep.
+      const conflict = c.holds?.find((h) =>
+        (h.lane === sr.sourceLane || h.lane === sr.targetLane) &&
+        sr.startStep >= h.startStep && sr.startStep <= h.endStep,
+      );
+      if (conflict) {
+        return { ok: false, reason: `slide-return startStep falls inside a hold on lane ${conflict.lane}` };
+      }
+      // Also can't coexist with a regular slide starting at the same cell.
+      if (c.slides?.some((s) => s.startStep === sr.startStep && s.sourceLane === sr.sourceLane)) {
+        return { ok: false, reason: 'slide-return conflicts with an existing slide at the same cell' };
       }
     }
   }
