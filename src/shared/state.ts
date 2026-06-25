@@ -298,8 +298,9 @@ export interface Hold {
 }
 
 /** A slide note: tap in `sourceLane` at `startStep`, then drag horizontally
- *  to `targetLane` before the timing window closes. Adjacent lanes only
- *  (|source - target| === 1). Lives parallel to ChartStep.lanes — a slide's
+ *  to `targetLane` before the timing window closes. Source and target must
+ *  differ; with 3 lanes total the cross-lane distance is 1 (adjacent) or
+ *  2 (full-width). Lives parallel to ChartStep.lanes — a slide's
  *  startStep + sourceLane cell does NOT also appear in steps[].lanes. */
 export interface Slide {
   startStep: number;
@@ -400,9 +401,6 @@ export function validateChart(c: Chart): { ok: true } | { ok: false; reason: str
       }
       if (s.sourceLane === s.targetLane) {
         return { ok: false, reason: 'slide sourceLane === targetLane' };
-      }
-      if (Math.abs(s.sourceLane - s.targetLane) !== 1) {
-        return { ok: false, reason: 'slide must target an ADJACENT lane (no 2-lane jumps)' };
       }
       if (c.steps[s.startStep]!.lanes.includes(s.sourceLane)) {
         return { ok: false, reason: 'slide startStep + sourceLane cell also has a tap' };

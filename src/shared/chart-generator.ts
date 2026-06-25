@@ -36,10 +36,15 @@ const PROFILES: Record<GenDifficulty, {
    *  Slides strip the underlying tap on commit. Easy gets a tiny dose so
    *  beginners are exposed to the gesture without overwhelming them. */
   slideChance: number;
+  /** When promoting to a slide from lane 0 or 2, chance the target is
+   *  the OPPOSITE outer lane (2-lane jump) rather than the middle.
+   *  Higher = more long-distance slides. Lane 1 always targets 0 or 2
+   *  randomly (no 2-lane option from the middle). */
+  slide2LaneChance: number;
 }> = {
-  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04 },
-  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10 },
-  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18 },
+  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00 },
+  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30 },
+  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18, slide2LaneChance: 0.50 },
 };
 
 /** Round a target step count UP to the nearest multiple of CHART_PAGE_SIZE.
@@ -155,29 +160,38 @@ export function generateChart(args: {
   }
 
   // Third pass — promote a fraction of remaining taps into slides
-  // (tap-and-drag-to-adjacent-lane). Strips the tap on commit; refuses
-  // if the source cell is inside a hold or already promoted. Adjacent
-  // lanes only: lane 0 ↔ 1 and lane 1 ↔ 2 (no 2-lane jumps). Easy gets
-  // a tiny dose to expose the gesture without overwhelming beginners.
+  // (tap-and-drag, 1-lane adjacent OR 2-lane jump per difficulty mix).
+  // Awkwardness guards (so the generator stays playable):
+  //   - chord steps (>1 lane firing) skip slide promotion — would
+  //     require multi-finger coordination (tap + drag simultaneously)
+  //   - one slide per step max — multiple drag gestures at once is
+  //     practically impossible on mobile
+  //   - source can't be inside a hold on the same lane
   const slides: Slide[] = [];
   if (profile.slideChance > 0) {
     for (let i = 0; i < stepCount; i++) {
       const step = steps[i]!;
-      for (const lane of [...step.lanes]) {
-        if (rng() >= profile.slideChance) continue;
-        // Pick an adjacent target lane.
-        let target: LaneId;
-        if (lane === 0) target = 1;
-        else if (lane === 2) target = 1;
-        else target = rng() < 0.5 ? 0 : 2;
-        // Skip if source is inside a hold or already has a slide here.
-        if (holds.some((h) => h.lane === lane && i >= h.startStep && i <= h.endStep)) continue;
-        if (slides.some((s) => s.startStep === i && s.sourceLane === lane)) continue;
-        // Strip the tap from this cell.
-        const idx = step.lanes.indexOf(lane);
-        if (idx >= 0) step.lanes.splice(idx, 1);
-        slides.push({ startStep: i, sourceLane: lane, targetLane: target });
+      // Skip chord steps entirely — slide + simultaneous tap on another
+      // lane reads as a 2-finger contortion most players can't pull off.
+      if (step.lanes.length !== 1) continue;
+      // Already a slide at this step from a prior iteration's restart?
+      if (slides.some((s) => s.startStep === i)) continue;
+      const lane = step.lanes[0]!;
+      if (rng() >= profile.slideChance) continue;
+      if (holds.some((h) => h.lane === lane && i >= h.startStep && i <= h.endStep)) continue;
+      // Target lane: from lane 1 (middle) always adjacent (random 0/2).
+      // From an outer lane, slide2LaneChance picks the opposite outer
+      // lane (2-lane jump) over the middle (1-lane).
+      let target: LaneId;
+      if (lane === 1) {
+        target = rng() < 0.5 ? 0 : 2;
+      } else {
+        const opposite: LaneId = lane === 0 ? 2 : 0;
+        target = rng() < profile.slide2LaneChance ? opposite : 1;
       }
+      // Strip the tap from this cell.
+      step.lanes.splice(0, 1);
+      slides.push({ startStep: i, sourceLane: lane, targetLane: target });
     }
   }
 

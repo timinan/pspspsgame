@@ -693,10 +693,9 @@ export class ChartEditor extends Scene {
     this.resetDrag();
 
     // Cross-lane drag → slide. Anchored to the START cell's step; the
-    // current cell's lane is the target. Adjacent-only enforced by the
-    // schema validator + commitSlide.
+    // current cell's lane is the target. 1-lane and 2-lane slides are
+    // both valid (with 3 lanes total, that's the full range).
     if (currentLane !== startLane) {
-      if (Math.abs(currentLane - startLane) !== 1) return;
       this.commitSlide(this.scrollOffset + startLocal, startLane, currentLane);
       return;
     }
@@ -768,7 +767,7 @@ export class ChartEditor extends Scene {
   }
 
   private commitSlide(startStep: number, sourceLane: LaneId, targetLane: LaneId): void {
-    if (Math.abs(sourceLane - targetLane) !== 1) return;
+    if (sourceLane === targetLane) return;
     // Refuse if a slide already exists at this source cell.
     if (this.chart.slides?.some(
       (s) => s.startStep === startStep && s.sourceLane === sourceLane,
