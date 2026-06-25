@@ -1478,9 +1478,10 @@ export class Game extends Scene {
   }
 
   /** Build the lane-band GeometryMask used to clip hold tails. The
-   *  mask Graphics itself isn't visible — only its shape is consumed
-   *  by the mask system. Fixed dimensions (canvas is locked to portrait
-   *  320×580 FIT), so this is a one-time build. */
+   *  mask Graphics needs to participate in the render pass so Phaser
+   *  populates the stencil buffer — `setVisible(false)` skips that
+   *  entirely (mask never built, tails render unclipped). `setAlpha(0)`
+   *  keeps it in the pipeline but invisible on screen. */
   private buildHoldLaneMask(): Phaser.Display.Masks.GeometryMask {
     const scaleY = this.scale.height / L.DESIGN_H;
     const laneTopY = L.LANE_TOP_Y * scaleY;
@@ -1488,7 +1489,7 @@ export class Game extends Scene {
     const shape = this.add.graphics();
     shape.fillStyle(0xffffff);
     shape.fillRect(0, laneTopY, this.scale.width, targetY - laneTopY);
-    shape.setVisible(false);
+    shape.setAlpha(0);
     return shape.createGeometryMask();
   }
 
