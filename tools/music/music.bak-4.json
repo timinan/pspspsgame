@@ -155,7 +155,9 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "bloom-select": {
     "id": "bloom-select",
@@ -163,7 +165,9 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "genre": "bubblegum-pop",
+    "mood": "playful"
   },
   "late-night-loop-remove-section": {
     "id": "late-night-loop-remove-section",
@@ -171,7 +175,9 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "s-club-7-happy-90s": {
     "id": "s-club-7-happy-90s",
@@ -179,7 +185,9 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "genre": "house",
+    "mood": "energetic"
   },
   "star-candy-select-1": {
     "id": "star-candy-select-1",
@@ -187,7 +195,9 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "genre": "bubblegum-pop",
+    "mood": "chill"
   },
   "star-candy-select-2": {
     "id": "star-candy-select-2",
@@ -195,7 +205,9 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "genre": "bubblegum-pop",
+    "mood": "chill"
   },
   "star-candy-select": {
     "id": "star-candy-select",
@@ -203,7 +215,9 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "the-great-awakening": {
     "id": "the-great-awakening",
@@ -211,7 +225,9 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "vice-circuit-1": {
     "id": "vice-circuit-1",
@@ -219,11 +235,47 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 62000
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "vice-circuit": {
     "id": "vice-circuit",
     "displayName": "Vice Circuit",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "basement-spin-2": {
+    "id": "basement-spin-2",
+    "displayName": "Basement Spin",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "neon-pulse-remove-section": {
+    "id": "neon-pulse-remove-section",
+    "displayName": "Neon Pulse (Remove Section)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "bounce-on-repeat-remove-section-1": {
+    "id": "bounce-on-repeat-remove-section-1",
+    "displayName": "Bounce On Repeat (Remove Section) (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "bounce-on-repeat-remove-section": {
+    "id": "bounce-on-repeat-remove-section",
+    "displayName": "Bounce On Repeat (Remove Section)",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,

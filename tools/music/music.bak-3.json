@@ -1,1 +1,292 @@
-{"bounce-bloom-1":{"id":"bounce-bloom-1","displayName":"Bounce & Bloom","speedLabel":"fast","vibe":"melodic","genre":"bubblegum-pop","mood":"playful","bpm":130,"loopDurationMs":62000},"bounce-bloom-2":{"id":"bounce-bloom-2","displayName":"Bounce & Bloom (alt)","speedLabel":"fast","vibe":"melodic","genre":"bubblegum-pop","mood":"playful","bpm":130,"loopDurationMs":62000},"bouncy-bounce":{"id":"bouncy-bounce","displayName":"Bouncy Bounce","speedLabel":"fast","vibe":"melodic","genre":"bubblegum-pop","mood":"playful","bpm":130,"loopDurationMs":62000},"cinematic-bossa-nova-1":{"id":"cinematic-bossa-nova-1","displayName":"Cinematic Bossa Nova","speedLabel":"fast","vibe":"melodic","genre":"bossa-nova","mood":"dramatic","bpm":130,"loopDurationMs":62000},"cinematic-bossa-nova-2":{"id":"cinematic-bossa-nova-2","displayName":"Cinematic Bossa Nova (alt)","speedLabel":"fast","vibe":"melodic","genre":"bossa-nova","mood":"dramatic","bpm":130,"loopDurationMs":62000},"midnight-coffee":{"id":"midnight-coffee","displayName":"Midnight Coffee","speedLabel":"fast","vibe":"melodic","genre":"lo-fi","mood":"chill","bpm":130,"loopDurationMs":62000},"neon-dash":{"id":"neon-dash","displayName":"Neon Dash","speedLabel":"fast","vibe":"melodic","genre":"synthwave","mood":"energetic","bpm":130,"loopDurationMs":62000},"warmth-in-the-air":{"id":"warmth-in-the-air","displayName":"Warmth in the Air","speedLabel":"fast","vibe":"melodic","genre":"acoustic-folk","mood":"romantic","bpm":130,"loopDurationMs":62000},"midnight-skyline":{"id":"midnight-skyline","displayName":"Midnight Skyline","speedLabel":"fast","vibe":"melodic","genre":"lo-fi","mood":"nostalgic","bpm":130,"loopDurationMs":62000},"midnight-skyline-1":{"id":"midnight-skyline-1","displayName":"Midnight Skyline (1)","speedLabel":"fast","vibe":"upbeat","genre":"lo-fi","mood":"nostalgic","bpm":130,"loopDurationMs":62000},"neon-horizon":{"id":"neon-horizon","displayName":"Neon Horizon","speedLabel":"fast","vibe":"smooth","genre":"synthwave","mood":"dreamy","bpm":130,"loopDurationMs":62000},"warmth-in-the-air-1":{"id":"warmth-in-the-air-1","displayName":"Warmth in the Air (1)","speedLabel":"fast","vibe":"melodic","genre":"acoustic-folk","mood":"romantic","bpm":130,"loopDurationMs":62000},"neon-horizon-3":{"id":"neon-horizon-3","displayName":"Neon Horizon (3)","speedLabel":"fast","vibe":"melodic","genre":"synthwave","mood":"dreamy","bpm":130,"loopDurationMs":62000},"neon-pulse":{"id":"neon-pulse","displayName":"Neon Pulse","speedLabel":"fast","vibe":"upbeat","genre":"synthwave","mood":"energetic","bpm":130,"loopDurationMs":62000},"neon-pulse-1":{"id":"neon-pulse-1","displayName":"Neon Pulse (1)","speedLabel":"fast","vibe":"melodic","genre":"synthwave","mood":"energetic","bpm":130,"loopDurationMs":62000},"basement-spin":{"id":"basement-spin","displayName":"Basement Spin","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"lo-fi","mood":"chill"},"bloom-select":{"id":"bloom-select","displayName":"Bloom Select","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"bubblegum-pop","mood":"playful"},"late-night-loop-remove-section":{"id":"late-night-loop-remove-section","displayName":"Late Night Loop (Remove Section)","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"lo-fi","mood":"chill"},"s-club-7-happy-90s":{"id":"s-club-7-happy-90s","displayName":"S Club 7 - Happy 90s","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"house","mood":"energetic"},"star-candy-select-1":{"id":"star-candy-select-1","displayName":"Star Candy Select (1)","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"bubblegum-pop","mood":"chill"},"star-candy-select-2":{"id":"star-candy-select-2","displayName":"Star Candy Select (2)","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"lo-fi","mood":"chill"},"star-candy-select":{"id":"star-candy-select","displayName":"Star Candy Select","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"lo-fi","mood":"chill"},"the-great-awakening":{"id":"the-great-awakening","displayName":"The Great Awakening","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"lo-fi","mood":"chill"},"vice-circuit-1":{"id":"vice-circuit-1","displayName":"Vice Circuit (1)","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"lo-fi","mood":"chill"},"vice-circuit":{"id":"vice-circuit","displayName":"Vice Circuit","speedLabel":"fast","vibe":"upbeat","bpm":130,"loopDurationMs":62000,"genre":"lo-fi","mood":"chill"}}
+{
+  "bounce-bloom-1": {
+    "id": "bounce-bloom-1",
+    "displayName": "Bounce & Bloom",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "bubblegum-pop",
+    "mood": "playful",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "bounce-bloom-2": {
+    "id": "bounce-bloom-2",
+    "displayName": "Bounce & Bloom (alt)",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "bubblegum-pop",
+    "mood": "playful",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "bouncy-bounce": {
+    "id": "bouncy-bounce",
+    "displayName": "Bouncy Bounce",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "bubblegum-pop",
+    "mood": "playful",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "cinematic-bossa-nova-1": {
+    "id": "cinematic-bossa-nova-1",
+    "displayName": "Cinematic Bossa Nova",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "bossa-nova",
+    "mood": "dramatic",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "cinematic-bossa-nova-2": {
+    "id": "cinematic-bossa-nova-2",
+    "displayName": "Cinematic Bossa Nova (alt)",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "bossa-nova",
+    "mood": "dramatic",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "midnight-coffee": {
+    "id": "midnight-coffee",
+    "displayName": "Midnight Coffee",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "lo-fi",
+    "mood": "chill",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "neon-dash": {
+    "id": "neon-dash",
+    "displayName": "Neon Dash",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "synthwave",
+    "mood": "energetic",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "warmth-in-the-air": {
+    "id": "warmth-in-the-air",
+    "displayName": "Warmth in the Air",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "acoustic-folk",
+    "mood": "romantic",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "midnight-skyline": {
+    "id": "midnight-skyline",
+    "displayName": "Midnight Skyline",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "lo-fi",
+    "mood": "nostalgic",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "midnight-skyline-1": {
+    "id": "midnight-skyline-1",
+    "displayName": "Midnight Skyline (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "genre": "lo-fi",
+    "mood": "nostalgic",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "neon-horizon": {
+    "id": "neon-horizon",
+    "displayName": "Neon Horizon",
+    "speedLabel": "fast",
+    "vibe": "smooth",
+    "genre": "synthwave",
+    "mood": "dreamy",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "warmth-in-the-air-1": {
+    "id": "warmth-in-the-air-1",
+    "displayName": "Warmth in the Air (1)",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "acoustic-folk",
+    "mood": "romantic",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "neon-horizon-3": {
+    "id": "neon-horizon-3",
+    "displayName": "Neon Horizon (3)",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "synthwave",
+    "mood": "dreamy",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "neon-pulse": {
+    "id": "neon-pulse",
+    "displayName": "Neon Pulse",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "genre": "synthwave",
+    "mood": "energetic",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "neon-pulse-1": {
+    "id": "neon-pulse-1",
+    "displayName": "Neon Pulse (1)",
+    "speedLabel": "fast",
+    "vibe": "melodic",
+    "genre": "synthwave",
+    "mood": "energetic",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "basement-spin": {
+    "id": "basement-spin",
+    "displayName": "Basement Spin",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "bloom-select": {
+    "id": "bloom-select",
+    "displayName": "Bloom Select",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "bubblegum-pop",
+    "mood": "playful"
+  },
+  "late-night-loop-remove-section": {
+    "id": "late-night-loop-remove-section",
+    "displayName": "Late Night Loop (Remove Section)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "s-club-7-happy-90s": {
+    "id": "s-club-7-happy-90s",
+    "displayName": "S Club 7 - Happy 90s",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "house",
+    "mood": "energetic"
+  },
+  "star-candy-select-1": {
+    "id": "star-candy-select-1",
+    "displayName": "Star Candy Select (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "bubblegum-pop",
+    "mood": "chill"
+  },
+  "star-candy-select-2": {
+    "id": "star-candy-select-2",
+    "displayName": "Star Candy Select (2)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "bubblegum-pop",
+    "mood": "chill"
+  },
+  "star-candy-select": {
+    "id": "star-candy-select",
+    "displayName": "Star Candy Select",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "the-great-awakening": {
+    "id": "the-great-awakening",
+    "displayName": "The Great Awakening",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "vice-circuit-1": {
+    "id": "vice-circuit-1",
+    "displayName": "Vice Circuit (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "vice-circuit": {
+    "id": "vice-circuit",
+    "displayName": "Vice Circuit",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000,
+    "genre": "lo-fi",
+    "mood": "chill"
+  },
+  "basement-spin-2": {
+    "id": "basement-spin-2",
+    "displayName": "Basement Spin",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "neon-pulse-remove-section": {
+    "id": "neon-pulse-remove-section",
+    "displayName": "Neon Pulse (Remove Section)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "bounce-on-repeat-remove-section-1": {
+    "id": "bounce-on-repeat-remove-section-1",
+    "displayName": "Bounce On Repeat (Remove Section) (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "bounce-on-repeat-remove-section": {
+    "id": "bounce-on-repeat-remove-section",
+    "displayName": "Bounce On Repeat (Remove Section)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "neon-pulse-2": {
+    "id": "neon-pulse-2",
+    "displayName": "Neon Pulse (2)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  }
+}

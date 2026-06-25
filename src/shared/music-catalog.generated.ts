@@ -33,4 +33,10 @@ export const BACKING_CATALOG: Record<string, BackingTrack> = {
   "vice-circuit": { id: "vice-circuit", displayName: "Vice Circuit", speedLabel: "fast", vibe: "upbeat", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-vice-circuit", loopDurationMs: 62000 },
   "basement-spin-2": { id: "basement-spin-2", displayName: "Basement Spin", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-basement-spin-2", loopDurationMs: 62000 },
   "neon-pulse-remove-section": { id: "neon-pulse-remove-section", displayName: "Neon Pulse (Remove Section)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-neon-pulse-remove-section", loopDurationMs: 62000 },
+  "bounce-on-repeat-remove-section-1": { id: "bounce-on-repeat-remove-section-1", displayName: "Bounce On Repeat (Remove Section) (1)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-bounce-on-repeat-remove-section-1", loopDurationMs: 62000 },
+  "bounce-on-repeat-remove-section": { id: "bounce-on-repeat-remove-section", displayName: "Bounce On Repeat (Remove Section)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-bounce-on-repeat-remove-section", loopDurationMs: 62000 },
+  "neon-pulse-2": { id: "neon-pulse-2", displayName: "Neon Pulse (2)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-neon-pulse-2", loopDurationMs: 62000 },
+  "the-big-cheese": { id: "the-big-cheese", displayName: "The Big Cheese", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-the-big-cheese", loopDurationMs: 62000 },
+  "the-last-train-to-nowhere": { id: "the-last-train-to-nowhere", displayName: "The Last Train to Nowhere", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-the-last-train-to-nowhere", loopDurationMs: 62000 },
+  "the-quiet-between-notes": { id: "the-quiet-between-notes", displayName: "The Quiet Between Notes", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-the-quiet-between-notes", loopDurationMs: 62000 },
 };

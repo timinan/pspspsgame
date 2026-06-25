@@ -256,5 +256,53 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 62000
+  },
+  "neon-pulse-remove-section": {
+    "id": "neon-pulse-remove-section",
+    "displayName": "Neon Pulse (Remove Section)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "bounce-on-repeat-remove-section-1": {
+    "id": "bounce-on-repeat-remove-section-1",
+    "displayName": "Bounce On Repeat (Remove Section) (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "bounce-on-repeat-remove-section": {
+    "id": "bounce-on-repeat-remove-section",
+    "displayName": "Bounce On Repeat (Remove Section)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "neon-pulse-2": {
+    "id": "neon-pulse-2",
+    "displayName": "Neon Pulse (2)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "the-big-cheese": {
+    "id": "the-big-cheese",
+    "displayName": "The Big Cheese",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
+  },
+  "the-last-train-to-nowhere": {
+    "id": "the-last-train-to-nowhere",
+    "displayName": "The Last Train to Nowhere",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62000
   }
 }
