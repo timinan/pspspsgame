@@ -1,0 +1,31 @@
+{
+  "genres": [
+    "bubblegum-pop",
+    "synthwave",
+    "lo-fi",
+    "bossa-nova",
+    "acoustic-folk",
+    "chiptune",
+    "jazz",
+    "funk",
+    "ambient",
+    "house",
+    "rock",
+    "dance-pop",
+    "trance",
+    "hip-hop",
+    "world"
+  ],
+  "moods": [
+    "energetic",
+    "chill",
+    "playful",
+    "romantic",
+    "mysterious",
+    "dramatic",
+    "nostalgic",
+    "bright",
+    "dark",
+    "dreamy"
+  ]
+}

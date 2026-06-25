@@ -232,16 +232,64 @@
 <script>
 const SPEED_CYCLE = ['slow', 'medium', 'fast', 'faster'];
 const VIBE_CYCLE = ['upbeat', 'melodic', 'smooth'];
-// Keep in sync with BACKING_GENRES / BACKING_MOODS in src/shared/state.ts.
-const GENRE_OPTIONS = [
+// Taxonomies are loaded from tools/music/taxonomies.json on init so the
+// user can extend them via "+ add new…". Initial fallback values mirror
+// the seed list — replaced once the fetch resolves.
+let GENRE_OPTIONS = [
   'bubblegum-pop', 'synthwave', 'lo-fi', 'bossa-nova', 'acoustic-folk',
   'chiptune', 'jazz', 'funk', 'ambient', 'house',
   'rock', 'dance-pop', 'trance', 'hip-hop', 'world',
 ];
-const MOOD_OPTIONS = [
+let MOOD_OPTIONS = [
   'energetic', 'chill', 'playful', 'romantic', 'mysterious',
   'dramatic', 'nostalgic', 'bright', 'dark', 'dreamy',
 ];
+
+/** Marker option value for the "+ add new…" entry. Selecting it fires
+ *  the prompt → server-add → re-render flow. Kept out of the actual
+ *  taxonomy so it can't accidentally save back to music.json. */
+const ADD_NEW_SENTINEL = '__add_new__';
+
+async function loadTaxonomies() {
+  try {
+    const r = await fetch('/tools/music/taxonomies.json?_=' + Date.now());
+    if (!r.ok) return;
+    const j = await r.json();
+    if (Array.isArray(j.genres)) GENRE_OPTIONS = j.genres;
+    if (Array.isArray(j.moods)) MOOD_OPTIONS = j.moods;
+  } catch (e) {
+    console.warn('[calibrator] taxonomy fetch failed, using defaults:', e);
+  }
+}
+
+/** Prompt + POST to add a new genre/mood. Returns the new slug on
+ *  success so the caller can preselect it in the dropdown that
+ *  triggered the add. */
+async function promptAddTaxonomy(kind /* 'genres' | 'moods' */) {
+  const labelKind = kind === 'genres' ? 'genre' : 'mood';
+  const raw = window.prompt(`New ${labelKind} name?\n(letters, numbers, dashes only — will be slugified)`);
+  if (!raw || raw.trim().length === 0) return null;
+  try {
+    const r = await fetch(`/music-taxonomy/add?kind=${kind}&value=${encodeURIComponent(raw)}`, {
+      method: 'POST',
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'add failed');
+    // Refresh local lists from server response
+    if (kind === 'genres') GENRE_OPTIONS = j.list;
+    else MOOD_OPTIONS = j.list;
+    // Force the FILTER select to repopulate by clearing its options
+    // (populateFilterSelects fills it only when empty as a perf opt).
+    const filterSel = document.getElementById(kind === 'genres' ? 'filter-genre' : 'filter-mood');
+    if (filterSel) filterSel.innerHTML = '';
+    render();
+    toast(`added ${labelKind} "${j.slug}"`, 'ok');
+    return j.slug;
+  } catch (e) {
+    toast(`add ${labelKind} failed: ${e.message}`, 'err');
+    return null;
+  }
+}
 /** Guess a sensible genre + mood from the track id when an entry has
  *  none set. Best-effort — Tim can override via the dropdowns. Matches
  *  the seed guesses we used for the initial 15 tracks. */
@@ -421,14 +469,18 @@ function render() {
     const genreCell = document.createElement('td');
     const genreSel = document.createElement('select');
     genreSel.className = 'cycle';
-    for (const g of GENRE_OPTIONS) {
-      const opt = document.createElement('option');
-      opt.value = g;
-      opt.textContent = g.replace(/-/g, ' ').toUpperCase();
-      if (g === entry.genre) opt.selected = true;
-      genreSel.appendChild(opt);
-    }
-    genreSel.addEventListener('change', () => {
+    fillTaxonomySelect(genreSel, GENRE_OPTIONS, entry.genre);
+    genreSel.addEventListener('change', async () => {
+      if (genreSel.value === ADD_NEW_SENTINEL) {
+        const newSlug = await promptAddTaxonomy('genres');
+        // Revert to current entry value if user cancelled or failed
+        genreSel.value = newSlug ?? (entry.genre || '');
+        if (newSlug) {
+          entry.genre = newSlug;
+          scheduleSave();
+        }
+        return;
+      }
       entry.genre = genreSel.value;
       scheduleSave();
     });
@@ -439,14 +491,17 @@ function render() {
     const moodCell = document.createElement('td');
     const moodSel = document.createElement('select');
     moodSel.className = 'cycle';
-    for (const m of MOOD_OPTIONS) {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = m.toUpperCase();
-      if (m === entry.mood) opt.selected = true;
-      moodSel.appendChild(opt);
-    }
-    moodSel.addEventListener('change', () => {
+    fillTaxonomySelect(moodSel, MOOD_OPTIONS, entry.mood);
+    moodSel.addEventListener('change', async () => {
+      if (moodSel.value === ADD_NEW_SENTINEL) {
+        const newSlug = await promptAddTaxonomy('moods');
+        moodSel.value = newSlug ?? (entry.mood || '');
+        if (newSlug) {
+          entry.mood = newSlug;
+          scheduleSave();
+        }
+        return;
+      }
       entry.mood = moodSel.value;
       scheduleSave();
     });
@@ -630,31 +685,14 @@ function openMetaModal(file) {
   const baseName = file.name.replace(/\.[^.]+$/, '');
   metaModalState.file = file;
   metaModalState.baseName = baseName;
-  // Populate GENRE + MOOD selects from the global option lists
-  const genreSel = document.getElementById('meta-genre');
-  genreSel.innerHTML = '';
-  for (const g of GENRE_OPTIONS) {
-    const o = document.createElement('option');
-    o.value = g;
-    o.textContent = g.replace(/-/g, ' ').toUpperCase();
-    genreSel.appendChild(o);
-  }
-  const moodSel = document.getElementById('meta-mood');
-  moodSel.innerHTML = '';
-  for (const m of MOOD_OPTIONS) {
-    const o = document.createElement('option');
-    o.value = m;
-    o.textContent = m.toUpperCase();
-    moodSel.appendChild(o);
-  }
   // Default values: auto-guess from filename, fall back to FAST/UPBEAT/130
   const guess = guessGenreMood(slugify(baseName));
+  fillTaxonomySelect(document.getElementById('meta-genre'), GENRE_OPTIONS, guess.genre);
+  fillTaxonomySelect(document.getElementById('meta-mood'), MOOD_OPTIONS, guess.mood);
   document.getElementById('meta-name').value = baseName;
   document.getElementById('meta-vibe').value = 'upbeat';
   document.getElementById('meta-tempo').value = 'fast';
   document.getElementById('meta-bpm').value = 130;
-  document.getElementById('meta-genre').value = guess.genre;
-  document.getElementById('meta-mood').value = guess.mood;
   document.getElementById('meta-modal-title').textContent = `Tune metadata — ${baseName}`;
   document.getElementById('meta-modal-scrim').style.display = 'flex';
 }
@@ -710,35 +748,37 @@ document.getElementById('meta-modal-scrim').addEventListener('click', (e) => {
   if (e.target.id === 'meta-modal-scrim') closeMetaModal();
 });
 
+// Modal's genre + mood selects also handle "+ add new…" — prompt, then
+// repopulate the select with the new value preselected so the apply
+// path picks it up.
+for (const k of ['genres', 'moods']) {
+  const sel = document.getElementById(k === 'genres' ? 'meta-genre' : 'meta-mood');
+  if (!sel) continue;
+  sel.addEventListener('change', async () => {
+    if (sel.value !== ADD_NEW_SENTINEL) return;
+    const newSlug = await promptAddTaxonomy(k);
+    if (newSlug) {
+      fillTaxonomySelect(sel, k === 'genres' ? GENRE_OPTIONS : MOOD_OPTIONS, newSlug);
+    } else {
+      // Revert to first taxonomy option if user cancelled
+      fillTaxonomySelect(sel, k === 'genres' ? GENRE_OPTIONS : MOOD_OPTIONS, sel.options[0]?.value);
+    }
+  });
+}
+
 /** Open the tune-metadata modal for an EXISTING catalog entry. Same UI
  *  as the upload-time modal, just pre-populated with the row's current
  *  values + applies in place (no re-upload — just patches music.json). */
 function openMetaModalForExisting(id) {
   const entry = catalog[id];
   if (!entry) return;
-  const genreSel = document.getElementById('meta-genre');
-  genreSel.innerHTML = '';
-  for (const g of GENRE_OPTIONS) {
-    const o = document.createElement('option');
-    o.value = g;
-    o.textContent = g.replace(/-/g, ' ').toUpperCase();
-    genreSel.appendChild(o);
-  }
-  const moodSel = document.getElementById('meta-mood');
-  moodSel.innerHTML = '';
-  for (const m of MOOD_OPTIONS) {
-    const o = document.createElement('option');
-    o.value = m;
-    o.textContent = m.toUpperCase();
-    moodSel.appendChild(o);
-  }
   const guess = guessGenreMood(id);
+  fillTaxonomySelect(document.getElementById('meta-genre'), GENRE_OPTIONS, entry.genre || guess.genre);
+  fillTaxonomySelect(document.getElementById('meta-mood'), MOOD_OPTIONS, entry.mood || guess.mood);
   document.getElementById('meta-name').value = entry.displayName || id;
   document.getElementById('meta-vibe').value = entry.vibe || 'upbeat';
   document.getElementById('meta-tempo').value = entry.speedLabel || 'fast';
   document.getElementById('meta-bpm').value = entry.bpm || 130;
-  document.getElementById('meta-genre').value = entry.genre || guess.genre;
-  document.getElementById('meta-mood').value = entry.mood || guess.mood;
   document.getElementById('meta-modal-title').textContent = `Edit metadata — ${entry.displayName || id}`;
   // Flag the modal state so the apply handler knows this is an in-place
   // edit (not a new upload) — see meta-modal-apply listener below.
@@ -748,6 +788,24 @@ function openMetaModalForExisting(id) {
 }
 
 // ── Filter + sort wiring ───────────────────────────────────────────────
+
+/** Shared helper — populate a SELECT element with a taxonomy list +
+ *  preselect a value + append the "+ add new…" sentinel option. Used
+ *  by the per-row dropdowns and the tune-metadata modal. */
+function fillTaxonomySelect(sel, options, selectedValue) {
+  sel.innerHTML = '';
+  for (const v of options) {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = v.replace(/-/g, ' ').toUpperCase();
+    if (v === selectedValue) o.selected = true;
+    sel.appendChild(o);
+  }
+  const addNew = document.createElement('option');
+  addNew.value = ADD_NEW_SENTINEL;
+  addNew.textContent = '+ add new…';
+  sel.appendChild(addNew);
+}
 
 /** Fill the filter dropdowns with all genre + mood options. Called every
  *  render — cheap, idempotent. Preserves the currently-selected value
@@ -765,6 +823,10 @@ function populateFilterSelects() {
       o.textContent = g.replace(/-/g, ' ');
       genreSel.appendChild(o);
     }
+    const addNew = document.createElement('option');
+    addNew.value = ADD_NEW_SENTINEL;
+    addNew.textContent = '+ add new…';
+    genreSel.appendChild(addNew);
   }
   const moodSel = document.getElementById('filter-mood');
   if (moodSel && moodSel.options.length === 0) {
@@ -778,11 +840,31 @@ function populateFilterSelects() {
       o.textContent = m;
       moodSel.appendChild(o);
     }
+    const addNew = document.createElement('option');
+    addNew.value = ADD_NEW_SENTINEL;
+    addNew.textContent = '+ add new…';
+    moodSel.appendChild(addNew);
   }
 }
 
-for (const id of ['filter-vibe', 'filter-genre', 'filter-mood', 'sort-by']) {
+for (const id of ['filter-vibe', 'sort-by']) {
   document.getElementById(id)?.addEventListener('change', render);
+}
+// Genre + mood filter selects also handle the "+ add new…" sentinel —
+// trigger a prompt, then re-render with the new value preselected.
+for (const k of ['genres', 'moods']) {
+  const id = k === 'genres' ? 'filter-genre' : 'filter-mood';
+  const sel = document.getElementById(id);
+  if (!sel) continue;
+  sel.addEventListener('change', async () => {
+    if (sel.value === ADD_NEW_SENTINEL) {
+      const newSlug = await promptAddTaxonomy(k);
+      sel.value = newSlug ?? 'all';
+      render();
+      return;
+    }
+    render();
+  });
 }
 
 async function uploadFile(file, opts = {}) {
@@ -833,6 +915,10 @@ async function uploadFile(file, opts = {}) {
   }
 }
 
+// Fire-and-forget taxonomy fetch — render runs first with fallback
+// defaults, then re-renders once the JSON lands so any custom
+// genre/mood added in a prior session is honored.
+loadTaxonomies().then(() => render());
 load();
 
 // ── Clip editor (waveform + selection brush) ──────────────────────────

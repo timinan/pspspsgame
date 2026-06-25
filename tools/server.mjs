@@ -268,6 +268,7 @@ const BG_UPLOAD_DIR = path.join(PROJECT_ROOT, 'public', 'assets', 'themes');
 const MUSIC_UPLOAD_DIR = path.join(PROJECT_ROOT, 'public', 'assets', 'audio', 'backings');
 const TAPS_DIR = path.join(PROJECT_ROOT, 'public', 'assets', 'audio', 'taps');
 const MUSIC_JSON = path.join(TOOL_DIR, 'music', 'music.json');
+const MUSIC_TAXONOMIES_JSON = path.join(TOOL_DIR, 'music', 'taxonomies.json');
 // Preserved raw uploads — the calibrator's section editor needs the
 // FULL source to recompute the waveform + let the user pick any
 // 65-second window. Kept separate from MUSIC_UPLOAD_DIR so the
@@ -1014,6 +1015,51 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && req.url?.startsWith('/upload-music/')) {
       const slug = req.url.replace(/^\/upload-music\//, '').split('?')[0];
       await handleMusicUpload(req, res, slug);
+      return;
+    }
+
+    // --- POST /music-taxonomy/add?kind=<genres|moods>&value=<slug> -----
+    // Appends a new value to the genre/mood taxonomy. Calibrator
+    // dropdowns offer "+ add new…" which prompts the user then POSTs
+    // here. Slugifies the value, deduplicates, persists back to
+    // tools/music/taxonomies.json. Returns the new full list.
+    if (req.method === 'POST' && req.url?.startsWith('/music-taxonomy/add')) {
+      try {
+        const q = new URL(req.url, 'http://localhost').searchParams;
+        const kind = q.get('kind');
+        const rawValue = q.get('value');
+        if (kind !== 'genres' && kind !== 'moods') {
+          throw new Error(`bad kind: ${kind}`);
+        }
+        if (!rawValue || rawValue.trim().length === 0) {
+          throw new Error('value required');
+        }
+        // Reuse the same slugify as filename → slug so calibrator-typed
+        // values normalize consistently with existing entries.
+        const slug = rawValue
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 40);
+        if (!slug) throw new Error(`value slugifies to empty: "${rawValue}"`);
+        let tax = { genres: [], moods: [] };
+        try {
+          tax = JSON.parse(await fs.readFile(MUSIC_TAXONOMIES_JSON, 'utf8'));
+        } catch {
+          // first run — fall through to default empty + ensure file exists below
+        }
+        if (!Array.isArray(tax[kind])) tax[kind] = [];
+        if (!tax[kind].includes(slug)) {
+          tax[kind].push(slug);
+          await fs.writeFile(MUSIC_TAXONOMIES_JSON, JSON.stringify(tax, null, 2) + '\n');
+        }
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, slug, list: tax[kind] }));
+        console.log(`[music-taxonomy] added ${kind} = ${slug}`);
+      } catch (e) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
       return;
     }
 
