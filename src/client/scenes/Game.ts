@@ -619,7 +619,10 @@ export class Game extends Scene {
       showStats: true,
       showCoins: false,
       bigStats: this.testMode,
-      currentKey: SceneKeys.Game,
+      // In test mode the player came from the editor's REHEARSE button,
+      // so the drawer's "you are here" marker stays on PUT ON A SHOW
+      // (= ChartEditor). Normal-mode rehearse marks REHEARSE.
+      currentKey: this.testMode ? SceneKeys.ChartEditor : SceneKeys.Game,
       items: [
         {
           label: 'SET STAGE',
