@@ -308,10 +308,12 @@ export class Note extends GameObjects.Container {
     return this.ball.x;
   }
 
-  /** Switch the tail's tint. Game calls this on hold engage to flip
+  /** Switch the tail's tint — both body TileSprite + end cap Image so
+   *  they stay color-matched. Game calls this on hold engage to flip
    *  from the lane color to the mint "success" tint. */
   setHoldTint(color: number): void {
     this.tail.setTint(color);
+    this.tailCap.setTint(color);
   }
 
   /** Overwrite the slide tube's gradient with a solid color (no per-
