@@ -300,6 +300,12 @@ function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
       const t = scene.add
         .text(foot.x + offsetX, startY, opts.emoji, {
           fontSize: `${size}px`,
+          // resolution: 1 overrides game.ts's DPR text patch (which sets
+          // 2-3× for crisp UI text). For emoji particles we WANT the
+          // chunky low-res look so they read as pixel art matching the
+          // rest of the scene instead of high-res emoji floating in
+          // pixel-art world.
+          resolution: 1,
         })
         .setAlpha(startAlpha)
         .setOrigin(0.5)
@@ -427,6 +433,13 @@ function makeParticleBurst(emoji: string, size: number, count = 12): CatEffect['
     const baseDist = 72 * scale;
     const lifeMs = 720;
     const px = Math.round(size * scale * 1.35);
+    // Burst particles fire from the hit-target / fuzz-ball during play
+    // so they sit RIGHT in the player's read zone. Cap initial alpha at
+    // 0.55 so they read as a celebratory pop without blocking the next
+    // falling notes; the existing fade-out tween takes them to 0. The
+    // ambient floating particles (makeParticles) stay vivid — they're
+    // around the cat's feet, not in the play area.
+    const BURST_ALPHA = 0.55;
     for (let i = 0; i < count; i++) {
       const slice = (Math.PI * 2) / count;
       const angle = i * slice + (Math.random() - 0.5) * slice * 0.7;
@@ -434,7 +447,13 @@ function makeParticleBurst(emoji: string, size: number, count = 12): CatEffect['
       const dx = Math.cos(angle) * dist;
       const dy = Math.sin(angle) * dist;
       const p = scene.add
-        .text(target.x, target.y, emoji, { fontSize: `${px}px` })
+        .text(target.x, target.y, emoji, {
+          fontSize: `${px}px`,
+          // Chunky pixelated emoji (override game.ts's high-DPI text
+          // patch) so the burst matches the pixel-art style.
+          resolution: 1,
+        })
+        .setAlpha(BURST_ALPHA)
         .setOrigin(0.5)
         .setDepth(target.depth + 1)
         .setScale(0.6);
