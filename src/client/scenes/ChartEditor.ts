@@ -86,17 +86,20 @@ export class ChartEditor extends Scene {
   private pageBreakTopLabel!: GameObjects.Text;
   private pageBreakMidLabel!: GameObjects.Text;
 
-  // Page nav (sits right above the bottom controls strip). ADD PAGE +
-  // TEMPLATE buttons were removed when chart length became fixed at song
-  // pick time — the page nav is just ▲ / PAGE / ▼ now.
+  // Page nav (sits right above the bottom controls strip). Uses the
+  // standardized makeArrow pattern from SongPickerModal — dark-purple
+  // rect arrows with yellow ◀/▶ glyphs and a white page label between.
   private scrollOffset = 0;
-  private upPageBtn!: GameObjects.Text;
-  private downPageBtn!: GameObjects.Text;
+  private upPageBtn!: GameObjects.Container;
+  private downPageBtn!: GameObjects.Container;
   private pageLabel!: GameObjects.Text;
 
-  // Bottom controls — CLEAR / SONG / TRY since tempo+vibe come from the
-  // SongPicker now.
-  private songBtnText!: GameObjects.Text;
+  // Header banner — sits between TopHud and the grid, displays the
+  // picked song's name so the author always sees what they're charting.
+  private headerBannerText!: GameObjects.Text;
+
+  // Bottom controls — CLEAR / BACK TO TOP / REHEARSE. Song re-pick
+  // lives on the entry flow now (leave and re-enter the editor).
   private tryBusy = false;
   private tryBtnBg!: GameObjects.Rectangle;
   private tryBtnText!: GameObjects.Text;
@@ -296,9 +299,44 @@ export class ChartEditor extends Scene {
     const totalPages = Math.max(1, Math.ceil(chart.stepCount / CHART_PAGE_SIZE));
     const requested = Math.max(0, Math.min(totalPages - 1, this.pendingInitialPage));
     this.scrollOffset = requested * CHART_PAGE_SIZE;
+    this.buildHeaderBanner();
     this.buildPageNav();
     this.buildGrid();
     this.buildBottomBar();
+  }
+
+  /** Header banner sits just below the TopHud and displays the picked
+   *  song's name so the author always sees what they're charting. Same
+   *  dark-purple chrome as the bottom strip for visual continuity. */
+  private buildHeaderBanner(): void {
+    const { width } = this.scale;
+    const bannerY = TopHud.HEIGHT;
+    const strip = this.add
+      .rectangle(0, bannerY, width, HEADER_BANNER_H, 0x0b041a, 0.78)
+      .setOrigin(0, 0);
+    this.root.add(strip);
+    this.headerBannerText = this.add
+      .text(width / 2, bannerY + HEADER_BANNER_H / 2, this.songDisplayName(), {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#ffd34d',
+        align: 'center',
+        wordWrap: { width: width - 24 },
+      })
+      .setOrigin(0.5);
+    this.root.add(this.headerBannerText);
+  }
+
+  /** Display name for the picked backing — falls back to the audioKey
+   *  if the catalog has nothing (shouldn't happen, but keeps the banner
+   *  populated even for legacy charts). */
+  private songDisplayName(): string {
+    const key = this.chart?.audioKey;
+    if (!key) return 'NO SONG';
+    const entry = BACKING_CATALOG[key];
+    const name = entry?.displayName ?? entry?.id ?? key;
+    return name.toUpperCase();
   }
 
   // ─── Layout ─────────────────────────────────────────────────────────────
@@ -310,7 +348,7 @@ export class ChartEditor extends Scene {
     // pages worth of cells at a time (EDITOR_VISIBLE_ROWS = 2 *
     // CHART_PAGE_SIZE) so the author can see the next page coming up
     // and decide note spacing across the page boundary.
-    const topReserved = TopHud.HEIGHT + 8;
+    const topReserved = TopHud.HEIGHT + HEADER_BANNER_H + 8;
     const bottomReserved = PAGE_NAV_ROW_H + BOTTOM_STRIP_H + 8;
     this.gridTop = topReserved;
     this.gridBottom = height - bottomReserved;
@@ -412,48 +450,47 @@ export class ChartEditor extends Scene {
 
   private buildPageNav(): void {
     const { width, height } = this.scale;
-    // Page-nav row sits directly above the bottom controls strip. With
-    // ADD PAGE + TEMPLATE removed, the row is just the prev / page-label
-    // / next cluster centered horizontally.
+    // Page-nav row sits directly above the bottom controls strip. Uses
+    // the standardized SongPickerModal/DressingRoom arrow chrome:
+    // dark-purple 36×28 rect, light-purple stroke, yellow ◀/▶ glyph.
     const navY = height - BOTTOM_STRIP_H - PAGE_NAV_ROW_H / 2;
     const centerX = width / 2;
+    const chipSpacing = 44;
 
-    // Tighter pager — arrows hug a yellow chip in the middle so the
-    // 'page X / Y' reads as a unit instead of three free-floating items.
-    const chipSpacing = 38;
-    this.upPageBtn = this.add
-      .text(centerX - chipSpacing, navY, '▲', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '18px',
-        color: '#ffd34d',
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    this.upPageBtn.on('pointerdown', () => this.onPrevPage());
-
+    this.upPageBtn = this.makeArrow(centerX - chipSpacing, navY, '◀', () => this.onPrevPage());
     this.pageLabel = this.add
       .text(centerX, navY, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '12px',
-        color: '#ffd34d',
+        color: '#ffffff',
       })
       .setOrigin(0.5);
-
-    this.downPageBtn = this.add
-      .text(centerX + chipSpacing, navY, '▼', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '18px',
-        color: '#ffd34d',
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    this.downPageBtn.on('pointerdown', () => this.onNextPage());
+    this.downPageBtn = this.makeArrow(centerX + chipSpacing, navY, '▶', () => this.onNextPage());
 
     this.root.add([this.upPageBtn, this.pageLabel, this.downPageBtn]);
     this.refreshPageLabel();
+  }
+
+  /** Pager arrow matching SongPickerModal/DressingRoom: 36×28 dark-purple
+   *  rect, light-purple stroke, yellow-glyph centered label. */
+  private makeArrow(x: number, y: number, label: string, onTap: () => void): GameObjects.Container {
+    const c = this.add.container(x, y);
+    const bg = this.add
+      .rectangle(0, 0, 36, 28, 0x2c1856, 1)
+      .setStrokeStyle(1, 0xc0a0e6, 0.5)
+      .setInteractive({ useHandCursor: true });
+    const text = this.add
+      .text(0, 0, label, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '14px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5);
+    c.add([bg, text]);
+    bg.on('pointerdown', onTap);
+    return c;
   }
 
   private buildGrid(): void {
@@ -550,9 +587,8 @@ export class ChartEditor extends Scene {
     const barCenterY = stripY + BOTTOM_STRIP_H / 2;
     const btnH = 40;
 
-    // Three buttons: CLEAR / SONG / TRY. Tempo + vibe came from the
-    // SongPicker at scene entry, so they're no longer needed here. SONG
-    // re-opens the picker so the player can swap mid-edit.
+    // Three buttons: CLEAR / BACK TO TOP / REHEARSE. Song name lives in
+    // the header banner now; song re-pick happens via the entry flow.
     const sideMargin = 10;
     const gap = 6;
     const btnW = (width - sideMargin * 2 - gap * 2) / 3;
@@ -574,31 +610,29 @@ export class ChartEditor extends Scene {
     clearBg.on('pointerdown', () => this.onClearTap());
     this.root.add([clearBg, clearText]);
 
-    // SONG — shows the picked song's display name (truncated). Tap to
-    // re-open the SongPicker. Re-picking the same song keeps existing
-    // notes; picking a different one triggers Template-or-Scratch again
-    // and replaces the chart.
-    const songX = startX + btnW + gap;
-    const songBg = this.add
-      .rectangle(songX, barCenterY, btnW, btnH, 0x2c1856, 1)
+    // BACK TO TOP — jumps scrollOffset back to page 1 so the author can
+    // get out of deep pagination without spamming the prev arrow.
+    const backX = startX + btnW + gap;
+    const backBg = this.add
+      .rectangle(backX, barCenterY, btnW, btnH, 0x2c1856, 1)
       .setStrokeStyle(1, 0xc678ff, 0.7)
       .setInteractive({ useHandCursor: true });
-    this.songBtnText = this.add
-      .text(songX, barCenterY, this.songButtonLabel(), {
+    const backText = this.add
+      .text(backX, barCenterY, 'BACK TO TOP', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '10px',
+        fontSize: '11px',
         color: '#c0a0e6',
         align: 'center',
         wordWrap: { width: btnW - 8 },
       })
       .setOrigin(0.5);
-    songBg.on('pointerdown', () => this.showSongPickerModal());
-    this.root.add([songBg, this.songBtnText]);
+    backBg.on('pointerdown', () => this.onBackToTopTap());
+    this.root.add([backBg, backText]);
 
     // TRY — primary action. Big yellow button. Saves the chart then
     // jumps to Game in test mode for an instant playthrough.
-    const tryX = songX + btnW + gap;
+    const tryX = backX + btnW + gap;
     this.tryBtnBg = this.add
       .rectangle(tryX, barCenterY, btnW, btnH, 0xffd34d, 1)
       .setInteractive({ useHandCursor: true });
@@ -612,17 +646,6 @@ export class ChartEditor extends Scene {
       .setOrigin(0.5);
     this.tryBtnBg.on('pointerdown', () => void this.onTryTap());
     this.root.add([this.tryBtnBg, this.tryBtnText]);
-  }
-
-  /** Human-readable label for the SONG button — the picked backing's
-   *  display name when set, otherwise a fallback. Kept short so it fits
-   *  the bottom-strip cell. */
-  private songButtonLabel(): string {
-    const key = this.chart?.audioKey;
-    if (!key) return 'SONG';
-    const entry = BACKING_CATALOG[key];
-    const name = entry?.displayName ?? entry?.id ?? key;
-    return name.toUpperCase();
   }
 
   // ─── Interactions ───────────────────────────────────────────────────────
@@ -1202,6 +1225,12 @@ export class ChartEditor extends Scene {
     this.refreshPage();
   }
 
+  private onBackToTopTap(): void {
+    if (this.scrollOffset === 0) return;
+    this.scrollOffset = 0;
+    this.refreshPage();
+  }
+
   private onClearTap(): void {
     for (const step of this.chart.steps) step.lanes = [];
     if (this.chart.holds) this.chart.holds = [];
@@ -1277,6 +1306,7 @@ export class ChartEditor extends Scene {
 
 // Layout constants — referenced from computeGrid + buildPageNav +
 // buildBottomBar so the page-nav row and bottom strip stack cleanly.
+const HEADER_BANNER_H = 26;
 const PAGE_NAV_ROW_H = 36;
 const BOTTOM_STRIP_H = 72;
 // Editor shows TWO pages of cells at once stacked vertically (16 rows
