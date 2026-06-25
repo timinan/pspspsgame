@@ -33,7 +33,27 @@ export class BackgroundManager {
 
   setBackground(id: BackgroundId): void {
     this.active = KNOWN_IDS.includes(id) ? id : 'stage';
+    this.ensureLoaded(this.active);
     this.draw();
+  }
+
+  /** Lazy-fetch the bg texture if Preloader skipped it. Only 'stage'
+   *  is eager-loaded; everything else lands here. Triggers a redraw
+   *  once the file completes so the solid-color fallback gets replaced
+   *  by the actual bg the moment it's available. */
+  private ensureLoaded(id: BackgroundId): void {
+    const entry = BACKGROUND_CATALOG[id];
+    if (!entry) return;
+    if (this.scene.textures.exists(entry.backdropKey)) return;
+    const eventKey = `filecomplete-image-${entry.backdropKey}`;
+    this.scene.load.image(entry.backdropKey, `assets/themes/${entry.id}-bg.png`);
+    this.scene.load.once(eventKey, () => {
+      // Guard: the player may have switched bgs again before this one
+      // finished downloading — only redraw if the active bg is still
+      // the one this fetch was for.
+      if (this.active === id) this.draw();
+    });
+    this.scene.load.start();
   }
 
   /** Redraws the container contents for the active background id.
