@@ -60,6 +60,13 @@ const PROFILES: Record<GenDifficulty, {
    *  another lane" 2-finger combo. Off by default; only insane sets
    *  it because the gesture is genuinely hard. */
   slideOnChords?: boolean;
+  /** When picking a slide's target from an OUTER lane (0 or 2) AND the
+   *  previous slide went a known direction (left/right), bias toward
+   *  the OPPOSITE direction this much (0..1). 0 = pure random per
+   *  slide2LaneChance; 1 = always alternate. Insane uses a high
+   *  value so consecutive slides feel like back-and-forth runs
+   *  instead of wandering targets. Optional; default 0. */
+  slideAlternationBias?: number;
 }> = {
   easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00, slideReturnChance: 0.02, slideReturnCooldownSteps: 4 },
   medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30, slideReturnChance: 0.07, slideReturnCooldownSteps: 3 },
@@ -72,12 +79,15 @@ const PROFILES: Record<GenDifficulty, {
   // with-tap combos) for genuine 2-finger work. Cooldown 1.5 = half
   // the slide-returns get 1 step recovery, half get 2 — averages to
   // "tight but possible to clear at 100% with practice".
-  // 2026-06-25 bump per Tim: density 0.82→0.88 fills the quieter
-  // gaps (the chart still has brief rests but they're snappier), and
-  // slideChance 0.34→0.42 leans harder into the slider-heavy feel
-  // that defines the tier. Tim's rule: people work for 75%, but
-  // 100% is still achievable.
-  insane: { density: 0.88, chord2Chance: 0.48, chord3Chance: 0.18, minGapSteps: 0, holdChance: 0.24, holdMinSteps: 3, holdMaxSteps: 7, slideChance: 0.42, slide2LaneChance: 0.70, slideReturnChance: 0.22, slideReturnCooldownSteps: 1.5, slideOnChords: true },
+  // 2026-06-25 escalation per Tim: density 0.88→0.93 (rests get
+  // briefer still — players were clearing 90%+ too easily), slide
+  // 0.42→0.58 (more sliders period), chord chances ratcheted so
+  // slide-with-tap combos fire more often via slideOnChords, and
+  // slideAlternationBias 0.75 makes consecutive slides prefer
+  // opposite directions (rapid back-and-forth runs instead of
+  // wandering targets). Tim's rule: people work for 75%, but 100%
+  // is still achievable.
+  insane: { density: 0.93, chord2Chance: 0.55, chord3Chance: 0.25, minGapSteps: 0, holdChance: 0.24, holdMinSteps: 3, holdMaxSteps: 7, slideChance: 0.58, slide2LaneChance: 0.70, slideReturnChance: 0.22, slideReturnCooldownSteps: 1.5, slideOnChords: true, slideAlternationBias: 0.75 },
 };
 
 /** Round a target step count UP to the nearest multiple of CHART_PAGE_SIZE.
