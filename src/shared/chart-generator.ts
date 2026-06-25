@@ -5,6 +5,7 @@ import {
   type Hold,
   type LaneId,
   type Slide,
+  type SlideReturn,
   type BackingVibe,
 } from './state';
 
@@ -41,14 +42,19 @@ const PROFILES: Record<GenDifficulty, {
    *  Higher = more long-distance slides. Lane 1 always targets 0 or 2
    *  randomly (no 2-lane option from the middle). */
   slide2LaneChance: number;
+  /** Per-remaining-tap chance of promotion to a slide-and-return
+   *  (drag to adjacent lane and back). Adjacent-only by design. Every
+   *  difficulty gets some so every player is exposed to the gesture
+   *  (Tim's rule). */
+  slideReturnChance: number;
 }> = {
-  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00 },
-  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30 },
+  easy:   { density: 0.30, chord2Chance: 0.00, chord3Chance: 0.00, minGapSteps: 2, holdChance: 0.04, holdMinSteps: 2, holdMaxSteps: 3, slideChance: 0.04, slide2LaneChance: 0.00, slideReturnChance: 0.02 },
+  medium: { density: 0.45, chord2Chance: 0.18, chord3Chance: 0.00, minGapSteps: 1, holdChance: 0.12, holdMinSteps: 2, holdMaxSteps: 4, slideChance: 0.10, slide2LaneChance: 0.30, slideReturnChance: 0.05 },
   // Spicy sits between medium and hard — meaningful step-up without
   // jumping straight to the chord-heavy hard profile. All numbers
   // linearly between medium and hard.
-  spicy:  { density: 0.55, chord2Chance: 0.25, chord3Chance: 0.03, minGapSteps: 1, holdChance: 0.15, holdMinSteps: 2, holdMaxSteps: 5, slideChance: 0.14, slide2LaneChance: 0.40 },
-  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18, slide2LaneChance: 0.50 },
+  spicy:  { density: 0.55, chord2Chance: 0.25, chord3Chance: 0.03, minGapSteps: 1, holdChance: 0.15, holdMinSteps: 2, holdMaxSteps: 5, slideChance: 0.14, slide2LaneChance: 0.40, slideReturnChance: 0.08 },
+  hard:   { density: 0.65, chord2Chance: 0.32, chord3Chance: 0.06, minGapSteps: 0, holdChance: 0.18, holdMinSteps: 2, holdMaxSteps: 6, slideChance: 0.18, slide2LaneChance: 0.50, slideReturnChance: 0.12 },
 };
 
 /** Round a target step count UP to the nearest multiple of CHART_PAGE_SIZE.
@@ -205,6 +211,36 @@ export function generateChart(args: {
     }
   }
 
+  // Fourth pass — promote a small fraction of the remaining single-tap
+  // steps into slide-and-returns (drag to adjacent lane and back).
+  // Adjacent-only by design. Same awkwardness guards as slides:
+  //   - chord steps skipped (multi-finger)
+  //   - cells already promoted to a slide skipped (one drag per cell)
+  //   - source can't be inside a hold on the same OR target lane
+  // Every difficulty gets a non-zero chance so every player sees the
+  // gesture at least occasionally (Tim's rule: "expose everyone").
+  const slideReturns: SlideReturn[] = [];
+  if (profile.slideReturnChance > 0) {
+    for (let i = 0; i < stepCount; i++) {
+      const step = steps[i]!;
+      if (step.lanes.length !== 1) continue;
+      // Cell already claimed by a slide?
+      if (slides.some((s) => s.startStep === i)) continue;
+      const lane = step.lanes[0]!;
+      if (rng() >= profile.slideReturnChance) continue;
+      // Adjacent target: from middle (1) pick 0 or 2 randomly; from an
+      // outer lane there's only one adjacent option (lane 1).
+      const target: LaneId = lane === 1 ? (rng() < 0.5 ? 0 : 2) : 1;
+      // Finger-conflict guard: source + target lanes must both be
+      // hold-free at this step (mirrors validator + commitSlideReturn).
+      if (holds.some(
+        (h) => (h.lane === lane || h.lane === target) && i >= h.startStep && i <= h.endStep,
+      )) continue;
+      step.lanes.splice(0, 1);
+      slideReturns.push({ startStep: i, sourceLane: lane, targetLane: target });
+    }
+  }
+
   return {
     authorId,
     title,
@@ -214,6 +250,7 @@ export function generateChart(args: {
     steps,
     holds,
     slides,
+    slideReturns,
     updatedAt: Date.now(),
   };
 }
