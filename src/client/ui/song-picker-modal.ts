@@ -36,8 +36,6 @@ export class SongPickerModal {
   private page = 0;
   private onPickRef: ((result: SongPickerResult) => void) | null = null;
   private onCancelRef: (() => void) | null = null;
-  private titleText: GameObjects.Text | null = null;
-  private subtitleText: GameObjects.Text | null = null;
 
   constructor(private scene: Scene) {}
 
@@ -69,72 +67,8 @@ export class SongPickerModal {
     );
     this.container.add(scrim);
 
-    const panelW = Math.min(284, width - 24);
-    const panelH = Math.min(440, height - 60);
-    const cx = width / 2;
-    const cy = height / 2;
-    // Match the DressingRoom modal language (Tim's standard): yellow
-    // stroke around the whole panel, yellow uppercase title, red ✕ in
-    // the top-right corner.
-    const panel = this.scene.add
-      .rectangle(cx, cy, panelW, panelH, 0x1a0a2e, 1)
-      .setStrokeStyle(2, 0xffd34d, 0.85)
-      .setInteractive();
-    panel.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, e: Phaser.Types.Input.EventData) =>
-      e.stopPropagation(),
-    );
-    this.container.add(panel);
-
-    this.titleText = this.scene.add
-      .text(cx, cy - panelH / 2 + 22, 'PICK A SONG', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '18px',
-        color: '#ffd34d',
-      })
-      .setOrigin(0.5);
-    this.container.add(this.titleText);
-
-    this.subtitleText = this.scene.add
-      .text(cx, cy - panelH / 2 + 48, 'Choose a vibe', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontSize: '10px',
-        color: '#c0a0e6',
-      })
-      .setOrigin(0.5);
-    this.container.add(this.subtitleText);
-
-    // Red ✕ close in the top-right — same affordance as DressingRoom.
-    const closeR = 12;
-    const closeCx = cx + panelW / 2 - 18;
-    const closeCy = cy - panelH / 2 + 18;
-    const closeBg = this.scene.add
-      .circle(closeCx, closeCy, closeR, 0xff5050, 1)
-      .setStrokeStyle(2, 0x0b041a, 1)
-      .setInteractive({ useHandCursor: true });
-    const closeGlyph = this.scene.add
-      .text(closeCx, closeCy, '✕', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '12px',
-        color: '#ffffff',
-      })
-      .setOrigin(0.5);
-    closeBg.on('pointerdown', () => {
-      const cb = this.onCancelRef;
-      this.close();
-      cb?.();
-    });
-    this.container.add([closeBg, closeGlyph]);
-
-    // Decide which step to open on. If caller passed an initial audioKey
-    // that's in the catalog, jump straight to the song list scrolled to
-    // its page so the player sees their current pick highlighted.
-    // Always land on the vibe step — Tim's rule: don't pre-jump based on
-    // previous selection, the player picks fresh each time. `args.initial`
-    // is now only used inside the song list to highlight the previously
-    // chosen song when the user navigates to its vibe; selection state is
-    // NOT carried across modal opens.
+    // Always land on the vibe step — Tim's rule: don't pre-jump based
+    // on previous selection, the player picks fresh each time.
     this.showVibeStep(availableVibes);
   }
 
@@ -144,8 +78,8 @@ export class SongPickerModal {
       this.container.destroy(true);
       this.container = null;
     }
-    this.titleText = null;
-    this.subtitleText = null;
+    this.chromeChildren = [];
+    this.stepChildren = [];
     this.selectedVibe = null;
     this.selectedAudioKey = null;
     this.candidates = [];
@@ -161,25 +95,22 @@ export class SongPickerModal {
   // === Step 1: vibe picker ===
   private showVibeStep(vibes: BackingVibe[]): void {
     if (!this.container) return;
-    this.clearStepChildren();
     // Reset selectedVibe so re-picking the SAME vibe after a BACK also
     // counts as "entering anew" and resets pagination.
     this.selectedVibe = null;
-    if (this.subtitleText) this.subtitleText.setText('Choose a vibe');
 
-    const { width, height } = this.scene.scale;
-    const cx = width / 2;
-    const cy = height / 2;
-    const panelW = Math.min(284, width - 24);
-    const panelH = Math.min(440, height - 60);
-    const btnW = panelW - 56;
+    const btnW = Math.min(284, this.scene.scale.width - 24) - 56;
     const btnH = 48;
-    const gap = 12;
-    const stackH = vibes.length * btnH + (vibes.length - 1) * gap;
-    const topY = cy - stackH / 2 + btnH / 2;
+    const btnGap = 12;
+    const stackH = vibes.length * btnH + (vibes.length - 1) * btnGap;
+    // Title area (~70px) + stack + gap + cancel (32) + pad
+    const panelH = SongPickerModal.TITLE_AREA_H + stackH + 24 + 32 + 20;
 
+    const { panelX, panelY, panelW, cx } = this.renderChrome(panelH, 'PICK A SONG', 'Choose a vibe');
+
+    const topY = panelY + SongPickerModal.TITLE_AREA_H + btnH / 2;
     vibes.forEach((v, i) => {
-      const y = topY + i * (btnH + gap);
+      const y = topY + i * (btnH + btnGap);
       const bg = this.scene.add
         .rectangle(cx, y, btnW, btnH, 0x2c1856, 1)
         .setStrokeStyle(2, 0xc678ff, 0.8)
@@ -200,14 +131,14 @@ export class SongPickerModal {
     });
 
     // Cancel pill at the bottom of the panel
-    const cancelY = cy + panelH / 2 - 30;
-    this.addCancelButton(cx, cancelY);
+    this.addCancelButton(cx, panelY + panelH - 30);
+    // panelX/panelW unused here but returned by renderChrome for parity.
+    void panelX; void panelW;
   }
 
   // === Step 2: song list ===
   private showSongList(vibe: BackingVibe): void {
     if (!this.container) return;
-    this.clearStepChildren();
     const enteringSongList = this.selectedVibe !== vibe;
     this.selectedVibe = vibe;
     this.candidates = Object.values(BACKING_CATALOG).filter((b) => b.vibe === vibe);
@@ -230,21 +161,28 @@ export class SongPickerModal {
       }
     }
 
-    if (this.subtitleText) {
-      const totalPages = Math.max(1, Math.ceil(this.candidates.length / SONGS_PER_PAGE));
-      const pageLabel = totalPages > 1 ? `  ·  PAGE ${this.page + 1}/${totalPages}` : '';
-      this.subtitleText.setText(`${vibe.toUpperCase()}${pageLabel}`);
-    }
+    const rowH = 38;
+    const rowGap = 6;
+    const start = this.page * SONGS_PER_PAGE;
+    const visible = this.candidates.slice(start, start + SONGS_PER_PAGE);
+    const totalPages = Math.ceil(this.candidates.length / SONGS_PER_PAGE);
+    const rowsH = visible.length * rowH + (visible.length - 1) * rowGap;
 
-    const { width, height } = this.scene.scale;
-    const cx = width / 2;
-    const cy = height / 2;
-    const panelW = Math.min(284, width - 24);
-    const panelH = Math.min(440, height - 60);
+    // Footer below rows: PREVIEW + SELECT (38h) if a row is highlighted,
+    // else just CANCEL (32h). Gap above footer 12.
+    const footerH = this.selectedAudioKey ? 38 : 32;
+    // Pager strip at the very bottom (28h + 14 gap above) when multi-page.
+    const pagerStripH = totalPages > 1 ? 28 + 14 : 0;
+    const contentH = rowsH + 12 + footerH + pagerStripH;
+    const desiredH = SongPickerModal.TITLE_AREA_H + contentH + 20;
+    const maxH = Math.min(440, this.scene.scale.height - 60);
+    const panelH = Math.min(maxH, desiredH);
 
-    // ← BACK chip top-left
-    const backY = cy - panelH / 2 + 22;
-    const backX = cx - panelW / 2 + 28;
+    const { panelX, panelW, panelY, cx } = this.renderChrome(panelH, 'PICK A SONG', vibe.toUpperCase());
+
+    // ← BACK chip top-left, sitting in the chrome row alongside the title
+    const backY = panelY + 22;
+    const backX = panelX + 28;
     const backChip = this.scene.add
       .text(backX, backY, '← BACK', {
         fontFamily: 'Pixeloid Sans, sans-serif',
@@ -263,12 +201,8 @@ export class SongPickerModal {
     this.stepChildren.push(backChip);
 
     // Song rows
-    const rowsTop = cy - panelH / 2 + 72;
+    const rowsTop = panelY + SongPickerModal.TITLE_AREA_H;
     const rowW = panelW - 32;
-    const rowH = 38;
-    const rowGap = 6;
-    const start = this.page * SONGS_PER_PAGE;
-    const visible = this.candidates.slice(start, start + SONGS_PER_PAGE);
 
     visible.forEach((song, i) => {
       const y = rowsTop + i * (rowH + rowGap) + rowH / 2;
@@ -295,50 +229,9 @@ export class SongPickerModal {
       this.stepChildren.push(bg, txt);
     });
 
-    // Pager (only if more than one page)
-    const totalPages = Math.ceil(this.candidates.length / SONGS_PER_PAGE);
-    if (totalPages > 1) {
-      const pagerY = rowsTop + SONGS_PER_PAGE * (rowH + rowGap) - rowGap + 14;
-      const arrowSize = 24;
-      const arrowGap = 90;
-      const prevBg = this.scene.add
-        .rectangle(cx - arrowGap / 2, pagerY, arrowSize, arrowSize, 0x2c1856, 1)
-        .setStrokeStyle(1, 0xc678ff, 0.6)
-        .setInteractive({ useHandCursor: true });
-      const prevTxt = this.scene.add
-        .text(cx - arrowGap / 2, pagerY, '◀', {
-          fontFamily: 'Pixeloid Sans, sans-serif',
-          fontStyle: 'bold',
-          fontSize: '12px',
-          color: '#ffffff',
-        })
-        .setOrigin(0.5);
-      prevBg.on('pointerdown', () => {
-        this.page = (this.page - 1 + totalPages) % totalPages;
-        this.showSongList(vibe);
-      });
-      const nextBg = this.scene.add
-        .rectangle(cx + arrowGap / 2, pagerY, arrowSize, arrowSize, 0x2c1856, 1)
-        .setStrokeStyle(1, 0xc678ff, 0.6)
-        .setInteractive({ useHandCursor: true });
-      const nextTxt = this.scene.add
-        .text(cx + arrowGap / 2, pagerY, '▶', {
-          fontFamily: 'Pixeloid Sans, sans-serif',
-          fontStyle: 'bold',
-          fontSize: '12px',
-          color: '#ffffff',
-        })
-        .setOrigin(0.5);
-      nextBg.on('pointerdown', () => {
-        this.page = (this.page + 1) % totalPages;
-        this.showSongList(vibe);
-      });
-      this.container.add([prevBg, prevTxt, nextBg, nextTxt]);
-      this.stepChildren.push(prevBg, prevTxt, nextBg, nextTxt);
-    }
-
-    // Footer: PREVIEW + SELECT (only when a song is highlighted)
-    const footerY = cy + panelH / 2 - 32;
+    // Footer: PREVIEW + SELECT (when selected) or CANCEL — sits just
+    // below the song rows, not at the very bottom (Tim's rule).
+    const footerY = rowsTop + rowsH + 12 + footerH / 2;
     if (this.selectedAudioKey) {
       const footBtnW = 110;
       const footBtnH = 38;
@@ -385,20 +278,141 @@ export class SongPickerModal {
       this.container.add([previewBg, previewTxt, selectBg, selectTxt]);
       this.stepChildren.push(previewBg, previewTxt, selectBg, selectTxt);
     } else {
-      // No selection yet: just a cancel pill
       this.addCancelButton(cx, footerY);
+    }
+
+    // Pager (yellow arrows, page label between) anchored at panel bottom.
+    if (totalPages > 1) {
+      const pagerY = panelY + panelH - 18;
+      const pageTxt = this.scene.add
+        .text(cx, pagerY, `${this.page + 1} / ${totalPages}`, {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '12px',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5);
+      this.container.add(pageTxt);
+      this.stepChildren.push(pageTxt);
+      const prev = this.makeArrow(panelX + 28, pagerY, '◀', () => {
+        this.page = (this.page - 1 + totalPages) % totalPages;
+        this.showSongList(vibe);
+      });
+      const next = this.makeArrow(panelX + panelW - 28, pagerY, '▶', () => {
+        this.page = (this.page + 1) % totalPages;
+        this.showSongList(vibe);
+      });
+      this.container.add([prev, next]);
+      this.stepChildren.push(prev, next);
     }
   }
 
   // === helpers ===
 
-  /** Track every per-step game object so step transitions only nuke
-   *  the step's UI, not the persistent panel/scrim/title. */
+  /** Top-of-panel reserved height for title + subtitle + ✕ + BACK chip. */
+  private static readonly TITLE_AREA_H = 72;
+
+  /** Per-step children (everything except scrim) — recreated every time
+   *  `showVibeStep` or `showSongList` runs so dynamic panel height works. */
   private stepChildren: GameObjects.GameObject[] = [];
+  /** Panel chrome (panel rect, title, subtitle, ✕). Same lifecycle as
+   *  stepChildren — destroyed and rebuilt each step transition. */
+  private chromeChildren: GameObjects.GameObject[] = [];
 
   private clearStepChildren(): void {
     for (const child of this.stepChildren) child.destroy();
     this.stepChildren = [];
+    for (const child of this.chromeChildren) child.destroy();
+    this.chromeChildren = [];
+  }
+
+  /** Build (or rebuild) the panel + title + subtitle + ✕ close button at
+   *  the given height. Returns the panel's bounds so step content can
+   *  position relative to them. */
+  private renderChrome(
+    panelH: number,
+    title: string,
+    subtitle: string,
+  ): { panelX: number; panelY: number; panelW: number; cx: number; cy: number } {
+    this.clearStepChildren();
+    const { width, height } = this.scene.scale;
+    const cx = width / 2;
+    const cy = height / 2;
+    const panelW = Math.min(284, width - 24);
+    const clampedH = Math.min(panelH, Math.min(440, height - 60));
+    const panelX = cx - panelW / 2;
+    const panelY = cy - clampedH / 2;
+
+    const panel = this.scene.add
+      .rectangle(cx, cy, panelW, clampedH, 0x1a0a2e, 1)
+      .setStrokeStyle(2, 0xffd34d, 0.85)
+      .setInteractive();
+    panel.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, e: Phaser.Types.Input.EventData) =>
+      e.stopPropagation(),
+    );
+
+    const titleText = this.scene.add
+      .text(cx, panelY + 22, title, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '18px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5);
+
+    const subtitleText = this.scene.add
+      .text(cx, panelY + 48, subtitle, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontSize: '10px',
+        color: '#c0a0e6',
+      })
+      .setOrigin(0.5);
+
+    const closeR = 12;
+    const closeCx = panelX + panelW - 18;
+    const closeCy = panelY + 18;
+    const closeBg = this.scene.add
+      .circle(closeCx, closeCy, closeR, 0xff5050, 1)
+      .setStrokeStyle(2, 0x0b041a, 1)
+      .setInteractive({ useHandCursor: true });
+    const closeGlyph = this.scene.add
+      .text(closeCx, closeCy, '✕', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5);
+    closeBg.on('pointerdown', () => {
+      const cb = this.onCancelRef;
+      this.close();
+      cb?.();
+    });
+
+    this.container!.add([panel, titleText, subtitleText, closeBg, closeGlyph]);
+    this.chromeChildren.push(panel, titleText, subtitleText, closeBg, closeGlyph);
+    return { panelX, panelY, panelW, cx, cy };
+  }
+
+  /** Pager arrow matching DressingRoom's makeArrow: 36×28 dark-purple
+   *  rect, light-purple stroke, yellow-glyph centered label. */
+  private makeArrow(x: number, y: number, label: string, onTap: () => void): GameObjects.Container {
+    const c = this.scene.add.container(x, y);
+    const bg = this.scene.add
+      .rectangle(0, 0, 36, 28, 0x2c1856, 1)
+      .setStrokeStyle(1, 0xc0a0e6, 0.5)
+      .setInteractive({ useHandCursor: true });
+    const text = this.scene.add
+      .text(0, 0, label, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '14px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5);
+    c.add([bg, text]);
+    bg.on('pointerdown', onTap);
+    return c;
   }
 
   private addCancelButton(cx: number, y: number): void {
