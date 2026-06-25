@@ -1,4 +1,10 @@
 {
+  "vibes": [
+    "upbeat",
+    "melodic",
+    "smooth",
+    "illegal"
+  ],
   "genres": [
     "bubblegum-pop",
     "synthwave",
@@ -26,6 +32,7 @@
     "nostalgic",
     "bright",
     "dark",
-    "dreamy"
+    "dreamy",
+    "test"
   ]
 }

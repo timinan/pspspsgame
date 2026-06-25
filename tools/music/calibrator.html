@@ -125,16 +125,16 @@
 
   <div id="filter-bar" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:14px 0 8px 0; font-size:11px; color:#c0a0e6;">
     <span><b>FILTER:</b></span>
-    <label>vibe <select id="filter-vibe" style="background:#0b041a; color:#fff; border:1px solid #c0a0e6; padding:2px 4px;"><option value="all">all</option><option value="upbeat">upbeat</option><option value="melodic">melodic</option><option value="smooth">smooth</option></select></label>
+    <label>vibe <select id="filter-vibe" style="background:#0b041a; color:#fff; border:1px solid #c0a0e6; padding:2px 4px;"></select></label>
     <label>genre <select id="filter-genre" style="background:#0b041a; color:#fff; border:1px solid #c0a0e6; padding:2px 4px;"></select></label>
     <label>mood <select id="filter-mood" style="background:#0b041a; color:#fff; border:1px solid #c0a0e6; padding:2px 4px;"></select></label>
     <span style="flex:1;"></span>
     <span><b>SORT:</b></span>
     <select id="sort-by" style="background:#0b041a; color:#fff; border:1px solid #c0a0e6; padding:2px 4px;">
+      <option value="newest" selected>newest first</option>
+      <option value="oldest">oldest first</option>
       <option value="alpha-asc">name A→Z</option>
       <option value="alpha-desc">name Z→A</option>
-      <option value="newest">newest first</option>
-      <option value="oldest">oldest first</option>
     </select>
     <span id="filter-count" style="margin-left:6px;"></span>
   </div>
@@ -173,11 +173,7 @@
         <label style="color:#c0a0e6;">DISPLAY NAME</label>
         <input id="meta-name" type="text" style="background:#0b041a; color:#fff; border:1px solid #c0a0e6; padding:4px 6px; border-radius:4px;" />
         <label style="color:#c0a0e6;">VIBE</label>
-        <select id="meta-vibe" class="cycle" style="padding:4px 6px;">
-          <option value="upbeat">UPBEAT</option>
-          <option value="melodic">MELODIC</option>
-          <option value="smooth">SMOOTH</option>
-        </select>
+        <select id="meta-vibe" class="cycle" style="padding:4px 6px;"></select>
         <label style="color:#c0a0e6;">GENRE</label>
         <select id="meta-genre" class="cycle" style="padding:4px 6px;"></select>
         <label style="color:#c0a0e6;">MOOD</label>
@@ -231,10 +227,10 @@
 <script src="/tools-nav.js"></script>
 <script>
 const SPEED_CYCLE = ['slow', 'medium', 'fast', 'faster'];
-const VIBE_CYCLE = ['upbeat', 'melodic', 'smooth'];
 // Taxonomies are loaded from tools/music/taxonomies.json on init so the
 // user can extend them via "+ add new…". Initial fallback values mirror
 // the seed list — replaced once the fetch resolves.
+let VIBE_OPTIONS = ['upbeat', 'melodic', 'smooth'];
 let GENRE_OPTIONS = [
   'bubblegum-pop', 'synthwave', 'lo-fi', 'bossa-nova', 'acoustic-folk',
   'chiptune', 'jazz', 'funk', 'ambient', 'house',
@@ -255,6 +251,7 @@ async function loadTaxonomies() {
     const r = await fetch('/tools/music/taxonomies.json?_=' + Date.now());
     if (!r.ok) return;
     const j = await r.json();
+    if (Array.isArray(j.vibes)) VIBE_OPTIONS = j.vibes;
     if (Array.isArray(j.genres)) GENRE_OPTIONS = j.genres;
     if (Array.isArray(j.moods)) MOOD_OPTIONS = j.moods;
   } catch (e) {
@@ -262,11 +259,25 @@ async function loadTaxonomies() {
   }
 }
 
-/** Prompt + POST to add a new genre/mood. Returns the new slug on
+const KIND_LABELS = { vibes: 'vibe', genres: 'genre', moods: 'mood' };
+const KIND_FILTER_IDS = { vibes: 'filter-vibe', genres: 'filter-genre', moods: 'filter-mood' };
+function getKindList(kind) {
+  if (kind === 'vibes') return VIBE_OPTIONS;
+  if (kind === 'genres') return GENRE_OPTIONS;
+  if (kind === 'moods') return MOOD_OPTIONS;
+  return [];
+}
+function setKindList(kind, list) {
+  if (kind === 'vibes') VIBE_OPTIONS = list;
+  else if (kind === 'genres') GENRE_OPTIONS = list;
+  else if (kind === 'moods') MOOD_OPTIONS = list;
+}
+
+/** Prompt + POST to add a new vibe/genre/mood. Returns the new slug on
  *  success so the caller can preselect it in the dropdown that
  *  triggered the add. */
-async function promptAddTaxonomy(kind /* 'genres' | 'moods' */) {
-  const labelKind = kind === 'genres' ? 'genre' : 'mood';
+async function promptAddTaxonomy(kind /* 'vibes' | 'genres' | 'moods' */) {
+  const labelKind = KIND_LABELS[kind] || kind;
   const raw = window.prompt(`New ${labelKind} name?\n(letters, numbers, dashes only — will be slugified)`);
   if (!raw || raw.trim().length === 0) return null;
   try {
@@ -275,12 +286,10 @@ async function promptAddTaxonomy(kind /* 'genres' | 'moods' */) {
     });
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || 'add failed');
-    // Refresh local lists from server response
-    if (kind === 'genres') GENRE_OPTIONS = j.list;
-    else MOOD_OPTIONS = j.list;
-    // Force the FILTER select to repopulate by clearing its options
-    // (populateFilterSelects fills it only when empty as a perf opt).
-    const filterSel = document.getElementById(kind === 'genres' ? 'filter-genre' : 'filter-mood');
+    setKindList(kind, j.list);
+    // Force the FILTER select to repopulate (populateFilterSelects only
+    // fills when empty as a perf opt).
+    const filterSel = document.getElementById(KIND_FILTER_IDS[kind]);
     if (filterSel) filterSel.innerHTML = '';
     render();
     toast(`added ${labelKind} "${j.slug}"`, 'ok');
@@ -448,15 +457,23 @@ function render() {
 
     // Vibe cycle
     const vibeCell = document.createElement('td');
-    const vibeBtn = document.createElement('button');
-    vibeBtn.className = 'cycle vibe';
-    vibeBtn.textContent = (entry.vibe || 'upbeat').toUpperCase();
-    vibeBtn.addEventListener('click', () => {
-      entry.vibe = nextInCycle(entry.vibe || 'upbeat', VIBE_CYCLE);
-      vibeBtn.textContent = entry.vibe.toUpperCase();
+    const vibeSel = document.createElement('select');
+    vibeSel.className = 'cycle';
+    fillTaxonomySelect(vibeSel, VIBE_OPTIONS, entry.vibe || 'upbeat');
+    vibeSel.addEventListener('change', async () => {
+      if (vibeSel.value === ADD_NEW_SENTINEL) {
+        const newSlug = await promptAddTaxonomy('vibes');
+        vibeSel.value = newSlug ?? (entry.vibe || 'upbeat');
+        if (newSlug) {
+          entry.vibe = newSlug;
+          scheduleSave();
+        }
+        return;
+      }
+      entry.vibe = vibeSel.value;
       scheduleSave();
     });
-    vibeCell.appendChild(vibeBtn);
+    vibeCell.appendChild(vibeSel);
     tr.appendChild(vibeCell);
 
     // Genre dropdown (auto-guesses from id on first render of an entry
@@ -687,10 +704,10 @@ function openMetaModal(file) {
   metaModalState.baseName = baseName;
   // Default values: auto-guess from filename, fall back to FAST/UPBEAT/130
   const guess = guessGenreMood(slugify(baseName));
+  fillTaxonomySelect(document.getElementById('meta-vibe'), VIBE_OPTIONS, 'upbeat');
   fillTaxonomySelect(document.getElementById('meta-genre'), GENRE_OPTIONS, guess.genre);
   fillTaxonomySelect(document.getElementById('meta-mood'), MOOD_OPTIONS, guess.mood);
   document.getElementById('meta-name').value = baseName;
-  document.getElementById('meta-vibe').value = 'upbeat';
   document.getElementById('meta-tempo').value = 'fast';
   document.getElementById('meta-bpm').value = 130;
   document.getElementById('meta-modal-title').textContent = `Tune metadata — ${baseName}`;
@@ -748,21 +765,17 @@ document.getElementById('meta-modal-scrim').addEventListener('click', (e) => {
   if (e.target.id === 'meta-modal-scrim') closeMetaModal();
 });
 
-// Modal's genre + mood selects also handle "+ add new…" — prompt, then
-// repopulate the select with the new value preselected so the apply
-// path picks it up.
-for (const k of ['genres', 'moods']) {
-  const sel = document.getElementById(k === 'genres' ? 'meta-genre' : 'meta-mood');
+// Modal's vibe + genre + mood selects all handle "+ add new…" — prompt,
+// then repopulate the select with the new value preselected so the
+// apply path picks it up.
+const META_SEL_IDS = { vibes: 'meta-vibe', genres: 'meta-genre', moods: 'meta-mood' };
+for (const k of ['vibes', 'genres', 'moods']) {
+  const sel = document.getElementById(META_SEL_IDS[k]);
   if (!sel) continue;
   sel.addEventListener('change', async () => {
     if (sel.value !== ADD_NEW_SENTINEL) return;
     const newSlug = await promptAddTaxonomy(k);
-    if (newSlug) {
-      fillTaxonomySelect(sel, k === 'genres' ? GENRE_OPTIONS : MOOD_OPTIONS, newSlug);
-    } else {
-      // Revert to first taxonomy option if user cancelled
-      fillTaxonomySelect(sel, k === 'genres' ? GENRE_OPTIONS : MOOD_OPTIONS, sel.options[0]?.value);
-    }
+    fillTaxonomySelect(sel, getKindList(k), newSlug ?? sel.options[0]?.value);
   });
 }
 
@@ -773,10 +786,10 @@ function openMetaModalForExisting(id) {
   const entry = catalog[id];
   if (!entry) return;
   const guess = guessGenreMood(id);
+  fillTaxonomySelect(document.getElementById('meta-vibe'), VIBE_OPTIONS, entry.vibe || 'upbeat');
   fillTaxonomySelect(document.getElementById('meta-genre'), GENRE_OPTIONS, entry.genre || guess.genre);
   fillTaxonomySelect(document.getElementById('meta-mood'), MOOD_OPTIONS, entry.mood || guess.mood);
   document.getElementById('meta-name').value = entry.displayName || id;
-  document.getElementById('meta-vibe').value = entry.vibe || 'upbeat';
   document.getElementById('meta-tempo').value = entry.speedLabel || 'fast';
   document.getElementById('meta-bpm').value = entry.bpm || 130;
   document.getElementById('meta-modal-title').textContent = `Edit metadata — ${entry.displayName || id}`;
@@ -807,54 +820,41 @@ function fillTaxonomySelect(sel, options, selectedValue) {
   sel.appendChild(addNew);
 }
 
-/** Fill the filter dropdowns with all genre + mood options. Called every
- *  render — cheap, idempotent. Preserves the currently-selected value
- *  so re-renders don't blow away the user's filter. */
+/** Fill the filter dropdowns with all vibe + genre + mood options.
+ *  Called every render — cheap, idempotent. Preserves the
+ *  currently-selected value so re-renders don't blow away the filter. */
 function populateFilterSelects() {
-  const genreSel = document.getElementById('filter-genre');
-  if (genreSel && genreSel.options.length === 0) {
+  const cases = [
+    { id: 'filter-vibe', options: VIBE_OPTIONS },
+    { id: 'filter-genre', options: GENRE_OPTIONS },
+    { id: 'filter-mood', options: MOOD_OPTIONS },
+  ];
+  for (const c of cases) {
+    const sel = document.getElementById(c.id);
+    if (!sel || sel.options.length !== 0) continue;
     const all = document.createElement('option');
     all.value = 'all';
     all.textContent = 'all';
-    genreSel.appendChild(all);
-    for (const g of GENRE_OPTIONS) {
+    sel.appendChild(all);
+    for (const v of c.options) {
       const o = document.createElement('option');
-      o.value = g;
-      o.textContent = g.replace(/-/g, ' ');
-      genreSel.appendChild(o);
+      o.value = v;
+      o.textContent = v.replace(/-/g, ' ');
+      sel.appendChild(o);
     }
     const addNew = document.createElement('option');
     addNew.value = ADD_NEW_SENTINEL;
     addNew.textContent = '+ add new…';
-    genreSel.appendChild(addNew);
-  }
-  const moodSel = document.getElementById('filter-mood');
-  if (moodSel && moodSel.options.length === 0) {
-    const all = document.createElement('option');
-    all.value = 'all';
-    all.textContent = 'all';
-    moodSel.appendChild(all);
-    for (const m of MOOD_OPTIONS) {
-      const o = document.createElement('option');
-      o.value = m;
-      o.textContent = m;
-      moodSel.appendChild(o);
-    }
-    const addNew = document.createElement('option');
-    addNew.value = ADD_NEW_SENTINEL;
-    addNew.textContent = '+ add new…';
-    moodSel.appendChild(addNew);
+    sel.appendChild(addNew);
   }
 }
 
-for (const id of ['filter-vibe', 'sort-by']) {
-  document.getElementById(id)?.addEventListener('change', render);
-}
-// Genre + mood filter selects also handle the "+ add new…" sentinel —
-// trigger a prompt, then re-render with the new value preselected.
-for (const k of ['genres', 'moods']) {
-  const id = k === 'genres' ? 'filter-genre' : 'filter-mood';
-  const sel = document.getElementById(id);
+document.getElementById('sort-by')?.addEventListener('change', render);
+// Vibe + genre + mood filter selects all handle the "+ add new…"
+// sentinel — trigger a prompt, then re-render with the new value
+// preselected.
+for (const k of ['vibes', 'genres', 'moods']) {
+  const sel = document.getElementById(KIND_FILTER_IDS[k]);
   if (!sel) continue;
   sel.addEventListener('change', async () => {
     if (sel.value === ADD_NEW_SENTINEL) {

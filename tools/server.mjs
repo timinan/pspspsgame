@@ -1028,7 +1028,7 @@ const server = http.createServer(async (req, res) => {
         const q = new URL(req.url, 'http://localhost').searchParams;
         const kind = q.get('kind');
         const rawValue = q.get('value');
-        if (kind !== 'genres' && kind !== 'moods') {
+        if (kind !== 'genres' && kind !== 'moods' && kind !== 'vibes') {
           throw new Error(`bad kind: ${kind}`);
         }
         if (!rawValue || rawValue.trim().length === 0) {
@@ -1042,7 +1042,7 @@ const server = http.createServer(async (req, res) => {
           .replace(/^-+|-+$/g, '')
           .slice(0, 40);
         if (!slug) throw new Error(`value slugifies to empty: "${rawValue}"`);
-        let tax = { genres: [], moods: [] };
+        let tax = { vibes: [], genres: [], moods: [] };
         try {
           tax = JSON.parse(await fs.readFile(MUSIC_TAXONOMIES_JSON, 'utf8'));
         } catch {
