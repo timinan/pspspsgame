@@ -473,6 +473,13 @@ export function validateChart(c: Chart): { ok: true } | { ok: false; reason: str
       if (c.steps[s.startStep]!.lanes.includes(s.sourceLane)) {
         return { ok: false, reason: 'slide startStep + sourceLane cell also has a tap' };
       }
+      // 2-lane slides (0↔2) physically traverse the middle lane — a
+      // tap on the middle lane at the same step would require a third
+      // finger / awkward coordination. Reject.
+      if (Math.abs(s.sourceLane - s.targetLane) === 2
+          && c.steps[s.startStep]!.lanes.includes(1)) {
+        return { ok: false, reason: '2-lane slide startStep cannot also have a tap on the middle lane' };
+      }
       // A slide's finger traverses every lane between source and target
       // (source + target for 1-lane jumps, source + middle + target for
       // 2-lane jumps). If ANY of those lanes has an active hold at the

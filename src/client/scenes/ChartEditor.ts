@@ -971,11 +971,17 @@ export class ChartEditor extends Scene {
     if (this.chart.holds?.some(
       (h) => touched.includes(h.lane) && startStep >= h.startStep && startStep <= h.endStep,
     )) return;
-    // Strip any conflicting tap on the source cell so the schema stays clean.
+    // Strip any conflicting tap on the source cell — and on the MIDDLE
+    // lane too for 2-lane slides (the finger crosses through it, so a
+    // tap there at the same step would require a 3rd finger).
     const step = this.chart.steps[startStep];
     if (step) {
-      const idx = step.lanes.indexOf(sourceLane);
-      if (idx >= 0) step.lanes.splice(idx, 1);
+      const srcIdx = step.lanes.indexOf(sourceLane);
+      if (srcIdx >= 0) step.lanes.splice(srcIdx, 1);
+      if (Math.abs(sourceLane - targetLane) === 2) {
+        const midIdx = step.lanes.indexOf(1);
+        if (midIdx >= 0) step.lanes.splice(midIdx, 1);
+      }
     }
     if (!this.chart.slides) this.chart.slides = [];
     this.chart.slides.push({ startStep, sourceLane, targetLane });

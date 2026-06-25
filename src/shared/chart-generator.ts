@@ -72,8 +72,12 @@ const PROFILES: Record<GenDifficulty, {
   // with-tap combos) for genuine 2-finger work. Cooldown 1.5 = half
   // the slide-returns get 1 step recovery, half get 2 — averages to
   // "tight but possible to clear at 100% with practice".
-  // Tim's rule: people work for 75%, but 100% is still achievable.
-  insane: { density: 0.82, chord2Chance: 0.45, chord3Chance: 0.16, minGapSteps: 0, holdChance: 0.24, holdMinSteps: 3, holdMaxSteps: 7, slideChance: 0.34, slide2LaneChance: 0.70, slideReturnChance: 0.22, slideReturnCooldownSteps: 1.5, slideOnChords: true },
+  // 2026-06-25 bump per Tim: density 0.82→0.88 fills the quieter
+  // gaps (the chart still has brief rests but they're snappier), and
+  // slideChance 0.34→0.42 leans harder into the slider-heavy feel
+  // that defines the tier. Tim's rule: people work for 75%, but
+  // 100% is still achievable.
+  insane: { density: 0.88, chord2Chance: 0.48, chord3Chance: 0.18, minGapSteps: 0, holdChance: 0.24, holdMinSteps: 3, holdMaxSteps: 7, slideChance: 0.42, slide2LaneChance: 0.70, slideReturnChance: 0.22, slideReturnCooldownSteps: 1.5, slideOnChords: true },
 };
 
 /** Round a target step count UP to the nearest multiple of CHART_PAGE_SIZE.
@@ -232,8 +236,15 @@ export function generateChart(args: {
       // generator never produces a chart that would fail validation.
       const touched: LaneId[] = Math.abs(lane - target) === 2 ? [lane, 1, target] : [lane, target];
       if (holds.some((h) => touched.includes(h.lane) && i >= h.startStep && i <= h.endStep)) continue;
-      // Strip the tap from this cell.
-      step.lanes.splice(0, 1);
+      // Strip the source-lane tap from this cell. For 2-lane slides
+      // ALSO strip any middle-lane tap (validator forbids middle-lane
+      // tap on the same step since the slide finger crosses it).
+      const srcIdx = step.lanes.indexOf(lane);
+      if (srcIdx >= 0) step.lanes.splice(srcIdx, 1);
+      if (Math.abs(lane - target) === 2) {
+        const midIdx = step.lanes.indexOf(1);
+        if (midIdx >= 0) step.lanes.splice(midIdx, 1);
+      }
       slides.push({ startStep: i, sourceLane: lane, targetLane: target });
     }
   }
