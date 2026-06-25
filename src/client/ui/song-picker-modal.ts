@@ -242,11 +242,19 @@ export class SongPickerModal {
     if (this.selectedMood !== 'all' && !availableMoods.includes(this.selectedMood)) {
       this.selectedMood = 'all';
     }
-    this.candidates = vibePool.filter((b) => {
-      if (this.selectedGenre !== 'all' && b.genre !== this.selectedGenre) return false;
-      if (this.selectedMood !== 'all' && b.mood !== this.selectedMood) return false;
-      return true;
-    });
+    this.candidates = vibePool
+      .filter((b) => {
+        if (this.selectedGenre !== 'all' && b.genre !== this.selectedGenre) return false;
+        if (this.selectedMood !== 'all' && b.mood !== this.selectedMood) return false;
+        return true;
+      })
+      // Alphabetical by display name (case-insensitive, locale-aware). Was
+      // catalog insertion order — fine while there were 5 songs, useless
+      // now that the catalog spans dozens and the player wants to find a
+      // specific title without scrubbing every page.
+      .sort((a, b) =>
+        (a.displayName ?? a.id).localeCompare(b.displayName ?? b.id, undefined, { sensitivity: 'base' }),
+      );
 
     // Per-vibe pagination: every transition from the vibe step into a
     // song list resets the page to 0. Tim's rule: pages should be
