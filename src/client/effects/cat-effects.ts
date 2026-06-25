@@ -574,6 +574,129 @@ export const CAT_EFFECTS: CatEffect[] = [
     apply: makeParticles({ emoji: '🦋', size: 16, spawnIntervalMs: 350, riseDistancePx: 110, lifeMs: 2200, spreadX: 70, wobbleX: 24 }),
     burst: makeParticleBurst('🦋', 16),
   },
+
+  // Nature
+  {
+    id: 'effect-leaves',      name: 'Leaves',      iconEmoji: '🍃', rarity: 'common',
+    apply: makeParticles({ emoji: '🍃', size: 14, spawnIntervalMs: 230, riseDistancePx: 100, lifeMs: 1900, spreadX: 60, wobbleX: 14 }),
+    burst: makeParticleBurst('🍃', 14),
+  },
+  {
+    id: 'effect-autumn',      name: 'Autumn Leaves', iconEmoji: '🍂', rarity: 'uncommon',
+    apply: makeParticles({ emoji: '🍂', size: 14, spawnIntervalMs: 240, riseDistancePx: 100, lifeMs: 1900, spreadX: 60, wobbleX: 12 }),
+    burst: makeParticleBurst('🍂', 14),
+  },
+  {
+    id: 'effect-sunflower',   name: 'Sunflowers',  iconEmoji: '🌻', rarity: 'rare',
+    apply: makeParticles({ emoji: '🌻', size: 16, spawnIntervalMs: 260, riseDistancePx: 95, lifeMs: 1800, spreadX: 55 }),
+    burst: makeParticleBurst('🌻', 16),
+  },
+  {
+    id: 'effect-clover',      name: 'Lucky Clovers', iconEmoji: '🍀', rarity: 'rare',
+    apply: makeParticles({ emoji: '🍀', size: 14, spawnIntervalMs: 240, riseDistancePx: 95, lifeMs: 1800, spreadX: 55 }),
+    burst: makeParticleBurst('🍀', 14),
+  },
+  {
+    id: 'effect-mushroom',    name: 'Mushrooms',   iconEmoji: '🍄', rarity: 'uncommon',
+    apply: makeParticles({ emoji: '🍄', size: 14, spawnIntervalMs: 250, riseDistancePx: 95, lifeMs: 1800, spreadX: 55 }),
+    burst: makeParticleBurst('🍄', 14),
+  },
+
+  // Weather / sky
+  {
+    id: 'effect-lightning',   name: 'Lightning',   iconEmoji: '⚡', rarity: 'rare',
+    apply: makeParticles({ emoji: '⚡', size: 16, spawnIntervalMs: 160, riseDistancePx: 95, lifeMs: 1200, spreadX: 40 }),
+    burst: makeParticleBurst('⚡', 16),
+  },
+  {
+    id: 'effect-clouds',      name: 'Clouds',      iconEmoji: '☁️', rarity: 'common',
+    apply: makeParticles({ emoji: '☁️', size: 16, spawnIntervalMs: 280, riseDistancePx: 100, lifeMs: 2100, spreadX: 60, wobbleX: 8 }),
+    // ☁️ is washed-out by default — bump burst alpha so it carries weight.
+    burst: makeParticleBurst('☁️', 16, 12, 0.95),
+  },
+  {
+    id: 'effect-sunbeam',     name: 'Sunbeams',    iconEmoji: '☀️', rarity: 'uncommon',
+    apply: makeParticles({ emoji: '☀️', size: 16, spawnIntervalMs: 260, riseDistancePx: 95, lifeMs: 1800, spreadX: 50 }),
+    burst: makeParticleBurst('☀️', 16),
+  },
+  {
+    id: 'effect-moon',        name: 'Moonlight',   iconEmoji: '🌙', rarity: 'uncommon',
+    apply: makeParticles({ emoji: '🌙', size: 16, spawnIntervalMs: 280, riseDistancePx: 100, lifeMs: 2000, spreadX: 55 }),
+    burst: makeParticleBurst('🌙', 16),
+  },
+  {
+    id: 'effect-rainbow',     name: 'Rainbows',    iconEmoji: '🌈', rarity: 'legendary',
+    apply: makeParticles({ emoji: '🌈', size: 18, spawnIntervalMs: 320, riseDistancePx: 105, lifeMs: 2100, spreadX: 65 }),
+    burst: makeParticleBurst('🌈', 18),
+  },
+
+  // Sweets
+  {
+    id: 'effect-cherry',      name: 'Cherries',    iconEmoji: '🍒', rarity: 'common',
+    apply: makeParticles({ emoji: '🍒', size: 14, spawnIntervalMs: 240, riseDistancePx: 95, lifeMs: 1800, spreadX: 50 }),
+    burst: makeParticleBurst('🍒', 14),
+  },
+  {
+    id: 'effect-candy',       name: 'Candy',       iconEmoji: '🍬', rarity: 'common',
+    apply: makeParticles({ emoji: '🍬', size: 14, spawnIntervalMs: 240, riseDistancePx: 95, lifeMs: 1800, spreadX: 55 }),
+    burst: makeParticleBurst('🍬', 14),
+  },
+  {
+    id: 'effect-cupcake',     name: 'Cupcakes',    iconEmoji: '🧁', rarity: 'uncommon',
+    apply: makeParticles({ emoji: '🧁', size: 16, spawnIntervalMs: 260, riseDistancePx: 100, lifeMs: 1900, spreadX: 55 }),
+    burst: makeParticleBurst('🧁', 16),
+  },
+  {
+    id: 'effect-donut',       name: 'Donuts',      iconEmoji: '🍩', rarity: 'uncommon',
+    apply: makeParticles({ emoji: '🍩', size: 16, spawnIntervalMs: 260, riseDistancePx: 100, lifeMs: 1900, spreadX: 55 }),
+    burst: makeParticleBurst('🍩', 16),
+  },
+
+  // Cosmic / magical
+  {
+    id: 'effect-dizzy',       name: 'Dizzy Stars', iconEmoji: '💫', rarity: 'uncommon',
+    apply: makeParticles({ emoji: '💫', size: 14, spawnIntervalMs: 200, riseDistancePx: 95, lifeMs: 1700, spreadX: 60, wobbleX: 18 }),
+    burst: makeParticleBurst('💫', 14),
+  },
+  {
+    id: 'effect-glow-star',   name: 'Glow Stars',  iconEmoji: '🌟', rarity: 'rare',
+    apply: makeParticles({ emoji: '🌟', size: 16, spawnIntervalMs: 230, riseDistancePx: 100, lifeMs: 1900, spreadX: 60 }),
+    burst: makeParticleBurst('🌟', 16),
+  },
+  {
+    id: 'effect-diamond',     name: 'Diamonds',    iconEmoji: '💎', rarity: 'legendary',
+    apply: makeParticles({ emoji: '💎', size: 16, spawnIntervalMs: 300, riseDistancePx: 100, lifeMs: 2000, spreadX: 55 }),
+    burst: makeParticleBurst('💎', 16),
+  },
+
+  // Cat-themed
+  {
+    id: 'effect-paws',        name: 'Paw Prints',  iconEmoji: '🐾', rarity: 'common',
+    apply: makeParticles({ emoji: '🐾', size: 14, spawnIntervalMs: 220, riseDistancePx: 90, lifeMs: 1700, spreadX: 50 }),
+    burst: makeParticleBurst('🐾', 14),
+  },
+  {
+    id: 'effect-fish',        name: 'Fish',        iconEmoji: '🐟', rarity: 'rare',
+    apply: makeParticles({ emoji: '🐟', size: 16, spawnIntervalMs: 260, riseDistancePx: 100, lifeMs: 1900, spreadX: 60, wobbleX: 14 }),
+    burst: makeParticleBurst('🐟', 16),
+  },
+  {
+    id: 'effect-bird',        name: 'Birds',       iconEmoji: '🐦', rarity: 'rare',
+    apply: makeParticles({ emoji: '🐦', size: 14, spawnIntervalMs: 280, riseDistancePx: 110, lifeMs: 2000, spreadX: 70, wobbleX: 18 }),
+    burst: makeParticleBurst('🐦', 14),
+  },
+
+  // Charm
+  {
+    id: 'effect-balloon',     name: 'Balloons',    iconEmoji: '🎈', rarity: 'common',
+    apply: makeParticles({ emoji: '🎈', size: 16, spawnIntervalMs: 280, riseDistancePx: 110, lifeMs: 2100, spreadX: 55, wobbleX: 10 }),
+    burst: makeParticleBurst('🎈', 16),
+  },
+  {
+    id: 'effect-crown',       name: 'Crowns',      iconEmoji: '👑', rarity: 'legendary',
+    apply: makeParticles({ emoji: '👑', size: 16, spawnIntervalMs: 320, riseDistancePx: 100, lifeMs: 2000, spreadX: 55 }),
+    burst: makeParticleBurst('👑', 16),
+  },
 ];
 
 /** Fast lookup by id. */
