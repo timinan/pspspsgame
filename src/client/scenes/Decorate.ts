@@ -69,15 +69,6 @@ export class Decorate extends Scene {
   private placementZones: GameObjects.Container | null = null;
   /** Named callback for the dressingroom:closed listener so cleanup() can detach it precisely. */
   private onDressingRoomClosed: (() => void) | undefined;
-  /** Named callback for the TextureManager 'addtexture' event — re-renders
-   *  the bg tray when a lazy-loaded theme bg lands so the picker swaps
-   *  the solid-color placeholder for the real thumbnail without the
-   *  player needing to leave and re-enter the screen. */
-  private onBgTextureAdded: ((key: string) => void) | undefined;
-  /** Debounce timer for the bg-texture refresh — a burst of loads
-   *  coalesces into a single renderTray call instead of N destroy/
-   *  recreate cycles back-to-back. */
-  private bgRefreshTimer: Phaser.Time.TimerEvent | null = null;
 
   // Tab state — each tab tracks its own page index so swapping back-and-forth
   // doesn't lose your spot.
@@ -162,36 +153,6 @@ export class Decorate extends Scene {
 
     // Shutdown cleanup
     this.events.on(Scenes.Events.SHUTDOWN, () => this.cleanup());
-
-    // Background auto-prefetch is OFF — bgs lazy-load on demand via
-    // BackgroundManager.ensureLoaded (native Image element, bypasses
-    // Phaser's Loader). Spinner + LOADING… overlay tells the player
-    // it's coming.
-
-    // Still listen for texture-add so the picked bg's thumbnail
-    // updates in-place once its on-demand load finishes (player
-    // shouldn't have to back out + reopen). Heavily guarded:
-    // - only act on bg textures (other adds are unrelated)
-    // - only when the BACKGROUNDS tab is showing
-    // - bail if scene is shutting down
-    // - debounced (300ms) so multiple loads coalesce to one re-render
-    this.onBgTextureAdded = (key: string) => {
-      if (!this.scene.isActive()) return;
-      if (this.activeTab !== 'BACKGROUNDS') return;
-      if (!this.trayContainer) return;
-      const isBg = Object.values(BACKGROUND_CATALOG).some(
-        (b) => b.backdropKey === key,
-      );
-      if (!isBg) return;
-      if (this.bgRefreshTimer) this.bgRefreshTimer.remove();
-      this.bgRefreshTimer = this.time.delayedCall(300, () => {
-        this.bgRefreshTimer = null;
-        if (!this.scene.isActive()) return;
-        if (this.activeTab !== 'BACKGROUNDS') return;
-        if (this.trayContainer) this.renderTray();
-      });
-    };
-    this.textures.on(Phaser.Textures.Events.ADD, this.onBgTextureAdded);
   }
 
   // ---------------------------------------------------------------------------
@@ -973,15 +934,8 @@ export class Decorate extends Scene {
 
       // Background backdrop as the actual thumbnail. Borderless on
       // inactive thumbs (matches dressing room treatment); active bg
-      // gets a green ring so the current pick still pops. While the
-      // texture is still streaming in (prefetcher hasn't reached it
-      // yet), render a solid-color placeholder + spinner + LOADING…
-      // text so the player sees that it's coming, not just an empty
-      // box. The texture-add listener (onBgTextureAdded) re-renders
-      // this tray as soon as the file lands — placeholder swaps to
-      // the real thumbnail without the player needing to back out.
-      const isLoaded = this.textures.exists(entry.backdropKey);
-      const thumb = isLoaded
+      // gets a green ring so the current pick still pops.
+      const thumb = this.textures.exists(entry.backdropKey)
         ? this.add
             .image(x + thumbW / 2, y + thumbH / 2, entry.backdropKey)
             .setDisplaySize(thumbW, thumbH)
@@ -1012,37 +966,6 @@ export class Decorate extends Scene {
 
       this.trayContainer.add([thumb, label]);
       this.trayContainer.add(border);
-
-      if (!isLoaded) {
-        // Spinner — Unicode ↻ rotated continuously, killed automatically
-        // by removeAll(true) when the tray re-renders on texture load.
-        const spinner = this.add
-          .text(x + thumbW / 2, y + thumbH / 2 - 8, '↻', {
-            fontFamily: '"Courier New", monospace',
-            fontStyle: 'bold',
-            fontSize: '22px',
-            color: '#ffffff',
-          })
-          .setOrigin(0.5);
-        this.tweens.add({
-          targets: spinner,
-          angle: 360,
-          duration: 900,
-          repeat: -1,
-          ease: 'Linear',
-        });
-        const loadingLabel = this.add
-          .text(x + thumbW / 2, y + thumbH / 2 + 12, 'LOADING…', {
-            fontFamily: '"Courier New", monospace',
-            fontStyle: 'bold',
-            fontSize: '8px',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 2,
-          })
-          .setOrigin(0.5);
-        this.trayContainer.add([spinner, loadingLabel]);
-      }
 
       if (isActive) {
         const badge = this.add.circle(x + thumbW - 6, y + 6, 7, 0x4dffb4, 1);
@@ -1091,14 +1014,6 @@ export class Decorate extends Scene {
     if (this.onDressingRoomClosed) {
       this.events.off('dressingroom:closed', this.onDressingRoomClosed);
       this.onDressingRoomClosed = undefined;
-    }
-    if (this.onBgTextureAdded) {
-      this.textures.off(Phaser.Textures.Events.ADD, this.onBgTextureAdded);
-      this.onBgTextureAdded = undefined;
-    }
-    if (this.bgRefreshTimer) {
-      this.bgRefreshTimer.remove();
-      this.bgRefreshTimer = null;
     }
     this.contextMenu?.destroy();
     this.placementZones?.destroy(true);

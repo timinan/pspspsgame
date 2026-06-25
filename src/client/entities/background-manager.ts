@@ -33,39 +33,7 @@ export class BackgroundManager {
 
   setBackground(id: BackgroundId): void {
     this.active = KNOWN_IDS.includes(id) ? id : 'stage';
-    this.ensureLoaded(this.active);
     this.draw();
-  }
-
-  /** Lazy-fetch the bg texture if Preloader skipped it. Only 'stage'
-   *  is eager-loaded; everything else lands here on demand.
-   *
-   *  Uses a native browser Image + TextureManager.addImage instead of
-   *  Phaser's Loader because the Loader is designed for the preload
-   *  phase and gets into bad states when scene.load.start() is called
-   *  mid-scene concurrent with tweens / other animations (was freezing
-   *  the hamburger drawer). textures.addImage fires the same ADD event
-   *  the texture-load listener listens for, so live-refresh still works. */
-  private ensureLoaded(id: BackgroundId): void {
-    const entry = BACKGROUND_CATALOG[id];
-    if (!entry) return;
-    if (this.scene.textures.exists(entry.backdropKey)) return;
-    const img = new Image();
-    img.onload = () => {
-      // Race guard: scene may have shut down, or another caller may
-      // have already added this key (e.g., a parallel ensureLoaded).
-      if (!this.scene.scene.isActive()) return;
-      if (this.scene.textures.exists(entry.backdropKey)) {
-        if (this.active === id) this.draw();
-        return;
-      }
-      this.scene.textures.addImage(entry.backdropKey, img);
-      if (this.active === id) this.draw();
-    };
-    img.onerror = (e) => {
-      console.warn('[BackgroundManager] failed to load bg', id, e);
-    };
-    img.src = `assets/themes/${entry.id}-bg.png`;
   }
 
   /** Redraws the container contents for the active background id.

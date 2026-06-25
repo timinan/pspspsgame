@@ -53,15 +53,15 @@ export class Preloader extends Scene {
     this.load.image(AssetKeys.Image.PspspsElementBall, 'images/PSElement_ball.png');
     this.load.image(AssetKeys.Image.PspspsElementBallWhite, 'images/PSElement_ball-white.png');
     this.load.image(AssetKeys.Image.PspspsElementLetters, 'images/PSElement_letters.png');
-    // Eager-load ONLY the default 'stage' bg. The other ~13 theme PNGs
-    // are ~3 MB each (~85 MB total) and the player only ever sees ONE
-    // at a time; lazy-load the rest via BackgroundManager.setBackground
-    // when they actually pick one. Saves a huge chunk of cold-load
-    // time at the cost of a brief solid-color flash if the player's
-    // active bg isn't 'stage' yet — bg pops in once fetched.
-    const defaultBg = BACKGROUND_CATALOG['stage'];
-    if (defaultBg) {
-      this.load.image(defaultBg.backdropKey, `themes/${defaultBg.id}-bg.png`);
+    // Eager-load all theme bgs. Tried lazy-loading non-stage bgs to
+    // shrink cold-load — both Phaser's Loader (state conflict with
+    // tweens) and native Image fallback (URL resolution issue in
+    // Devvit's WebView) created bigger problems than they solved
+    // (hamburger freeze, missing thumbnails). Slow cold-load is the
+    // lesser pain until we have time for a proper fix (webp + smaller
+    // thumbnails, or a CDN-side prefetch hint).
+    for (const bg of Object.values(BACKGROUND_CATALOG)) {
+      this.load.image(bg.backdropKey, `themes/${bg.id}-bg.png`);
     }
 
     // Per-frame translation offsets for each cat animation. Cat.ts reads
