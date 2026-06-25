@@ -513,12 +513,19 @@ export class Decorate extends Scene {
 
     const { width } = this.scale;
 
+    // TopHud sits at depth 2000; the strip's 0.78 dark navy was washing
+    // these labels out. Push them above the strip and add a black stroke
+    // so the text stands out against whatever bg shows through the
+    // translucent strip (Tim's rule: strip stays see-through, text pops).
+    // Kept below the drawer scrim (2100) so the menu still dims them.
     this.add.text(width / 2, TopHud.HEIGHT / 2, 'SET STAGE', {
       fontFamily: '"Courier New", monospace',
       fontStyle: 'bold',
       fontSize: '11px',
       color: '#ffd34d',
-    }).setOrigin(0.5).setDepth(101);
+      stroke: '#0b041a',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(2010);
 
     const coins = this.playerState?.coins ?? 0;
     this.add.text(width - 66, TopHud.HEIGHT / 2, `🪙 ${coins}`, {
@@ -526,7 +533,9 @@ export class Decorate extends Scene {
       fontStyle: 'bold',
       fontSize: '10px',
       color: '#ffd34d',
-    }).setOrigin(1, 0.5).setDepth(101);
+      stroke: '#0b041a',
+      strokeThickness: 3,
+    }).setOrigin(1, 0.5).setDepth(2010);
   }
 
   // ---------------------------------------------------------------------------
