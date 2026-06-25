@@ -99,7 +99,7 @@ export class Note extends GameObjects.Container {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontStyle: 'bold',
       fontSize: '18px',
-      color: '#ffd34d',
+      color: '#ffffff',
       stroke: '#1a0a2e',
       strokeThickness: 3,
     }).setOrigin(0.5).setVisible(false);
