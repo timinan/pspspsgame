@@ -58,6 +58,10 @@ export class Game extends Scene {
    *  instead of compounding off whatever the previous (possibly killed mid-yoyo)
    *  tween left behind. setDisplaySize sets a non-1 scale, so we capture it. */
   private hitTargetBaseScale: number[] = [];
+  /** Per-lane pause flag for the BPM target pulse. tickTargetPulse skips
+   *  any lane currently mid-flash so the hit/miss snap-pop tween owns the
+   *  scale/alpha channels without interference. Cleared in onComplete. */
+  private targetPulseFlashing: boolean[] = [false, false, false];
   /** Per-lane equipped effect cosmetic type id (e.g. 'effect-red-glow').
    *  Populated by seatCats from the seated cat's equipped cosmetics so
    *  flashLaneEffect can spawn a brief burst of the cat's own aura/
@@ -220,6 +224,7 @@ export class Game extends Scene {
     this.updateHoldVisuals();
     this.checkMisses();
     this.tickPageTracking();
+    this.tickTargetPulse();
     // Wall-clock is the sole end signal. `initChartPlayer` already loops
     // the chart enough times to comfortably fill the cap — `isFinished()`
     // is intentionally NOT checked so a short chart that runs out of
@@ -786,8 +791,9 @@ export class Game extends Scene {
       grade === 'perfect' ? 0x4dffff : grade === 'great' ? 0x4dffb4 : 0xff6b6b;
     target.setTint(flashTint);
     this.tweens.killTweensOf(target);
-    // Reset to the captured base scale BEFORE tweening so a killed mid-yoyo
-    // can't leave the target permanently inflated.
+    // Pause the per-frame BPM pulse on this lane so it doesn't fight
+    // the flash tween for the scale/alpha channels. Resumed on complete.
+    this.targetPulseFlashing[laneId] = true;
     target.setScale(base);
     target.setAlpha(1);
     this.tweens.add({
@@ -801,10 +807,7 @@ export class Game extends Scene {
         target.setTint(baseTint);
         target.setScale(base);
         target.setAlpha(1);
-        // Restart the BPM pulse — flashTarget had to killTweensOf(target)
-        // to claim the tween channel, which also nuked the pulse. Without
-        // this restart the target stays static after the first hit/miss.
-        this.startTargetPulse(laneId);
+        this.targetPulseFlashing[laneId] = false;
       },
     });
   }
@@ -1491,36 +1494,35 @@ export class Game extends Scene {
         ease: 'Sine.inOut',
       });
     }
-    // Per-target pulse — grow-and-back-to-base (no shrinking below base,
-    // Tim's note: the bi-directional ±4% felt too busy). Scale peaks at
-    // half the hit-flash expansion (hit flash = base*1.25, so pulse peaks
-    // at base*1.125), alpha 0.85→1.0 in lock-step. Extracted into
-    // startTargetPulse so flashTarget can restart it after each hit/miss
-    // (which had to kill the pulse to take over the tween channel).
-    for (let i = 0; i < this.hitTargets.length; i++) {
-      this.startTargetPulse(i as LaneId);
-    }
+    // Hit-target pulse is clock-driven in tickTargetPulse() instead of
+    // per-lane tween. Reason: the tween approach got phase-shifted every
+    // time flashTarget restarted it (each lane drifted independently),
+    // so the 3 lanes looked random instead of beat-synced. Sampling a
+    // single sine of (time.now) keeps all 3 lanes on the same phase
+    // forever, and pausing any one lane during its hit-flash is a flag
+    // check instead of a tween restart.
   }
 
-  /** Restart the catch-fuzz-ball's BPM-locked pulse. Grow scale base →
-   *  base*1.125 + brightness 0.85 → 1.0 (yoyo, period = msPerStep × 2,
-   *  Sine.inOut). Called by startLanePulse on round start and by
-   *  flashTarget on each hit/miss completion so the pulse keeps going. */
-  private startTargetPulse(laneId: LaneId): void {
+  /** Per-frame BPM-locked pulse on the catching fuzz-balls. Reads a
+   *  single sine of game time so all 3 lanes share the exact same
+   *  phase — they breathe together with the song's beat. Each lane
+   *  skipped while mid hit/miss flash (flashTarget owns the channels).
+   *  Subtle by design: ±3% scale + ±4% alpha (toned way down per Tim,
+   *  the previous +12.5% was overpowering). Period matches the lane
+   *  pulse (msPerStep × 4 = 2 beats per full breath). */
+  private tickTargetPulse(): void {
     if (this.playMsPerStep <= 0) return;
-    const target = this.hitTargets[laneId];
-    const base = this.hitTargetBaseScale[laneId];
-    if (!target || base === undefined) return;
-    this.tweens.add({
-      targets: target,
-      scaleX: { from: base, to: base * 1.125 },
-      scaleY: { from: base, to: base * 1.125 },
-      alpha: { from: 0.85, to: 1.0 },
-      duration: this.playMsPerStep * 2,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.inOut',
-    });
+    const cycleMs = this.playMsPerStep * 4;
+    const phase = (this.time.now % cycleMs) / cycleMs;
+    const wave = Math.sin(phase * Math.PI); // 0..1..0 over one cycle
+    for (let i = 0; i < this.hitTargets.length; i++) {
+      if (this.targetPulseFlashing[i]) continue;
+      const target = this.hitTargets[i]!;
+      const base = this.hitTargetBaseScale[i]!;
+      const scaleMul = 1 + wave * 0.03;
+      target.setScale(base * scaleMul);
+      target.setAlpha(0.92 + wave * 0.08);
+    }
   }
 
   /** Spawn a page-boundary line that falls top → hit line over the
