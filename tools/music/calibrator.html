@@ -551,6 +551,221 @@ async function uploadFile(file, opts = {}) {
 }
 
 load();
+
+// ── Clip editor (waveform + selection brush) ──────────────────────────
+//
+// One global session at a time. fetch /music-analyze/<slug> to get bins +
+// auto-detected best start; render bars onto the canvas; let Tim drag a
+// yellow selection rectangle (and its right edge) over the bars; play
+// preview = HTML5 <audio> with timeupdate guard for the end of the
+// selection; apply = POST /music-reclip/<slug>?startS=...&durS=...
+
+const clipEditor = {
+  slug: null,
+  duration: 0,
+  bins: [],
+  binMs: 100,
+  selStart: 0,   // seconds
+  selDur: 65,    // seconds — Tim can resize 5..180
+  dragging: null, // 'move' | 'resize-right' | null
+  dragOffsetX: 0,
+};
+
+async function openClipEditor(slug) {
+  const scrim = document.getElementById('clip-editor-scrim');
+  const titleEl = document.getElementById('clip-editor-title');
+  const statusEl = document.getElementById('clip-editor-status');
+  clipEditor.slug = slug;
+  titleEl.textContent = `Edit clip — ${catalog[slug]?.displayName || slug}`;
+  statusEl.textContent = 'analyzing source…';
+  scrim.style.display = 'flex';
+  drawWaveform(); // blank state while loading
+  try {
+    const r = await fetch(`/music-analyze/${encodeURIComponent(slug)}`);
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'analyze failed');
+    clipEditor.duration = j.duration;
+    clipEditor.bins = j.bins;
+    clipEditor.binMs = j.binMs;
+    clipEditor.selStart = (typeof catalog[slug]?.clipStartS === 'number')
+      ? catalog[slug].clipStartS
+      : j.bestStart;
+    clipEditor.selDur = Math.min(j.clipDuration, j.duration);
+    statusEl.textContent = j.hasSource
+      ? `source: ${j.duration.toFixed(1)}s · auto-pick = ${j.bestStart.toFixed(1)}s · drag to override`
+      : `⚠️ no source preserved — re-upload original mp3 to use the full ${j.duration < 90 ? 'song' : 'editor'}`;
+    drawWaveform();
+    updateClipReadouts();
+  } catch (e) {
+    statusEl.textContent = `error: ${e.message}`;
+  }
+}
+
+function closeClipEditor() {
+  document.getElementById('clip-editor-scrim').style.display = 'none';
+  const audio = document.getElementById('clip-editor-audio');
+  audio.pause();
+  audio.removeAttribute('src');
+}
+
+function drawWaveform() {
+  const canvas = document.getElementById('clip-editor-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  ctx.fillStyle = '#0b041a';
+  ctx.fillRect(0, 0, W, H);
+  if (clipEditor.bins.length === 0) {
+    ctx.fillStyle = '#c0a0e6';
+    ctx.font = '12px monospace';
+    ctx.fillText('no waveform — analyzing…', 12, H / 2);
+    return;
+  }
+  const binsPerPx = clipEditor.bins.length / W;
+  for (let x = 0; x < W; x++) {
+    const startBin = Math.floor(x * binsPerPx);
+    const endBin = Math.max(startBin + 1, Math.floor((x + 1) * binsPerPx));
+    let maxVal = -60;
+    for (let i = startBin; i < endBin && i < clipEditor.bins.length; i++) {
+      if (clipEditor.bins[i] > maxVal) maxVal = clipEditor.bins[i];
+    }
+    // Map -60..0 dB → 0..1 of bar height; clamp for visibility.
+    const norm = Math.max(0, Math.min(1, (maxVal + 60) / 60));
+    const barH = Math.max(1, Math.round(norm * (H - 4)));
+    ctx.fillStyle = '#c678ff';
+    ctx.fillRect(x, H - barH - 2, 1, barH);
+  }
+  // Selection band
+  if (clipEditor.duration > 0) {
+    const x0 = (clipEditor.selStart / clipEditor.duration) * W;
+    const x1 = ((clipEditor.selStart + clipEditor.selDur) / clipEditor.duration) * W;
+    ctx.fillStyle = 'rgba(255, 211, 77, 0.35)';
+    ctx.fillRect(x0, 0, x1 - x0, H);
+    ctx.strokeStyle = '#ffd34d';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x0 + 1, 1, x1 - x0 - 2, H - 2);
+    // Right-edge handle so resize is discoverable
+    ctx.fillStyle = '#ffd34d';
+    ctx.fillRect(x1 - 4, H / 2 - 14, 8, 28);
+  }
+}
+
+function updateClipReadouts() {
+  document.getElementById('clip-editor-start').textContent = clipEditor.selStart.toFixed(2);
+  document.getElementById('clip-editor-dur').textContent = clipEditor.selDur.toFixed(2);
+  document.getElementById('clip-editor-end').textContent = (clipEditor.selStart + clipEditor.selDur).toFixed(2);
+}
+
+// Convert canvas-pixel x to seconds (uses the source duration).
+function canvasXToSec(x) {
+  const canvas = document.getElementById('clip-editor-canvas');
+  const W = canvas.getBoundingClientRect().width;
+  return (x / W) * clipEditor.duration;
+}
+
+document.getElementById('clip-editor-canvas').addEventListener('pointerdown', (e) => {
+  if (clipEditor.duration === 0) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const xPx = e.clientX - rect.left;
+  const ratio = rect.width;
+  const x0 = (clipEditor.selStart / clipEditor.duration) * ratio;
+  const x1 = ((clipEditor.selStart + clipEditor.selDur) / clipEditor.duration) * ratio;
+  // Right-edge handle: ±6 px of x1
+  if (Math.abs(xPx - x1) < 8) {
+    clipEditor.dragging = 'resize-right';
+    return;
+  }
+  // Inside selection: move
+  if (xPx >= x0 && xPx <= x1) {
+    clipEditor.dragging = 'move';
+    clipEditor.dragOffsetX = xPx - x0;
+    return;
+  }
+  // Outside: jump selection to start at xPx
+  const newStart = Math.max(0, Math.min(clipEditor.duration - clipEditor.selDur, canvasXToSec(xPx)));
+  clipEditor.selStart = newStart;
+  drawWaveform();
+  updateClipReadouts();
+});
+document.getElementById('clip-editor-canvas').addEventListener('pointermove', (e) => {
+  if (!clipEditor.dragging) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const xPx = e.clientX - rect.left;
+  if (clipEditor.dragging === 'move') {
+    const newStartSec = canvasXToSec(xPx - clipEditor.dragOffsetX);
+    clipEditor.selStart = Math.max(0, Math.min(clipEditor.duration - clipEditor.selDur, newStartSec));
+  } else if (clipEditor.dragging === 'resize-right') {
+    const newEndSec = canvasXToSec(xPx);
+    const newDur = Math.max(5, Math.min(180, newEndSec - clipEditor.selStart));
+    clipEditor.selDur = Math.min(newDur, clipEditor.duration - clipEditor.selStart);
+  }
+  drawWaveform();
+  updateClipReadouts();
+});
+window.addEventListener('pointerup', () => { clipEditor.dragging = null; });
+
+document.getElementById('clip-editor-play').addEventListener('click', () => {
+  if (clipEditor.duration === 0) return;
+  const audio = document.getElementById('clip-editor-audio');
+  audio.pause();
+  audio.src = `/music-source/${encodeURIComponent(clipEditor.slug)}?t=${Date.now()}`;
+  audio.currentTime = clipEditor.selStart;
+  audio.play();
+  const stopAt = clipEditor.selStart + clipEditor.selDur;
+  const onTime = () => {
+    if (audio.currentTime >= stopAt) {
+      audio.pause();
+      audio.removeEventListener('timeupdate', onTime);
+    }
+  };
+  audio.addEventListener('timeupdate', onTime);
+});
+
+document.getElementById('clip-editor-auto').addEventListener('click', async () => {
+  if (!clipEditor.slug) return;
+  document.getElementById('clip-editor-status').textContent = 're-running auto-detect…';
+  const r = await fetch(`/music-analyze/${encodeURIComponent(clipEditor.slug)}`);
+  const j = await r.json();
+  if (j.ok) {
+    clipEditor.selStart = j.bestStart;
+    drawWaveform();
+    updateClipReadouts();
+    document.getElementById('clip-editor-status').textContent = `auto-pick → ${j.bestStart.toFixed(2)}s`;
+  }
+});
+
+document.getElementById('clip-editor-apply').addEventListener('click', async () => {
+  if (!clipEditor.slug) return;
+  const slug = clipEditor.slug;
+  const startS = clipEditor.selStart.toFixed(3);
+  const durS = clipEditor.selDur.toFixed(3);
+  const statusEl = document.getElementById('clip-editor-status');
+  statusEl.textContent = 'reclipping…';
+  try {
+    const r = await fetch(`/music-reclip/${encodeURIComponent(slug)}?startS=${startS}&durS=${durS}`, {
+      method: 'POST',
+    });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'reclip failed');
+    statusEl.textContent = `✓ reclipped — startS=${j.startS.toFixed(2)} durS=${j.durS.toFixed(2)} · ${fmtBytes(j.bytes)}`;
+    // Update local catalog reflection so the saved file size + clipStartS sync
+    if (catalog[slug]) {
+      catalog[slug].clipStartS = parseFloat(startS);
+      catalog[slug].loopDurationMs = Math.round(parseFloat(durS) * 1000);
+    }
+    toast(`reclipped "${catalog[slug]?.displayName || slug}"`, 'ok');
+    setTimeout(closeClipEditor, 700);
+  } catch (e) {
+    statusEl.textContent = `error: ${e.message}`;
+    toast('reclip failed: ' + e.message, 'err');
+  }
+});
+
+document.getElementById('clip-editor-cancel').addEventListener('click', closeClipEditor);
+document.getElementById('clip-editor-close').addEventListener('click', closeClipEditor);
+document.getElementById('clip-editor-scrim').addEventListener('click', (e) => {
+  if (e.target.id === 'clip-editor-scrim') closeClipEditor();
+});
 </script>
 </body>
 </html>
