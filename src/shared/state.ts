@@ -297,6 +297,16 @@ export interface Hold {
   endStep: number;
 }
 
+/** A slide note: tap in `sourceLane` at `startStep`, then drag horizontally
+ *  to `targetLane` before the timing window closes. Adjacent lanes only
+ *  (|source - target| === 1). Lives parallel to ChartStep.lanes — a slide's
+ *  startStep + sourceLane cell does NOT also appear in steps[].lanes. */
+export interface Slide {
+  startStep: number;
+  sourceLane: LaneId;
+  targetLane: LaneId;
+}
+
 export interface Chart {
   authorId: string;
   title: string;
@@ -317,6 +327,9 @@ export interface Chart {
   /** Hold notes. Optional — pre-hold charts omit it; editor + game treat
    *  undefined as `[]`. Validator enforces no same-lane overlap. */
   holds?: Hold[];
+  /** Slide notes. Optional — pre-slide charts omit it; editor + game treat
+   *  undefined as `[]`. Validator enforces adjacent-lane targeting only. */
+  slides?: Slide[];
   updatedAt: number;
 }
 
@@ -341,6 +354,7 @@ export function emptyChart(
     bpm: 120,
     steps: Array.from({ length: stepCount }, () => ({ lanes: [] })),
     holds: [],
+    slides: [],
     updatedAt: Date.now(),
   };
 }
@@ -371,6 +385,33 @@ export function validateChart(c: Chart): { ok: true } | { ok: false; reason: str
         }
       }
       perLane[h.lane]!.push(h);
+    }
+  }
+  if (c.slides) {
+    for (const s of c.slides) {
+      if (s.sourceLane !== 0 && s.sourceLane !== 1 && s.sourceLane !== 2) {
+        return { ok: false, reason: `bad slide sourceLane ${s.sourceLane}` };
+      }
+      if (s.targetLane !== 0 && s.targetLane !== 1 && s.targetLane !== 2) {
+        return { ok: false, reason: `bad slide targetLane ${s.targetLane}` };
+      }
+      if (s.startStep < 0 || s.startStep >= c.stepCount) {
+        return { ok: false, reason: 'slide step out of range' };
+      }
+      if (s.sourceLane === s.targetLane) {
+        return { ok: false, reason: 'slide sourceLane === targetLane' };
+      }
+      if (Math.abs(s.sourceLane - s.targetLane) !== 1) {
+        return { ok: false, reason: 'slide must target an ADJACENT lane (no 2-lane jumps)' };
+      }
+      if (c.steps[s.startStep]!.lanes.includes(s.sourceLane)) {
+        return { ok: false, reason: 'slide startStep + sourceLane cell also has a tap' };
+      }
+      if (c.holds?.some(
+        (h) => h.lane === s.sourceLane && s.startStep >= h.startStep && s.startStep <= h.endStep,
+      )) {
+        return { ok: false, reason: 'slide startStep falls inside a hold on its sourceLane' };
+      }
     }
   }
   return { ok: true };
