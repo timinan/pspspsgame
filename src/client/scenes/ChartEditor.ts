@@ -755,24 +755,22 @@ export class ChartEditor extends Scene {
     const visited = new Set(this.dragVisitedLanes);
     this.resetDrag();
 
-    // Slide-and-return: pointer visited a different lane AND returned
-    // to the start lane on release. Now supports BOTH 1-lane (adjacent)
-    // and 2-lane (full-width 0↔2) variants — picks the farthest reached
-    // lane as the target. So drag 0→1→0 commits 0↔1; drag 0→1→2→1→0
-    // commits 0↔2.
+    // Slide-and-return: pointer visited a different lane AND returned to
+    // the start lane on release. ADJACENT-ONLY — 2-lane variant tried +
+    // reverted (gesture too hard). If multiple non-start lanes visited,
+    // pick the adjacent one closest to start; non-adjacent reaches just
+    // fall through to other commit paths.
     if (currentLane === startLane && visited.size >= 2) {
-      let farthest: LaneId | null = null;
-      let farthestDist = 0;
+      const adjacents: LaneId[] = [];
       for (const v of visited) {
-        if (v === startLane) continue;
-        const dist = Math.abs(v - startLane);
-        if (dist > farthestDist) {
-          farthestDist = dist;
-          farthest = v;
-        }
+        if (v !== startLane && Math.abs(v - startLane) === 1) adjacents.push(v);
       }
-      if (farthest !== null && (farthestDist === 1 || farthestDist === 2)) {
-        this.commitSlideReturn(this.scrollOffset + startLocal, startLane, farthest);
+      if (adjacents.length > 0) {
+        let chosen = adjacents[0]!;
+        for (const v of visited) {
+          if (v !== startLane && adjacents.includes(v)) chosen = v;
+        }
+        this.commitSlideReturn(this.scrollOffset + startLocal, startLane, chosen);
         return;
       }
     }
@@ -881,8 +879,7 @@ export class ChartEditor extends Scene {
 
   private commitSlideReturn(startStep: number, sourceLane: LaneId, targetLane: LaneId): void {
     if (sourceLane === targetLane) return;
-    const span = Math.abs(sourceLane - targetLane);
-    if (span !== 1 && span !== 2) return; // 1-lane (adjacent) or 2-lane (0↔2)
+    if (Math.abs(sourceLane - targetLane) !== 1) return; // adjacent only
     if (startStep >= this.getCutoffStep()) return;
     // Refuse if a slide OR slide-return already exists at this source cell.
     if (this.chart.slides?.some(
@@ -891,12 +888,11 @@ export class ChartEditor extends Scene {
     if (this.chart.slideReturns?.some(
       (s) => s.startStep === startStep && s.sourceLane === sourceLane,
     )) return;
-    // Same finger-conflict rule as regular slide: every lane the gesture
-    // touches (source + target, + middle for 2-lane variants) must be
-    // hold-free at startStep.
-    const involved: LaneId[] = span === 2 ? [sourceLane, 1, targetLane] : [sourceLane, targetLane];
+    // Same finger-conflict rule as regular slide: source + target lanes
+    // must be hold-free at startStep.
     if (this.chart.holds?.some(
-      (h) => involved.includes(h.lane) && startStep >= h.startStep && startStep <= h.endStep,
+      (h) => (h.lane === sourceLane || h.lane === targetLane) &&
+             startStep >= h.startStep && startStep <= h.endStep,
     )) return;
     // Strip any conflicting tap on the source cell so the schema stays clean.
     const step = this.chart.steps[startStep];

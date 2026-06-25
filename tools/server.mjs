@@ -11,6 +11,7 @@
  */
 import http from 'node:http';
 import fs from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -1017,10 +1018,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     // --- GET /music-source/<slug> --------------------------------------
-    // Returns the preserved raw source mp3 so the calibrator's waveform
-    // editor can play any sub-region for preview. Falls back to the
-    // already-clipped backing if no source exists (pre-2026-06-25
-    // uploads — Tim re-uploads to get the full editor experience).
+    // Returns the preserved raw source mp3 with HTTP Range support so
+    // the calibrator's waveform editor can seek + play any sub-region.
+    // Without `Accept-Ranges: bytes` + a 206 path, browsers silently
+    // fail to honor `audio.currentTime = X` before the buffer is fully
+    // loaded — the "play selection always starts at 0s" bug. Falls back
+    // to the already-clipped backing if no source exists.
     if (req.method === 'GET' && req.url?.startsWith('/music-source/')) {
       const slug = req.url.replace(/^\/music-source\//, '').split('?')[0];
       try {
@@ -1028,9 +1031,36 @@ const server = http.createServer(async (req, res) => {
         try { await fs.access(p); } catch {
           p = path.join(MUSIC_UPLOAD_DIR, `${slug}.mp3`);
         }
-        const buf = await fs.readFile(p);
-        res.writeHead(200, { 'content-type': 'audio/mpeg', 'cache-control': NO_CACHE });
-        res.end(buf);
+        const stat = await fs.stat(p);
+        const range = req.headers.range;
+        if (range) {
+          const m = range.match(/bytes=(\d+)-(\d*)/);
+          if (m) {
+            const start = parseInt(m[1], 10);
+            const end = m[2] ? parseInt(m[2], 10) : stat.size - 1;
+            if (Number.isFinite(start) && end >= start && end < stat.size) {
+              res.writeHead(206, {
+                'content-type': 'audio/mpeg',
+                'content-range': `bytes ${start}-${end}/${stat.size}`,
+                'accept-ranges': 'bytes',
+                'content-length': end - start + 1,
+                'cache-control': NO_CACHE,
+              });
+              createReadStream(p, { start, end }).pipe(res);
+              return;
+            }
+          }
+        }
+        // No range request → return full file but ADVERTISE range
+        // support via Accept-Ranges so the audio element knows to
+        // request byte ranges on seek.
+        res.writeHead(200, {
+          'content-type': 'audio/mpeg',
+          'accept-ranges': 'bytes',
+          'content-length': stat.size,
+          'cache-control': NO_CACHE,
+        });
+        createReadStream(p).pipe(res);
       } catch (e) {
         res.writeHead(404, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: e.message }));
