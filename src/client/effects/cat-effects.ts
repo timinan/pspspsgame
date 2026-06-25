@@ -296,7 +296,11 @@ function makeParticles(opts: ParticleOpts): CatEffect['apply'] {
       // up from the ground around the cat, not bursting out of its torso.
       const foot = footPosition(sprite);
       const startY = foot.y - sprite.displayHeight * 0.1;
-      const startAlpha = Math.min(1, intensity.v + 0.05);
+      // Floating particles sit BEHIND the cat (depth-1) outside the play
+      // area, so we want them to read clearly without competing with the
+      // gameplay. +0.35 offset bumps REST (0.55) → 0.9 alpha, much more
+      // visible than the prior +0.05 → 0.6 ghost-y look. Capped at 1.
+      const startAlpha = Math.min(1, intensity.v + 0.35);
       const riseDistancePx = baseRise * (0.6 + intensity.v * 0.5);
       const t = scene.add
         .text(foot.x + offsetX, startY, opts.emoji, {
@@ -440,21 +444,20 @@ function makeParticleBurst(
   emoji: string,
   size: number,
   count = 12,
-  /** Optional per-effect override of the default burst alpha. Bubbles
-   *  need to read more solid (their natural transparency looks weak at
-   *  the default 0.78), so the catalog passes a higher value for that. */
+  /** Optional per-effect override of the default burst alpha. Bubbles +
+   *  clouds need to read more solid (their natural translucency looks
+   *  weak), so the catalog passes a higher value for those. */
   alphaOverride?: number,
 ): CatEffect['burst'] {
   return (scene, target, scale = 1) => {
-    const baseDist = 72 * scale;
+    // Burst particles fire from the hit-target fuzz-ball during play,
+    // sitting in the player's read zone. Keep them smaller + tighter +
+    // more transparent so they're celebratory without blocking incoming
+    // notes. Existing fade-out takes alpha to 0 over the last 55% of life.
+    const baseDist = 56 * scale;
     const lifeMs = 720;
-    const px = Math.round(size * scale * 1.35);
-    // Burst particles fire from the hit-target / fuzz-ball during play
-    // so they sit RIGHT in the player's read zone. Default alpha 0.78
-    // is the middle ground between fully-opaque (vision-blocking) and
-    // the 0.55 "too washed out" attempt — readable celebration without
-    // hiding the next falling notes. Existing fade-out takes it to 0.
-    const BURST_ALPHA = alphaOverride ?? 0.78;
+    const px = Math.round(size * scale * 1.15);
+    const BURST_ALPHA = alphaOverride ?? 0.6;
     for (let i = 0; i < count; i++) {
       const slice = (Math.PI * 2) / count;
       const angle = i * slice + (Math.random() - 0.5) * slice * 0.7;
@@ -564,10 +567,10 @@ export const CAT_EFFECTS: CatEffect[] = [
   {
     id: 'effect-bubbles',     name: 'Bubbles',     iconEmoji: '🫧', rarity: 'uncommon',
     apply: makeParticles({ emoji: '🫧', size: 14, spawnIntervalMs: 220, riseDistancePx: 100, lifeMs: 2000, spreadX: 40, wobbleX: 6 }),
-    // Bubble emoji is inherently translucent — at the default 0.78 it
-    // reads as ghostly. Bump to 0.95 so it has visual weight to match
-    // the others.
-    burst: makeParticleBurst('🫧', 14, 12, 0.95),
+    // Bubble emoji is inherently translucent — needs an opacity boost
+    // over the default 0.6 to read as solid. 0.85 keeps it visibly
+    // weightier than peers without going full opaque.
+    burst: makeParticleBurst('🫧', 14, 12, 0.85),
   },
   {
     id: 'effect-butterfly',   name: 'Butterflies', iconEmoji: '🦋', rarity: 'legendary',
@@ -612,7 +615,7 @@ export const CAT_EFFECTS: CatEffect[] = [
     id: 'effect-clouds',      name: 'Clouds',      iconEmoji: '☁️', rarity: 'common',
     apply: makeParticles({ emoji: '☁️', size: 16, spawnIntervalMs: 280, riseDistancePx: 100, lifeMs: 2100, spreadX: 60, wobbleX: 8 }),
     // ☁️ is washed-out by default — bump burst alpha so it carries weight.
-    burst: makeParticleBurst('☁️', 16, 12, 0.95),
+    burst: makeParticleBurst('☁️', 16, 12, 0.85),
   },
   {
     id: 'effect-sunbeam',     name: 'Sunbeams',    iconEmoji: '☀️', rarity: 'uncommon',
