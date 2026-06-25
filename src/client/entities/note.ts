@@ -110,9 +110,11 @@ export class Note extends GameObjects.Container {
       strokeThickness: 3,
     }).setOrigin(0.5).setVisible(false);
     // Approach ring — Phaser Arc with stroke only, no fill. Initial
-    // radius 45 (~1.67× ball radius 27), scaled toward 0.6 (= 27/45)
+    // radius 32 (~1.18× ball radius 27), scaled toward 0.84 (= 27/32)
     // over the fall time so it closes onto the ball at hit moment.
-    this.approachRing = scene.add.arc(0, 0, 45, 0, 360, false);
+    // Subtle ring (not a big radar) so it telegraphs timing without
+    // distracting.
+    this.approachRing = scene.add.arc(0, 0, 32, 0, 360, false);
     this.approachRing.setStrokeStyle(2, 0xffffff, 0.55);
     this.approachRing.setFillStyle(0xffffff, 0);
     this.approachRing.setVisible(false);
@@ -257,12 +259,12 @@ export class Note extends GameObjects.Container {
         2, tintColor ?? LANE_COLORS[laneId], 0.55,
       );
       this.approachRing.setVisible(true);
-      // 0.6 = ball radius (27) / initial ring radius (45) — at the hit
-      // moment the ring is exactly the ball size. Linear ease so the
-      // visual rate matches the note's linear fall.
+      // 0.84 = ball radius (27) / initial ring radius (32) — at the
+      // hit moment the ring is exactly the ball size. Linear ease so
+      // the visual rate matches the note's linear fall.
       this.scene.tweens.add({
         targets: this.approachRing,
-        scale: 0.6,
+        scale: 0.84,
         duration: headFallMs,
         ease: 'Linear',
         onComplete: () => {

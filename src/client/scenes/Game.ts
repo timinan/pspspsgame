@@ -174,6 +174,7 @@ export class Game extends Scene {
     this.seatCats();
     this.buildHud();
     this.buildFeedback();
+    this.buildFpsOverlay();
     this.buildSummaryOverlay();
     this.updateHud();
 
@@ -212,6 +213,7 @@ export class Game extends Scene {
   }
 
   override update(_time: number, delta: number): void {
+    this.updateFpsOverlay();
     if (this.pendingStart || this.roundOver) return;
     this.player.advance(delta);
     this.tickHolds();
@@ -1431,6 +1433,32 @@ export class Game extends Scene {
     // BPM cadence so the playfield feels alive between notes. One
     // continuous yoyo tween per lane, started together so they sync.
     this.startLanePulse();
+  }
+
+  /** Live FPS readout in the top-left corner. Mint on dark stroke so
+   *  it's visible against any bg. Updates 4×/sec (cheap). Doubles as
+   *  a perf canary — if the number tanks during heavy combos / lots
+   *  of effects, we know to dial something back. */
+  private fpsText: Phaser.GameObjects.Text | undefined;
+  private lastFpsUpdate = 0;
+  private buildFpsOverlay(): void {
+    this.fpsText = this.add
+      .text(8, 8, '— FPS', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#4dffb4',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setOrigin(0, 0)
+      .setDepth(1000);
+  }
+  private updateFpsOverlay(): void {
+    if (!this.fpsText) return;
+    if (this.time.now - this.lastFpsUpdate < 250) return;
+    this.lastFpsUpdate = this.time.now;
+    this.fpsText.setText(`${Math.round(this.game.loop.actualFps)} FPS`);
   }
 
   /** Continuous BPM-locked alpha pulse on every lane backdrop. Cheap —
