@@ -146,6 +146,10 @@ export class Game extends Scene {
    *  stat. Hidden on charts without (audioKey + difficulty). */
   private summaryBestDivider!: Phaser.GameObjects.Rectangle;
   private summaryBestLabel!: Phaser.GameObjects.Text;
+  /** Dark chip behind the centered BEST label that masks the divider
+   *  line so the text reads cleanly. Toggled with the rest of the
+   *  BEST objects in updateBestScoreLine. */
+  private summaryBestLabelChip!: Phaser.GameObjects.Rectangle;
   private summaryBestScoreText!: Phaser.GameObjects.Text;
   private summaryBestAccuracyText!: Phaser.GameObjects.Text;
   private summaryBestComboText!: Phaser.GameObjects.Text;
@@ -676,23 +680,34 @@ export class Game extends Scene {
       .setVisible(false);
     container.add(this.summaryBestScoreText);
 
-    const bestDividerY = statsY + 34;
+    const bestDividerY = statsY + 30;
     this.summaryBestDivider = this.add
       .rectangle(cx, bestDividerY, panelW - 32, 1, 0xc0a0e6, 0.35)
       .setVisible(false);
     container.add(this.summaryBestDivider);
 
-    const bestRowY = bestDividerY + 10;
+    // "BEST" centered on the divider as a chip — small dark panel-color
+    // rectangle masks the divider line behind the label so the text
+    // reads cleanly as a section header instead of floating on the line.
+    const bestLabelChip = this.add
+      .rectangle(cx, bestDividerY, 42, 12, 0x1a0a2e, 1)
+      .setVisible(false);
+    container.add(bestLabelChip);
     this.summaryBestLabel = this.add
-      .text(cx - panelW / 2 + margin, bestRowY, 'BEST', {
+      .text(cx, bestDividerY, 'BEST', {
         ...fontBase,
         fontStyle: 'bold',
         fontSize: '9px',
         color: '#c0a0e6',
       })
-      .setOrigin(0, 0.5)
+      .setOrigin(0.5)
       .setVisible(false);
     container.add(this.summaryBestLabel);
+    // Stash the chip alongside the label so updateBestScoreLine can
+    // toggle both with the rest of the BEST objects.
+    this.summaryBestLabelChip = bestLabelChip;
+
+    const bestRowY = bestDividerY + 14;
 
     const bestFont = {
       ...fontBase,
@@ -1475,6 +1490,7 @@ export class Game extends Scene {
     const allBestObjs = [
       this.summaryBestScoreText,
       this.summaryBestDivider,
+      this.summaryBestLabelChip,
       this.summaryBestLabel,
       this.summaryBestAccuracyText,
       this.summaryBestComboText,
