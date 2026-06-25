@@ -785,6 +785,17 @@ export class ChartEditor extends Scene {
     )) {
       return;
     }
+    // Symmetric finger-conflict rule: if any existing slide's path
+    // (source + target, + middle for 2-lane jumps) passes through THIS
+    // lane while the hold is active, the hold can't be placed — same
+    // physical impossibility commitSlide enforces in the other direction.
+    if (this.chart.slides?.some((s) => {
+      if (s.startStep < startStep || s.startStep > endStep) return false;
+      const touched = lanesTouchedBySlide(s.sourceLane, s.targetLane);
+      return touched.includes(lane);
+    })) {
+      return;
+    }
     // Strip any conflicting tap notes inside the hold's range so the
     // schema invariant (taps + holds are disjoint per cell) holds.
     for (let s = startStep; s <= endStep; s++) {
