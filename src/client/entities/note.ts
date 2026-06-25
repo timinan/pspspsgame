@@ -313,20 +313,51 @@ export class Note extends GameObjects.Container {
     return points;
   }
 
-  /** Per-frame update for active and falling hold notes. Mask handles
-   *  tail clipping; this just hides the head past the disappear line
-   *  and applies smooth sine-wave vibration to the tail while engaged.
-   *  Sine (not random) so the motion reads as a steady wobble instead
-   *  of jagged jitter — same amplitude (jitterPx) but visually smooth. */
-  updateHoldVisuals(_laneTopY: number, _targetY: number, disappearY: number, jitterPx: number): void {
+  /** Per-frame update for active and falling notes. Manually clips
+   *  every visible part to the lane band [laneTopY, disappearY] —
+   *  brute-force boundary instead of Phaser's GeometryMask which has
+   *  been flaky here. Hides head/letters above lane top AND past the
+   *  disappear line; dynamically resizes the hold tail and slide tube
+   *  so they only render inside the lane. */
+  updateHoldVisuals(laneTopY: number, _targetY: number, disappearY: number, jitterPx: number): void {
+    // Head + letters: visible only when the container is fully within
+    // [laneTopY, disappearY]. Anything above laneTopY = hide the head
+    // so no fuzzball renders in the cat-stage area.
     const headPast = this.y > disappearY;
-    this.ball.setVisible(!headPast);
-    this.letters.setVisible(!headPast);
+    const headAbove = this.y < laneTopY;
+    const showHead = !headPast && !headAbove;
+    this.ball.setVisible(showHead);
+    this.letters.setVisible(showHead);
+
+    // Hold tail — bottom anchored at container.y (local 0); top
+    // extends UP by currentTailHeight. Clip the visible portion to
+    // [laneTopY, container.y] in world space, reshape the Image to
+    // match. Hide if no part is in the lane band yet.
+    if (this.currentTailHeight > 0) {
+      const tailBottomWorld = Math.min(this.y, disappearY);
+      const tailTopWorld = Math.max(this.y - this.currentTailHeight, laneTopY);
+      const visibleHeight = Math.max(0, tailBottomWorld - tailTopWorld);
+      if (visibleHeight <= 0) {
+        this.tail.setVisible(false);
+      } else {
+        this.tail.setVisible(true);
+        this.tail.setDisplaySize(TAIL_WIDTH, visibleHeight);
+        // Origin (0.5, 1) means tail.y positions the BOTTOM edge in
+        // container-local coords. Convert tailBottomWorld back to local.
+        this.tail.y = tailBottomWorld - this.y;
+      }
+    }
+
+    // Slide tube + arrow — same lane-top gate. Slide tube is
+    // horizontal so its full vertical extent moves with the container;
+    // hide it (and the arrow) whenever the container is above laneTopY.
+    if (this.isSlide) {
+      this.slideTube.setVisible(!headAbove);
+      this.slideArrow.setVisible(!headAbove);
+    }
+
+    // Tail vibration jitter — layered sines for organic feel.
     if (this.holdActive) {
-      // Two layered sines for an organic vibration — primary at ~24 Hz
-      // (sin * 0.15), secondary at ~10 Hz (sin * 0.06) at smaller
-      // amplitude. Single sine alone reads as a predictable wobble;
-      // layering breaks the symmetry so it feels like a real shake.
       const t = this.scene.time.now;
       this.tail.x = Math.sin(t * 0.15) * jitterPx + Math.sin(t * 0.06) * (jitterPx * 0.35);
     } else {
