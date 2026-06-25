@@ -9,6 +9,10 @@ export { LANE_COLORS };
  *  so the trailing column reads as a thin strand, not a second note.
  *  PspspsTubeWhite gets scaled down horizontally to this width. */
 const TAIL_WIDTH = 18;
+/** Slide-tube thickness (perpendicular to drag direction). Slightly
+ *  narrower than the 54px head ball per Tim's spec so the ball still
+ *  reads as the dominant element along the sideways path. */
+const SLIDE_TUBE_THICKNESS = 44;
 
 /**
  * A falling rhythm note rendered as the original Phase 1 "PS element" ball
@@ -39,14 +43,31 @@ export class Note extends GameObjects.Container {
    *  the hold engages. */
   holdLastEffectMs = 0;
 
+  /** True for slide notes — tap in sourceLane + drag horizontally to
+   *  targetLane. Falls down its source lane like a tap; the slide gesture
+   *  is detected on tap-down at the head's hit window. */
+  isSlide = false;
+  /** Signed horizontal distance (px, in container space) from source lane
+   *  center to target lane center. Positive = drag right; negative = left. */
+  slideDeltaX = 0;
+  /** Set true by Game.registerTap when the player taps the slide head
+   *  in the hit window. Tracks pointer-x updates until release. */
+  slideActive = false;
+  /** Pointer id locked to this slide's drag. -1 when not active. Lets
+   *  multi-touch resolve which finger to follow per note. */
+  slidePointerId = -1;
+
   private ball: GameObjects.Image;
   private letters: GameObjects.Image;
-  /** Stretchy Image using the Preloader-generated 'tail-cylinder'
-   *  texture (middle band of the fuzzy ball). Vertical displaySize
-   *  scales the band to the tail's full height — near-parallel sides
-   *  + fuzzy left/right edges baked in. Clipped to the lane band via
+  /** Stretchy Image using PspspsTubeWhite for hold tails (vertical
+   *  capsule, stretched to tail height). Clipped to the lane band via
    *  a GeometryMask applied from Game on spawn. */
   private tail: GameObjects.Image;
+  /** Horizontal sideways tube for slide notes — stays anchored in
+   *  container space while the head ball moves toward target lane. */
+  private slideTube: GameObjects.Image;
+  /** Direction chevron at the target end of the slide tube. */
+  private slideArrow: GameObjects.Text;
   /** Cached tail height so pickRandomVisibleTailWorldPos can locate
    *  the tail's bounds. */
   private currentTailHeight = 0;
@@ -60,6 +81,11 @@ export class Note extends GameObjects.Container {
     this.tail = scene.add.image(0, 0, AssetKeys.Image.PspspsTubeWhite);
     this.tail.setOrigin(0.5, 1);
     this.tail.setVisible(false);
+    // Slide tube — same fuzzy capsule rotated 90° so its rounded ends
+    // sit LEFT + RIGHT, extending sideways from source to target lane.
+    // Stays anchored in container space while head ball moves on drag.
+    this.slideTube = scene.add.image(0, 0, AssetKeys.Image.PspspsTubeWhite);
+    this.slideTube.setVisible(false);
     // 54px — matches the 50% bump applied to the lane hit targets (48 → 72)
     // so the falling notes read at the same visual weight as the target.
     // White-base ball — greyscale-stretched so the per-bg sampled tint
@@ -69,7 +95,17 @@ export class Note extends GameObjects.Container {
     this.ball.setDisplaySize(54, 54);
     this.letters = scene.add.image(0, 0, AssetKeys.Image.PspspsElementLetters);
     this.letters.setDisplaySize(54, 54);
-    this.add([this.tail, this.ball, this.letters]);
+    // Direction chevron drawn at the target end of the slide tube.
+    this.slideArrow = scene.add.text(0, 0, '', {
+      fontFamily: 'Pixeloid Sans, sans-serif',
+      fontStyle: 'bold',
+      fontSize: '18px',
+      color: '#ffd34d',
+      stroke: '#1a0a2e',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setVisible(false);
+    // Order: tail + slideTube behind, ball + letters in front, arrow on top.
+    this.add([this.tail, this.slideTube, this.ball, this.letters, this.slideArrow]);
     // Render above cat-effect particles (cat sprite depth 0 → particles
     // depth +2). Without this, a cat with sparkles / fire / hearts equipped
     // visually obscures every falling note in its lane and the player
@@ -94,6 +130,11 @@ export class Note extends GameObjects.Container {
      *  portion yet to be held) and `holdEndAtMs` is recorded so Game
      *  can auto-end when the trailing edge crosses the target. */
     hold?: { tailHeightPx: number; tailWidthPx: number; releaseAtMs: number },
+    /** Optional slide config. When set, a horizontal tube + arrow draw
+     *  alongside the ball indicating the drag target. The ball itself
+     *  starts at container-local x=0 (= source lane center) and slides
+     *  toward x=deltaX (= target lane center) under player input. */
+    slide?: { deltaX: number },
   ): void {
     // Kill any in-flight tween from the pool's previous use FIRST. If we
     // set position before killing, a still-running fall tween from the
@@ -126,10 +167,6 @@ export class Note extends GameObjects.Container {
       this.isHold = true;
       this.holdEndAtMs = hold.releaseAtMs;
       this.currentTailHeight = hold.tailHeightPx;
-      // Stretch the cylinder texture vertically to the hold's full
-      // length. Width is fixed at TAIL_WIDTH; the source band's
-      // near-parallel sides stay parallel under vertical-only scaling.
-      // Tint matches the head ball so they read as one note.
       this.tail.setDisplaySize(TAIL_WIDTH, hold.tailHeightPx);
       this.tail.setTint(
         liftTowardWhite(tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT),
@@ -142,6 +179,45 @@ export class Note extends GameObjects.Container {
       this.currentTailHeight = 0;
       this.tail.setVisible(false);
     }
+
+    if (slide) {
+      this.isSlide = true;
+      this.slideDeltaX = slide.deltaX;
+      this.slideActive = false;
+      this.slidePointerId = -1;
+      // Tube image is naturally vertical (taller than wide). Set the
+      // PRE-rotation displaySize so the post-90°-rotation screen size
+      // is `abs(deltaX)` wide × SLIDE_TUBE_THICKNESS tall, then center
+      // it between the source (x=0) and target (x=deltaX) in container
+      // coords.
+      const tubeLen = Math.abs(slide.deltaX);
+      this.slideTube.setDisplaySize(SLIDE_TUBE_THICKNESS, tubeLen);
+      this.slideTube.setRotation(Math.PI / 2);
+      this.slideTube.setPosition(slide.deltaX / 2, 0);
+      this.slideTube.setTint(
+        liftTowardWhite(tintColor ?? LANE_COLORS[laneId], BALL_BRIGHTNESS_LIFT),
+      );
+      this.slideTube.setVisible(true);
+      // Arrow at the target end, pointing toward target. ▶ for right
+      // (deltaX > 0), ◀ for left.
+      const arrowSym = slide.deltaX > 0 ? '▶' : '◀';
+      const arrowInset = slide.deltaX > 0 ? -14 : 14;
+      this.slideArrow.setText(arrowSym);
+      this.slideArrow.setPosition(slide.deltaX + arrowInset, 0);
+      this.slideArrow.setVisible(true);
+    } else {
+      this.isSlide = false;
+      this.slideDeltaX = 0;
+      this.slideActive = false;
+      this.slidePointerId = -1;
+      this.slideTube.setVisible(false);
+      this.slideArrow.setVisible(false);
+    }
+
+    // Head starts at container origin regardless of note type. For
+    // slides, the ball.x is the only thing that animates during drag.
+    this.ball.setPosition(0, 0);
+    this.letters.setPosition(0, 0);
 
     this.scene.tweens.add({
       targets: this,
@@ -162,11 +238,30 @@ export class Note extends GameObjects.Container {
     this.scene.tweens.killTweensOf(this);
     this.setActive(false).setVisible(false);
     this.tail.setVisible(false);
+    this.slideTube.setVisible(false);
+    this.slideArrow.setVisible(false);
     this.isHold = false;
     this.holdActive = false;
     this.holdEndAtMs = 0;
     this.holdLastEffectMs = 0;
     this.currentTailHeight = 0;
+    this.isSlide = false;
+    this.slideActive = false;
+    this.slideDeltaX = 0;
+    this.slidePointerId = -1;
+  }
+
+  /** Set the head ball's local x within the container. Game calls this
+   *  on slide-drag pointermove to make the head follow the finger while
+   *  the tube + arrow stay anchored. */
+  setSlideHeadX(localX: number): void {
+    this.ball.x = localX;
+    this.letters.x = localX;
+  }
+
+  /** Current head ball local-x (= 0 at source, deltaX at target). */
+  getSlideHeadX(): number {
+    return this.ball.x;
   }
 
   /** Switch the tail's tint. Game calls this on hold engage to flip

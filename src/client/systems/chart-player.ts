@@ -10,6 +10,7 @@ export class ChartPlayer {
   private nextEmitStep = 0;
   private listeners: Array<(lane: LaneId, hitAt: number) => void> = [];
   private holdListeners: Array<(lane: LaneId, hitAt: number, releaseAt: number) => void> = [];
+  private slideListeners: Array<(sourceLane: LaneId, targetLane: LaneId, hitAt: number) => void> = [];
   private msPerStep: number;
   private totalMs: number;
 
@@ -33,12 +34,19 @@ export class ChartPlayer {
     this.holdListeners.push(fn);
   }
 
+  /** Fires when a slide note should be spawned. The player must tap in
+   *  `sourceLane` at `hitAt` and drag to `targetLane`. */
+  onSlideSpawn(fn: (sourceLane: LaneId, targetLane: LaneId, hitAt: number) => void): void {
+    this.slideListeners.push(fn);
+  }
+
   advance(dtMs: number): void {
     const prevMs = this.elapsedMs;
     this.elapsedMs += dtMs;
     const startSpawnAt = prevMs;
     const stopSpawnAt = Math.min(this.elapsedMs, this.totalMs);
     const holds = this.chart.holds ?? [];
+    const slides = this.chart.slides ?? [];
     while (this.nextEmitStep * this.msPerStep <= stopSpawnAt) {
       const t = this.nextEmitStep * this.msPerStep;
       if (t < startSpawnAt && this.nextEmitStep > 0) {
@@ -58,6 +66,11 @@ export class ChartPlayer {
         if (hold.startStep !== stepIdx) continue;
         const releaseAt = hitAt + (hold.endStep - hold.startStep) * this.msPerStep;
         for (const fn of this.holdListeners) fn(hold.lane, hitAt, releaseAt);
+      }
+      // Slides — same modulo loop treatment as taps + holds.
+      for (const slide of slides) {
+        if (slide.startStep !== stepIdx) continue;
+        for (const fn of this.slideListeners) fn(slide.sourceLane, slide.targetLane, hitAt);
       }
       this.nextEmitStep += 1;
     }

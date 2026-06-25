@@ -914,9 +914,10 @@ export class Game extends Scene {
       const cx = L.laneCenterX(laneId, width);
       const zone = this.add.rectangle(cx, midY, colW, laneH, 0x000000, 0);
       zone.setInteractive();
-      zone.on('pointerdown', () => this.registerTap(laneId));
+      zone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.registerTap(laneId, pointer));
       // Hold notes track pointerup (and pointerout as a slide-off proxy)
       // so the player's finger leaving the lane ends the hold cleanly.
+      // Slides use scene-level pointer events (need to track across lanes).
       zone.on('pointerup', () => this.releaseHoldIfAny(laneId));
       zone.on('pointerout', () => this.releaseHoldIfAny(laneId));
       this.tapZones.push(zone);
@@ -929,6 +930,87 @@ export class Game extends Scene {
     this.input.keyboard?.on('keyup-ONE', () => this.releaseHoldIfAny(0));
     this.input.keyboard?.on('keyup-TWO', () => this.releaseHoldIfAny(1));
     this.input.keyboard?.on('keyup-THREE', () => this.releaseHoldIfAny(2));
+
+    // Slides use scene-level pointer events because the drag crosses
+    // lane boundaries — per-zone handlers would miss the transition.
+    this.input.on('pointermove', this.onScenePointerMoveSlide, this);
+    this.input.on('pointerup', this.onScenePointerUpSlide, this);
+  }
+
+  /** Per-frame-ish pointer update for active slide notes. Updates the
+   *  head ball's local x so it follows the finger; an immediate miss
+   *  fires if the player drags in the wrong direction past a small
+   *  threshold. */
+  private onScenePointerMoveSlide = (pointer: Phaser.Input.Pointer): void => {
+    if (this.roundOver || !pointer.isDown) return;
+    for (let i = 0; i < this.notes.length; i++) {
+      const n = this.notes[i]!;
+      if (!n.active || !n.isSlide || !n.slideActive || n.slidePointerId !== pointer.id) continue;
+      const localX = pointer.x - n.x;
+      // Wrong-direction guard — drag opposite to the slide's required
+      // direction past 10 px is an immediate miss.
+      if (
+        (n.slideDeltaX > 0 && localX < -10) ||
+        (n.slideDeltaX < 0 && localX > 10)
+      ) {
+        this.failSlide(n);
+        return;
+      }
+      // Clamp so the ball can't overshoot past the target lane center.
+      const clamped = n.slideDeltaX > 0
+        ? Math.max(0, Math.min(n.slideDeltaX, localX))
+        : Math.min(0, Math.max(n.slideDeltaX, localX));
+      n.setSlideHeadX(clamped);
+    }
+  };
+
+  /** Pointerup handler for slides. Checks if the head's final position
+   *  landed in the target lane's bounds; success grades as a tap. */
+  private onScenePointerUpSlide = (pointer: Phaser.Input.Pointer): void => {
+    if (this.roundOver) return;
+    for (let i = 0; i < this.notes.length; i++) {
+      const n = this.notes[i]!;
+      if (!n.active || !n.isSlide || !n.slideActive || n.slidePointerId !== pointer.id) continue;
+      // Success threshold — head must have crossed at least 70 % of the
+      // way toward the target lane. Anything less = miss.
+      const fraction = n.getSlideHeadX() / n.slideDeltaX; // always positive when on the right side
+      if (fraction >= 0.7) {
+        this.completeSlide(n);
+      } else {
+        this.failSlide(n);
+      }
+    }
+  };
+
+  /** Grade a successful slide release as a tap-grade hit. Same scoring
+   *  as a great-grade tap (the gesture itself is the challenge). */
+  private completeSlide(n: Note): void {
+    this.score.registerHit('great');
+    this.showHitFeedback(n.laneId, 'great');
+    this.flashTarget(n.laneId, 'great');
+    this.cats[n.laneId]?.playMeow(Balance.catReactionMs);
+    this.cats[n.laneId]?.pulseEffectHit();
+    this.flashLaneEffect(n.laneId);
+    this.music?.playTapForLane(n.laneId);
+    n.consumed = true;
+    n.recycle();
+    this.pulseCombo();
+    this.updateHud();
+  }
+
+  /** Mark a slide as missed — original-lane miss feedback, recycle.
+   *  Used both on wrong-direction drag and on incomplete release. */
+  private failSlide(n: Note): void {
+    this.score.registerHit('miss');
+    this.showHitFeedback(n.laneId, 'miss');
+    this.flashTarget(n.laneId, 'miss');
+    this.cats[n.laneId]?.playAngry(Balance.catReactionMs);
+    this.cats[n.laneId]?.pulseEffectMiss();
+    this.music?.playMiss();
+    n.consumed = true;
+    n.recycle();
+    this.pulseCombo();
+    this.updateHud();
   }
 
   // -----------------------------------------------------------------------
@@ -1161,6 +1243,7 @@ export class Game extends Scene {
 
     this.player.onSpawn((lane, hitAt) => this.spawnNote(lane, hitAt));
     this.player.onHoldSpawn((lane, hitAt, releaseAt) => this.spawnHoldNote(lane, hitAt, releaseAt));
+    this.player.onSlideSpawn((src, tgt, hitAt) => this.spawnSlideNote(src, tgt, hitAt));
 
     // Cache chart-derived timing so update() can drive the page-boundary
     // lines without going through ChartPlayer internals. Test mode only —
@@ -1349,6 +1432,28 @@ export class Game extends Scene {
     if (this.holdLaneMask) note.applyTailMask(this.holdLaneMask);
   }
 
+  /** Spawn a slide note — head ball at `sourceLane` with a sideways tube
+   *  + arrow pointing toward `targetLane`. Falls like a tap; the slide
+   *  gesture is detected on tap-down in the source lane's hit window
+   *  and tracked via scene-level pointermove until release. */
+  private spawnSlideNote(sourceLane: LaneId, targetLane: LaneId, hitAtMs: number): void {
+    const note = this.acquireNote();
+    const sourceX = L.laneCenterX(sourceLane, this.scale.width);
+    const targetX = L.laneCenterX(targetLane, this.scale.width);
+    const deltaX = targetX - sourceX;
+    const scaleY = this.scale.height / L.DESIGN_H;
+    const startY = L.LANE_TOP_Y * scaleY;
+    const hitY = L.HIT_LINE_Y * scaleY;
+    const endY = this.scale.height + 80;
+    const totalFallMs = ((endY - startY) / (hitY - startY)) * Balance.noteFallMs;
+    note.configure(
+      sourceLane, sourceX, startY, endY, totalFallMs, hitAtMs,
+      this.laneTints[sourceLane],
+      undefined,
+      { deltaX },
+    );
+  }
+
   /** Build the lane-band GeometryMask used to clip hold tails. The
    *  mask Graphics itself isn't visible — only its shape is consumed
    *  by the mask system. Fixed dimensions (canvas is locked to portrait
@@ -1381,7 +1486,7 @@ export class Game extends Scene {
   // Private — hit / miss detection
   // -----------------------------------------------------------------------
 
-  private registerTap(laneId: LaneId): void {
+  private registerTap(laneId: LaneId, pointer?: Phaser.Input.Pointer): void {
     if (this.roundOver) return;
     const now = this.time.now - this.startTimeMs;
     const note = this.activeNoteInLane(laneId, now);
@@ -1446,6 +1551,13 @@ export class Game extends Scene {
         note!.holdActive = true;
         note!.holdLastEffectMs = this.time.now - this.startTimeMs;
         note!.setHoldTint(Balance.holdActiveTint);
+      } else if (note!.isSlide && pointer) {
+        // Slide engaged. Lock to this pointer id; scene-level pointermove
+        // tracks the head's local x until pointerup decides success/miss.
+        // Tube flips to mint so the player sees the gesture register.
+        note!.slideActive = true;
+        note!.slidePointerId = pointer.id;
+        note!.setHoldTint(Balance.holdActiveTint);
       } else {
         note!.consumed = true;
         note!.recycle();
@@ -1496,6 +1608,10 @@ export class Game extends Scene {
       // what's being judged now. tickHolds handles auto-end when the
       // tail crosses.
       if (n.isHold && n.holdActive) continue;
+      // Slides being actively dragged get a much more forgiving miss
+      // line (off-screen) since the gesture takes longer than a tap.
+      // Released slides fall through to the normal miss check.
+      if (n.isSlide && n.slideActive) continue;
       if (n.y > missY) {
         this.score.registerHit('miss');
         // Same miss-buzz as a tap-but-missed grade so the player feels
