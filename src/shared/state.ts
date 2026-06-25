@@ -210,6 +210,46 @@ export const COSMETIC_CATALOG: CosmeticEntry[] = [
  */
 export type BackingVibe = 'upbeat' | 'melodic' | 'smooth';
 
+/** Musical genre — what kind of music it is. Drives prompt-generator
+ *  suggestions and (eventually) lets the editor's song picker filter
+ *  by genre instead of just vibe. Edit the list via the music
+ *  calibrator; sync-catalog regenerates the TS catalog. */
+export type BackingGenre =
+  | 'bubblegum-pop'
+  | 'synthwave'
+  | 'lo-fi'
+  | 'bossa-nova'
+  | 'acoustic-folk'
+  | 'chiptune'
+  | 'jazz'
+  | 'funk'
+  | 'ambient'
+  | 'house';
+
+/** Emotional mood — how the song feels regardless of genre. Songs in
+ *  the same genre can swing across many moods. */
+export type BackingMood =
+  | 'energetic'
+  | 'chill'
+  | 'playful'
+  | 'romantic'
+  | 'mysterious'
+  | 'dramatic'
+  | 'nostalgic'
+  | 'bright'
+  | 'dark'
+  | 'dreamy';
+
+/** Stable ordered lists for picker UIs (calibrator + editor). */
+export const BACKING_GENRES: readonly BackingGenre[] = [
+  'bubblegum-pop', 'synthwave', 'lo-fi', 'bossa-nova', 'acoustic-folk',
+  'chiptune', 'jazz', 'funk', 'ambient', 'house',
+] as const;
+export const BACKING_MOODS: readonly BackingMood[] = [
+  'energetic', 'chill', 'playful', 'romantic', 'mysterious',
+  'dramatic', 'nostalgic', 'bright', 'dark', 'dreamy',
+] as const;
+
 /** One backing instrumental loop. Lives in `public/assets/audio/backings/`. */
 export interface BackingTrack {
   /** Stable id, e.g. 'fast-130'. */
@@ -221,6 +261,11 @@ export interface BackingTrack {
   speedLabel: 'slow' | 'medium' | 'fast' | 'faster';
   /** User-facing vibe category shown in the editor's vibe picker. */
   vibe: BackingVibe;
+  /** Musical genre. Optional — old entries without one default to a
+   *  reasonable bucket via vibe + name heuristics in the calibrator. */
+  genre?: BackingGenre;
+  /** Emotional mood. Optional — same fallback story as genre. */
+  mood?: BackingMood;
   /** Beats per minute. Charts authored at this BPM align exactly to the
    *  backing's beat grid (no drift across a 30s round). */
   bpm: number;

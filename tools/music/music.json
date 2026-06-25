@@ -4,6 +4,8 @@
     "displayName": "Bounce & Bloom",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "bubblegum-pop",
+    "mood": "playful",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -12,6 +14,8 @@
     "displayName": "Bounce & Bloom (alt)",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "bubblegum-pop",
+    "mood": "playful",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -20,6 +24,8 @@
     "displayName": "Bouncy Bounce",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "bubblegum-pop",
+    "mood": "playful",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -28,6 +34,8 @@
     "displayName": "Cinematic Bossa Nova",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "bossa-nova",
+    "mood": "dramatic",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -36,6 +44,8 @@
     "displayName": "Cinematic Bossa Nova (alt)",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "bossa-nova",
+    "mood": "dramatic",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -44,6 +54,8 @@
     "displayName": "Midnight Coffee",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "lo-fi",
+    "mood": "chill",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -52,6 +64,8 @@
     "displayName": "Neon Dash",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "synthwave",
+    "mood": "energetic",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -60,6 +74,8 @@
     "displayName": "Warmth in the Air",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "acoustic-folk",
+    "mood": "romantic",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -68,6 +84,8 @@
     "displayName": "Midnight Skyline",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "lo-fi",
+    "mood": "nostalgic",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -76,6 +94,8 @@
     "displayName": "Midnight Skyline (1)",
     "speedLabel": "fast",
     "vibe": "upbeat",
+    "genre": "lo-fi",
+    "mood": "nostalgic",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -84,6 +104,8 @@
     "displayName": "Neon Horizon",
     "speedLabel": "fast",
     "vibe": "smooth",
+    "genre": "synthwave",
+    "mood": "dreamy",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -92,6 +114,8 @@
     "displayName": "Warmth in the Air (1)",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "acoustic-folk",
+    "mood": "romantic",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -100,6 +124,8 @@
     "displayName": "Neon Horizon (3)",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "synthwave",
+    "mood": "dreamy",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -108,6 +134,8 @@
     "displayName": "Neon Pulse",
     "speedLabel": "fast",
     "vibe": "upbeat",
+    "genre": "synthwave",
+    "mood": "energetic",
     "bpm": 130,
     "loopDurationMs": 62000
   },
@@ -116,6 +144,8 @@
     "displayName": "Neon Pulse (1)",
     "speedLabel": "fast",
     "vibe": "melodic",
+    "genre": "synthwave",
+    "mood": "energetic",
     "bpm": 130,
     "loopDurationMs": 62000
   }

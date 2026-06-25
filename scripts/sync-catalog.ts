@@ -221,6 +221,11 @@ interface MusicJsonEntry {
   displayName?: string;
   speedLabel: 'slow' | 'medium' | 'fast' | 'faster';
   vibe: 'upbeat' | 'melodic' | 'smooth';
+  /** Musical genre slug — must match BackingGenre union in state.ts.
+   *  Optional so old entries pre-genre-system still validate. */
+  genre?: string;
+  /** Emotional mood slug — must match BackingMood union in state.ts. */
+  mood?: string;
   bpm: number;
   loopDurationMs?: number;
 }
@@ -237,8 +242,10 @@ async function genMusic(): Promise<number> {
   const catalogLines: string[] = [];
   for (const [id, v] of entries) {
     const loopDur = typeof v.loopDurationMs === 'number' ? v.loopDurationMs : 30_000;
+    const genrePart = v.genre ? `, genre: ${JSON.stringify(v.genre)}` : '';
+    const moodPart = v.mood ? `, mood: ${JSON.stringify(v.mood)}` : '';
     catalogLines.push(
-      `  ${JSON.stringify(id)}: { id: ${JSON.stringify(id)}, displayName: ${JSON.stringify(v.displayName ?? id)}, speedLabel: ${JSON.stringify(v.speedLabel)}, vibe: ${JSON.stringify(v.vibe)}, bpm: ${v.bpm}, audioKey: ${JSON.stringify('backing-' + id)}, loopDurationMs: ${loopDur} },`,
+      `  ${JSON.stringify(id)}: { id: ${JSON.stringify(id)}, displayName: ${JSON.stringify(v.displayName ?? id)}, speedLabel: ${JSON.stringify(v.speedLabel)}, vibe: ${JSON.stringify(v.vibe)}${genrePart}${moodPart}, bpm: ${v.bpm}, audioKey: ${JSON.stringify('backing-' + id)}, loopDurationMs: ${loopDur} },`,
     );
   }
   const lines: string[] = [

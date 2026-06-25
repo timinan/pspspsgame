@@ -126,13 +126,15 @@
   <table>
     <thead>
       <tr>
-        <th style="width: 32%">Track</th>
-        <th style="width: 90px">Tempo</th>
-        <th style="width: 90px">Vibe</th>
-        <th style="width: 70px">BPM</th>
-        <th style="width: 80px">Size</th>
-        <th style="width: 80px"></th>
-        <th style="width: 50px"></th>
+        <th style="width: 24%">Track</th>
+        <th style="width: 80px">Tempo</th>
+        <th style="width: 80px">Vibe</th>
+        <th style="width: 120px">Genre</th>
+        <th style="width: 100px">Mood</th>
+        <th style="width: 60px">BPM</th>
+        <th style="width: 70px">Size</th>
+        <th style="width: 70px"></th>
+        <th style="width: 40px"></th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
@@ -144,6 +146,32 @@
 <script>
 const SPEED_CYCLE = ['slow', 'medium', 'fast', 'faster'];
 const VIBE_CYCLE = ['upbeat', 'melodic', 'smooth'];
+// Keep in sync with BACKING_GENRES / BACKING_MOODS in src/shared/state.ts.
+const GENRE_OPTIONS = [
+  'bubblegum-pop', 'synthwave', 'lo-fi', 'bossa-nova', 'acoustic-folk',
+  'chiptune', 'jazz', 'funk', 'ambient', 'house',
+];
+const MOOD_OPTIONS = [
+  'energetic', 'chill', 'playful', 'romantic', 'mysterious',
+  'dramatic', 'nostalgic', 'bright', 'dark', 'dreamy',
+];
+/** Guess a sensible genre + mood from the track id when an entry has
+ *  none set. Best-effort — Tim can override via the dropdowns. Matches
+ *  the seed guesses we used for the initial 15 tracks. */
+function guessGenreMood(id) {
+  const s = id.toLowerCase();
+  if (s.includes('bounce') || s.includes('bouncy') || s.includes('bloom')) return { genre: 'bubblegum-pop', mood: 'playful' };
+  if (s.includes('neon')) return { genre: 'synthwave', mood: 'energetic' };
+  if (s.includes('midnight') || s.includes('lofi') || s.includes('coffee')) return { genre: 'lo-fi', mood: 'chill' };
+  if (s.includes('bossa') || s.includes('cinematic')) return { genre: 'bossa-nova', mood: 'dramatic' };
+  if (s.includes('warmth') || s.includes('warm') || s.includes('acoustic')) return { genre: 'acoustic-folk', mood: 'romantic' };
+  if (s.includes('chip') || s.includes('8bit')) return { genre: 'chiptune', mood: 'playful' };
+  if (s.includes('jazz')) return { genre: 'jazz', mood: 'chill' };
+  if (s.includes('funk')) return { genre: 'funk', mood: 'energetic' };
+  if (s.includes('ambient') || s.includes('drift')) return { genre: 'ambient', mood: 'dreamy' };
+  if (s.includes('house') || s.includes('club') || s.includes('edm')) return { genre: 'house', mood: 'energetic' };
+  return { genre: 'lo-fi', mood: 'chill' };
+}
 
 let catalog = {};
 let saveTimer = null;
@@ -258,6 +286,48 @@ function render() {
     });
     vibeCell.appendChild(vibeBtn);
     tr.appendChild(vibeCell);
+
+    // Genre dropdown (auto-guesses from id on first render of an entry
+    // without one set). scheduleSave fires on every change.
+    if (!entry.genre || !entry.mood) {
+      const guess = guessGenreMood(id);
+      if (!entry.genre) entry.genre = guess.genre;
+      if (!entry.mood) entry.mood = guess.mood;
+    }
+    const genreCell = document.createElement('td');
+    const genreSel = document.createElement('select');
+    genreSel.className = 'cycle';
+    for (const g of GENRE_OPTIONS) {
+      const opt = document.createElement('option');
+      opt.value = g;
+      opt.textContent = g.replace(/-/g, ' ').toUpperCase();
+      if (g === entry.genre) opt.selected = true;
+      genreSel.appendChild(opt);
+    }
+    genreSel.addEventListener('change', () => {
+      entry.genre = genreSel.value;
+      scheduleSave();
+    });
+    genreCell.appendChild(genreSel);
+    tr.appendChild(genreCell);
+
+    // Mood dropdown
+    const moodCell = document.createElement('td');
+    const moodSel = document.createElement('select');
+    moodSel.className = 'cycle';
+    for (const m of MOOD_OPTIONS) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m.toUpperCase();
+      if (m === entry.mood) opt.selected = true;
+      moodSel.appendChild(opt);
+    }
+    moodSel.addEventListener('change', () => {
+      entry.mood = moodSel.value;
+      scheduleSave();
+    });
+    moodCell.appendChild(moodSel);
+    tr.appendChild(moodCell);
 
     // BPM input
     const bpmCell = document.createElement('td');
