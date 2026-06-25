@@ -12,7 +12,7 @@ import {
   CHART_PAGE_SIZE,
   BACKING_CATALOG,
 } from '@/../shared/state';
-import type { PlayerState, Chart, LaneId, Hold } from '@/../shared/state';
+import type { PlayerState, Chart, LaneId, Hold, Slide } from '@/../shared/state';
 import { generateChart, stepsForDuration, type GenDifficulty } from '@/../shared/chart-generator';
 import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
 import { TemplateOrScratchModal, type StartMode } from '@/ui/template-or-scratch-modal';
@@ -62,13 +62,16 @@ export class ChartEditor extends Scene {
    *  as the base GameObject. */
   private holdGraphics: GameObjects.GameObject[] = [];
 
-  // Drag state for hold authoring. pointerdown on a cell seeds these;
-  // pointerover on cells in the same lane extends the range; scene-level
-  // pointerup commits as either a tap (no drag) or a hold (drag to a
-  // different cell in same lane).
+  // Drag state for hold + slide authoring. pointerdown on a cell seeds
+  // these; scene-level pointermove updates `current`; pointerup commits:
+  // - same cell                → tap toggle
+  // - same lane, different row → hold
+  // - different lane (adjacent), same row(ish) → slide
+  // - anything else → no-op
   private dragStartLocal: number | null = null;
   private dragStartLane: LaneId | null = null;
   private dragCurrentLocal: number | null = null;
+  private dragCurrentLane: LaneId | null = null;
 
   // Page-break labels — refresh per page so the author sees the actual
   // top-page + bottom-page numbers as they navigate.
@@ -632,12 +635,20 @@ export class ChartEditor extends Scene {
   private onCellPointerDown(localStep: number, lane: LaneId): void {
     const modelStep = this.scrollOffset + localStep;
     if (modelStep >= this.chart.stepCount) return;
+    // Tap on an existing slide → delete it.
+    const existingSlide = this.findSlideAtCell(modelStep, lane);
+    if (existingSlide) {
+      this.removeSlide(existingSlide);
+      this.refreshPage();
+      this.resetDrag();
+      return;
+    }
     // Tap inside an existing hold removes it whole — easier than a
     // dedicated delete mode. Same-lane requirement keeps cross-lane
     // taps from accidentally clearing holds in neighboring lanes.
-    const existing = this.findHoldAtCell(modelStep, lane);
-    if (existing) {
-      this.removeHold(existing);
+    const existingHold = this.findHoldAtCell(modelStep, lane);
+    if (existingHold) {
+      this.removeHold(existingHold);
       this.refreshPage();
       this.resetDrag();
       return;
@@ -645,45 +656,65 @@ export class ChartEditor extends Scene {
     this.dragStartLocal = localStep;
     this.dragStartLane = lane;
     this.dragCurrentLocal = localStep;
+    this.dragCurrentLane = lane;
   }
 
   private onScenePointerMove = (pointer: Phaser.Input.Pointer): void => {
     if (this.dragStartLane === null || !pointer.isDown) return;
-    const lane = this.dragStartLane;
-    // Y → localStep using the same gridTop / cellH layout buildGrid uses.
     const localStep = Math.floor((pointer.y - this.gridTop) / this.cellH);
     if (localStep < 0 || localStep >= EDITOR_VISIBLE_ROWS) return;
     const modelStep = this.scrollOffset + localStep;
     if (modelStep >= this.chart.stepCount) return;
-    // Cross-lane drags are ignored — the hold is locked to the lane the
-    // author started in. Use the originating lane's cell bounds at this
-    // row as the x-range so the gutter geometry stays consistent.
-    const panel = this.cellPanels[localStep]?.[lane];
-    if (!panel) return;
-    const bounds = panel.getBounds();
-    if (pointer.x < bounds.left || pointer.x > bounds.right) return;
+    // Which lane is the pointer over? Walk the row's three cell panels
+    // and pick the one whose bounds contain pointer.x. Cross-lane drag
+    // is now supported — onScenePointerUp decides hold vs slide based
+    // on the start vs current lane.
+    let pointerLane: LaneId | null = null;
+    for (let l = 0; l < L.LANE_COUNT; l++) {
+      const panel = this.cellPanels[localStep]?.[l];
+      if (!panel) continue;
+      const bounds = panel.getBounds();
+      if (pointer.x >= bounds.left && pointer.x <= bounds.right) {
+        pointerLane = l as LaneId;
+        break;
+      }
+    }
+    if (pointerLane === null) return;
     this.dragCurrentLocal = localStep;
+    this.dragCurrentLane = pointerLane;
   };
 
   private onScenePointerUp = (): void => {
     if (this.dragStartLocal === null || this.dragStartLane === null) return;
-    const lane = this.dragStartLane;
-    const start = this.dragStartLocal;
-    const current = this.dragCurrentLocal ?? start;
+    const startLocal = this.dragStartLocal;
+    const startLane = this.dragStartLane;
+    const currentLocal = this.dragCurrentLocal ?? startLocal;
+    const currentLane = this.dragCurrentLane ?? startLane;
     this.resetDrag();
-    if (start === current) {
-      this.toggleCell(start, lane);
+
+    // Cross-lane drag → slide. Anchored to the START cell's step; the
+    // current cell's lane is the target. Adjacent-only enforced by the
+    // schema validator + commitSlide.
+    if (currentLane !== startLane) {
+      if (Math.abs(currentLane - startLane) !== 1) return;
+      this.commitSlide(this.scrollOffset + startLocal, startLane, currentLane);
       return;
     }
-    const aLocal = Math.min(start, current);
-    const bLocal = Math.max(start, current);
-    this.commitHold(this.scrollOffset + aLocal, this.scrollOffset + bLocal, lane);
+    // Same-lane: tap toggle (no drag) or hold (drag to different cell).
+    if (startLocal === currentLocal) {
+      this.toggleCell(startLocal, startLane);
+      return;
+    }
+    const aLocal = Math.min(startLocal, currentLocal);
+    const bLocal = Math.max(startLocal, currentLocal);
+    this.commitHold(this.scrollOffset + aLocal, this.scrollOffset + bLocal, startLane);
   };
 
   private resetDrag(): void {
     this.dragStartLocal = null;
     this.dragStartLane = null;
     this.dragCurrentLocal = null;
+    this.dragCurrentLane = null;
   }
 
   private findHoldAtCell(modelStep: number, lane: LaneId): Hold | null {
@@ -720,6 +751,93 @@ export class ChartEditor extends Scene {
     if (!this.chart.holds) this.chart.holds = [];
     this.chart.holds.push({ lane, startStep, endStep });
     this.refreshPage();
+  }
+
+  private findSlideAtCell(modelStep: number, lane: LaneId): Slide | null {
+    if (!this.chart.slides) return null;
+    for (const s of this.chart.slides) {
+      if (s.startStep === modelStep && s.sourceLane === lane) return s;
+    }
+    return null;
+  }
+
+  private removeSlide(slide: Slide): void {
+    if (!this.chart.slides) return;
+    const idx = this.chart.slides.indexOf(slide);
+    if (idx >= 0) this.chart.slides.splice(idx, 1);
+  }
+
+  private commitSlide(startStep: number, sourceLane: LaneId, targetLane: LaneId): void {
+    if (Math.abs(sourceLane - targetLane) !== 1) return;
+    // Refuse if a slide already exists at this source cell.
+    if (this.chart.slides?.some(
+      (s) => s.startStep === startStep && s.sourceLane === sourceLane,
+    )) return;
+    // Refuse if the source cell is inside a hold on that lane.
+    if (this.chart.holds?.some(
+      (h) => h.lane === sourceLane && startStep >= h.startStep && startStep <= h.endStep,
+    )) return;
+    // Strip any conflicting tap on the source cell so the schema stays clean.
+    const step = this.chart.steps[startStep];
+    if (step) {
+      const idx = step.lanes.indexOf(sourceLane);
+      if (idx >= 0) step.lanes.splice(idx, 1);
+    }
+    if (!this.chart.slides) this.chart.slides = [];
+    this.chart.slides.push({ startStep, sourceLane, targetLane });
+    this.refreshPage();
+  }
+
+  private refreshSlides(): void {
+    if (!this.chart.slides || this.chart.slides.length === 0) return;
+    const visibleStart = this.scrollOffset;
+    const visibleEnd = this.scrollOffset + EDITOR_VISIBLE_ROWS - 1;
+    for (const slide of this.chart.slides) {
+      if (slide.startStep < visibleStart || slide.startStep > visibleEnd) continue;
+      const localStep = slide.startStep - visibleStart;
+      const cy = this.gridTop + localStep * this.cellH + this.cellH / 2;
+      const srcX = this.colCenterXs[slide.sourceLane]!;
+      const tgtX = this.colCenterXs[slide.targetLane]!;
+      const tint = darkenTowardBlack(this.laneTints[slide.sourceLane]!, 0.18);
+
+      // Sideways tube — PSTube-white rotated 90° between source and
+      // target lane centers. Behind the head fuzzball depth-wise.
+      const tubeLen = Math.abs(tgtX - srcX);
+      const tubeMidX = (srcX + tgtX) / 2;
+      const tube = this.add.image(tubeMidX, cy, AssetKeys.Image.PspspsTubeWhite);
+      tube.setDisplaySize(tubeLen, 22);
+      tube.setTint(tint);
+      tube.setDepth(38);
+      this.root.add(tube);
+      this.holdGraphics.push(tube);
+
+      // Head fuzzball at source lane.
+      const headSize = Math.min(this.cellW - 4, this.cellH + 2, 56);
+      const head = this.add.image(srcX, cy, AssetKeys.Image.PspspsTargetWhite);
+      head.setDisplaySize(headSize, headSize);
+      head.setTint(tint);
+      head.setDepth(40);
+      this.root.add(head);
+      this.holdGraphics.push(head);
+
+      // Arrow at the target end of the tube — chevron text pointing
+      // toward the target lane.
+      const arrow = this.add.text(
+        tgtX + (slide.targetLane > slide.sourceLane ? -10 : 10),
+        cy,
+        slide.targetLane > slide.sourceLane ? '▶' : '◀',
+        {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '16px',
+          color: '#ffd34d',
+          stroke: '#1a0a2e',
+          strokeThickness: 3,
+        },
+      ).setOrigin(0.5).setDepth(41);
+      this.root.add(arrow);
+      this.holdGraphics.push(arrow);
+    }
   }
 
   private refreshHolds(): void {
@@ -818,6 +936,7 @@ export class ChartEditor extends Scene {
       }
     }
     this.refreshHolds();
+    this.refreshSlides();
     this.refreshPageLabel();
   }
 
@@ -849,6 +968,7 @@ export class ChartEditor extends Scene {
   private onClearTap(): void {
     for (const step of this.chart.steps) step.lanes = [];
     if (this.chart.holds) this.chart.holds = [];
+    if (this.chart.slides) this.chart.slides = [];
     this.refreshPage();
   }
 
