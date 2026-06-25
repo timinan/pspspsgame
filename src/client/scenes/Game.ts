@@ -792,6 +792,27 @@ export class Game extends Scene {
     });
   }
 
+  /** Fire the lane effect's `burst` at a random visible tail ball of
+   *  an active hold, at the same scale ratio the tail balls have to
+   *  the head (22/54 ≈ 0.4). The burst is self-cleaning; the temp
+   *  target Image is destroyed after the burst's animation window. */
+  private burstEffectOnTail(n: Note): void {
+    const effectId = this.laneEffects[n.laneId];
+    if (!effectId) return;
+    const effect = CAT_EFFECT_BY_ID[effectId];
+    if (!effect) return;
+    const worldPos = n.pickRandomVisibleTailWorldPos();
+    if (!worldPos) return;
+    // Tiny invisible Image at the chosen tail position — burst reads
+    // its x/y for placement. Self-destroys after a beat so it doesn't
+    // accumulate; the burst's own particles/graphics have their own
+    // lifetimes (independent of this target).
+    const tmp = this.add.image(worldPos.x, worldPos.y, AssetKeys.Image.PspspsTargetWhite);
+    tmp.setVisible(false);
+    effect.burst(this, tmp, 0.4);
+    this.time.delayedCall(800, () => tmp.destroy());
+  }
+
   /** Echo the seated cat's equipped effect out of the lane's fuzzball
    *  target as a one-shot radial burst. Glow effects pulse a colored
    *  halo outward; particle effects (hearts, fire, etc.) shoot the
@@ -1279,22 +1300,28 @@ export class Game extends Scene {
     note.configure(laneId, x, startY, endY, totalFallMs, hitAtMs, this.laneTints[laneId]);
   }
 
-  /** Spawn a hold note — head ball + tail rectangle extending upward.
-   *  Tail height is derived from fall speed so the tail's TOP reaches
-   *  the target exactly at `releaseAtMs` (the trailing edge's crossing
-   *  time). */
+  /** Spawn a hold note — head ball + tail of stacked fuzzballs extending
+   *  upward. Tail height is derived from fall speed so the tail's TOP
+   *  reaches the target exactly at `releaseAtMs` (the trailing edge's
+   *  crossing time). */
   private spawnHoldNote(laneId: LaneId, hitAtMs: number, releaseAtMs: number): void {
     const note = this.acquireNote();
     const x = L.laneCenterX(laneId, this.scale.width);
     const scaleY = this.scale.height / L.DESIGN_H;
     const startY = L.LANE_TOP_Y * scaleY;
     const hitY = L.HIT_LINE_Y * scaleY;
-    const endY = this.scale.height + 80;
-    const totalFallMs = ((endY - startY) / (hitY - startY)) * Balance.noteFallMs;
-    // Pixels per ms while falling — used to size the tail so its length
-    // in screen space equals the time-distance between hit and release.
-    const fallSpeedPxPerMs = (endY - startY) / totalFallMs;
+    // fallSpeed (px/ms) is constant — derived from noteFallMs so the
+    // head always crosses (startY → hitY) in exactly Balance.noteFallMs.
+    const fallSpeedPxPerMs = (hitY - startY) / Balance.noteFallMs;
     const tailHeightPx = Math.max(0, (releaseAtMs - hitAtMs) * fallSpeedPxPerMs);
+    // Container needs to keep falling past the trailing-edge crossing —
+    // otherwise the tween ends, the container freezes, and any tail
+    // balls still in [laneTop, target] stay stuck on-screen until
+    // auto-end recycles everything at once. Push endY past the worst
+    // case: trailing crossing + 100px buffer for the visual to drain
+    // cleanly before recycle fires.
+    const endY = Math.max(this.scale.height + 80, hitY + tailHeightPx + 100);
+    const totalFallMs = (endY - startY) / fallSpeedPxPerMs;
     // Tail width matches the visual width of the lane wash — narrower
     // than the 54px ball so the ball still reads as the "head" cap.
     const tailWidthPx = 40;
@@ -1491,10 +1518,13 @@ export class Game extends Scene {
       if (!n.active || !n.isHold || !n.holdActive) continue;
       // Recurring effect burst while held — same flashLaneEffect +
       // cat pulse the head tap fires, just throttled to ~220 ms so it
-      // chugs instead of strobing.
+      // chugs instead of strobing. ALSO bursts a smaller-scale echo on
+      // a random visible tail ball so the column reads as actively
+      // emitting along its length, not just at the catching position.
       if (now - n.holdLastEffectMs >= Balance.holdEffectIntervalMs) {
         this.flashLaneEffect(n.laneId);
         this.cats[n.laneId]?.pulseEffectHit();
+        this.burstEffectOnTail(n);
         n.holdLastEffectMs = now;
       }
       if (now >= n.holdEndAtMs) {

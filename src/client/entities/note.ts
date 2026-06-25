@@ -161,6 +161,21 @@ export class Note extends GameObjects.Container {
     for (const tb of this.tailBalls) tb.setTint(color);
   }
 
+  /** Pick a uniformly random VISIBLE tail ball and return its world
+   *  position. Game uses this to spawn the recurring effect burst on
+   *  the tail itself so the column emits along its length. Returns
+   *  null if no tail balls are currently visible (e.g., hold just
+   *  spawned and tail is still entirely above the lane top). */
+  pickRandomVisibleTailWorldPos(): { x: number; y: number } | null {
+    const visible: GameObjects.Image[] = [];
+    for (const tb of this.tailBalls) {
+      if (tb.visible) visible.push(tb);
+    }
+    if (visible.length === 0) return null;
+    const tb = visible[Math.floor(Math.random() * visible.length)]!;
+    return { x: this.x + tb.x, y: this.y + tb.y };
+  }
+
   /** Per-frame visibility + vibration update for active and falling
    *  hold notes. Clips rendering to the lane band so nothing leaks
    *  into the cat-stage area above; hides the head once it's past
