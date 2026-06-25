@@ -150,5 +150,13 @@
     "rarity": "rare",
     "bgShiftUp": 39,
     "bgScale": 1.15
+  },
+  "carnival": {
+    "displayName": "Carnival",
+    "backdropKey": "theme-carnival-bg",
+    "musicKey": "theme-default-music",
+    "rarity": "rare",
+    "bgShiftUp": 31,
+    "bgScale": 1.11
   }
 }

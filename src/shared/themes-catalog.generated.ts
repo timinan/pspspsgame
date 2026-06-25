@@ -23,6 +23,7 @@ export const BACKGROUND_CATALOG = {
   ramenshop: { id: "ramenshop", displayName: "Ramen Shop", backdropKey: "theme-ramenshop-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 53, bgScale: 1.22 },
   robotworkshop: { id: "robotworkshop", displayName: "Robot Workshop", backdropKey: "theme-robotworkshop-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 26, bgScale: 0.84 },
   subwaystation: { id: "subwaystation", displayName: "Subway Station", backdropKey: "theme-subwaystation-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 39, bgScale: 1.15 },
+  carnival: { id: "carnival", displayName: "Carnival", backdropKey: "theme-carnival-bg", musicKey: "theme-default-music", rarity: "rare" as const, bgShiftUp: 31, bgScale: 1.11 },
 } as const;
 
 // Legacy alias — keep so existing THEME_CATALOG consumers compile without a rename sweep.
@@ -47,4 +48,5 @@ export const GENERATED_THEME_CATALOG = [
   BACKGROUND_CATALOG.ramenshop,
   BACKGROUND_CATALOG.robotworkshop,
   BACKGROUND_CATALOG.subwaystation,
+  BACKGROUND_CATALOG.carnival,
 ] as const;

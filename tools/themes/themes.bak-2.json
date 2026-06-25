@@ -148,7 +148,15 @@
     "backdropKey": "theme-subwaystation-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 35,
+    "bgShiftUp": 39,
     "bgScale": 1.15
+  },
+  "carnival": {
+    "displayName": "Carnival",
+    "backdropKey": "theme-carnival-bg",
+    "musicKey": "theme-default-music",
+    "rarity": "rare",
+    "bgShiftUp": 32,
+    "bgScale": 1.11
   }
 }
