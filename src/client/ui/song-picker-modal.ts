@@ -1,6 +1,7 @@
 import { GameObjects, Scene, Sound, Loader } from 'phaser';
 import {
   BACKING_CATALOG,
+  BACKING_VIBES,
   BACKING_GENRES,
   BACKING_MOODS,
   type BackingTrack,
@@ -8,8 +9,6 @@ import {
   type BackingGenre,
   type BackingMood,
 } from '@/../shared/state';
-
-const VIBE_ORDER: BackingVibe[] = ['upbeat', 'melodic', 'smooth'];
 const SONGS_PER_PAGE = 5;
 const PREVIEW_VOLUME = 0.6;
 
@@ -563,9 +562,20 @@ export class SongPickerModal {
   }
 
   private availableVibes(): BackingVibe[] {
+    // Vibes that BOTH (a) appear on at least one song in the catalog
+    // and (b) are listed in BACKING_VIBES (which sync-catalog
+    // regenerates from tools/music/taxonomies.json — so any custom
+    // vibe Tim adds via the calibrator's "+ add new…" shows up here).
+    // Then append any catalog vibes that weren't in BACKING_VIBES at
+    // the bottom so nothing the player has tagged silently disappears.
     const present = new Set<BackingVibe>();
     for (const b of Object.values(BACKING_CATALOG)) present.add(b.vibe);
-    return VIBE_ORDER.filter((v) => present.has(v));
+    const inOrder = BACKING_VIBES.filter((v) => present.has(v));
+    const extras: BackingVibe[] = [];
+    for (const v of present) {
+      if (!inOrder.includes(v)) extras.push(v);
+    }
+    return [...inOrder, ...extras];
   }
 
   private commitSelection(): void {
