@@ -405,14 +405,32 @@ export function validateChart(c: Chart): { ok: true } | { ok: false; reason: str
       if (c.steps[s.startStep]!.lanes.includes(s.sourceLane)) {
         return { ok: false, reason: 'slide startStep + sourceLane cell also has a tap' };
       }
-      if (c.holds?.some(
-        (h) => h.lane === s.sourceLane && s.startStep >= h.startStep && s.startStep <= h.endStep,
-      )) {
-        return { ok: false, reason: 'slide startStep falls inside a hold on its sourceLane' };
+      // A slide's finger traverses every lane between source and target
+      // (source + target for 1-lane jumps, source + middle + target for
+      // 2-lane jumps). If ANY of those lanes has an active hold at the
+      // slide's startStep, the gesture is physically impossible — the
+      // other finger holding that lane would interfere with the drag.
+      const touched = lanesTouchedBySlide(s.sourceLane, s.targetLane);
+      const conflict = c.holds?.find((h) =>
+        touched.includes(h.lane) && s.startStep >= h.startStep && s.startStep <= h.endStep,
+      );
+      if (conflict) {
+        return { ok: false, reason: `slide startStep falls inside a hold on lane ${conflict.lane} (touched by source→target path)` };
       }
     }
   }
   return { ok: true };
+}
+
+/** Lanes a slide's finger physically passes through. 1-lane slides touch
+ *  the source + target only; 2-lane slides (source/target 2 apart) also
+ *  traverse the middle lane. Used by validator + editor to block slides
+ *  whose path crosses an active hold. */
+export function lanesTouchedBySlide(sourceLane: LaneId, targetLane: LaneId): LaneId[] {
+  if (Math.abs(sourceLane - targetLane) === 2) {
+    return [sourceLane, 1 as LaneId, targetLane];
+  }
+  return [sourceLane, targetLane];
 }
 
 // -- Player state -------------------------------------------------------

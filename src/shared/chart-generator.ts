@@ -189,6 +189,12 @@ export function generateChart(args: {
         const opposite: LaneId = lane === 0 ? 2 : 0;
         target = rng() < profile.slide2LaneChance ? opposite : 1;
       }
+      // Reject if the slide's path (source + target, + middle for 2-lane
+      // jumps) crosses an active hold — the busy finger would block the
+      // drag. Validator enforces the same rule; we mirror it here so the
+      // generator never produces a chart that would fail validation.
+      const touched: LaneId[] = Math.abs(lane - target) === 2 ? [lane, 1, target] : [lane, target];
+      if (holds.some((h) => touched.includes(h.lane) && i >= h.startStep && i <= h.endStep)) continue;
       // Strip the tap from this cell.
       step.lanes.splice(0, 1);
       slides.push({ startStep: i, sourceLane: lane, targetLane: target });

@@ -9,6 +9,7 @@ import { saveChart } from '@/services/state-client';
 import {
   emptyChart,
   validateChart,
+  lanesTouchedBySlide,
   CHART_PAGE_SIZE,
   BACKING_CATALOG,
 } from '@/../shared/state';
@@ -818,9 +819,12 @@ export class ChartEditor extends Scene {
     if (this.chart.slides?.some(
       (s) => s.startStep === startStep && s.sourceLane === sourceLane,
     )) return;
-    // Refuse if the source cell is inside a hold on that lane.
+    // Refuse if ANY lane the slide's finger traverses (source + target,
+    // plus middle for 2-lane jumps) has an active hold at startStep —
+    // the busy finger physically can't perform the drag.
+    const touched = lanesTouchedBySlide(sourceLane, targetLane);
     if (this.chart.holds?.some(
-      (h) => h.lane === sourceLane && startStep >= h.startStep && startStep <= h.endStep,
+      (h) => touched.includes(h.lane) && startStep >= h.startStep && startStep <= h.endStep,
     )) return;
     // Strip any conflicting tap on the source cell so the schema stays clean.
     const step = this.chart.steps[startStep];
