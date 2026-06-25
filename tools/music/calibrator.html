@@ -685,6 +685,44 @@ document.getElementById('meta-modal-scrim').addEventListener('click', (e) => {
   if (e.target.id === 'meta-modal-scrim') closeMetaModal();
 });
 
+// ── Filter + sort wiring ───────────────────────────────────────────────
+
+/** Fill the filter dropdowns with all genre + mood options. Called every
+ *  render — cheap, idempotent. Preserves the currently-selected value
+ *  so re-renders don't blow away the user's filter. */
+function populateFilterSelects() {
+  const genreSel = document.getElementById('filter-genre');
+  if (genreSel && genreSel.options.length === 0) {
+    const all = document.createElement('option');
+    all.value = 'all';
+    all.textContent = 'all';
+    genreSel.appendChild(all);
+    for (const g of GENRE_OPTIONS) {
+      const o = document.createElement('option');
+      o.value = g;
+      o.textContent = g.replace(/-/g, ' ');
+      genreSel.appendChild(o);
+    }
+  }
+  const moodSel = document.getElementById('filter-mood');
+  if (moodSel && moodSel.options.length === 0) {
+    const all = document.createElement('option');
+    all.value = 'all';
+    all.textContent = 'all';
+    moodSel.appendChild(all);
+    for (const m of MOOD_OPTIONS) {
+      const o = document.createElement('option');
+      o.value = m;
+      o.textContent = m;
+      moodSel.appendChild(o);
+    }
+  }
+}
+
+for (const id of ['filter-vibe', 'filter-genre', 'filter-mood', 'sort-by']) {
+  document.getElementById(id)?.addEventListener('change', render);
+}
+
 async function uploadFile(file, opts = {}) {
   // No client-side format check — ffmpeg on the server accepts anything
   // it can decode (mp3 / wav / m4a / aac / ogg / flac / opus / webm
