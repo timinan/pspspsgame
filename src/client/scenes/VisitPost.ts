@@ -4,7 +4,8 @@ import { BackgroundManager } from '@/entities/background-manager';
 import { Cat } from '@/entities/cat';
 import { TopHud } from '@/ui/top-hud';
 import * as L from '@/constants/scene-layout';
-import { CAT_CATALOG } from '@/../shared/state';
+import { BACKING_CATALOG, CAT_CATALOG } from '@/../shared/state';
+import { MusicSystem } from '@/systems/music-system';
 import type { Chart, PlayerState, SeatId } from '@/../shared/state';
 import type { CatModel } from '@/types/game';
 import { fetchVisit, type VisitData } from '@/services/visit-client';
@@ -69,6 +70,13 @@ export class VisitPost extends Scene {
   private playBtnText!: GameObjects.Text;
   private playBusy = false;
 
+  /** Music plays on the splash so visitors hear the track they're about
+   *  to play (Tim: "lets make this page start playing the music so they
+   *  know what they are listning to"). Same MusicSystem the round uses
+   *  — wired to the chart's audioKey via pickBacking. Started once the
+   *  chart fetch lands, stopped on cleanup. */
+  private music: MusicSystem | null = null;
+
   constructor() {
     super(SceneKeys.VisitPost);
   }
@@ -131,9 +139,28 @@ export class VisitPost extends Scene {
       if (!this.scene.isActive()) return;
       this.chart = chart;
       this.songText.setText(this.formatSongLine(chart));
+      // Start the backing track on the splash so the visitor hears the
+      // song they're about to play. Same MusicSystem the round will use
+      // so the file's already cached when they tap PLAY (no audible
+      // gap mid-transition). Tap-sound stems aren't preloaded here —
+      // only the backing, since splash doesn't simulate gameplay.
+      this.startSplashMusic(chart);
     } catch (err) {
       console.warn('[VisitPost] chart load failed:', err);
       this.songText.setText('— song unavailable —');
+    }
+  }
+
+  private startSplashMusic(chart: Chart): void {
+    if (this.music) return; // idempotent — only ever one backing at a time
+    try {
+      this.music = new MusicSystem(this, chart);
+      // Fire-and-forget start. preload + start are both async + safe to
+      // call concurrently with other scene work. Errors swallowed
+      // internally; worst case the splash is silent.
+      void this.music.start(0);
+    } catch (err) {
+      console.warn('[VisitPost] startSplashMusic threw:', err);
     }
   }
 
@@ -423,14 +450,27 @@ export class VisitPost extends Scene {
 
   private startVisitorRound(): void {
     if (!this.chart) return;
-    // Stamp the chart on playerState so Game's existing chart-loading
-    // path picks it up — Game's initChartPlayer reads playerState.chart
-    // as a fallback when the registry doesn't have a hostChart. Also
-    // set visitorMode so the summary's Post Comment button reactivates
-    // and the play submits via finalizePlay/social-loop.
+    // Hand the chart to Game via the REGISTRY so it picks it up at
+    // priority 1 in initChartPlayer — independent of playerState
+    // (which can be null for fresh visitors who don't have an
+    // onboarded account yet). Tim's bug: "playing my own song in
+    // rehearsal still doesnt work its bugged and goes to pick a
+    // song" — that was the playerState.chart assignment silently
+    // skipped when playerState was null, falling Game through to the
+    // showSongPicker branch.
+    this.registry.set('hostChart', this.chart);
+    if (this.visit?.ownerUsername) {
+      this.registry.set('hostUsername', this.visit.ownerUsername);
+    }
     if (this.playerState) {
       this.playerState.chart = this.chart;
     }
+    // Stop the splash music BEFORE the scene transition — Phaser's
+    // sound manager is global so without an explicit stop the backing
+    // would keep playing into the Ready modal / first second of the
+    // round, layered on top of Game's own MusicSystem instance.
+    this.music?.destroy?.();
+    this.music = null;
     this.scene.start(SceneKeys.Game, {
       playerState: this.playerState,
       visitorMode: true,
@@ -440,13 +480,29 @@ export class VisitPost extends Scene {
   }
 
   private formatSongLine(chart: Chart): string {
-    const title = chart.title ?? 'Untitled';
+    // Prefer the actual backing track's display name from the catalog —
+    // chart.title is almost always 'Untitled' or 'Rehearsal' (those
+    // strings come from the editor's default + the rehearse-flow stub).
+    // Lookup priority:
+    //   1. BACKING_CATALOG[chart.audioKey].displayName — the recognizable
+    //      "Sugar Skip" / "Pirate Lullaby" style name
+    //   2. chart.title — when audioKey is unknown OR it's a custom song
+    //   3. owner's set — last-resort fallback so the visitor sees
+    //      something specific instead of a placeholder
+    const backing = chart.audioKey ? BACKING_CATALOG[chart.audioKey] : undefined;
+    const rawTitle = chart.title?.trim();
+    const isPlaceholder = !rawTitle || rawTitle === 'Untitled' || rawTitle === 'Rehearsal';
+    const owner = this.visit?.ownerUsername ? `u/${this.visit.ownerUsername}` : 'the host';
+    const title = backing?.displayName
+      ?? (isPlaceholder ? `${owner}'s set` : rawTitle!);
     const vibe = chart.vibe ? ` · ${chart.vibe}` : '';
     const diff = chart.difficulty ? ` · ${chart.difficulty}` : '';
     return `🎶 ${title}${vibe}${diff}`;
   }
 
   private cleanup(): void {
+    this.music?.destroy?.();
+    this.music = null;
     for (const c of this.cats) c.destroy();
     this.cats = [];
     this.hud?.destroy();
