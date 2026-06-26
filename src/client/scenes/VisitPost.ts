@@ -11,7 +11,7 @@ import { fetchVisit, type VisitData } from '@/services/visit-client';
 import { loadChart } from '@/services/state-client';
 import { fetchLeaderboard } from '@/services/social-client';
 import type { LeaderboardEntry } from '@/../shared/social-loop';
-import { requestExpandedMode } from '@devvit/web/client';
+import { requestExpandedMode, getWebViewMode } from '@devvit/web/client';
 
 /**
  * Visitor splash for a posted show. Boot routing lands here when a
@@ -380,13 +380,18 @@ export class VisitPost extends Scene {
     // requestExpandedMode rejects synthesized Phaser events). Position
     // tracks the canvas + design-coords via the same canvas-rect math
     // the custom-song file-picker overlay uses.
+    //
+    // DIAGNOSTIC: while debugging fullscreen, button has a faint
+    // outline + 0.15 opacity background so Tim can see its bounds and
+    // confirm alignment. Drop to opacity 0 + no border once verified.
     const btn = document.createElement('button');
     btn.style.position = 'absolute';
-    btn.style.opacity = '0';
+    btn.style.opacity = '1';
     btn.style.zIndex = '9999';
-    btn.style.border = 'none';
-    btn.style.background = 'transparent';
+    btn.style.border = '2px solid #ff00ff';
+    btn.style.background = 'rgba(255, 0, 255, 0.15)';
     btn.style.cursor = 'pointer';
+    btn.style.borderRadius = '8px';
     document.body.appendChild(btn);
     this.htmlPlayButton = btn;
 
@@ -406,11 +411,14 @@ export class VisitPost extends Scene {
     window.addEventListener('scroll', positionBtn, true);
 
     btn.addEventListener('click', (e: MouseEvent) => {
-      // requestExpandedMode wants a trusted user gesture — this native
-      // click IS one. Throws if already expanded; swallow + continue
-      // to the round either way.
-      try { requestExpandedMode(e, 'default'); }
-      catch (err) { console.warn('[VisitPost] requestExpandedMode:', err); }
+      const modeBefore = (() => { try { return getWebViewMode(); } catch { return 'unknown'; } })();
+      console.info(`[VisitPost] PLAY click fired — mode=${modeBefore} trusted=${e.isTrusted}`);
+      try {
+        requestExpandedMode(e, 'default');
+        console.info('[VisitPost] requestExpandedMode call returned without throwing');
+      } catch (err) {
+        console.warn('[VisitPost] requestExpandedMode threw:', err);
+      }
       this.onPlayClicked();
     });
   }
