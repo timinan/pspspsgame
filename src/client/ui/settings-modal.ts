@@ -112,19 +112,21 @@ export class SettingsModal {
 
     const settings = getUserSettings();
 
-    // Effect size slider
+    // Effect intensity slider (controls the particle SIZE multiplier).
+    // Was labelled "SIZE" — Tim's model is "intensity dial" so renamed
+    // to match. Same range + same backing setting, just clearer copy.
     this.addSlider({
       x: panelX + 20,
       y: effectsHeaderY + 28,
       width: panelW - 130,
-      label: 'SIZE',
+      label: 'INTENSITY',
       min: 0.3,
       max: 1.5,
       value: settings.effectSizeMul,
       onChange: (v) => setUserSettings({ effectSizeMul: v }),
     });
 
-    // Effect alpha slider
+    // Effect opacity slider
     this.addSlider({
       x: panelX + 20,
       y: effectsHeaderY + 70,
@@ -319,20 +321,25 @@ export class SettingsModal {
 
   private addMuteToggle(x: number, y: number, width: number): void {
     if (!this.container) return;
-    const h = 28;
+    // Bumped to 40 px tall + bold yellow stroke when unmuted / red when
+    // muted so it visually reads as a button you tap (not just a wide
+    // text label). Tim flagged the previous 28 px toggle as easy to miss.
+    const h = 40;
     const bg = this.scene.add
       .rectangle(x, y, width, h, 0x2c1856, 1)
       .setOrigin(0, 0.5)
-      .setStrokeStyle(1, 0xc0a0e6, 0.5)
+      .setStrokeStyle(2, 0xffd34d, 0.85)
       .setInteractive({ useHandCursor: true });
     const txt = this.scene.add
       .text(x + width / 2, y, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '12px',
-        color: '#ffffff',
+        fontSize: '14px',
+        color: '#ffd34d',
       })
       .setOrigin(0.5);
+    bg.on('pointerover', () => bg.setFillStyle(0x3d2566, 1));
+    bg.on('pointerout', () => bg.setFillStyle(0x2c1856, 1));
     bg.on('pointerdown', () => {
       const s = getUserSettings();
       setUserSettings({ muted: !s.muted });
@@ -347,10 +354,12 @@ export class SettingsModal {
     const s = getUserSettings();
     if (this.muteBg && this.muteText) {
       const on = s.muted;
+      // Muted: red fill, white text — reads as "active state, tap to undo".
+      // Unmuted: dark with yellow stroke + yellow text — reads as a button.
       this.muteBg.setFillStyle(on ? 0xff5050 : 0x2c1856, 1);
-      this.muteBg.setStrokeStyle(2, on ? 0xff5050 : 0xc0a0e6, on ? 1 : 0.5);
-      this.muteText.setText(on ? '🔇 MUTED — tap to unmute' : '🔊 SOUND ON — tap to mute');
-      this.muteText.setColor(on ? '#ffffff' : '#ffffff');
+      this.muteBg.setStrokeStyle(2, on ? 0xff5050 : 0xffd34d, on ? 1 : 0.85);
+      this.muteText.setText(on ? '🔇  MUTED — TAP TO UNMUTE' : '🔊  MUTE');
+      this.muteText.setColor(on ? '#ffffff' : '#ffd34d');
     }
     // Dim the volume slider visual when muted so it reads as "this
     // doesn't do anything right now."
