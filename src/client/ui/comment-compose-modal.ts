@@ -54,11 +54,7 @@ export class CommentComposeModal {
     const cx = width / 2;
     const cy = height / 2;
     const panelW = Math.min(300, width - 16);
-    // Shrunk from 520 → 300 now that COMMENT PREVIEW is gone. Modal
-    // fits above the iOS keyboard so POST + SKIP are visible even
-    // when the input is focused. Vertically centered shifts up since
-    // the panel's shorter.
-    const panelH = Math.min(300, height - 40);
+    const panelH = Math.min(520, height - 40);
     const panelX = cx - panelW / 2;
     const panelY = cy - panelH / 2;
 
@@ -153,37 +149,17 @@ export class CommentComposeModal {
     // any iframe size change. Re-positioned in updateOverlayPosition().
     const ta = document.createElement('textarea');
     ta.placeholder = 'nice run! 🐱';
-    // position:fixed — iOS Safari scrolls the document up when the
-    // keyboard pops up, which made an absolute-positioned textarea
-    // (computed off rect.top of the moving canvas) drift above the
-    // label. fixed pins to the viewport so the overlay stays aligned
-    // with what the user is looking at while typing.
-    ta.style.position = 'fixed';
+    ta.style.position = 'absolute';
     ta.style.background = 'transparent';
     ta.style.color = '#ffffff';
     ta.style.border = 'none';
     ta.style.outline = 'none';
     ta.style.resize = 'none';
-    // Pixeloid Sans matches the rest of the in-game UI; was monospace
-    // (system default), which read as a system input dropped into the
-    // pixel-art chrome.
-    ta.style.fontFamily = '"Pixeloid Sans", sans-serif';
-    // 16px is the threshold below which iOS Safari auto-zooms the
-    // viewport when the input gains focus — and once auto-zoomed, the
-    // splash/game viewport meta has user-scalable=no, so the user
-    // can't pinch back out. That's what Tim hit (screen zoomed in +
-    // locked). Slightly bigger than the rest of the modal copy but
-    // typing actually works.
-    ta.style.fontSize = '16px';
+    ta.style.fontFamily = 'monospace';
+    ta.style.fontSize = '11px';
     ta.style.padding = '2px 4px';
     ta.style.boxSizing = 'border-box';
     ta.style.zIndex = '9999';
-    // Single-line semantics keep iOS's keyboard "Done" key acting like
-    // blur instead of inserting newline characters (which on a
-    // textarea fires input → rerender → can deadlock under iOS's
-    // scroll-into-view loop while the keyboard transitions).
-    ta.rows = 1;
-    ta.wrap = 'soft';
     ta.maxLength = 240;
     document.body.appendChild(ta);
     const onTaInput = (): void => {
@@ -191,11 +167,6 @@ export class CommentComposeModal {
       this.rerender?.();
     };
     ta.addEventListener('input', onTaInput);
-    // No custom Enter handler — preventDefault + blur was contributing
-    // to the freeze Tim hit. Let the textarea's native single-row
-    // behavior take over: iOS dismisses the keyboard on Return, the
-    // input loses focus, the modal's POST button is right below the
-    // input so the next tap goes through cleanly.
     const updateOverlayPosition = (): void => {
       const canvas = this.scene.game.canvas;
       const rect = canvas.getBoundingClientRect();
@@ -207,28 +178,40 @@ export class CommentComposeModal {
       ta.style.height = `${(taContainerH - 24) * sy}px`;
     };
     updateOverlayPosition();
-    // Only re-position on resize. The original scroll listener with
-    // capture fired during iOS keyboard transitions and could enter a
-    // loop with the input's scroll-into-view behavior — that loop is
-    // what locked Tim's screen after he tapped Done.
     const resizeHandler = (): void => updateOverlayPosition();
     window.addEventListener('resize', resizeHandler);
+    window.addEventListener('scroll', resizeHandler, true);
 
-    // COMMENT PREVIEW removed — Tim flagged it as redundant: visitor
-    // can already see the free-text in the input above, and the stats
-    // are already visible at the top of the modal. The preview block
-    // was eating ~160 px of vertical space below the input, pushing
-    // POST + SKIP below the iOS keyboard fold so the visitor couldn't
-    // see them. previewText still exists as a stub so the rerender
-    // closure has something to point at without branching everywhere.
-    const previewText = { setText: (_: string): void => {} };
+    // Stats preview block — what the comment will look like once posted.
+    // Live re-render on free-text + gift change.
+    const previewY = taContainerY + taContainerH + 14;
+    const previewW = panelW - 32;
+    const previewH = 140;
+    this.scene.add
+      .rectangle(panelX + 16 + previewW / 2, previewY + previewH / 2, previewW, previewH, 0x0b041a, 1)
+      .setStrokeStyle(1, 0xc0a0e6, 0.35);
+    const previewLabel = this.scene.add
+      .text(panelX + 16 + 8, previewY + 6, 'COMMENT PREVIEW', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '8px',
+        color: '#c0a0e6',
+      })
+      .setOrigin(0, 0);
+    this.container.add(previewLabel);
+    const previewText = this.scene.add
+      .text(panelX + 16 + 8, previewY + 20, '', {
+        fontFamily: 'monospace',
+        fontSize: '9px',
+        color: '#ffffff',
+        wordWrap: { width: previewW - 16 },
+      })
+      .setOrigin(0, 0);
+    this.container.add(previewText);
 
-    // Gift toggle row sits immediately under the input. POST + SKIP
-    // sit immediately under the gift chip so they're visible above
-    // the iOS keyboard. The gift sub-panel (slider + presets) renders
-    // BELOW the buttons when opened — it's the secondary path; the
-    // primary "type text + POST" path stays one tap away.
-    const giftToggleY = taContainerY + taContainerH + 14;
+    // Gift toggle row + gift panel (collapsed by default to keep the
+    // modal compact for the "I just want to post" path).
+    const giftToggleY = previewY + previewH + 14;
     const giftChip = this.scene.add
       .rectangle(panelX + 16 + 70, giftToggleY + 14, 140, 28, 0x2c1856, 1)
       .setStrokeStyle(1, 0xc0a0e6, 0.55)
@@ -247,11 +230,7 @@ export class CommentComposeModal {
     // this first cut; cross-account item transfer needs the dressing-
     // room inventory picker which is a separate UI surface. The server
     // gift endpoint accepts itemInstanceIds today though.
-    //
-    // Renders BELOW the POST/SKIP buttons so the primary action stays
-    // visible above the iOS keyboard. Only shown when the gift chip
-    // is tapped, so it doesn't add vertical noise on the common path.
-    const giftPanelY = giftToggleY + 46 + 44 + 14;
+    const giftPanelY = giftToggleY + 36;
     const giftPanelH = 80;
     const giftPanelBg = this.scene.add
       .rectangle(cx, giftPanelY + giftPanelH / 2, panelW - 32, giftPanelH, 0x0b041a, 0.6)
@@ -347,13 +326,8 @@ export class CommentComposeModal {
       this.rerender?.();
     });
 
-    // POST + SKIP buttons RIGHT under the gift chip — close enough to
-    // the input that they're visible even with iOS keyboard up. Were
-    // at `panelY + panelH - 36` previously (bottom of the panel),
-    // which put them below the keyboard fold. Tim: "where is the
-    // button to even add the comment?". Now they sit at giftToggleY
-    // + 32 (chip height) + 14 (gap) = 46 px below the chip.
-    const btnY = giftToggleY + 46;
+    // POST + SKIP buttons at the bottom
+    const btnY = panelY + panelH - 36;
     const postBg = this.scene.add
       .rectangle(panelX + panelW - 90, btnY, 160, 44, 0xffd34d, 1)
       .setInteractive({ useHandCursor: true });
@@ -415,6 +389,7 @@ export class CommentComposeModal {
     (this.container as unknown as { __socialModalTearDown?: () => void }).__socialModalTearDown = () => {
       ta.removeEventListener('input', onTaInput);
       window.removeEventListener('resize', resizeHandler);
+      window.removeEventListener('scroll', resizeHandler, true);
       if (ta.parentElement) ta.parentElement.removeChild(ta);
     };
   }
