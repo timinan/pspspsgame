@@ -149,17 +149,31 @@ export class CommentComposeModal {
     // any iframe size change. Re-positioned in updateOverlayPosition().
     const ta = document.createElement('textarea');
     ta.placeholder = 'nice run! 🐱';
-    ta.style.position = 'absolute';
+    // position:fixed — iOS Safari scrolls the document up when the
+    // keyboard pops up, which made an absolute-positioned textarea
+    // (computed off rect.top of the moving canvas) drift above the
+    // label. fixed pins to the viewport so the overlay stays aligned
+    // with what the user is looking at while typing.
+    ta.style.position = 'fixed';
     ta.style.background = 'transparent';
     ta.style.color = '#ffffff';
     ta.style.border = 'none';
     ta.style.outline = 'none';
     ta.style.resize = 'none';
-    ta.style.fontFamily = 'monospace';
+    // Pixeloid Sans matches the rest of the in-game UI; was monospace
+    // (system default), which read as a system input dropped into the
+    // pixel-art chrome.
+    ta.style.fontFamily = '"Pixeloid Sans", sans-serif';
     ta.style.fontSize = '11px';
     ta.style.padding = '2px 4px';
     ta.style.boxSizing = 'border-box';
     ta.style.zIndex = '9999';
+    // Single-line semantics keep iOS's keyboard "Done" key acting like
+    // blur instead of inserting newline characters (which on a
+    // textarea fires input → rerender → can deadlock under iOS's
+    // scroll-into-view loop while the keyboard transitions).
+    ta.rows = 1;
+    ta.wrap = 'soft';
     ta.maxLength = 240;
     document.body.appendChild(ta);
     const onTaInput = (): void => {
@@ -167,6 +181,15 @@ export class CommentComposeModal {
       this.rerender?.();
     };
     ta.addEventListener('input', onTaInput);
+    // Blur on Enter so iOS's "return" / done acts like a submit cue.
+    // Phaser pointer events on the modal buttons still work once the
+    // textarea is blurred + keyboard dismissed.
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        ta.blur();
+      }
+    });
     const updateOverlayPosition = (): void => {
       const canvas = this.scene.game.canvas;
       const rect = canvas.getBoundingClientRect();
@@ -178,9 +201,12 @@ export class CommentComposeModal {
       ta.style.height = `${(taContainerH - 24) * sy}px`;
     };
     updateOverlayPosition();
+    // Only re-position on resize. The original scroll listener with
+    // capture fired during iOS keyboard transitions and could enter a
+    // loop with the input's scroll-into-view behavior — that loop is
+    // what locked Tim's screen after he tapped Done.
     const resizeHandler = (): void => updateOverlayPosition();
     window.addEventListener('resize', resizeHandler);
-    window.addEventListener('scroll', resizeHandler, true);
 
     // Stats preview block — what the comment will look like once posted.
     // Live re-render on free-text + gift change.
@@ -389,7 +415,6 @@ export class CommentComposeModal {
     (this.container as unknown as { __socialModalTearDown?: () => void }).__socialModalTearDown = () => {
       ta.removeEventListener('input', onTaInput);
       window.removeEventListener('resize', resizeHandler);
-      window.removeEventListener('scroll', resizeHandler, true);
       if (ta.parentElement) ta.parentElement.removeChild(ta);
     };
   }

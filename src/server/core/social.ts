@@ -62,7 +62,13 @@ export async function submitLeaderboardScore(
   redis: SocialRedis,
   summary: PlaySummary,
 ): Promise<void> {
-  if (!summary.passed) return;
+  // Owners always count on their own board, pass or fail — same rule as
+  // the publish-time creator seed (Tim: "afterwards my score was not
+  // updated on the leaderboards but it should as it should count as a
+  // run even if i was the creator"). 75% accuracy gate still applies
+  // to visitors so the leaderboard isn't polluted by exploration plays.
+  const isOwnerSelfPlay = summary.visitor === summary.owner;
+  if (!isOwnerSelfPlay && !summary.passed) return;
   const existing = await redis.zScore(LB_KEY(summary.postId), summary.visitor);
   const prev = typeof existing === 'number' ? existing : -Infinity;
   if (summary.score <= prev) return; // not a new PB

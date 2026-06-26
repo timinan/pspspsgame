@@ -106,6 +106,11 @@ export class Game extends Scene {
   private music: MusicSystem | null = null;
   private startTimeMs = 0;
   private roundOver = false;
+  /** Set once endRound's auto-record path fires submitPlay. Stops a
+   *  later POST/SKIP from the comment modal from double-submitting
+   *  the same round (the leaderboard write is PB-idempotent anyway,
+   *  but the inbox event would duplicate). */
+  private playSubmitted = false;
   /** True between scene boot and the round actually starting. While set,
    *  update() skips chart advance and the lane tap zones are disabled.
    *  Cleared by beginRound() once the song has been resolved + music has
@@ -215,6 +220,7 @@ export class Game extends Scene {
     this.laneEffects = [null, null, null];
     this.hitFeedbackTexts = [];
     this.roundOver = false;
+    this.playSubmitted = false;
     this.startTimeMs = 0;
     this.cleanedUp = false;
     this.music = null;
@@ -1530,6 +1536,27 @@ export class Game extends Scene {
     this.comboText.setScale(1);
     this.comboText.setAlpha(1);
     this.showSummary();
+
+    // Visitor mode (including owner self-play): record the score
+    // IMMEDIATELY at round end, regardless of whether the player goes
+    // through the Post Comment flow. Previously submitPlay only fired
+    // from the comment modal's POST/SKIP — if the modal froze or the
+    // player closed without action, the leaderboard never updated.
+    // Tim: "afterwards my score was not updated on the leaderboards
+    // but it should as it should count as a run even if i was the
+    // creator". The comment modal still re-fires submitPlay on POST so
+    // the comment_posted inbox event lands; the leaderboard write is
+    // idempotent (only stores personal best) so the double-submit is
+    // safe.
+    if (this.visitorMode && !this.playSubmitted) {
+      this.playSubmitted = true;
+      const summary = this.buildPlaySummary();
+      // recordPlay submits the score WITHOUT scene-restart so the
+      // player keeps seeing the summary. finalizePlay (used by the
+      // Post Comment flow) is the variant that ALSO routes the scene
+      // afterward.
+      void this.recordPlay(summary, undefined, undefined);
+    }
   }
 
   private showSummary(): void {
@@ -1776,11 +1803,12 @@ export class Game extends Scene {
     };
   }
 
-  /** POST or SKIP path — submit the play to the server. Server returns
-   *  the canonical tier + baseReward (matches our client classify) so
-   *  we trust its number for the toast. Coins land in the visitor's
-   *  state automatically server-side. Then route as before (restart). */
-  private async finalizePlay(
+  /** Pure play submission — no scene navigation. Used by endRound's
+   *  auto-record path (player still sees the summary afterward) and by
+   *  finalizePlay (which adds the scene-restart on top). Server returns
+   *  the canonical tier + baseReward and writes the leaderboard +
+   *  inbox entries. */
+  private async recordPlay(
     summary: PlaySummary,
     commentBody: string | undefined,
     gift: GiftPayload | undefined,
@@ -1806,6 +1834,19 @@ export class Game extends Scene {
     } catch (err) {
       console.warn('[Game] submitPlay threw:', err);
     }
+  }
+
+  /** POST or SKIP path from the comment modal — record the play then
+   *  route the scene back. Idempotent w.r.t. recordPlay: the
+   *  leaderboard write is PB-only, the inbox events guard on
+   *  visitor !== owner, so re-submitting (the case where endRound
+   *  already auto-recorded) won't double-count. */
+  private async finalizePlay(
+    summary: PlaySummary,
+    commentBody: string | undefined,
+    gift: GiftPayload | undefined,
+  ): Promise<void> {
+    await this.recordPlay(summary, commentBody, gift);
     if (!this.scene.isActive()) return;
     this.scene.restart({ playerState: this.playerState });
   }
