@@ -177,36 +177,36 @@ function toolsNavJs() {
     href: t.href,
   }));
   return `(function () {
-  if (window.__pspspsToolsNavInjected) return;
-  window.__pspspsToolsNavInjected = true;
+  if (window.__meowcertToolsNavInjected) return;
+  window.__meowcertToolsNavInjected = true;
   const tools = ${JSON.stringify(tools)};
   const path = window.location.pathname;
 
   const style = document.createElement('style');
   style.textContent = [
-    '#pspsps-tools-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 9999;',
+    '#meowcert-tools-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 9999;',
     '  background: #0d041b; padding: 7px 14px;',
     '  display: flex; gap: 4px; flex-wrap: wrap; align-items: center;',
     '  border-bottom: 1px solid #341c5a;',
     '  font-family: system-ui, sans-serif; font-size: 12px;',
     '  box-shadow: 0 2px 8px rgba(0,0,0,0.3); }',
-    '#pspsps-tools-nav a { color: #c0a0e6; text-decoration: none;',
+    '#meowcert-tools-nav a { color: #c0a0e6; text-decoration: none;',
     '  padding: 4px 10px; border-radius: 4px;',
     '  transition: background 0.1s, color 0.1s; }',
-    '#pspsps-tools-nav a:hover { background: #261540; color: #fff; }',
-    '#pspsps-tools-nav a.active { background: #ffd34d; color: #1a0a2e; font-weight: 700; }',
-    '#pspsps-tools-nav .brand { color: #ffd34d; font-weight: 700; margin-right: 10px;',
+    '#meowcert-tools-nav a:hover { background: #261540; color: #fff; }',
+    '#meowcert-tools-nav a.active { background: #ffd34d; color: #1a0a2e; font-weight: 700; }',
+    '#meowcert-tools-nav .brand { color: #ffd34d; font-weight: 700; margin-right: 10px;',
     '  letter-spacing: 0.5px; }',
     'body { padding-top: 40px !important; }'
   ].join('\\n');
   document.head.appendChild(style);
 
   const nav = document.createElement('nav');
-  nav.id = 'pspsps-tools-nav';
+  nav.id = 'meowcert-tools-nav';
 
   const brand = document.createElement('span');
   brand.className = 'brand';
-  brand.textContent = '🐾 pspsps tools';
+  brand.textContent = '🐾 meowcert tools';
   nav.appendChild(brand);
 
   const home = document.createElement('a');
@@ -243,7 +243,7 @@ function indexHtml() {
     .join('');
   return `<!doctype html>
 <html lang="en"><head>
-  <meta charset="utf-8" /><title>pspsps tools</title>
+  <meta charset="utf-8" /><title>meowcert tools</title>
   <link rel="icon" href="data:," />
   <style>
     body { font-family: system-ui, sans-serif; background: #1a0a2e; color: #fff;
@@ -258,7 +258,7 @@ function indexHtml() {
     code { color: #7fdc8a; font-size: 11px; font-family: ui-monospace, monospace; }
   </style></head>
 <body>
-  <h1>pspsps · dev tools</h1>
+  <h1>meowcert · dev tools</h1>
   <ul>${rows}</ul>
   <script src="/tools-nav.js"></script>
 </body></html>`;
@@ -1399,7 +1399,7 @@ async function backfillMusicAddedAt() {
 }
 
 server.listen(PORT, async () => {
-  console.log(`\n  pspsps tools server → http://localhost:${PORT}/`);
+  console.log(`\n  meowcert tools server → http://localhost:${PORT}/`);
   for (const [name, t] of Object.entries(TOOLS)) {
     console.log(`    · ${name}: ${t.href}`);
   }

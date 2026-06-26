@@ -26,7 +26,7 @@ import { resolveLaneTintsFromSeatedCats } from '@/constants/cat-colors';
  *
  * Visual approach (from Mock B): real game backdrop behind the grid,
  * lane columns washed with the same RhythmBarBackground tint Game uses,
- * active cells render the actual PspspsElementBall + letters sprite. No
+ * active cells render the actual MeowcertElementBall + letters sprite. No
  * seated cats — they aren't the focus of authoring.
  *
  * Flow: edit grid → tap PLAY → chart is saved + Game scene boots in
@@ -556,7 +556,7 @@ export class ChartEditor extends Scene {
         // Use the hit-target sprite (no PS letters) instead of the
         // falling-note sprite. Tim's note: the editor preview should
         // read as the bottom catching fuzzball, not the falling ball.
-        const ball = this.add.image(0, 0, AssetKeys.Image.PspspsTargetWhite);
+        const ball = this.add.image(0, 0, AssetKeys.Image.MeowcertTargetWhite);
         ball.setDisplaySize(noteSize, noteSize);
         ball.setTint(darkenTowardBlack(this.laneTints[lane]!, 0.18));
         noteContainer.add(ball);
@@ -975,7 +975,7 @@ export class ChartEditor extends Scene {
       const tubeThickness = 40;
       const tubeLen = Math.abs(tgtX - srcX);
       const tubeMidX = (srcX + tgtX) / 2;
-      const tube = this.add.image(tubeMidX, cy, AssetKeys.Image.PspspsTubeWhite);
+      const tube = this.add.image(tubeMidX, cy, AssetKeys.Image.MeowcertTubeWhite);
       tube.setDisplaySize(tubeThickness, tubeLen);
       tube.setRotation(Math.PI / 2);
       const topColor = sr.targetLane > sr.sourceLane ? tgtTint : srcTint;
@@ -985,7 +985,7 @@ export class ChartEditor extends Scene {
       this.root.add(tube);
       this.holdGraphics.push(tube);
       const headSize = Math.min(this.cellW - 4, this.cellH + 2, 56);
-      const head = this.add.image(srcX, cy, AssetKeys.Image.PspspsTargetWhite);
+      const head = this.add.image(srcX, cy, AssetKeys.Image.MeowcertTargetWhite);
       head.setDisplaySize(headSize, headSize);
       head.setTint(srcTint);
       head.setDepth(40);
@@ -1066,7 +1066,7 @@ export class ChartEditor extends Scene {
       const tubeThickness = 40;
       const tubeLen = Math.abs(tgtX - srcX);
       const tubeMidX = (srcX + tgtX) / 2;
-      const tube = this.add.image(tubeMidX, cy, AssetKeys.Image.PspspsTubeWhite);
+      const tube = this.add.image(tubeMidX, cy, AssetKeys.Image.MeowcertTubeWhite);
       tube.setDisplaySize(tubeThickness, tubeLen);
       tube.setRotation(Math.PI / 2);
       const topColor = slide.targetLane > slide.sourceLane ? tgtTint : srcTint;
@@ -1078,7 +1078,7 @@ export class ChartEditor extends Scene {
 
       // Head fuzzball at source lane.
       const headSize = Math.min(this.cellW - 4, this.cellH + 2, 56);
-      const head = this.add.image(srcX, cy, AssetKeys.Image.PspspsTargetWhite);
+      const head = this.add.image(srcX, cy, AssetKeys.Image.MeowcertTargetWhite);
       head.setDisplaySize(headSize, headSize);
       head.setTint(srcTint);
       head.setDepth(40);
@@ -1167,7 +1167,7 @@ export class ChartEditor extends Scene {
       }
 
       if (headInView) {
-        const head = this.add.image(cx, headY, AssetKeys.Image.PspspsTargetWhite);
+        const head = this.add.image(cx, headY, AssetKeys.Image.MeowcertTargetWhite);
         head.setDisplaySize(headSize, headSize);
         head.setTint(tint);
         head.setDepth(40);

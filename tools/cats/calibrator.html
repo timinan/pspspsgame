@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>pspsps — Cat Calibrator</title>
+    <title>meowcert — Cat Calibrator</title>
     <link rel="icon" href="data:," />
     <style>
       :root {
@@ -410,7 +410,7 @@
     <script>
       const ATLAS_IMG_PATH = '/public/assets/atlas/cats.png';
       const ATLAS_JSON_PATH = '/public/assets/atlas/cats.json';
-      const STORAGE_KEY = 'pspsps:cat-calibrator:v1';
+      const STORAGE_KEY = 'meowcert:cat-calibrator:v1';
       const SAVE_URL = '/save/cats';
       const SAVE_LOAD_URL = '/tools/cats/cats.json';
       const ZOOM = 4;
@@ -453,7 +453,7 @@
       let hasUserEdited = false;
       // Current tint blend mode for the preview AND the next Generate.
       // Persisted to localStorage separately so it survives reloads.
-      let currentTintMode = localStorage.getItem('pspsps:cat-calibrator:tintMode') || 'color';
+      let currentTintMode = localStorage.getItem('meowcert:cat-calibrator:tintMode') || 'color';
       function markEdited() { hasUserEdited = true; }
 
       // --- State + storage -------------------------------------------------
@@ -1005,7 +1005,7 @@
         tintModeEl.value = currentTintMode;
         tintModeEl.addEventListener('change', () => {
           currentTintMode = tintModeEl.value;
-          localStorage.setItem('pspsps:cat-calibrator:tintMode', currentTintMode);
+          localStorage.setItem('meowcert:cat-calibrator:tintMode', currentTintMode);
         });
         document.getElementById('playPause').addEventListener('click', () => {
           playing = !playing;

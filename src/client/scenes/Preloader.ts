@@ -47,13 +47,13 @@ export class Preloader extends Scene {
     this.load.image(AssetKeys.Image.MeowBarOutline, 'images/meowBarOutline.png');
     this.load.image(AssetKeys.Image.RhythmBarBackground, 'images/rythmBarBackground.png');
     this.load.image(AssetKeys.Image.RhythmBarBackgroundWhite, 'images/rythmBarBackground-white.png');
-    this.load.image(AssetKeys.Image.PspspsTarget, 'images/PSTarget.png');
-    this.load.image(AssetKeys.Image.PspspsTargetWhite, 'images/PSTarget-white.png');
-    this.load.image(AssetKeys.Image.PspspsElement, 'images/PSElement.png');
-    this.load.image(AssetKeys.Image.PspspsElementBall, 'images/PSElement_ball.png');
-    this.load.image(AssetKeys.Image.PspspsElementBallWhite, 'images/PSElement_ball-white.png');
-    this.load.image(AssetKeys.Image.PspspsElementLetters, 'images/PSElement_letters.png');
-    this.load.image(AssetKeys.Image.PspspsTubeWhite, 'images/PSTube-white.png');
+    this.load.image(AssetKeys.Image.MeowcertTarget, 'images/PSTarget.png');
+    this.load.image(AssetKeys.Image.MeowcertTargetWhite, 'images/PSTarget-white.png');
+    this.load.image(AssetKeys.Image.MeowcertElement, 'images/PSElement.png');
+    this.load.image(AssetKeys.Image.MeowcertElementBall, 'images/PSElement_ball.png');
+    this.load.image(AssetKeys.Image.MeowcertElementBallWhite, 'images/PSElement_ball-white.png');
+    this.load.image(AssetKeys.Image.MeowcertElementLetters, 'images/PSElement_letters.png');
+    this.load.image(AssetKeys.Image.MeowcertTubeWhite, 'images/PSTube-white.png');
     // Eager-load all theme bgs. Tried lazy-loading non-stage bgs to
     // shrink cold-load — both Phaser's Loader (state conflict with
     // tweens) and native Image fallback (URL resolution issue in
@@ -75,7 +75,7 @@ export class Preloader extends Scene {
     this.load.json(AssetKeys.Json.BgLaneColors, 'atlas/bg-lane-colors.json');
 
     this.load.audio(AssetKeys.Audio.Background, ['sounds/background.mp3']);
-    this.load.audio(AssetKeys.Audio.Pspsps, ['sounds/pspsps.mp3']);
+    this.load.audio(AssetKeys.Audio.Meowcert, ['sounds/meowcert.mp3']);
     this.load.audio(AssetKeys.Audio.ThemeDefaultMusic, ['themes/default-music.mp3']);
     this.load.audio(AssetKeys.Audio.ThemeCozyMusic, ['themes/cozy-music.mp3']);
     this.load.audio(AssetKeys.Audio.ThemeSpookyMusic, ['themes/spooky-music.mp3']);
@@ -108,7 +108,7 @@ export class Preloader extends Scene {
     // bar as a solid-pink layer.
     this.generatePawsOnlyTexture();
 
-    // Tile-able body section from PspspsTubeWhite's middle band — used
+    // Tile-able body section from MeowcertTubeWhite's middle band — used
     // by Note's TileSprite tail so long stretches REPEAT the texture
     // instead of stretching it (no taper distortion).
     this.generateTailBodyTile();
@@ -156,7 +156,7 @@ export class Preloader extends Scene {
    *  any failure — the lane still falls back to the existing texture
    *  with no pink overlay, just no toe-bean color call-out. */
   /** Generate a tile-able body section from the middle band of
-   *  PspspsTubeWhite. The middle 25 % is uniform top-to-bottom (the
+   *  MeowcertTubeWhite. The middle 25 % is uniform top-to-bottom (the
    *  flat parallel-sided section between the rounded caps), so tiling
    *  it vertically gives a seamless continuous tube — no taper, no
    *  visible seams. 44 × 32 size keeps the tile small for cheap GPU
@@ -168,7 +168,7 @@ export class Preloader extends Scene {
     const BAND_FRACTION = 0.25;
     if (this.textures.exists(KEY)) return;
     try {
-      const source = this.textures.get(AssetKeys.Image.PspspsTubeWhite);
+      const source = this.textures.get(AssetKeys.Image.MeowcertTubeWhite);
       const srcImage = source.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
       const srcW = srcImage.width;
       const srcH = srcImage.height;
@@ -187,7 +187,7 @@ export class Preloader extends Scene {
   }
 
   /** Generate the rounded end-cap texture from the TOP slice of
-   *  PspspsTubeWhite. Sits on top of the body TileSprite so the tail
+   *  MeowcertTubeWhite. Sits on top of the body TileSprite so the tail
    *  terminates with a proper rounded end instead of a flat tile edge.
    *  44 × 32 to match TAIL_WIDTH × cap height. */
   private generateTailCapTexture(): void {
@@ -197,7 +197,7 @@ export class Preloader extends Scene {
     const BAND_FRACTION = 0.25;
     if (this.textures.exists(KEY)) return;
     try {
-      const source = this.textures.get(AssetKeys.Image.PspspsTubeWhite);
+      const source = this.textures.get(AssetKeys.Image.MeowcertTubeWhite);
       const srcImage = source.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
       const srcW = srcImage.width;
       const srcH = srcImage.height;

@@ -415,7 +415,7 @@ export class SettingsModal {
     // Fake "target" sprite at the preview center for makeParticleBurst
     // to spawn around (it reads target.x / target.y / target.depth only).
     const fakeTarget = this.scene.add
-      .image(centerX, centerY, AssetKeys.Image.PspspsTargetWhite)
+      .image(centerX, centerY, AssetKeys.Image.MeowcertTargetWhite)
       .setDisplaySize(32, 32)
       .setTint(0xffd34d)
       .setAlpha(0.55)

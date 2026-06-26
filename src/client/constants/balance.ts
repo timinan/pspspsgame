@@ -2,24 +2,24 @@ export const Balance = {
   // Game loop
   tickDurationMs: 100,
 
-  // Pspsps target track — stationary target on the right, moving "pspsps"
+  // Meowcert target track — stationary target on the right, moving "meowcert"
   // elements spawn at the left and slide right toward it. Tap to "catch"
   // them when they overlap the target.
-  pspspsMaxElements: 3, // at most 3 on screen at once
-  pspspsTargetXFraction: 0.95, // target sits near the right edge of the bar
-  pspspsSpawnXFraction: 0, // elements appear right at the bar's left edge
-  pspspsBaseSpeedFractionPerSecond: 0.2, // ~5 seconds to traverse the bar
-  pspspsSpeedVariationPerSecond: 0.05, // ±0.05 = 0.15–0.25 per second
-  pspspsBaseSpawnDelayTicks: 30, // spawn a new element every ~3s at 100ms/tick
-  pspspsSpawnDelayVariation: 0.2, // ±20% variation in spawn timing
-  pspspsPerfectMarginFraction: 0.05, // within 5% of bar width = perfect
-  pspspsPartialMarginFraction: 0.2, // within 20% of bar width = partial
-  pspspsPerfectPoints: 200,
-  pspspsPartialPoints: 100,
-  // pspsps speed scales linearly with meow-bar progress: 1x base speed at
+  meowcertMaxElements: 3, // at most 3 on screen at once
+  meowcertTargetXFraction: 0.95, // target sits near the right edge of the bar
+  meowcertSpawnXFraction: 0, // elements appear right at the bar's left edge
+  meowcertBaseSpeedFractionPerSecond: 0.2, // ~5 seconds to traverse the bar
+  meowcertSpeedVariationPerSecond: 0.05, // ±0.05 = 0.15–0.25 per second
+  meowcertBaseSpawnDelayTicks: 30, // spawn a new element every ~3s at 100ms/tick
+  meowcertSpawnDelayVariation: 0.2, // ±20% variation in spawn timing
+  meowcertPerfectMarginFraction: 0.05, // within 5% of bar width = perfect
+  meowcertPartialMarginFraction: 0.2, // within 20% of bar width = partial
+  meowcertPerfectPoints: 200,
+  meowcertPartialPoints: 100,
+  // meowcert speed scales linearly with meow-bar progress: 1x base speed at
   // an empty meter, this multiplier at a full meter. Tunable difficulty
   // curve without adding any new mechanic.
-  pspspsSpeedMultiplierAtFullMeow: 2,
+  meowcertSpeedMultiplierAtFullMeow: 2,
 
   // Combo multiplier. Consecutive successful taps build a streak; a tap
   // that earns no points resets it to 0. Listed in descending order so

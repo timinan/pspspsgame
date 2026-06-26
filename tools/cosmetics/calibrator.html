@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>pspsps — Cosmetic Calibrator</title>
+    <title>meowcert — Cosmetic Calibrator</title>
     <link rel="icon" href="data:," />
     <style>
       :root {
@@ -452,7 +452,7 @@
       const ATLAS_CATS_JSON = '/public/assets/atlas/cats.json';
       const ATLAS_COSMETICS_IMG = '/public/assets/atlas/cosmetics.png';
       const ATLAS_COSMETICS_JSON = '/public/assets/atlas/cosmetics.json';
-      const STORAGE_KEY = 'pspsps:cosmetic-calibrator:v2';
+      const STORAGE_KEY = 'meowcert:cosmetic-calibrator:v2';
       const ZOOM = 4;
 
       // Bases are auto-discovered from the cosmetics atlas at init() time
@@ -520,7 +520,7 @@
       let autosaveTimer = null;
       // Tint blend mode used by both the preview and the next Generate.
       // Persisted under its own key so it survives schema bumps.
-      let currentTintMode = localStorage.getItem('pspsps:cosmetic-calibrator:tintMode') || 'color';
+      let currentTintMode = localStorage.getItem('meowcert:cosmetic-calibrator:tintMode') || 'color';
       const SAVE_FILENAME = 'cosmetics.json';
       // Absolute path so the auto-load fetch resolves regardless of the
       // URL the user opens the page at (e.g. /tools/cosmetics, /cosmetics,
@@ -533,7 +533,7 @@
           if (raw) return hydrateState(JSON.parse(raw));
           // Migration: if v2 is missing but v1 exists, copy the base
           // entries forward. v1 had no variants, so those stay empty.
-          const v1 = localStorage.getItem('pspsps:cosmetic-calibrator:v1');
+          const v1 = localStorage.getItem('meowcert:cosmetic-calibrator:v1');
           if (v1) {
             const migrated = freshStateBlock();
             const parsedV1 = JSON.parse(v1);
@@ -914,7 +914,7 @@
         tintModeEl.value = currentTintMode;
         tintModeEl.addEventListener('change', () => {
           currentTintMode = tintModeEl.value;
-          localStorage.setItem('pspsps:cosmetic-calibrator:tintMode', currentTintMode);
+          localStorage.setItem('meowcert:cosmetic-calibrator:tintMode', currentTintMode);
           render();
         });
 

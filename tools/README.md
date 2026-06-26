@@ -30,7 +30,7 @@ node tools/server.mjs
    the absolute path of its output file (so the JSON survives reloads
    and sessions).
 4. Add a row to the table above with page + output path.
-5. Update `outputs/portfolio/pspsps-session-state.md` so the session
+5. Update `outputs/portfolio/meowcert-session-state.md` so the session
    tracker mentions the tool.
 
 ## Conventions

@@ -92,7 +92,7 @@ describe('player-state', () => {
   });
 
   it('treats malformed JSON in redis as a fresh user', async () => {
-    await redis.set('pspsps:state:carol', 'this-is-not-json');
+    await redis.set('meowcert:state:carol', 'this-is-not-json');
     const state = await loadOrInit(redis, 'carol');
     expect(state.coins).toBe(STARTER_COINS);
     // Fresh users skip onboarding and land in Decorate immediately.
@@ -102,7 +102,7 @@ describe('player-state', () => {
   it('backfills new fields onto an older stored state', async () => {
     // Simulate a state saved before equippedCosmetics existed.
     await redis.set(
-      'pspsps:state:dave',
+      'meowcert:state:dave',
       JSON.stringify({
         username: 'dave',
         coins: 42,

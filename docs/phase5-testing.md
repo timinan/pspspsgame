@@ -4,7 +4,7 @@ Living tracker for end-to-end testing of the Phase 5 redesign. Each flow gets te
 
 **Branch:** `phase5-vertical-gameplay`
 **Playtest URL:** https://www.reddit.com/r/meowcert_dev/?playtest=meowcert
-**Spec:** `/Users/timnan/Documents/GitHub/PM-OS/outputs/prds/2026-06-21-pspsps-phase5-spec.md`
+**Spec:** `/Users/timnan/Documents/GitHub/PM-OS/outputs/prds/2026-06-21-meowcert-phase5-spec.md`
 
 ---
 
@@ -44,7 +44,7 @@ Living tracker for end-to-end testing of the Phase 5 redesign. Each flow gets te
 - Stale vite watchers from earlier sessions were serving outdated bundles
 
 **Fix commits:**
-- `ff38071` — drawer item handler fires `onTap` synchronously + try/catch; Game.drawLanes uses `RhythmBarBackground` + `PspspsTarget`; Note entity uses `PspspsElementBall` + `PspspsElementLetters`
+- `ff38071` — drawer item handler fires `onTap` synchronously + try/catch; Game.drawLanes uses `RhythmBarBackground` + `MeowcertTarget`; Note entity uses `MeowcertElementBall` + `MeowcertElementLetters`
 - `3ec30dd` — Welcome onboarding now routes to Decorate (not Game) after the starter boxes
 - `ffcbaf4` — added DEV_RESET_ON_LOAD + inventory debug panel for Flow 1 prep
 - Killed 3 stale vite watchers from earlier sessions
@@ -213,7 +213,7 @@ See "Open design decisions" at the top of this doc.
 - [ ] `DEV_STARTER_COINS` removed or `STARTER_COINS` reverted to ship value
 - [ ] `DEV_SHOW_INVENTORY` debug panel removed or gated
 - [ ] `DEV_SKIP_ONBOARDING` flag removed
-- [ ] Update `outputs/portfolio/pspsps-session-state.md` with Phase 5 shipped state
+- [ ] Update `outputs/portfolio/meowcert-session-state.md` with Phase 5 shipped state
 - [ ] Devvit submit-post wired (for real comment posting on round end)
 - [ ] HTML title input in ChartEditor (or accept the read-only fallback for v1)
 
@@ -223,7 +223,7 @@ See "Open design decisions" at the top of this doc.
 
 Lives in Flow 3 conceptually but worth a quick callout since it landed
 across 13 commits past the Flow 3 close-out and reshapes the round-start
-UX. See `outputs/portfolio/pspsps-session-state.md` "Phase 5 audio —
+UX. See `outputs/portfolio/meowcert-session-state.md` "Phase 5 audio —
 shipped + tuned" and "Ready modal + 5 difficulty presets" sections for
 the full commit log. Highlights:
 

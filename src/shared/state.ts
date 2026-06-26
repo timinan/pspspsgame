@@ -197,7 +197,7 @@ export const COSMETIC_CATALOG: CosmeticEntry[] = [
 // instrumental (BGM) underneath, and short meow stem one-shots (SFX)
 // fired on every successful lane tap. Both layers are curated content
 // shipped with the app — no per-user generation, no API cost at scale.
-// See `outputs/prds/2026-06-22-pspsps-music-system-spec.md` for the
+// See `outputs/prds/2026-06-22-meowcert-music-system-spec.md` for the
 // full design rationale.
 
 /** Vibe categories for the editor's vibe picker. Each backing track

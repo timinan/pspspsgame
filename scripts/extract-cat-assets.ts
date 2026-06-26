@@ -556,8 +556,8 @@ async function copyStaticAssets(): Promise<void> {
     path.join(OUT_SOUNDS, 'background.mp3'),
   );
   await copyFile(
-    path.join(PROTOTYPE_SOUNDS, 'pspsps.mp3'),
-    path.join(OUT_SOUNDS, 'pspsps.mp3'),
+    path.join(PROTOTYPE_SOUNDS, 'meowcert.mp3'),
+    path.join(OUT_SOUNDS, 'meowcert.mp3'),
   );
 
   // Images

@@ -308,7 +308,7 @@ export class Game extends Scene {
   /**
    * Draw 3 vertical lane backdrops + the original "fuzzy ball" hit target
    * for each lane. Reuses the Phase 1 rhythm assets (RhythmBarBackground,
-   * PspspsTarget) so the visuals match the rest of the game.
+   * MeowcertTarget) so the visuals match the rest of the game.
    */
   private drawLanes(): void {
     const { width, height } = this.scale;
@@ -354,7 +354,7 @@ export class Game extends Scene {
       // Hit target at the bottom of the lane — the original "fuzzy ball"
       // target from horizontal rhythm. Notes get consumed when they reach it.
       // Targets stay opaque (they need to read against the lane).
-      const target = this.add.image(cx, hitLineY, AssetKeys.Image.PspspsTargetWhite);
+      const target = this.add.image(cx, hitLineY, AssetKeys.Image.MeowcertTargetWhite);
       target.setDisplaySize(72, 72);
       target.setTint(color);
       target.setDepth(6);
@@ -1020,7 +1020,7 @@ export class Game extends Scene {
     // emitting" without the GameObject churn.
     const points = n.getVisibleTailWorldPoints(laneTopY, targetY, 1);
     for (const p of points) {
-      const tmp = this.add.image(p.x, p.y, AssetKeys.Image.PspspsTargetWhite);
+      const tmp = this.add.image(p.x, p.y, AssetKeys.Image.MeowcertTargetWhite);
       tmp.setVisible(false);
       effect.burst(this, tmp, 0.25);
       this.time.delayedCall(800, () => tmp.destroy());

@@ -4,10 +4,10 @@
  * and uses Devvit's redis client for sorted sets + lists.
  *
  * Redis key conventions:
- *   pspsps:lb:<postId>          sorted set (member = visitor, score = play score)
- *   pspsps:lb:meta:<postId>     hash of `<visitor>: {accuracy, playedAt}` for top-N hydration
- *   pspsps:inbox:<owner>        Redis list (LPUSH = newest first, LTRIM bounded to INBOX_MAX_EVENTS)
- *   pspsps:post-owner:<postId>  string — visitor-facing lookup of who owns a post
+ *   meowcert:lb:<postId>          sorted set (member = visitor, score = play score)
+ *   meowcert:lb:meta:<postId>     hash of `<visitor>: {accuracy, playedAt}` for top-N hydration
+ *   meowcert:inbox:<owner>        Redis list (LPUSH = newest first, LTRIM bounded to INBOX_MAX_EVENTS)
+ *   meowcert:post-owner:<postId>  string — visitor-facing lookup of who owns a post
  *
  * The owner lookup key is populated lazily on first leaderboard submit
  * for a post; before that, the caller must pass the owner username in
@@ -39,10 +39,10 @@ export interface SocialRedis extends RedisLike {
   lTrim(key: string, start: number, stop: number): Promise<unknown>;
 }
 
-const LB_KEY = (postId: string): string => `pspsps:lb:${postId}`;
-const LB_META_KEY = (postId: string): string => `pspsps:lb:meta:${postId}`;
-const INBOX_KEY = (owner: string): string => `pspsps:inbox:${owner}`;
-const POST_OWNER_KEY = (postId: string): string => `pspsps:post-owner:${postId}`;
+const LB_KEY = (postId: string): string => `meowcert:lb:${postId}`;
+const LB_META_KEY = (postId: string): string => `meowcert:lb:meta:${postId}`;
+const INBOX_KEY = (owner: string): string => `meowcert:inbox:${owner}`;
+const POST_OWNER_KEY = (postId: string): string => `meowcert:post-owner:${postId}`;
 
 // -- Leaderboard ------------------------------------------------------
 

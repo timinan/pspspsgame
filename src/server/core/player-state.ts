@@ -12,7 +12,7 @@ export interface RedisLike {
   set(key: string, value: string): Promise<unknown>;
 }
 
-const KEY = (username: string): string => `pspsps:state:${username}`;
+const KEY = (username: string): string => `meowcert:state:${username}`;
 
 /**
  * Reads the player's persisted state from Redis, or initializes a fresh

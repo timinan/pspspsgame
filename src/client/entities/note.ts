@@ -83,14 +83,14 @@ export class Note extends GameObjects.Container {
   private ball: GameObjects.Image;
   private letters: GameObjects.Image;
   /** TileSprite using the generated tail-body tile (middle band of
-   *  PspspsTubeWhite, parallel-sided). Tiles vertically instead of
+   *  MeowcertTubeWhite, parallel-sided). Tiles vertically instead of
    *  stretching, so long-hold tails stay consistent without taper
    *  distortion. */
   private tail: GameObjects.TileSprite;
   /** Rounded end cap that sits ON TOP of the tail TileSprite — gives
    *  the column a proper rounded crown instead of a flat tile edge. */
   private tailCap: GameObjects.Image;
-  /** Horizontal sideways tube for slide notes — Image of PspspsTubeWhite
+  /** Horizontal sideways tube for slide notes — Image of MeowcertTubeWhite
    *  rotated 90°, stretched to span source→target. Slides are short
    *  enough that the rounded-cap stretch isn't a visible problem.
    *  TileSprite was tried but the per-vertex gradient tint + rotation
@@ -123,16 +123,16 @@ export class Note extends GameObjects.Container {
     // that stretch distortion is invisible, AND TileSprite breaks
     // the per-vertex gradient tint that paints the source→target
     // lane color across the tube.
-    this.slideTube = scene.add.image(0, 0, AssetKeys.Image.PspspsTubeWhite);
+    this.slideTube = scene.add.image(0, 0, AssetKeys.Image.MeowcertTubeWhite);
     this.slideTube.setVisible(false);
     // 54px — matches the 50% bump applied to the lane hit targets (48 → 72)
     // so the falling notes read at the same visual weight as the target.
     // White-base ball — greyscale-stretched so the per-bg sampled tint
     // paints a clean fuzzball instead of multiplying through the
     // prototype's saturated orange.
-    this.ball = scene.add.image(0, 0, AssetKeys.Image.PspspsElementBallWhite);
+    this.ball = scene.add.image(0, 0, AssetKeys.Image.MeowcertElementBallWhite);
     this.ball.setDisplaySize(54, 54);
-    this.letters = scene.add.image(0, 0, AssetKeys.Image.PspspsElementLetters);
+    this.letters = scene.add.image(0, 0, AssetKeys.Image.MeowcertElementLetters);
     this.letters.setDisplaySize(54, 54);
     // Direction chevron drawn at the target end of the slide tube.
     this.slideArrow = scene.add.text(0, 0, '', {

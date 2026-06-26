@@ -62,7 +62,7 @@ export function makeChartForDifficulty(level: DifficultyLevel): Chart {
     }
   }
   return {
-    authorId: 'pspsps',
+    authorId: 'meowcert',
     title: `Difficulty ${level} — ${preset.label}`,
     stepCount: DEFAULT_CHART_STEP_COUNT,
     bpm: 120,

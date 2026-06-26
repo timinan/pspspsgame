@@ -19,28 +19,28 @@ export const AssetKeys = {
      *  cat-color bar so toe beans read as SOLID pink instead of a
      *  darkened multiply of the cat color. Generated in Preloader. */
     RhythmBarPaws: 'rhythm-bar-paws',
-    PspspsTarget: 'pspsps-target',
+    MeowcertTarget: 'meowcert-target',
     /** White-base hit target — same reason as above. Game tints this
      *  with the sampled lane color so the targets visually anchor each
      *  lane without the prototype's colored undertone leaking through. */
-    PspspsTargetWhite: 'pspsps-target-white',
-    PspspsElement: 'pspsps-element',
-    PspspsElementBall: 'pspsps-element-ball',
+    MeowcertTargetWhite: 'meowcert-target-white',
+    MeowcertElement: 'meowcert-element',
+    MeowcertElementBall: 'meowcert-element-ball',
     /** White-base falling-note ball — greyscale-stretched so `setTint`
      *  produces a clean colored fuzzball. `Note.configure` paints this
      *  with the per-bg sampled lane tint so notes match their target. */
-    PspspsElementBallWhite: 'pspsps-element-ball-white',
-    PspspsElementLetters: 'pspsps-element-letters',
+    MeowcertElementBallWhite: 'meowcert-element-ball-white',
+    MeowcertElementLetters: 'meowcert-element-letters',
     /** Vertical fuzzy capsule — hand-authored to match the fuzzball's
      *  edge treatment. White-base for tint. Used directly for slide
      *  arrows + as the source for the generated tail-body tile. */
-    PspspsTubeWhite: 'pspsps-tube-white',
-    /** Tile-able body section cut from PspspsTubeWhite's middle band
+    MeowcertTubeWhite: 'meowcert-tube-white',
+    /** Tile-able body section cut from MeowcertTubeWhite's middle band
      *  (parallel-sided, no rounded caps, uniform vertically). Used as
      *  a TileSprite for hold tails so long stretches TILE the texture
      *  instead of stretching it (no taper distortion). */
     TailBody: 'tail-body',
-    /** Rounded end-cap for hold tails — top portion of PspspsTubeWhite
+    /** Rounded end-cap for hold tails — top portion of MeowcertTubeWhite
      *  with the rounded crown. Sat on top of the tail-body TileSprite
      *  so the tail terminates with a proper cap instead of a flat edge. */
     TailCap: 'tail-cap',
@@ -50,7 +50,7 @@ export const AssetKeys = {
   },
   Audio: {
     Background: 'background-music',
-    Pspsps: 'pspsps-sfx',
+    Meowcert: 'meowcert-sfx',
     ThemeDefaultMusic: 'theme-default-music',
     ThemeCozyMusic: 'theme-cozy-music',
     ThemeSpookyMusic: 'theme-spooky-music',

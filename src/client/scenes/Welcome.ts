@@ -60,13 +60,13 @@ export class Welcome extends Scene {
       );
     }
 
-    // Title size is picked from a few breakpoints so 'Welcome to pspsps!'
+    // Title size is picked from a few breakpoints so 'Welcome to meowcert!'
     // fits on one line at narrow widths. lineSpacing is non-zero so even
     // if it does wrap, the two lines don't render on top of each other —
     // that was the bug in the previous screenshot.
     const titleFontSize = width >= 720 ? 44 : width >= 520 ? 32 : 22;
     this.title = this.add
-      .text(width / 2, height * 0.14, 'Welcome to pspsps!', {
+      .text(width / 2, height * 0.14, 'Welcome to meowcert!', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: `${titleFontSize}px`,
