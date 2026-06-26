@@ -27,7 +27,14 @@ import { loadOrInit, save, type RedisLike } from './player-state';
  *  '@devvit/web/server' redis exposes all of these natively. */
 export interface SocialRedis extends RedisLike {
   zAdd(key: string, ...members: Array<{ score: number; member: string }>): Promise<unknown>;
-  zRange(key: string, start: number, stop: number, opts?: { reverse?: boolean; by?: 'score' | 'rank' }): Promise<string[]>;
+  // Devvit's zRange returns `{member, score}[]` — NOT `string[]`. We used
+  // to type this as string[] and pass each entry through to zScore, which
+  // crashed inside Devvit's encoder ("string argument must be of type
+  // string... Received an instance of Object"). That swallowed the whole
+  // leaderboard fetch on visitor reads, even after the creator-seed was
+  // written successfully. Treat the score embedded in the result as the
+  // source of truth instead of doing a second zScore round-trip per row.
+  zRange(key: string, start: number, stop: number, opts?: { reverse?: boolean; by?: 'score' | 'rank' }): Promise<Array<{ member: string; score: number }>>;
   zScore(key: string, member: string): Promise<number | null | undefined>;
   zCard(key: string): Promise<number>;
   zRevRank?(key: string, member: string): Promise<number | null | undefined>;
@@ -79,13 +86,13 @@ export async function fetchLeaderboard(
   postId: string,
   visitor: string | null,
 ): Promise<{ top: LeaderboardEntry[]; yourRank: number | null; yourScore: number | null; yourAccuracy: number | null }> {
-  // Get top usernames (sorted descending by score)
-  const members = await redis.zRange(LB_KEY(postId), 0, LEADERBOARD_TOP_N - 1, { reverse: true });
+  // Get top entries sorted descending by score. zRange returns
+  // {member, score}[] in Devvit — score is right there, no per-row
+  // zScore round-trip needed.
+  const rows = await redis.zRange(LB_KEY(postId), 0, LEADERBOARD_TOP_N - 1, { reverse: true });
   const meta = await redis.hGetAll(LB_META_KEY(postId));
   const top: LeaderboardEntry[] = [];
-  for (const member of members) {
-    const score = await redis.zScore(LB_KEY(postId), member);
-    if (typeof score !== 'number') continue;
+  for (const { member, score } of rows) {
     let accuracy = 0;
     let playedAt = 0;
     try {
@@ -118,7 +125,7 @@ export async function fetchLeaderboard(
         // Bounded by zCard so this stays O(N).
         const total = await redis.zCard(LB_KEY(postId));
         const above = await redis.zRange(LB_KEY(postId), 0, total - 1, { reverse: true });
-        const idx = above.indexOf(visitor);
+        const idx = above.findIndex((r) => r.member === visitor);
         yourRank = idx >= 0 ? idx + 1 : null;
       }
       try {
