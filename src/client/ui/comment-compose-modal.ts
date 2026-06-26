@@ -164,7 +164,13 @@ export class CommentComposeModal {
     // (system default), which read as a system input dropped into the
     // pixel-art chrome.
     ta.style.fontFamily = '"Pixeloid Sans", sans-serif';
-    ta.style.fontSize = '11px';
+    // 16px is the threshold below which iOS Safari auto-zooms the
+    // viewport when the input gains focus — and once auto-zoomed, the
+    // splash/game viewport meta has user-scalable=no, so the user
+    // can't pinch back out. That's what Tim hit (screen zoomed in +
+    // locked). Slightly bigger than the rest of the modal copy but
+    // typing actually works.
+    ta.style.fontSize = '16px';
     ta.style.padding = '2px 4px';
     ta.style.boxSizing = 'border-box';
     ta.style.zIndex = '9999';
