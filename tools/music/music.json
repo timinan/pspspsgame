@@ -341,18 +341,6 @@
     "genre": "lo-fi",
     "mood": "chill"
   },
-  "ravyn-lenae-love-me-not-lyrics-1": {
-    "id": "ravyn-lenae-love-me-not-lyrics-1",
-    "displayName": "Ravyn Lenae - Love Me Not (Lyrics) (1)",
-    "speedLabel": "fast",
-    "vibe": "illegal",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 15.46,
-    "addedAt": 1782416017001,
-    "genre": "lo-fi",
-    "mood": "chill"
-  },
   "ravyn-lenae-love-me-not-lyrics": {
     "id": "ravyn-lenae-love-me-not-lyrics",
     "displayName": "Ravyn Lenae - Love Me Not (Lyrics)",
@@ -545,18 +533,6 @@
     "genre": "lo-fi",
     "mood": "chill"
   },
-  "panic-at-the-disco-high-hopes-lyrics": {
-    "id": "panic-at-the-disco-high-hopes-lyrics",
-    "displayName": "Panic! At the Disco - High Hopes (Lyrics)",
-    "speedLabel": "fast",
-    "vibe": "illegal",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 0,
-    "addedAt": 1782419233489,
-    "genre": "lo-fi",
-    "mood": "chill"
-  },
   "my-chemical-romance-cemetery-drive-lyric": {
     "id": "my-chemical-romance-cemetery-drive-lyric",
     "displayName": "My Chemical Romance - Cemetery Drive Lyrics",
@@ -581,18 +557,6 @@
     "genre": "lo-fi",
     "mood": "chill"
   },
-  "my-chemical-romance-the-ghost-of-you-lyr": {
-    "id": "my-chemical-romance-the-ghost-of-you-lyr",
-    "displayName": "My Chemical Romance - The Ghost of You Lyrics",
-    "speedLabel": "fast",
-    "vibe": "illegal",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 59.512,
-    "addedAt": 1782419381624,
-    "genre": "lo-fi",
-    "mood": "chill"
-  },
   "weezer-say-it-ain-t-so-2024-remaster-1": {
     "id": "weezer-say-it-ain-t-so-2024-remaster-1",
     "displayName": "Weezer - Say It Ain't So (2024 Remaster) (1)",
@@ -607,7 +571,7 @@
   },
   "hoa-ng-thuy-linh-see-ti-nh-remix-version": {
     "id": "hoa-ng-thuy-linh-see-ti-nh-remix-version",
-    "displayName": "Hoa\u0300ng Thuy\u0300 Linh - See Ti\u0300nh _ Remix Version",
+    "displayName": "Hoàng Thuỳ Linh - See Tình _ Remix Version",
     "speedLabel": "fast",
     "vibe": "illegal",
     "bpm": 130,
@@ -617,21 +581,9 @@
     "genre": "lo-fi",
     "mood": "chill"
   },
-  "taylor-swift-love-story-lyrics": {
-    "id": "taylor-swift-love-story-lyrics",
-    "displayName": "Taylor Swift - Love Story (Lyrics)",
-    "speedLabel": "fast",
-    "vibe": "illegal",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 164.739,
-    "addedAt": 1782420229902,
-    "genre": "lo-fi",
-    "mood": "chill"
-  },
   "illit-magnetic-lyrics-magnetic-color-cod": {
     "id": "illit-magnetic-lyrics-magnetic-color-cod",
-    "displayName": "ILLIT 'Magnetic' Lyrics (\u110b\u1161\u110b\u1175\u11af\u1105\u1175\u11ba Magnetic \u1100\u1161\u1109\u1161) (Color Coded Lyrics)",
+    "displayName": "ILLIT 'Magnetic' Lyrics (아일릿 Magnetic 가사) (Color Coded Lyrics)",
     "speedLabel": "fast",
     "vibe": "illegal",
     "bpm": 130,

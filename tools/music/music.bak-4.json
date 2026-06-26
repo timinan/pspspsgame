@@ -1,7 +1,7 @@
 {
   "bounce-bloom-1": {
     "id": "bounce-bloom-1",
-    "displayName": "Bounce & Bloom",
+    "displayName": "Bubble Bloom",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "bubblegum-pop",
@@ -12,7 +12,7 @@
   },
   "bounce-bloom-2": {
     "id": "bounce-bloom-2",
-    "displayName": "Bounce & Bloom (alt)",
+    "displayName": "Sugar Skip",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "bubblegum-pop",
@@ -23,7 +23,7 @@
   },
   "bouncy-bounce": {
     "id": "bouncy-bounce",
-    "displayName": "Bouncy Bounce",
+    "displayName": "Marshmallow Pogo",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "bubblegum-pop",
@@ -45,7 +45,7 @@
   },
   "cinematic-bossa-nova-2": {
     "id": "cinematic-bossa-nova-2",
-    "displayName": "Cinematic Bossa Nova (alt)",
+    "displayName": "Bossa at Twilight",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "bossa-nova",
@@ -100,7 +100,7 @@
   },
   "midnight-skyline-1": {
     "id": "midnight-skyline-1",
-    "displayName": "Midnight Skyline (1)",
+    "displayName": "City Lights Drift",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "genre": "lo-fi",
@@ -122,7 +122,7 @@
   },
   "warmth-in-the-air-1": {
     "id": "warmth-in-the-air-1",
-    "displayName": "Warmth in the Air (1)",
+    "displayName": "Acoustic Hearthsong",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "acoustic-folk",
@@ -133,7 +133,7 @@
   },
   "neon-horizon-3": {
     "id": "neon-horizon-3",
-    "displayName": "Neon Horizon (3)",
+    "displayName": "Pastel Drive",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "synthwave",
@@ -155,7 +155,7 @@
   },
   "neon-pulse-1": {
     "id": "neon-pulse-1",
-    "displayName": "Neon Pulse (1)",
+    "displayName": "Soft Voltage",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "synthwave",
@@ -172,7 +172,7 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "lo-fi",
-    "mood": "test",
+    "mood": "chill",
     "addedAt": 1782380982027.096
   },
   "bloom-select": {
@@ -188,7 +188,7 @@
   },
   "late-night-loop-remove-section": {
     "id": "late-night-loop-remove-section",
-    "displayName": "Late Night Loop (Remove Section)",
+    "displayName": "Late Night Loop",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -208,20 +208,9 @@
     "mood": "energetic",
     "addedAt": 1782380983297.8428
   },
-  "star-candy-select-1": {
-    "id": "star-candy-select-1",
-    "displayName": "Star Candy Select (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000,
-    "genre": "bubblegum-pop",
-    "mood": "chill",
-    "addedAt": 1782380983727.0981
-  },
   "star-candy-select-2": {
     "id": "star-candy-select-2",
-    "displayName": "Star Candy Select (2)",
+    "displayName": "Sugar Sprite Skip",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -252,17 +241,6 @@
     "mood": "chill",
     "addedAt": 1782380985006.3652
   },
-  "vice-circuit-1": {
-    "id": "vice-circuit-1",
-    "displayName": "Vice Circuit (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000,
-    "genre": "lo-fi",
-    "mood": "chill",
-    "addedAt": 1782380985415.2627
-  },
   "vice-circuit": {
     "id": "vice-circuit",
     "displayName": "Vice Circuit",
@@ -274,20 +252,9 @@
     "mood": "chill",
     "addedAt": 1782380985845.3691
   },
-  "basement-spin-2": {
-    "id": "basement-spin-2",
-    "displayName": "Basement Spin",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000,
-    "addedAt": 1782381963746.9548,
-    "genre": "lo-fi",
-    "mood": "chill"
-  },
   "neon-pulse-remove-section": {
     "id": "neon-pulse-remove-section",
-    "displayName": "Neon Pulse (Remove Section)",
+    "displayName": "Pulse Reflex",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -298,7 +265,7 @@
   },
   "bounce-on-repeat-remove-section-1": {
     "id": "bounce-on-repeat-remove-section-1",
-    "displayName": "Bounce On Repeat (Remove Section) (1)",
+    "displayName": "Pop Spin Pop",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -309,7 +276,7 @@
   },
   "bounce-on-repeat-remove-section": {
     "id": "bounce-on-repeat-remove-section",
-    "displayName": "Bounce On Repeat (Remove Section)",
+    "displayName": "Bubblegum Bounce",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -320,7 +287,7 @@
   },
   "neon-pulse-2": {
     "id": "neon-pulse-2",
-    "displayName": "Neon Pulse (2)",
+    "displayName": "Voltage Cascade",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -378,10 +345,10 @@
     "id": "ravyn-lenae-love-me-not-lyrics-1",
     "displayName": "Ravyn Lenae - Love Me Not (Lyrics) (1)",
     "speedLabel": "fast",
-    "vibe": "upbeat",
+    "vibe": "illegal",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 58,
+    "clipStartS": 15.46,
     "addedAt": 1782416017001,
     "genre": "lo-fi",
     "mood": "chill"
@@ -640,7 +607,7 @@
   },
   "hoa-ng-thuy-linh-see-ti-nh-remix-version": {
     "id": "hoa-ng-thuy-linh-see-ti-nh-remix-version",
-    "displayName": "Hoàng Thuỳ Linh - See Tình _ Remix Version",
+    "displayName": "Hoa\u0300ng Thuy\u0300 Linh - See Ti\u0300nh _ Remix Version",
     "speedLabel": "fast",
     "vibe": "illegal",
     "bpm": 130,
@@ -664,7 +631,7 @@
   },
   "illit-magnetic-lyrics-magnetic-color-cod": {
     "id": "illit-magnetic-lyrics-magnetic-color-cod",
-    "displayName": "ILLIT 'Magnetic' Lyrics (아일릿 Magnetic 가사) (Color Coded Lyrics)",
+    "displayName": "ILLIT 'Magnetic' Lyrics (\u110b\u1161\u110b\u1175\u11af\u1105\u1175\u11ba Magnetic \u1100\u1161\u1109\u1161) (Color Coded Lyrics)",
     "speedLabel": "fast",
     "vibe": "illegal",
     "bpm": 130,
@@ -748,23 +715,27 @@
   },
   "the-quiet-between-notes-3": {
     "id": "the-quiet-between-notes-3",
-    "displayName": "The Quiet Between Notes (3)",
+    "displayName": "Quiet Between Notes II",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 42,
-    "addedAt": 1782446857975
+    "addedAt": 1782443287789,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "celestial-drift-1": {
     "id": "celestial-drift-1",
-    "displayName": "Celestial Drift (1)",
+    "displayName": "Starfield Float",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 47,
-    "addedAt": 1782446859252
+    "addedAt": 1782443289228,
+    "genre": "ambient",
+    "mood": "dreamy"
   },
   "celestial-drift": {
     "id": "celestial-drift",
@@ -774,17 +745,21 @@
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 53,
-    "addedAt": 1782446860721
+    "addedAt": 1782443290757,
+    "genre": "ambient",
+    "mood": "dreamy"
   },
   "cocktail-hour-1": {
     "id": "cocktail-hour-1",
-    "displayName": "Cocktail Hour (1)",
+    "displayName": "After-Hours Lounge",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 46,
-    "addedAt": 1782446861989
+    "addedAt": 1782443292067,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "cocktail-hour": {
     "id": "cocktail-hour",
@@ -794,57 +769,9 @@
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 35,
-    "addedAt": 1782446863019
-  },
-  "bounce-bloom-1-2": {
-    "id": "bounce-bloom-1-2",
-    "displayName": "Bounce & Bloom (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 0,
-    "addedAt": 1782447399806
-  },
-  "bounce-bloom": {
-    "id": "bounce-bloom",
-    "displayName": "Bounce & Bloom",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 535,
-    "addedAt": 1782447401406
-  },
-  "neon-pulse-4": {
-    "id": "neon-pulse-4",
-    "displayName": "Neon Pulse (4)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 758,
-    "addedAt": 1782447403319
-  },
-  "neon-pulse-3": {
-    "id": "neon-pulse-3",
-    "displayName": "Neon Pulse (3)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 0,
-    "addedAt": 1782447403698
-  },
-  "dance-of-the-neon-shadows-1": {
-    "id": "dance-of-the-neon-shadows-1",
-    "displayName": "Dance of the Neon Shadows (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 437,
-    "addedAt": 1782447405127
+    "addedAt": 1782443293224,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "dance-of-the-neon-shadows": {
     "id": "dance-of-the-neon-shadows",
@@ -853,8 +780,10 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 807,
-    "addedAt": 1782447407177
+    "clipStartS": 70,
+    "addedAt": 1782447407177,
+    "genre": "synthwave",
+    "mood": "energetic"
   },
   "floating-in-the-air": {
     "id": "floating-in-the-air",
@@ -863,18 +792,22 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 422,
-    "addedAt": 1782450165165
+    "clipStartS": 40,
+    "addedAt": 1782450165165,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "bounce-bloom-2-2": {
     "id": "bounce-bloom-2-2",
-    "displayName": "Bounce & Bloom (2)",
+    "displayName": "Bubblepop Loop",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 65000,
+    "loopDurationMs": 61400,
     "clipStartS": 0,
-    "addedAt": 1782450165620
+    "addedAt": 1782450165620,
+    "genre": "bubblegum-pop",
+    "mood": "playful"
   },
   "sunny-afternoon": {
     "id": "sunny-afternoon",
@@ -883,27 +816,81 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 242,
-    "addedAt": 1782450166885
+    "clipStartS": 0,
+    "addedAt": 1782450166885,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "neon-pulse-6": {
     "id": "neon-pulse-6",
-    "displayName": "Neon Pulse (6)",
+    "displayName": "Cyber Sunrise",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 587,
-    "addedAt": 1782450168432
+    "clipStartS": 52,
+    "addedAt": 1782450168432,
+    "genre": "synthwave",
+    "mood": "energetic"
   },
   "neon-pulse-5": {
     "id": "neon-pulse-5",
-    "displayName": "Neon Pulse (5)",
+    "displayName": "Pink Lightning",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 459,
-    "addedAt": 1782450169693
+    "clipStartS": 42,
+    "addedAt": 1782450169693,
+    "genre": "synthwave",
+    "mood": "energetic"
+  },
+  "bounce-bloom": {
+    "id": "bounce-bloom",
+    "displayName": "Cotton Candy Spring",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 49,
+    "addedAt": 1782447401406,
+    "genre": "bubblegum-pop",
+    "mood": "playful"
+  },
+  "neon-pulse-4": {
+    "id": "neon-pulse-4",
+    "displayName": "Chrome Heart",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 67,
+    "addedAt": 1782447403319,
+    "genre": "synthwave",
+    "mood": "energetic"
+  },
+  "neon-pulse-3": {
+    "id": "neon-pulse-3",
+    "displayName": "Synth Rush",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62920,
+    "clipStartS": 0,
+    "addedAt": 1782447403698,
+    "genre": "synthwave",
+    "mood": "energetic"
+  },
+  "dance-of-the-neon-shadows-1": {
+    "id": "dance-of-the-neon-shadows-1",
+    "displayName": "Shadow Stride",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 43,
+    "addedAt": 1782447405127,
+    "genre": "synthwave",
+    "mood": "energetic"
   }
 }
