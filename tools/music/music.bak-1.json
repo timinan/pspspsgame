@@ -355,11 +355,11 @@
     "id": "the-quiet-between-notes",
     "displayName": "The Quiet Between Notes",
     "speedLabel": "fast",
-    "vibe": "upbeat",
+    "vibe": "smooth",
     "bpm": 130,
     "loopDurationMs": 62000,
     "addedAt": 1782384156493.0435,
-    "genre": "lo-fi",
+    "genre": "piano",
     "mood": "chill"
   },
   "jawny-honeypie-lyrics": {
@@ -702,7 +702,7 @@
     "id": "no-batidao",
     "displayName": "NO BATIDAO",
     "speedLabel": "fast",
-    "vibe": "upbeat",
+    "vibe": "illegal",
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 0,
@@ -745,5 +745,45 @@
     "addedAt": 1782430373672,
     "genre": "lo-fi",
     "mood": "chill"
+  },
+  "the-quiet-between-notes-3": {
+    "id": "the-quiet-between-notes-3",
+    "displayName": "The Quiet Between Notes (3)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 365,
+    "addedAt": 1782443287789
+  },
+  "celestial-drift-1": {
+    "id": "celestial-drift-1",
+    "displayName": "Celestial Drift (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 317,
+    "addedAt": 1782443289228
+  },
+  "celestial-drift": {
+    "id": "celestial-drift",
+    "displayName": "Celestial Drift",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 536,
+    "addedAt": 1782443290757
+  },
+  "cocktail-hour-1": {
+    "id": "cocktail-hour-1",
+    "displayName": "Cocktail Hour (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 508,
+    "addedAt": 1782443292067
   }
 }

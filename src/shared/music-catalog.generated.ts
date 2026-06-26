@@ -8,7 +8,7 @@ import type { BackingTrack } from './state';
 // User-extensible taxonomies sourced from tools/music/taxonomies.json.
 // SongPicker + calibrator read these to populate genre/mood/vibe pickers.
 export const BACKING_VIBES: readonly string[] = ["upbeat","melodic","smooth","illegal"];
-export const BACKING_GENRES: readonly string[] = ["bubblegum-pop","synthwave","lo-fi","bossa-nova","acoustic-folk","chiptune","jazz","funk","ambient","house","rock","dance-pop","trance","hip-hop","world"];
+export const BACKING_GENRES: readonly string[] = ["bubblegum-pop","synthwave","lo-fi","bossa-nova","acoustic-folk","chiptune","jazz","funk","ambient","house","rock","dance-pop","trance","hip-hop","world","piano"];
 export const BACKING_MOODS: readonly string[] = ["energetic","chill","playful","romantic","mysterious","dramatic","nostalgic","bright","dark","dreamy","test"];
 
 export const BACKING_CATALOG: Record<string, BackingTrack> = {
@@ -44,7 +44,7 @@ export const BACKING_CATALOG: Record<string, BackingTrack> = {
   "neon-pulse-2": { id: "neon-pulse-2", displayName: "Neon Pulse (2)", speedLabel: "fast", vibe: "upbeat", genre: "synthwave", mood: "energetic", bpm: 130, audioKey: "backing-neon-pulse-2", loopDurationMs: 62000 },
   "the-big-cheese": { id: "the-big-cheese", displayName: "The Big Cheese", speedLabel: "fast", vibe: "upbeat", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-the-big-cheese", loopDurationMs: 62000 },
   "the-last-train-to-nowhere": { id: "the-last-train-to-nowhere", displayName: "The Last Train to Nowhere", speedLabel: "fast", vibe: "upbeat", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-the-last-train-to-nowhere", loopDurationMs: 62000 },
-  "the-quiet-between-notes": { id: "the-quiet-between-notes", displayName: "The Quiet Between Notes", speedLabel: "fast", vibe: "upbeat", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-the-quiet-between-notes", loopDurationMs: 62000 },
+  "the-quiet-between-notes": { id: "the-quiet-between-notes", displayName: "The Quiet Between Notes", speedLabel: "fast", vibe: "smooth", genre: "piano", mood: "chill", bpm: 130, audioKey: "backing-the-quiet-between-notes", loopDurationMs: 62000 },
   "jawny-honeypie-lyrics": { id: "jawny-honeypie-lyrics", displayName: "JAWNY - Honeypie (Lyrics)", speedLabel: "fast", vibe: "illegal", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-jawny-honeypie-lyrics", loopDurationMs: 65000, clipStartS: 12.233 },
   "ravyn-lenae-love-me-not-lyrics-1": { id: "ravyn-lenae-love-me-not-lyrics-1", displayName: "Ravyn Lenae - Love Me Not (Lyrics) (1)", speedLabel: "fast", vibe: "upbeat", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-ravyn-lenae-love-me-not-lyrics-1", loopDurationMs: 65000, clipStartS: 58 },
   "ravyn-lenae-love-me-not-lyrics": { id: "ravyn-lenae-love-me-not-lyrics", displayName: "Ravyn Lenae - Love Me Not (Lyrics)", speedLabel: "fast", vibe: "illegal", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-ravyn-lenae-love-me-not-lyrics", loopDurationMs: 65000, clipStartS: 16.86 },
@@ -77,4 +77,9 @@ export const BACKING_CATALOG: Record<string, BackingTrack> = {
   "arctic-monkeys-do-i-wanna-know-lyrics": { id: "arctic-monkeys-do-i-wanna-know-lyrics", displayName: "Arctic Monkeys - Do I Wanna Know_ (Lyrics)", speedLabel: "fast", vibe: "illegal", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-arctic-monkeys-do-i-wanna-know-lyrics", loopDurationMs: 65000, clipStartS: 4.646 },
   "arctic-monkeys-fluorescent-adolescent-ly": { id: "arctic-monkeys-fluorescent-adolescent-ly", displayName: "Arctic Monkeys - Fluorescent Adolescent Lyrics", speedLabel: "fast", vibe: "illegal", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-arctic-monkeys-fluorescent-adolescent-ly", loopDurationMs: 65000, clipStartS: 7.745 },
   "arctic-monkeys-i-bet-you-look-good-on-th": { id: "arctic-monkeys-i-bet-you-look-good-on-th", displayName: "Arctic Monkeys - I Bet You Look Good On The Dancefloor lyrics", speedLabel: "fast", vibe: "illegal", genre: "lo-fi", mood: "chill", bpm: 130, audioKey: "backing-arctic-monkeys-i-bet-you-look-good-on-th", loopDurationMs: 65000, clipStartS: 10.42 },
+  "the-quiet-between-notes-3": { id: "the-quiet-between-notes-3", displayName: "The Quiet Between Notes (3)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-the-quiet-between-notes-3", loopDurationMs: 65000, clipStartS: 365 },
+  "celestial-drift-1": { id: "celestial-drift-1", displayName: "Celestial Drift (1)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-celestial-drift-1", loopDurationMs: 65000, clipStartS: 317 },
+  "celestial-drift": { id: "celestial-drift", displayName: "Celestial Drift", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-celestial-drift", loopDurationMs: 65000, clipStartS: 536 },
+  "cocktail-hour-1": { id: "cocktail-hour-1", displayName: "Cocktail Hour (1)", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-cocktail-hour-1", loopDurationMs: 65000, clipStartS: 508 },
+  "cocktail-hour": { id: "cocktail-hour", displayName: "Cocktail Hour", speedLabel: "fast", vibe: "upbeat", bpm: 130, audioKey: "backing-cocktail-hour", loopDurationMs: 65000, clipStartS: 306 },
 };
