@@ -208,17 +208,6 @@
     "mood": "energetic",
     "addedAt": 1782380983297.8428
   },
-  "star-candy-select-1": {
-    "id": "star-candy-select-1",
-    "displayName": "Star Candy Select (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000,
-    "genre": "bubblegum-pop",
-    "mood": "chill",
-    "addedAt": 1782380983727.0981
-  },
   "star-candy-select-2": {
     "id": "star-candy-select-2",
     "displayName": "Star Candy Select (2)",
@@ -252,17 +241,6 @@
     "mood": "chill",
     "addedAt": 1782380985006.3652
   },
-  "vice-circuit-1": {
-    "id": "vice-circuit-1",
-    "displayName": "Vice Circuit (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000,
-    "genre": "lo-fi",
-    "mood": "chill",
-    "addedAt": 1782380985415.2627
-  },
   "vice-circuit": {
     "id": "vice-circuit",
     "displayName": "Vice Circuit",
@@ -273,17 +251,6 @@
     "genre": "lo-fi",
     "mood": "chill",
     "addedAt": 1782380985845.3691
-  },
-  "basement-spin-2": {
-    "id": "basement-spin-2",
-    "displayName": "Basement Spin",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 62000,
-    "addedAt": 1782381963746.9548,
-    "genre": "lo-fi",
-    "mood": "chill"
   },
   "neon-pulse-remove-section": {
     "id": "neon-pulse-remove-section",
@@ -640,7 +607,7 @@
   },
   "hoa-ng-thuy-linh-see-ti-nh-remix-version": {
     "id": "hoa-ng-thuy-linh-see-ti-nh-remix-version",
-    "displayName": "Hoàng Thuỳ Linh - See Tình _ Remix Version",
+    "displayName": "Hoa\u0300ng Thuy\u0300 Linh - See Ti\u0300nh _ Remix Version",
     "speedLabel": "fast",
     "vibe": "illegal",
     "bpm": 130,
@@ -664,7 +631,7 @@
   },
   "illit-magnetic-lyrics-magnetic-color-cod": {
     "id": "illit-magnetic-lyrics-magnetic-color-cod",
-    "displayName": "ILLIT 'Magnetic' Lyrics (아일릿 Magnetic 가사) (Color Coded Lyrics)",
+    "displayName": "ILLIT 'Magnetic' Lyrics (\u110b\u1161\u110b\u1175\u11af\u1105\u1175\u11ba Magnetic \u1100\u1161\u1109\u1161) (Color Coded Lyrics)",
     "speedLabel": "fast",
     "vibe": "illegal",
     "bpm": 130,
@@ -877,18 +844,6 @@
     "addedAt": 1782450169693,
     "genre": "synthwave",
     "mood": "energetic"
-  },
-  "bounce-bloom-1-2": {
-    "id": "bounce-bloom-1-2",
-    "displayName": "Bounce & Bloom (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 61400,
-    "clipStartS": 0,
-    "addedAt": 1782447399806,
-    "genre": "bubblegum-pop",
-    "mood": "playful"
   },
   "bounce-bloom": {
     "id": "bounce-bloom",
