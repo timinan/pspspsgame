@@ -2005,11 +2005,12 @@ export class Game extends Scene {
           if (img.complete) sendWhenReady();
           else img.onload = sendWhenReady;
         });
-      } catch (err) {
-        console.warn('[Game] snapshotArea threw:', err);
-        restore();
-        resolve(null);
-      }
+        } catch (err) {
+          console.warn('[Game] snapshotArea threw:', err);
+          restore();
+          resolve(null);
+        }
+      });
     });
   }
 
@@ -2901,12 +2902,6 @@ export class Game extends Scene {
    *  block above. */
   private openSettings(): void {
     if (!this.settingsModal) this.settingsModal = new SettingsModal(this);
-    this.settingsModal.open();
-  }
-}
-
-
-ngsModal = new SettingsModal(this);
     this.settingsModal.open();
   }
 }
