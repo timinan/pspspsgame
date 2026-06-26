@@ -822,7 +822,11 @@ export class Game extends Scene {
     backBg.on('pointerover', () => backBg.setFillStyle(0x2c1856, 0.95));
     backBg.on('pointerout', () => backBg.setFillStyle(0x1a0a2e, 0.95));
     backBg.on('pointerup', () => {
-      this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
+      // Re-enter the rehearse pre-round flow at the song selection
+      // step. scene.restart with no replayChart hits create()'s
+      // non-testMode branch which calls showSongPicker — same path
+      // the Change Song button on the summary uses.
+      this.scene.restart({ playerState: this.playerState });
     });
 
     // RESTART chip — yellow stroke matches the primary action color
