@@ -155,10 +155,6 @@ export class Game extends Scene {
    *  the big FINAL SCORE above so it still reads as "previous best, not
    *  the run you just finished". */
   private summaryBestScoreBig!: Phaser.GameObjects.Text;
-  /** Set by Play Again so create() skips the SongPicker and jumps
-   *  straight back into the same chart instead of re-prompting. Uses
-   *  the existing playChart pipeline once the scene boots. */
-  private pendingReplayChart: Chart | null = null;
   /** Summary title — swapped between 'SHOW COMPLETE!' and
    *  'SHOW FAILED' based on the rehearsal pass gate. */
   private summaryTitleText!: Phaser.GameObjects.Text;
@@ -179,20 +175,9 @@ export class Game extends Scene {
     playerState?: PlayerState | null;
     testMode?: boolean;
     startStep?: number;
-    replayChart?: Chart | null;
   }): void {
     this.playerState = data?.playerState ?? null;
     this.testMode = data?.testMode === true;
-    // Replay chart — Phaser passes data through to init, but the Game
-    // registry survives scene restarts unconditionally so we prefer it
-    // as the source of truth. Play Again writes the chart there before
-    // restart; we consume + clear it here. data.replayChart stays as a
-    // fallback in case anything else ever calls scene.restart with the
-    // chart inline.
-    const fromRegistry = this.registry.get('rehearseReplayChart') as Chart | undefined;
-    this.pendingReplayChart = fromRegistry ?? data?.replayChart ?? null;
-    if (fromRegistry) this.registry.remove('rehearseReplayChart');
-    console.info(`[Game] init — testMode=${this.testMode} pendingReplayChart=${!!this.pendingReplayChart} (registry=${!!fromRegistry} data=${!!data?.replayChart})`);
     // Editor passes its current scrollOffset here so rehearsal starts
     // at the author's working page (chart + music both seek). Defaults
     // to 0 = start at the top.
@@ -262,24 +247,6 @@ export class Game extends Scene {
       // moment the scene boots.
       await this.initChartPlayer();
       void this.beginRound();
-    } else if (this.pendingReplayChart) {
-      // Play Again: skip the SongPicker and re-attach the same chart
-      // the player just finished. Music + chart-player rebuild fresh
-      // off the same chart object; the round kicks immediately.
-      console.info(`[Game] create — replay path: audioKey=${this.pendingReplayChart.audioKey} stepCount=${this.pendingReplayChart.stepCount}`);
-      try {
-        this.attachChartAndMusic(this.pendingReplayChart);
-      } catch (err) {
-        console.error('[Game] attachChartAndMusic threw on replay:', err);
-        // Fall back to song picker so the player isn't stranded
-        this.showSongPicker();
-        return;
-      }
-      void this.beginRound().then(() => {
-        console.info('[Game] beginRound resolved on replay');
-      }).catch((err: unknown) => {
-        console.error('[Game] beginRound threw on replay:', err);
-      });
     } else {
       // Fresh Rehearse entry: two-step picker. SongPicker (vibe → song
       // list → preview + select) → DifficultyPicker (easy/normal/hard
@@ -1549,20 +1516,67 @@ export class Game extends Scene {
     for (const o of allBestObjs) o.setVisible(true);
   }
 
-  /** Replay the chart the player just finished. Stashes it on the game
-   *  registry (which survives scene restarts) so init() can pick it up
-   *  and skip the SongPicker on reboot, jumping straight into the same
-   *  chart with music. */
+  /** Replay the chart the player just finished. Avoids scene.restart
+   *  entirely — restart was dropping the chart somewhere along the
+   *  Phaser lifecycle (tried both data-payload and registry-carry,
+   *  both Tim-confirmed blank/silent on the playtest). In-place reset
+   *  is simpler and lets us reuse the existing chart object reference
+   *  with no carry channel at all. */
   private onPlayAgainClicked = (): void => {
-    const hasChart = !!this.playChart;
-    const audioKey = this.playChart?.audioKey;
-    const stepCount = this.playChart?.stepCount;
-    console.info(`[Game] Play Again clicked — playChart=${hasChart} audioKey=${audioKey} stepCount=${stepCount}`);
-    if (this.playChart) {
-      this.registry.set('rehearseReplayChart', this.playChart);
+    if (!this.playChart) {
+      // Defensive — no chart means we somehow lost the round we just
+      // played; fall back to a full restart so the SongPicker re-opens.
+      console.warn('[Game] Play Again with no playChart — falling back to restart');
+      this.scene.restart({ playerState: this.playerState });
+      return;
     }
-    this.scene.restart({ playerState: this.playerState });
+    const chart = this.playChart;
+    console.info(`[Game] Play Again — in-place replay audioKey=${chart.audioKey} stepCount=${chart.stepCount}`);
+    this.replayInPlace(chart);
   };
+
+  /** Hard-reset the round state inside the same scene instance + re-
+   *  attach the chart. Mirrors what create()'s replay branch would do
+   *  on a restart, minus the scene teardown / rebuild. */
+  private replayInPlace(chart: Chart): void {
+    // Tear down the live music + chart-player so the new attach can
+    // build fresh ones against the same chart.
+    this.music?.destroy();
+    this.music = null;
+    // Recycle any live notes left over from the previous run.
+    for (let i = 0; i < this.notes.length; i++) {
+      const n = this.notes[i]!;
+      if (n.active) n.recycle();
+    }
+    // Reset round state — score, end flag, start clock, page tracking.
+    // Anything that's per-round and consulted by update() needs to go
+    // back to its init() value.
+    this.score = new ScoreSystem();
+    this.roundOver = false;
+    this.startTimeMs = 0;
+    this.pendingStart = true;
+    this.lastEmittedPageBoundary = 0;
+    // Hide the summary modal so the new round isn't drawing over it.
+    this.summary?.setVisible(false);
+    // Clear feedback texts in case any are mid-tween.
+    for (const t of this.hitFeedbackTexts) t.setVisible(false);
+    // Reset combo text to its pre-round empty state so the celebratory
+    // "thank you for coming" line doesn't linger across rounds.
+    this.tweens.killTweensOf(this.comboText);
+    this.comboText.setText('');
+    this.comboText.setAlpha(0);
+    // Reset cats from celebration/disappointment back to idle.
+    for (const c of this.cats) c.playIdle?.();
+    // Re-update HUD so score zeroes back out.
+    this.updateHud();
+    // Re-attach + kick the round. Same pipeline that the initial play
+    // used — attachChartAndMusic builds a fresh ChartPlayer + Music
+    // System; beginRound seeks music + enables tap zones.
+    this.attachChartAndMusic(chart);
+    void this.beginRound().catch((err: unknown) => {
+      console.error('[Game] beginRound threw on in-place replay:', err);
+    });
+  }
 
   /** Bounce back through the SongPicker by restarting without a
    *  replayChart — Game.create's non-testMode path will showSongPicker
