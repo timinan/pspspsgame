@@ -135,7 +135,16 @@ export class VisitPost extends Scene {
 
   private async loadChart(authorUsername: string): Promise<void> {
     try {
-      const chart = await loadChart(authorUsername);
+      // Prefer per-post chart snapshot (saved by publish.ts at PUT ON A
+      // SHOW time) so the splash always shows the chart that was
+      // ACTUALLY published, not whatever next chart the author is
+      // editing now. Fall back to the owner's current state.chart for
+      // legacy posts that predate per-post snapshots.
+      let chart = await this.loadPostChart();
+      if (!chart) {
+        console.info('[VisitPost] no per-post chart, falling back to author state.chart');
+        chart = await loadChart(authorUsername);
+      }
       if (!this.scene.isActive()) return;
       this.chart = chart;
       this.songText.setText(this.formatSongLine(chart));
@@ -148,6 +157,20 @@ export class VisitPost extends Scene {
     } catch (err) {
       console.warn('[VisitPost] chart load failed:', err);
       this.songText.setText('— song unavailable —');
+    }
+  }
+
+  /** Fetch the per-post chart snapshot. Returns null when the post
+   *  predates per-post storage or the key was somehow lost. */
+  private async loadPostChart(): Promise<Chart | null> {
+    try {
+      const r = await fetch(`/api/post-chart?postId=${encodeURIComponent(this.postId)}`);
+      if (!r.ok) return null;
+      const body = (await r.json()) as { ok?: boolean; chart?: Chart };
+      return body?.ok && body.chart ? body.chart : null;
+    } catch (err) {
+      console.warn('[VisitPost] post-chart fetch threw:', err);
+      return null;
     }
   }
 

@@ -45,6 +45,23 @@ api.route('/visit', visit);
 // render the owner's actual stage as the feed-preview backdrop.
 api.route('/preview-image', preview);
 
+// Per-post chart snapshot — `meowcert:post-chart:<postId>` written by
+// publish.ts. VisitPost reads this in place of /chart?author=<username>
+// so the splash always renders the chart that was actually published
+// (instead of whatever the author is editing now).
+api.get('/post-chart', async (c) => {
+  const postId = c.req.query('postId');
+  if (!postId) return c.json({ ok: false, reason: 'missing postId' }, 400);
+  const raw = await redis.get(`meowcert:post-chart:${postId}`);
+  if (!raw) return c.json({ ok: false, reason: 'no per-post chart' }, 404);
+  try {
+    const chart = JSON.parse(raw) as unknown;
+    return c.json({ ok: true, chart });
+  } catch {
+    return c.json({ ok: false, reason: 'corrupt' }, 500);
+  }
+});
+
 api.get('/init', async (c) => {
   const { postId } = context;
 

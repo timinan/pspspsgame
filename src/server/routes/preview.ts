@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { redis } from '@devvit/web/server';
 import { loadOrInit } from '../core/player-state';
 import { BACKING_CATALOG } from '../../shared/state';
+import type { Chart } from '../../shared/state';
 
 /**
  * Preview-image endpoint. Mounted at /api/preview-image.
@@ -40,8 +41,22 @@ preview.get('/', async (c) => {
   // like "Mahalia - I Wish I Missed My Ex"), NOT chart.title (which is
   // hardcoded 'My Beat' or 'Rehearsal' from the generator). Resolved
   // via BACKING_CATALOG[audioKey].
-  const ownerState = await loadOrInit(redis, ownerUsername);
-  const chart = ownerState.chart;
+  //
+  // Chart source priority: per-post snapshot (the chart that was
+  // ACTUALLY published) > owner's current state.chart (legacy fallback
+  // for posts created before per-post snapshots existed). Without this
+  // gate, the splash showed whatever next chart the author was working
+  // on, not the chart they posted.
+  const postChartRaw = await redis.get(`meowcert:post-chart:${postId}`);
+  let chart: Chart | undefined;
+  if (postChartRaw) {
+    try { chart = JSON.parse(postChartRaw) as Chart; }
+    catch (err) { console.warn(`[preview] post-chart parse fail for ${postId}:`, err); }
+  }
+  if (!chart) {
+    const ownerState = await loadOrInit(redis, ownerUsername);
+    chart = ownerState.chart;
+  }
   const audioKey = chart?.audioKey;
   const backing = audioKey ? BACKING_CATALOG[audioKey] : undefined;
   const title = backing?.displayName ?? chart?.title ?? 'a rhythm show';

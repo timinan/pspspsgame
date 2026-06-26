@@ -337,6 +337,27 @@ export class ChartEditor extends Scene {
       .rectangle(0, bannerY + HEADER_BANNER_H - 1, width, 1, 0xc0a0e6, 0.35)
       .setOrigin(0, 0);
     this.root.add([strip, seam]);
+
+    // ← SONG chip on the left edge — Tim's ask: "need a back button for
+    // choosing song from this page". Routes back to the song picker so
+    // the author can swap the backing without losing the editor view.
+    const chipCx = 24;
+    const chipCy = bannerY + HEADER_BANNER_H / 2;
+    const songBackBg = this.add
+      .rectangle(chipCx, chipCy, 36, 24, 0x2c1856, 1)
+      .setStrokeStyle(1, 0xc0a0e6, 0.6)
+      .setInteractive({ useHandCursor: true });
+    const songBackTxt = this.add
+      .text(chipCx, chipCy, '◀', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5);
+    songBackBg.on('pointerdown', () => this.showSongPickerModal());
+    this.root.add([songBackBg, songBackTxt]);
+
     this.headerBannerText = this.add
       .text(width / 2, bannerY + HEADER_BANNER_H / 2, this.songDisplayName(), {
         fontFamily: 'Pixeloid Sans, sans-serif',

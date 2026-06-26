@@ -263,6 +263,20 @@ export class Game extends Scene {
 
     this.events.on(Scenes.Events.SHUTDOWN, () => this.cleanup());
 
+    // Chart-availability gate. ANY of these counts as "we have a chart,
+    // run the round" — checked in priority order, same as
+    // initChartPlayer's priority chain:
+    //   1. registry.hostChart — set by VisitPost when an owner taps PLAY
+    //      on their own post (or a visitor on someone else's). This was
+    //      the missing case: VisitPost stamped the chart on the
+    //      registry but the gate only looked at playerState.chart, so
+    //      Game fell through to showSongPicker even though the chart
+    //      was sitting right there.
+    //   2. playerState.chart with notes — Drawer REHEARSE path.
+    const registryChart = this.registry.get('hostChart') as Chart | undefined;
+    const hasRegistryChart = registryChart?.steps?.some((s) => s.lanes.length > 0);
+    const hasStateChart = this.playerState?.chart?.steps?.some((s) => s.lanes.length > 0);
+
     if (this.testMode) {
       // Editor → REHEARSE path: chart is already authored. Tim's rule:
       // hitting REHEARSE in the editor starts the round immediately —
@@ -270,12 +284,8 @@ export class Game extends Scene {
       // moment the scene boots.
       await this.initChartPlayer();
       void this.beginRound();
-    } else if (this.playerState?.chart?.steps?.some((s) => s.lanes.length > 0)) {
-      // Drawer REHEARSE path with an authored chart: rehearse THAT chart
-      // instead of forcing a song-pick. The picker is the fresh-entry
-      // fallback; once you've authored something, REHEARSE should
-      // practice your own set. initChartPlayer's priority chain reads
-      // playerState.chart, attaches music to its audioKey, and runs.
+    } else if (hasRegistryChart || hasStateChart) {
+      // Drawer REHEARSE or visitor PLAY: chart is in hand, run it.
       await this.initChartPlayer();
       void this.beginRound();
     } else {
@@ -321,9 +331,15 @@ export class Game extends Scene {
     const spawnPageBoundary = Math.floor(spawnStep / CHART_PAGE_SIZE);
     while (this.lastEmittedPageBoundary < spawnPageBoundary) {
       this.lastEmittedPageBoundary += 1;
-      const pageIdx = this.lastEmittedPageBoundary % this.playPagesPerLoop;
-      // Skip the first page of every loop — round start needs no marker,
-      // and the previous loop's "last page" line already covers the wrap.
+      // Don't emit ANY page lines past the first loop's last page.
+      // Tim's call: "if you have page numbers on at the end of the song
+      // the page numbers repeats just get rid of the line after the
+      // last page is supposed to end and dont have this repeat". The
+      // chart loops 30s of round filler under the hood; without this
+      // gate, every loop pass would re-emit pages 1..N.
+      if (this.lastEmittedPageBoundary >= this.playPagesPerLoop) continue;
+      const pageIdx = this.lastEmittedPageBoundary;
+      // Skip page 0 — round start needs no marker.
       if (pageIdx === 0) continue;
       this.spawnPageBoundaryLine(pageIdx);
     }
@@ -1938,23 +1954,31 @@ export class Game extends Scene {
       // Gracefully no-ops for breeds with no meow atlas frames.
       console.info('[Game] snapshot: freezing', this.cats.length, 'cats on meow frame');
       const restoreCatAnims: Array<() => void> = [];
+      const effectHandles: Array<{ destroy(): void }> = [];
       for (let i = 0; i < this.cats.length; i++) {
         const cat = this.cats[i]!;
         const prevAnim = cat.model.animation;
         cat.freezeMeowFrame();
         restoreCatAnims.push(() => cat.setAnimation(prevAnim));
 
-        // Light the cat's equipped effect by firing a burst at the
-        // sprite. Bursts are self-cleaning (own their tweens + destroy
-        // on completion) so we don't need to track them for cleanup.
+        // Light the cat's equipped effect using the CONTINUOUS
+        // behind-cat aura (`apply`) instead of the radial fuzzball-
+        // style burst we previously used. Tim's call: "dont do the
+        // effect on the front echoing the fuzzball effects just show
+        // the effects behind the cat with teh amplified version".
+        // Scale 1.6 = amplified vs in-round default 1.0. The handle
+        // is destroyed in restore() so the splash particles don't
+        // leak into the editor scene after we transition back.
         const effectId = this.laneEffects[i];
         if (effectId) {
           const effect = CAT_EFFECT_BY_ID[effectId];
-          // Scale 0.7 reads at cat-size without overwhelming the frame.
-          // The hit-time burst uses 1.0 (fuzzball-scale); we want a
-          // gentler aura here since the cat sprite is much larger than
-          // a fuzzball.
-          effect?.burst(this, cat.sprite, 0.7);
+          if (effect) {
+            const handle = effect.apply(this, cat.sprite, 1.6);
+            // Pulse to the loud state so the snapshot grabs the
+            // pronounced version of the aura, not the resting baseline.
+            handle.pulseHit?.();
+            effectHandles.push(handle);
+          }
         }
       }
 
@@ -1964,6 +1988,9 @@ export class Game extends Scene {
         });
         this.comboText?.setAlpha(comboOriginalAlpha);
         for (const fn of restoreCatAnims) fn();
+        // Stop the splash-only aura emitters so they don't keep
+        // spawning particles into the next scene.
+        for (const h of effectHandles) h.destroy();
       };
 
       const scaleY = this.scale.height / L.DESIGN_H;
@@ -1977,13 +2004,13 @@ export class Game extends Scene {
       // the alpha hide is enough on its own and Tim wants the
       // taller image to fill more splash whitespace).
       const h = (L.LANE_TOP_Y - TopHud.HEIGHT) * scaleY;
-      // Wait long enough for: anim-swap frame, burst particle spawn,
-      // and at least one peak of the burst tween before snapshotting.
-      // Two rAFs alone weren't enough — bursts stagger their spawns to
-      // avoid clumping (~30 ms total). 120 ms lands the snapshot near
-      // the peak of the burst when particles are at max opacity and
-      // mid-radial-throw.
-      const SNAPSHOT_DELAY_MS = 120;
+      // 320 ms gives the continuous `apply` effects enough time to
+      // spawn their first wave of particles (most use a 150-250 ms
+      // spawn interval). Shorter waits captured the cats before any
+      // particles had drawn behind them. The pulseHit also takes ~120
+      // ms to ramp the aura to its peak; we want the snapshot to land
+      // there.
+      const SNAPSHOT_DELAY_MS = 320;
       this.time.delayedCall(SNAPSHOT_DELAY_MS, () => {
         try {
           renderer.snapshotArea(x, y, w, h, (img) => {

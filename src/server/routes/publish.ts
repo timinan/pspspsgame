@@ -96,6 +96,21 @@ publish.post('/chart', async (c) => {
     // first time a visitor opens the post.
     await setPostOwner(redis, post.id, username);
 
+    // Snapshot the chart at publish time under a per-post key so the
+    // VisitPost splash always serves the exact chart that was posted.
+    // Previously we loaded the OWNER's state.chart at visit time, which
+    // drifts as the author edits new charts — visitors then saw whatever
+    // half-built next chart the author was working on instead of the
+    // published one (Tim: "u/timmymmit's set" placeholder appearing on
+    // the splash because the latest state.chart had no audioKey + no
+    // notes). Stored as JSON; consumed by /api/post-chart.
+    try {
+      await redis.set(`meowcert:post-chart:${post.id}`, JSON.stringify(chart));
+      console.info(`[publish] stored per-post chart for ${post.id} (audioKey=${chart.audioKey ?? '-'}, steps=${chart.steps?.length ?? 0})`);
+    } catch (err) {
+      console.warn('[publish] per-post chart write failed:', err);
+    }
+
     // Store the cat-stage snapshot keyed by post id so splash.html
     // can fetch the right preview for each post (vs the player's
     // current Decorate state which would mean every post they ever
