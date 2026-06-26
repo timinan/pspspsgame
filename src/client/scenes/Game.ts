@@ -1827,8 +1827,18 @@ export class Game extends Scene {
     // captured image belongs to THIS specific show, not the player's
     // current Decorate state. Capture happens async; the publish
     // call waits for it (or proceeds without if capture fails).
+    // Capture the cat-stage snapshot + grab the player's just-finished
+    // rehearsal score (seeded as the post's first leaderboard entry
+    // server-side so visitors see something to beat instead of an
+    // empty board).
+    const creatorScore = this.score.get();
+    const creatorAccuracy = this.score.getAccuracy() / 100;
     void this.captureStagePreview().then((previewImage) => {
-      return publishChart(previewImage ? { previewImage } : {});
+      return publishChart({
+        ...(previewImage ? { previewImage } : {}),
+        creatorScore,
+        creatorAccuracy,
+      });
     }).then((result) => {
       this.publishBusy = false;
       console.info('[Game] publishChart result:', result);

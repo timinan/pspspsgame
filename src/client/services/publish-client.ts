@@ -17,12 +17,24 @@ export type PublishResult =
   | { ok: true; postId: string; url: string }
   | { ok: false; reason: string };
 
-export async function publishChart(opts: { previewImage?: string } = {}): Promise<PublishResult> {
+export async function publishChart(opts: {
+  previewImage?: string;
+  /** Score from the rehearsal run that's being published. Seeded as
+   *  the post's first leaderboard entry server-side so visitors see
+   *  the creator's score waiting to be beaten instead of an empty
+   *  leaderboard. */
+  creatorScore?: number;
+  creatorAccuracy?: number;
+} = {}): Promise<PublishResult> {
   try {
     const res = await fetch('/api/publish/chart', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ previewImage: opts.previewImage ?? null }),
+      body: JSON.stringify({
+        previewImage: opts.previewImage ?? null,
+        creatorScore: opts.creatorScore ?? null,
+        creatorAccuracy: opts.creatorAccuracy ?? null,
+      }),
     });
     const data = (await res.json()) as { ok?: boolean; reason?: string; postId?: string; url?: string };
     if (!res.ok || data.ok !== true || !data.postId || !data.url) {

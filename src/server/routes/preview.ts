@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { redis } from '@devvit/web/server';
 import { loadOrInit } from '../core/player-state';
+import { BACKING_CATALOG } from '../../shared/state';
 
 /**
  * Preview-image endpoint. Mounted at /api/preview-image.
@@ -21,25 +22,29 @@ preview.get('/', async (c) => {
   const postId = c.req.query('postId');
   if (!postId) return c.json({ error: 'missing postId' }, 400);
 
+  console.info(`[preview] GET postId=${postId}`);
+
   const ownerUsername = await redis.get(`meowcert:post-owner:${postId}`);
   if (!ownerUsername) {
+    console.info(`[preview] no owner mapping for ${postId}`);
     return c.json({ error: 'post has no owner mapping' }, 404);
   }
 
   // Per-post preview image — captured by Game's onPostFromTestClicked
   // at publish time. Each post has its own stage snapshot, so a player
-  // who publishes multiple shows gets a distinct preview per post
-  // (vs the old per-player image which made every post look the same).
+  // who publishes multiple shows gets a distinct preview per post.
   const previewImage = await redis.get(`meowcert:post-preview:${postId}`);
+  console.info(`[preview] owner=${ownerUsername} hasImage=${!!previewImage}`);
 
-  // Chart metadata for the song-line on the splash. Pull title + vibe
-  // + difficulty from the owner's current state. This DOES use the
-  // owner's latest chart (not snapshot at publish time) — if the
-  // owner edits their chart after publish, the splash song-line will
-  // update. Trade-off vs storing chart-at-publish, picked latest.
+  // Song line uses the BACKING song's displayName (recognizable thing
+  // like "Mahalia - I Wish I Missed My Ex"), NOT chart.title (which is
+  // hardcoded 'My Beat' or 'Rehearsal' from the generator). Resolved
+  // via BACKING_CATALOG[audioKey].
   const ownerState = await loadOrInit(redis, ownerUsername);
   const chart = ownerState.chart;
-  const title = chart?.title ?? 'a rhythm show';
+  const audioKey = chart?.audioKey;
+  const backing = audioKey ? BACKING_CATALOG[audioKey] : undefined;
+  const title = backing?.displayName ?? chart?.title ?? 'a rhythm show';
   const vibe = chart?.vibe;
   const difficulty = chart?.difficulty;
 

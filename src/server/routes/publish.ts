@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { redis, reddit, context } from '@devvit/web/server';
 import { loadOrInit } from '../core/player-state';
-import { setPostOwner } from '../core/social';
+import { setPostOwner, submitLeaderboardScore } from '../core/social';
+import { classifyScore } from '../../shared/social-loop';
 
 /**
  * Publish flow — turn an authored chart into a live Reddit post that
@@ -35,20 +36,33 @@ publish.post('/chart', async (c) => {
       );
     }
 
-    // Optional cat-stage snapshot captured client-side right before
-    // publish. Stored per-post so splash.html shows THIS show's stage
-    // (not whatever the player's stage currently looks like). Cap at
-    // 300 KB defensively — client downscales to ~30 KB.
+    // Optional cat-stage snapshot + creator's rehearsal score from
+    // the client. Image stored per-post so splash shows THIS show's
+    // stage. Score seeded as the post's first leaderboard entry so
+    // visitors see something to beat.
     let previewImage: string | undefined;
+    let creatorScore: number | undefined;
+    let creatorAccuracy: number | undefined;
     try {
-      const body = (await c.req.json()) as { previewImage?: string | null };
+      const body = (await c.req.json()) as {
+        previewImage?: string | null;
+        creatorScore?: number | null;
+        creatorAccuracy?: number | null;
+      };
       if (body?.previewImage && typeof body.previewImage === 'string'
           && body.previewImage.startsWith('data:image/')
           && body.previewImage.length < 300_000) {
         previewImage = body.previewImage;
       }
+      if (typeof body?.creatorScore === 'number' && body.creatorScore > 0) {
+        creatorScore = body.creatorScore;
+      }
+      if (typeof body?.creatorAccuracy === 'number'
+          && body.creatorAccuracy >= 0 && body.creatorAccuracy <= 1) {
+        creatorAccuracy = body.creatorAccuracy;
+      }
     } catch {
-      // body might not be JSON — fine, just no image
+      // body might not be JSON — fine, just no extras
     }
 
     // Devvit creates the post + returns its id. Title carries the
@@ -88,6 +102,34 @@ publish.post('/chart', async (c) => {
     // make shows the same stage).
     if (previewImage) {
       await redis.set(`meowcert:post-preview:${post.id}`, previewImage);
+      console.info(`[publish] stored preview image (${previewImage.length} bytes) for ${post.id}`);
+    } else {
+      console.info(`[publish] no preview image supplied for ${post.id}`);
+    }
+
+    // Seed the leaderboard with the creator's rehearsal score so
+    // visitors land on a non-empty board (Tim: "should at least have
+    // 1 play and score from the creator"). submitLeaderboardScore
+    // gates on summary.passed — we only seed if the rehearsal passed.
+    if (creatorScore !== undefined && creatorAccuracy !== undefined) {
+      const passed = creatorAccuracy >= 0.75;
+      if (passed) {
+        const { tier, baseReward } = classifyScore(creatorAccuracy, passed);
+        await submitLeaderboardScore(redis, {
+          visitor: username,
+          owner: username,
+          postId: post.id,
+          score: creatorScore,
+          totalNotes: 0,
+          notesHit: 0,
+          maxCombo: 0,
+          accuracy: creatorAccuracy,
+          passed,
+          tier,
+          baseReward,
+        });
+        console.info(`[publish] seeded creator leaderboard entry: ${username} → ${creatorScore}`);
+      }
     }
 
     // Use post.permalink for the URL — post.id is a T3 string with a
