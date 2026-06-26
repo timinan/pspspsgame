@@ -146,15 +146,15 @@ export class Game extends Scene {
    *  stat. Hidden on charts without (audioKey + difficulty). */
   private summaryBestDivider!: Phaser.GameObjects.Rectangle;
   private summaryBestLabel!: Phaser.GameObjects.Text;
-  /** Dark chip behind the centered BEST label that masks the divider
-   *  line so the text reads cleanly. Toggled with the rest of the
-   *  BEST objects in updateBestScoreLine. */
-  private summaryBestLabelChip!: Phaser.GameObjects.Rectangle;
-  private summaryBestScoreText!: Phaser.GameObjects.Text;
   private summaryBestAccuracyText!: Phaser.GameObjects.Text;
   private summaryBestComboText!: Phaser.GameObjects.Text;
   private summaryBestHitsText!: Phaser.GameObjects.Text;
   private summaryBestMissesText!: Phaser.GameObjects.Text;
+  /** Centered best score below the 4 per-stat values — bigger than the
+   *  per-stat numbers (highlights the headline result) but smaller than
+   *  the big FINAL SCORE above so it still reads as "previous best, not
+   *  the run you just finished". */
+  private summaryBestScoreBig!: Phaser.GameObjects.Text;
   /** Set by Play Again so create() skips the SongPicker and jumps
    *  straight back into the same chart instead of re-prompting. Uses
    *  the existing playChart pipeline once the scene boots. */
@@ -183,7 +183,15 @@ export class Game extends Scene {
   }): void {
     this.playerState = data?.playerState ?? null;
     this.testMode = data?.testMode === true;
-    this.pendingReplayChart = data?.replayChart ?? null;
+    // Replay chart — Phaser passes data through to init, but the Game
+    // registry survives scene restarts unconditionally so we prefer it
+    // as the source of truth. Play Again writes the chart there before
+    // restart; we consume + clear it here. data.replayChart stays as a
+    // fallback in case anything else ever calls scene.restart with the
+    // chart inline.
+    const fromRegistry = this.registry.get('rehearseReplayChart') as Chart | undefined;
+    this.pendingReplayChart = fromRegistry ?? data?.replayChart ?? null;
+    if (fromRegistry) this.registry.remove('rehearseReplayChart');
     // Editor passes its current scrollOffset here so rehearsal starts
     // at the author's working page (chart + music both seek). Defaults
     // to 0 = start at the top.
@@ -551,7 +559,7 @@ export class Game extends Scene {
     // Stats row: accuracy / max combo / hits / misses. Four equal cols
     // so the player can read landed-vs-missed at a glance instead of
     // just inferring it from the percentage.
-    const statsY = cy - 8;
+    const statsY = cy - 24;
     const statLabels = ['ACCURACY', 'MAX COMBO', 'HITS', 'MISSES'];
     const margin = 8;
     const slotW = (panelW - margin * 2) / 4;
@@ -599,7 +607,7 @@ export class Game extends Scene {
     container.add(this.summaryMissesText);
 
     // Buttons
-    const btnY = cy + 86;
+    const btnY = cy + 100;
     const btnW = 110;
     const btnH = 38;
     const btnGap = 12;
@@ -658,57 +666,37 @@ export class Game extends Scene {
     this.summaryRightBg = rightBg;
     this.summaryRightText = rightText;
 
-    // Per-stat personal-best row. Layout, top-to-bottom:
-    //   1. Small "best <score>" caption under the big FINAL SCORE
-    //      number — tracks the score stat separately from the other
-    //      four (which mirror the existing 4-col stats row).
-    //   2. Thin yellow divider just below the big stat values.
-    //   3. "BEST" label on the left + four small values for accuracy /
-    //      max combo / hits / misses, sitting in the same column X
-    //      positions as the big values above.
+    // Per-stat personal-best section. Layout (top to bottom):
+    //   1. Thin yellow divider just below the big stat values.
+    //   2. "BEST" label centered just below the divider — sits clearly
+    //      under the line so the row reads as a labeled block, not a
+    //      label glued onto the line itself.
+    //   3. Four small per-stat values (accuracy / max combo / hits /
+    //      misses) in the same column X positions as the big values.
+    //   4. Centered best-score number a step bigger than the per-stat
+    //      values but still smaller than the BIG FINAL SCORE — reads
+    //      as supporting context, not the headline result.
     // Per-cell coloring (showSummary fills these): default yellow,
-    // mint when the just-finished run beat the stored best for that
+    // mint when the just-finished run beat the stored value for that
     // stat. Hidden when the chart has no audioKey + difficulty.
-    this.summaryBestScoreText = this.add
-      .text(cx, cy - 32, '', {
-        ...fontBase,
-        fontSize: '10px',
-        color: '#c0a0e6',
-        align: 'center',
-      })
-      .setOrigin(0.5, 0)
-      .setVisible(false);
-    container.add(this.summaryBestScoreText);
-
     const bestDividerY = statsY + 30;
     this.summaryBestDivider = this.add
       .rectangle(cx, bestDividerY, panelW - 32, 1, 0xc0a0e6, 0.35)
       .setVisible(false);
     container.add(this.summaryBestDivider);
 
-    // "BEST" centered on the divider as a chip — small dark panel-color
-    // rectangle masks the divider line behind the label so the text
-    // reads cleanly as a section header instead of floating on the line.
-    const bestLabelChip = this.add
-      .rectangle(cx, bestDividerY, 42, 12, 0x1a0a2e, 1)
-      .setVisible(false);
-    container.add(bestLabelChip);
     this.summaryBestLabel = this.add
-      .text(cx, bestDividerY, 'BEST', {
+      .text(cx, bestDividerY + 6, 'BEST', {
         ...fontBase,
         fontStyle: 'bold',
         fontSize: '9px',
         color: '#c0a0e6',
       })
-      .setOrigin(0.5)
+      .setOrigin(0.5, 0)
       .setVisible(false);
     container.add(this.summaryBestLabel);
-    // Stash the chip alongside the label so updateBestScoreLine can
-    // toggle both with the rest of the BEST objects.
-    this.summaryBestLabelChip = bestLabelChip;
 
-    const bestRowY = bestDividerY + 14;
-
+    const bestRowY = bestDividerY + 24;
     const bestFont = {
       ...fontBase,
       fontStyle: 'bold',
@@ -725,6 +713,18 @@ export class Game extends Scene {
       this.summaryBestHitsText,
       this.summaryBestMissesText,
     ]);
+
+    this.summaryBestScoreBig = this.add
+      .text(cx, bestRowY + 14, '', {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '17px',
+        color: '#ffd34d',
+        align: 'center',
+      })
+      .setOrigin(0.5, 0)
+      .setVisible(false);
+    container.add(this.summaryBestScoreBig);
 
     // Pass/fail message that sits between the stats row and the buttons.
     // Anchored to the BOTTOM of its bounding box so the text grows
@@ -1488,14 +1488,13 @@ export class Game extends Scene {
     const audioKey = chart?.audioKey;
     const difficulty = chart?.difficulty;
     const allBestObjs = [
-      this.summaryBestScoreText,
       this.summaryBestDivider,
-      this.summaryBestLabelChip,
       this.summaryBestLabel,
       this.summaryBestAccuracyText,
       this.summaryBestComboText,
       this.summaryBestHitsText,
       this.summaryBestMissesText,
+      this.summaryBestScoreBig,
     ];
     if (!audioKey || !difficulty) {
       for (const o of allBestObjs) o.setVisible(false);
@@ -1528,29 +1527,24 @@ export class Game extends Scene {
     }
     const colorFor = (key: StatKey): string => (newBests.has(key) ? '#4dffb4' : '#ffd34d');
 
-    this.summaryBestScoreText.setText(
-      newBests.has('score')
-        ? `⭐ best ${stored.score.toLocaleString()}`
-        : `best ${stored.score.toLocaleString()}`,
-    );
-    this.summaryBestScoreText.setColor(colorFor('score'));
-
     this.summaryBestAccuracyText.setText(`${stored.accuracy}%`).setColor(colorFor('accuracy'));
     this.summaryBestComboText.setText(`x${stored.maxCombo}`).setColor(colorFor('maxCombo'));
     this.summaryBestHitsText.setText(String(stored.hits)).setColor(colorFor('hits'));
     this.summaryBestMissesText.setText(String(stored.misses)).setColor(colorFor('misses'));
+    this.summaryBestScoreBig.setText(stored.score.toLocaleString()).setColor(colorFor('score'));
 
     for (const o of allBestObjs) o.setVisible(true);
   }
 
-  /** Replay the chart the player just finished. Stashes it as the
-   *  scene's replayChart so create() skips the SongPicker on reboot
-   *  and jumps straight into the same chart. */
+  /** Replay the chart the player just finished. Stashes it on the game
+   *  registry (which survives scene restarts) so init() can pick it up
+   *  and skip the SongPicker on reboot, jumping straight into the same
+   *  chart with music. */
   private onPlayAgainClicked = (): void => {
-    this.scene.restart({
-      playerState: this.playerState,
-      replayChart: this.playChart,
-    });
+    if (this.playChart) {
+      this.registry.set('rehearseReplayChart', this.playChart);
+    }
+    this.scene.restart({ playerState: this.playerState });
   };
 
   /** Bounce back through the SongPicker by restarting without a
