@@ -378,10 +378,10 @@
     "id": "ravyn-lenae-love-me-not-lyrics-1",
     "displayName": "Ravyn Lenae - Love Me Not (Lyrics) (1)",
     "speedLabel": "fast",
-    "vibe": "upbeat",
+    "vibe": "illegal",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 58,
+    "clipStartS": 15.46,
     "addedAt": 1782416017001,
     "genre": "lo-fi",
     "mood": "chill"
@@ -754,7 +754,9 @@
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 42,
-    "addedAt": 1782446857975
+    "addedAt": 1782443287789,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "celestial-drift-1": {
     "id": "celestial-drift-1",
@@ -764,7 +766,9 @@
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 47,
-    "addedAt": 1782446859252
+    "addedAt": 1782443289228,
+    "genre": "ambient",
+    "mood": "dreamy"
   },
   "celestial-drift": {
     "id": "celestial-drift",
@@ -774,7 +778,9 @@
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 53,
-    "addedAt": 1782446860721
+    "addedAt": 1782443290757,
+    "genre": "ambient",
+    "mood": "dreamy"
   },
   "cocktail-hour-1": {
     "id": "cocktail-hour-1",
@@ -784,7 +790,9 @@
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 46,
-    "addedAt": 1782446861989
+    "addedAt": 1782443292067,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "cocktail-hour": {
     "id": "cocktail-hour",
@@ -794,57 +802,9 @@
     "bpm": 130,
     "loopDurationMs": 65000,
     "clipStartS": 35,
-    "addedAt": 1782446863019
-  },
-  "bounce-bloom-1-2": {
-    "id": "bounce-bloom-1-2",
-    "displayName": "Bounce & Bloom (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 0,
-    "addedAt": 1782447399806
-  },
-  "bounce-bloom": {
-    "id": "bounce-bloom",
-    "displayName": "Bounce & Bloom",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 535,
-    "addedAt": 1782447401406
-  },
-  "neon-pulse-4": {
-    "id": "neon-pulse-4",
-    "displayName": "Neon Pulse (4)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 758,
-    "addedAt": 1782447403319
-  },
-  "neon-pulse-3": {
-    "id": "neon-pulse-3",
-    "displayName": "Neon Pulse (3)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 0,
-    "addedAt": 1782447403698
-  },
-  "dance-of-the-neon-shadows-1": {
-    "id": "dance-of-the-neon-shadows-1",
-    "displayName": "Dance of the Neon Shadows (1)",
-    "speedLabel": "fast",
-    "vibe": "upbeat",
-    "bpm": 130,
-    "loopDurationMs": 65000,
-    "clipStartS": 437,
-    "addedAt": 1782447405127
+    "addedAt": 1782443293224,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "dance-of-the-neon-shadows": {
     "id": "dance-of-the-neon-shadows",
@@ -853,8 +813,10 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 807,
-    "addedAt": 1782447407177
+    "clipStartS": 70,
+    "addedAt": 1782447407177,
+    "genre": "synthwave",
+    "mood": "energetic"
   },
   "floating-in-the-air": {
     "id": "floating-in-the-air",
@@ -863,8 +825,10 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 422,
-    "addedAt": 1782450165165
+    "clipStartS": 40,
+    "addedAt": 1782450165165,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "bounce-bloom-2-2": {
     "id": "bounce-bloom-2-2",
@@ -872,9 +836,11 @@
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
-    "loopDurationMs": 65000,
+    "loopDurationMs": 61400,
     "clipStartS": 0,
-    "addedAt": 1782450165620
+    "addedAt": 1782450165620,
+    "genre": "bubblegum-pop",
+    "mood": "playful"
   },
   "sunny-afternoon": {
     "id": "sunny-afternoon",
@@ -883,8 +849,10 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 242,
-    "addedAt": 1782450166885
+    "clipStartS": 0,
+    "addedAt": 1782450166885,
+    "genre": "lo-fi",
+    "mood": "chill"
   },
   "neon-pulse-6": {
     "id": "neon-pulse-6",
@@ -893,8 +861,10 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 587,
-    "addedAt": 1782450168432
+    "clipStartS": 52,
+    "addedAt": 1782450168432,
+    "genre": "synthwave",
+    "mood": "energetic"
   },
   "neon-pulse-5": {
     "id": "neon-pulse-5",
@@ -903,7 +873,69 @@
     "vibe": "upbeat",
     "bpm": 130,
     "loopDurationMs": 65000,
-    "clipStartS": 459,
-    "addedAt": 1782450169693
+    "clipStartS": 42,
+    "addedAt": 1782450169693,
+    "genre": "synthwave",
+    "mood": "energetic"
+  },
+  "bounce-bloom-1-2": {
+    "id": "bounce-bloom-1-2",
+    "displayName": "Bounce & Bloom (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 61400,
+    "clipStartS": 0,
+    "addedAt": 1782447399806,
+    "genre": "bubblegum-pop",
+    "mood": "playful"
+  },
+  "bounce-bloom": {
+    "id": "bounce-bloom",
+    "displayName": "Bounce & Bloom",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 49,
+    "addedAt": 1782447401406,
+    "genre": "bubblegum-pop",
+    "mood": "playful"
+  },
+  "neon-pulse-4": {
+    "id": "neon-pulse-4",
+    "displayName": "Neon Pulse (4)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 67,
+    "addedAt": 1782447403319,
+    "genre": "synthwave",
+    "mood": "energetic"
+  },
+  "neon-pulse-3": {
+    "id": "neon-pulse-3",
+    "displayName": "Neon Pulse (3)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 62920,
+    "clipStartS": 0,
+    "addedAt": 1782447403698,
+    "genre": "synthwave",
+    "mood": "energetic"
+  },
+  "dance-of-the-neon-shadows-1": {
+    "id": "dance-of-the-neon-shadows-1",
+    "displayName": "Dance of the Neon Shadows (1)",
+    "speedLabel": "fast",
+    "vibe": "upbeat",
+    "bpm": 130,
+    "loopDurationMs": 65000,
+    "clipStartS": 43,
+    "addedAt": 1782447405127,
+    "genre": "synthwave",
+    "mood": "energetic"
   }
 }
