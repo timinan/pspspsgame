@@ -69,6 +69,11 @@ export class VisitPost extends Scene {
   private playBtnBg!: GameObjects.Rectangle;
   private playBtnText!: GameObjects.Text;
   private playBusy = false;
+  /** Invisible native <button> overlaid on the Phaser PLAY visual so
+   *  its click is a trusted DOM gesture (Devvit requires this for
+   *  requestExpandedMode). Torn down on cleanup. */
+  private htmlPlayButton: HTMLButtonElement | null = null;
+  private btnPositionHandler: (() => void) | null = null;
 
   constructor() {
     super(SceneKeys.VisitPost);
@@ -256,14 +261,16 @@ export class VisitPost extends Scene {
   private buildInfoPanel(): void {
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
-    // The info panel takes the LANE band area — the visual zone where
-    // lanes normally render during gameplay. Carve from LANE_TOP_Y to
-    // LANE_BOTTOM_Y so the splash mirrors the in-game layout shape.
+    // The info panel takes the TOP portion of the lane band. The
+    // bottom ~80 px is reserved for the PLAY button + MAKE YOUR OWN
+    // link so they're visible inside the canvas instead of being
+    // pushed off-screen below LANE_BOTTOM_Y.
     const laneTopY = L.LANE_TOP_Y * scaleY;
     const laneBottomY = L.LANE_BOTTOM_Y * scaleY;
     const panelW = Math.min(300, width - 24);
     const panelX = (width - panelW) / 2;
-    const panelH = laneBottomY - laneTopY - 12;
+    const ctaReservedH = 80 * scaleY;
+    const panelH = laneBottomY - laneTopY - ctaReservedH - 12;
     const panelY = laneTopY + 6;
 
     // Translucent dark panel so cats above still read through subtly.
@@ -353,50 +360,74 @@ export class VisitPost extends Scene {
   private buildPlayButton(): void {
     const { width, height } = this.scale;
     const scaleY = height / L.DESIGN_H;
-    // PLAY CTA sits in the empty band BELOW the lane area (where the
-    // cat-bottom + score row would render in gameplay), keeps it clear
-    // of the info panel above.
-    const ctaY = (L.LANE_BOTTOM_Y * scaleY) + 28;
+    // PLAY CTA sits in the reserved 80-px band at the bottom of the
+    // lane area (was previously below LANE_BOTTOM_Y which is itself
+    // DESIGN_H, so the button rendered off-screen and was untappable).
+    const ctaY = (L.LANE_BOTTOM_Y * scaleY) - 48;
     const btnW = Math.min(220, width - 56);
-    const btnH = 52;
+    const btnH = 48;
 
-    this.playBtnBg = this.add.rectangle(width / 2, ctaY, btnW, btnH, 0xffd34d, 1)
-      .setInteractive({ useHandCursor: true });
+    this.playBtnBg = this.add.rectangle(width / 2, ctaY, btnW, btnH, 0xffd34d, 1);
     this.playBtnText = this.add.text(width / 2, ctaY, '▶  TAP TO PLAY', {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontStyle: 'bold',
       fontSize: '18px',
       color: '#1a0a2e',
     }).setOrigin(0.5);
-    this.playBtnBg.on('pointerover', () => this.playBtnBg.setFillStyle(0xffe680, 1));
-    this.playBtnBg.on('pointerout', () => this.playBtnBg.setFillStyle(0xffd34d, 1));
-    this.playBtnBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      // requestExpandedMode needs a trusted DOM gesture to ask Reddit
-      // for fullscreen modal mode. Phaser stores the underlying native
-      // event on pointer.event. Catches if the call throws (e.g. when
-      // already expanded — Devvit throws in that case). Routing to the
-      // round happens regardless.
-      try {
-        const evt = (pointer as { event?: Event }).event;
-        if (evt) requestExpandedMode(evt as MouseEvent, 'default');
-      } catch (err) {
-        console.warn('[VisitPost] requestExpandedMode threw:', err);
-      }
+
+    // HTML <button> overlaid invisibly on top of the Phaser PLAY visual
+    // so the click event is a TRUSTED DOM gesture (Devvit's
+    // requestExpandedMode rejects synthesized Phaser events). Position
+    // tracks the canvas + design-coords via the same canvas-rect math
+    // the custom-song file-picker overlay uses.
+    const btn = document.createElement('button');
+    btn.style.position = 'absolute';
+    btn.style.opacity = '0';
+    btn.style.zIndex = '9999';
+    btn.style.border = 'none';
+    btn.style.background = 'transparent';
+    btn.style.cursor = 'pointer';
+    document.body.appendChild(btn);
+    this.htmlPlayButton = btn;
+
+    const positionBtn = (): void => {
+      const canvas = this.game.canvas;
+      const rect = canvas.getBoundingClientRect();
+      const sx = rect.width / this.scale.width;
+      const sy = rect.height / this.scale.height;
+      btn.style.left = `${rect.left + (width / 2 - btnW / 2) * sx}px`;
+      btn.style.top = `${rect.top + (ctaY - btnH / 2) * sy}px`;
+      btn.style.width = `${btnW * sx}px`;
+      btn.style.height = `${btnH * sy}px`;
+    };
+    positionBtn();
+    this.btnPositionHandler = positionBtn;
+    window.addEventListener('resize', positionBtn);
+    window.addEventListener('scroll', positionBtn, true);
+
+    btn.addEventListener('click', (e: MouseEvent) => {
+      // requestExpandedMode wants a trusted user gesture — this native
+      // click IS one. Throws if already expanded; swallow + continue
+      // to the round either way.
+      try { requestExpandedMode(e, 'default'); }
+      catch (err) { console.warn('[VisitPost] requestExpandedMode:', err); }
       this.onPlayClicked();
     });
   }
 
   private buildBuildLink(): void {
     const { width, height } = this.scale;
-    // Bottom-left "MAKE YOUR OWN" link — Honk's BUILD equivalent. Small
-    // and unobtrusive so it doesn't compete with the PLAY CTA, but the
-    // pickaxe emoji + clear copy reads as "I can do this too".
-    this.add.text(12, height - 18, '⛏  MAKE YOUR OWN', {
+    const scaleY = height / L.DESIGN_H;
+    // "MAKE YOUR OWN" link below the PLAY button, INSIDE the canvas
+    // (was at height - 18 which is the literal pixel bottom; on
+    // shorter actual viewport sizes that was being clipped).
+    const linkY = (L.LANE_BOTTOM_Y * scaleY) - 8;
+    this.add.text(width / 2, linkY, '⛏  MAKE YOUR OWN', {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontStyle: 'bold',
       fontSize: '10px',
       color: '#c0a0e6',
-    }).setOrigin(0, 1).setInteractive({ useHandCursor: true })
+    }).setOrigin(0.5, 1).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
         this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState });
       });
@@ -455,6 +486,15 @@ export class VisitPost extends Scene {
   private cleanup(): void {
     for (const c of this.cats) c.destroy();
     this.cats = [];
+    if (this.htmlPlayButton) {
+      try { this.htmlPlayButton.remove(); } catch { /* ignore */ }
+      this.htmlPlayButton = null;
+    }
+    if (this.btnPositionHandler) {
+      window.removeEventListener('resize', this.btnPositionHandler);
+      window.removeEventListener('scroll', this.btnPositionHandler, true);
+      this.btnPositionHandler = null;
+    }
     this.hud?.destroy();
     this.bg?.destroy();
     this.tweens.killAll();
