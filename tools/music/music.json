@@ -1,7 +1,7 @@
 {
   "bounce-bloom-1": {
     "id": "bounce-bloom-1",
-    "displayName": "Bounce & Bloom",
+    "displayName": "Bubble Bloom",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "bubblegum-pop",
@@ -12,7 +12,7 @@
   },
   "bounce-bloom-2": {
     "id": "bounce-bloom-2",
-    "displayName": "Bounce & Bloom (alt)",
+    "displayName": "Sugar Skip",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "bubblegum-pop",
@@ -23,7 +23,7 @@
   },
   "bouncy-bounce": {
     "id": "bouncy-bounce",
-    "displayName": "Bouncy Bounce",
+    "displayName": "Marshmallow Pogo",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "bubblegum-pop",
@@ -45,7 +45,7 @@
   },
   "cinematic-bossa-nova-2": {
     "id": "cinematic-bossa-nova-2",
-    "displayName": "Cinematic Bossa Nova (alt)",
+    "displayName": "Bossa at Twilight",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "bossa-nova",
@@ -100,7 +100,7 @@
   },
   "midnight-skyline-1": {
     "id": "midnight-skyline-1",
-    "displayName": "Midnight Skyline (1)",
+    "displayName": "City Lights Drift",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "genre": "lo-fi",
@@ -122,7 +122,7 @@
   },
   "warmth-in-the-air-1": {
     "id": "warmth-in-the-air-1",
-    "displayName": "Warmth in the Air (1)",
+    "displayName": "Acoustic Hearthsong",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "acoustic-folk",
@@ -133,7 +133,7 @@
   },
   "neon-horizon-3": {
     "id": "neon-horizon-3",
-    "displayName": "Neon Horizon (3)",
+    "displayName": "Pastel Drive",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "synthwave",
@@ -155,7 +155,7 @@
   },
   "neon-pulse-1": {
     "id": "neon-pulse-1",
-    "displayName": "Neon Pulse (1)",
+    "displayName": "Soft Voltage",
     "speedLabel": "fast",
     "vibe": "melodic",
     "genre": "synthwave",
@@ -172,7 +172,7 @@
     "bpm": 130,
     "loopDurationMs": 62000,
     "genre": "lo-fi",
-    "mood": "test",
+    "mood": "chill",
     "addedAt": 1782380982027.096
   },
   "bloom-select": {
@@ -188,7 +188,7 @@
   },
   "late-night-loop-remove-section": {
     "id": "late-night-loop-remove-section",
-    "displayName": "Late Night Loop (Remove Section)",
+    "displayName": "Late Night Loop",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -210,7 +210,7 @@
   },
   "star-candy-select-2": {
     "id": "star-candy-select-2",
-    "displayName": "Star Candy Select (2)",
+    "displayName": "Sugar Sprite Skip",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -254,7 +254,7 @@
   },
   "neon-pulse-remove-section": {
     "id": "neon-pulse-remove-section",
-    "displayName": "Neon Pulse (Remove Section)",
+    "displayName": "Pulse Reflex",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -265,7 +265,7 @@
   },
   "bounce-on-repeat-remove-section-1": {
     "id": "bounce-on-repeat-remove-section-1",
-    "displayName": "Bounce On Repeat (Remove Section) (1)",
+    "displayName": "Pop Spin Pop",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -276,7 +276,7 @@
   },
   "bounce-on-repeat-remove-section": {
     "id": "bounce-on-repeat-remove-section",
-    "displayName": "Bounce On Repeat (Remove Section)",
+    "displayName": "Bubblegum Bounce",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -287,7 +287,7 @@
   },
   "neon-pulse-2": {
     "id": "neon-pulse-2",
-    "displayName": "Neon Pulse (2)",
+    "displayName": "Voltage Cascade",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -715,7 +715,7 @@
   },
   "the-quiet-between-notes-3": {
     "id": "the-quiet-between-notes-3",
-    "displayName": "The Quiet Between Notes (3)",
+    "displayName": "Quiet Between Notes II",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -727,7 +727,7 @@
   },
   "celestial-drift-1": {
     "id": "celestial-drift-1",
-    "displayName": "Celestial Drift (1)",
+    "displayName": "Starfield Float",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -751,7 +751,7 @@
   },
   "cocktail-hour-1": {
     "id": "cocktail-hour-1",
-    "displayName": "Cocktail Hour (1)",
+    "displayName": "After-Hours Lounge",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -799,7 +799,7 @@
   },
   "bounce-bloom-2-2": {
     "id": "bounce-bloom-2-2",
-    "displayName": "Bounce & Bloom (2)",
+    "displayName": "Bubblepop Loop",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -823,7 +823,7 @@
   },
   "neon-pulse-6": {
     "id": "neon-pulse-6",
-    "displayName": "Neon Pulse (6)",
+    "displayName": "Cyber Sunrise",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -835,7 +835,7 @@
   },
   "neon-pulse-5": {
     "id": "neon-pulse-5",
-    "displayName": "Neon Pulse (5)",
+    "displayName": "Pink Lightning",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -847,7 +847,7 @@
   },
   "bounce-bloom": {
     "id": "bounce-bloom",
-    "displayName": "Bounce & Bloom",
+    "displayName": "Cotton Candy Spring",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -859,7 +859,7 @@
   },
   "neon-pulse-4": {
     "id": "neon-pulse-4",
-    "displayName": "Neon Pulse (4)",
+    "displayName": "Chrome Heart",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -871,7 +871,7 @@
   },
   "neon-pulse-3": {
     "id": "neon-pulse-3",
-    "displayName": "Neon Pulse (3)",
+    "displayName": "Synth Rush",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
@@ -883,7 +883,7 @@
   },
   "dance-of-the-neon-shadows-1": {
     "id": "dance-of-the-neon-shadows-1",
-    "displayName": "Dance of the Neon Shadows (1)",
+    "displayName": "Shadow Stride",
     "speedLabel": "fast",
     "vibe": "upbeat",
     "bpm": 130,
