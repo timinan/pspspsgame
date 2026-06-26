@@ -37,21 +37,39 @@ publish.post('/chart', async (c) => {
 
     // Devvit creates the post + returns its id. Title carries the
     // author's name so the feed reads as "playing alice's show".
-    console.info('[publish] calling reddit.submitCustomPost...');
+    // runAs: 'USER' makes the post show up as authored by the player
+    // instead of the app's bot account — Tim's call ("posts are being
+    // posted by the subreddit rather than the user"). Pair with
+    // userGeneratedContent (required by Devvit when runAs is USER) +
+    // textFallback (shown if the custom-post embed can't render).
+    // Requires permissions.reddit.asUser: ['SUBMIT_POST'] in devvit.json.
+    console.info('[publish] calling reddit.submitCustomPost (runAs USER)...');
+    const subredditName = context.subredditName;
+    if (!subredditName) {
+      return c.json({ ok: false, reason: 'missing subreddit context' }, 500);
+    }
     const post = await reddit.submitCustomPost({
       title: `🎵 ${username}'s show`,
+      subredditName,
+      runAs: 'USER',
+      userGeneratedContent: {
+        text: `A new Meowcert show from ${username} — tap to play.`,
+      },
+      textFallback: {
+        text: `${username} dropped a new Meowcert show. Open the post in the Reddit app to play it.`,
+      },
     });
-    console.info('[publish] post created, id:', post.id);
+    console.info('[publish] post created, id:', post.id, 'permalink:', post.permalink);
 
     // Wire the post → owner mapping immediately so submitPlay /
     // leaderboard / inbox endpoints can route to the right author the
     // first time a visitor opens the post.
     await setPostOwner(redis, post.id, username);
 
-    const subreddit = context.subredditName ?? '';
-    const url = subreddit
-      ? `https://reddit.com/r/${subreddit}/comments/${post.id}`
-      : `https://reddit.com/comments/${post.id}`;
+    // Use post.permalink for the URL — post.id is a T3 string with a
+    // 't3_' prefix which Reddit's URL routing chokes on. The permalink
+    // is the canonical path Reddit uses internally.
+    const url = `https://reddit.com${post.permalink}`;
     console.info('[publish] returning ok with url:', url);
     return c.json({ ok: true, postId: post.id, url });
   } catch (err) {
