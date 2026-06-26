@@ -786,6 +786,72 @@ export class Game extends Scene {
     // normal global nav too — this is the fast path for "I'm just
     // previewing my chart, get me out of here."
     if (this.testMode) this.buildBackToChartChip();
+    else this.buildRehearsalControls();
+  }
+
+  /** Two stacked floating chips in the top-right during drawer-rehearse
+   *  mode — BACK (exits to Decorate) and RESTART (in-place replay of
+   *  the current chart). Mirrors the testMode "← EDITOR" chip's
+   *  position so the escape-hatch surface is consistent across modes.
+   *  Hidden in testMode (the BACK TO EDITOR chip covers that flow). */
+  private buildRehearsalControls(): void {
+    const { width } = this.scale;
+    const padX = 10;
+    const padY = TopHud.HEIGHT + 6;
+    const chipW = 108;
+    const chipH = 32;
+    const gap = 6;
+    const chipCx = width - padX - chipW / 2;
+
+    // BACK chip — light-purple stroke to read as a navigation action.
+    const backCy = padY + chipH / 2;
+    const backBg = this.add
+      .rectangle(chipCx, backCy, chipW, chipH, 0x1a0a2e, 0.95)
+      .setStrokeStyle(2, 0xc678ff, 0.9)
+      .setDepth(60)
+      .setInteractive({ useHandCursor: true });
+    const backTxt = this.add
+      .text(chipCx, backCy, '← BACK', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '13px',
+        color: '#c678ff',
+      })
+      .setOrigin(0.5)
+      .setDepth(61);
+    backBg.on('pointerover', () => backBg.setFillStyle(0x2c1856, 0.95));
+    backBg.on('pointerout', () => backBg.setFillStyle(0x1a0a2e, 0.95));
+    backBg.on('pointerup', () => {
+      this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
+    });
+
+    // RESTART chip — yellow stroke matches the primary action color
+    // (same in-place replay path Play Again uses on the summary).
+    const restartCy = backCy + chipH + gap;
+    const restartBg = this.add
+      .rectangle(chipCx, restartCy, chipW, chipH, 0x1a0a2e, 0.95)
+      .setStrokeStyle(2, 0xffd34d, 0.9)
+      .setDepth(60)
+      .setInteractive({ useHandCursor: true });
+    const restartTxt = this.add
+      .text(chipCx, restartCy, '↻ RESTART', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '13px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5)
+      .setDepth(61);
+    restartBg.on('pointerover', () => restartBg.setFillStyle(0x2c1856, 0.95));
+    restartBg.on('pointerout', () => restartBg.setFillStyle(0x1a0a2e, 0.95));
+    restartBg.on('pointerup', () => {
+      if (this.playChart) this.replayInPlace(this.playChart);
+    });
+
+    // Reuse the existing cleanup array (backToChartChip) since both
+    // overlays live and die on the same scene lifecycle — no need to
+    // add a second tearDown step.
+    this.backToChartChip = [backBg, backTxt, restartBg, restartTxt];
   }
 
   /** Floating "← EDITOR" pill rendered on top of the playfield while in
