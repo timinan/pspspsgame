@@ -9,7 +9,6 @@ import { ContextMenu, buildCatMenu } from '@/ui/context-menu';
 import { SettingsModal } from '@/ui/settings-modal';
 import { InboxModal } from '@/ui/inbox-modal';
 import * as L from '@/constants/scene-layout';
-import { savePreviewImage } from '@/services/preview-client';
 import { CAT_CATALOG, COSMETIC_CATALOG, BACKGROUND_CATALOG } from '@/../shared/state';
 import { CAT_EFFECT_BY_ID } from '@/effects/cat-effects';
 import { fetchState, setSeat, setBackground } from '@/services/state-client';
@@ -1033,12 +1032,6 @@ export class Decorate extends Scene {
   // ---------------------------------------------------------------------------
 
   private cleanup(): void {
-    // Snapshot the cat-stage band BEFORE we tear anything down — the
-    // captured image is what splash.html renders as the feed-preview
-    // backdrop for posts this player publishes. Fire-and-forget POST;
-    // doesn't block scene teardown.
-    this.capturePreviewImage();
-
     this.tweens.killAll();
     this.time.removeAllEvents();
     this.input.removeAllListeners();
@@ -1066,47 +1059,6 @@ export class Decorate extends Scene {
     this.inboxModal = null;
     this.root?.destroy(true);
     this.hud?.destroy();
-  }
-
-  /** Snapshot the cat-stage band of the canvas (below the TopHud,
-   *  above the lane area) and ship it to the server as the player's
-   *  splash-preview image. JPEG @ 70% quality + downscaled to 320 wide
-   *  keeps the payload under ~30 KB. Snapshot is async via Phaser's
-   *  WebGL renderer — toDataURL won't work directly. */
-  private capturePreviewImage(): void {
-    const renderer = this.game.renderer as Phaser.Renderer.WebGL.WebGLRenderer | undefined;
-    if (!renderer || typeof renderer.snapshotArea !== 'function') return;
-    const scaleY = this.scale.height / L.DESIGN_H;
-    const x = 0;
-    const y = TopHud.HEIGHT * scaleY;
-    const w = this.scale.width;
-    const h = (L.LANE_TOP_Y - TopHud.HEIGHT) * scaleY;
-    try {
-      renderer.snapshotArea(x, y, w, h, (img) => {
-        if (!(img instanceof HTMLImageElement)) return;
-        // Wait for the snapshot Image to fully decode before drawing.
-        const sendWhenReady = (): void => {
-          try {
-            const targetW = 320;
-            const targetH = Math.round((img.height / img.width) * targetW);
-            const canvas = document.createElement('canvas');
-            canvas.width = targetW;
-            canvas.height = targetH;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-            ctx.drawImage(img, 0, 0, targetW, targetH);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-            void savePreviewImage(dataUrl);
-          } catch (err) {
-            console.warn('[Decorate] preview capture encode failed:', err);
-          }
-        };
-        if (img.complete) sendWhenReady();
-        else img.onload = sendWhenReady;
-      });
-    } catch (err) {
-      console.warn('[Decorate] snapshotArea threw:', err);
-    }
   }
 
   /** Open the settings modal from the drawer. Lazy-instantiated so the

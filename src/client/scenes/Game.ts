@@ -1821,7 +1821,15 @@ export class Game extends Scene {
     this.summaryRightText.setText('POSTING…');
     this.summaryRightBg.setFillStyle(0xc0a0e6, 1);
     console.info('[Game] hitting /api/publish/chart');
-    void publishChart().then((result) => {
+    // Tim's call: capture the cat-stage snapshot AT publish time
+    // (not on every Decorate leave) — cats are in their celebration
+    // animation right now from the round just finished, and the
+    // captured image belongs to THIS specific show, not the player's
+    // current Decorate state. Capture happens async; the publish
+    // call waits for it (or proceeds without if capture fails).
+    void this.captureStagePreview().then((previewImage) => {
+      return publishChart(previewImage ? { previewImage } : {});
+    }).then((result) => {
       this.publishBusy = false;
       console.info('[Game] publishChart result:', result);
       if (!result.ok) {
@@ -1860,6 +1868,55 @@ export class Game extends Scene {
       this.summaryRightBg.setFillStyle(0xff6b6b, 1);
     });
   };
+
+  /** Snapshot the cat-stage band of the canvas (below the TopHud,
+   *  above the lane area) as a JPEG data URL. Used at publish time to
+   *  capture the celebration animation of the cats for the post's
+   *  feed-preview backdrop. Resolves to null on snapshot failure so
+   *  publishing proceeds without an image. */
+  private captureStagePreview(): Promise<string | null> {
+    return new Promise((resolve) => {
+      const renderer = this.game.renderer as Phaser.Renderer.WebGL.WebGLRenderer | undefined;
+      if (!renderer || typeof renderer.snapshotArea !== 'function') {
+        resolve(null);
+        return;
+      }
+      const scaleY = this.scale.height / L.DESIGN_H;
+      const x = 0;
+      const y = TopHud.HEIGHT * scaleY;
+      const w = this.scale.width;
+      const h = (L.LANE_TOP_Y - TopHud.HEIGHT) * scaleY;
+      try {
+        renderer.snapshotArea(x, y, w, h, (img) => {
+          if (!(img instanceof HTMLImageElement)) {
+            resolve(null);
+            return;
+          }
+          const sendWhenReady = (): void => {
+            try {
+              const targetW = 320;
+              const targetH = Math.round((img.height / img.width) * targetW);
+              const canvas = document.createElement('canvas');
+              canvas.width = targetW;
+              canvas.height = targetH;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) { resolve(null); return; }
+              ctx.drawImage(img, 0, 0, targetW, targetH);
+              resolve(canvas.toDataURL('image/jpeg', 0.7));
+            } catch (err) {
+              console.warn('[Game] preview capture encode failed:', err);
+              resolve(null);
+            }
+          };
+          if (img.complete) sendWhenReady();
+          else img.onload = sendWhenReady;
+        });
+      } catch (err) {
+        console.warn('[Game] snapshotArea threw:', err);
+        resolve(null);
+      }
+    });
+  }
 
   // -----------------------------------------------------------------------
   // Private — chart

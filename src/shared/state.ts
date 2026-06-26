@@ -593,13 +593,6 @@ export interface PlayerState {
   ownedBackgrounds: BackgroundId[];
   /** Currently active background. */
   activeBackground: BackgroundId;
-  /** Base64 data-URL JPEG (~20-30 KB at 320 wide, 0.7 quality) of the
-   *  cat-stage band captured the last time the player left Decorate.
-   *  Used by splash.html as the inline-preview backdrop for posts this
-   *  player publishes — visitors see the owner's actual stage instead
-   *  of a generic emoji-cat splash. Undefined for players who haven't
-   *  visited Decorate yet (the splash falls back to a generic backdrop). */
-  previewImage?: string;
 }
 
 /**

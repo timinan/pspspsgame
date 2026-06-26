@@ -35,6 +35,22 @@ publish.post('/chart', async (c) => {
       );
     }
 
+    // Optional cat-stage snapshot captured client-side right before
+    // publish. Stored per-post so splash.html shows THIS show's stage
+    // (not whatever the player's stage currently looks like). Cap at
+    // 300 KB defensively — client downscales to ~30 KB.
+    let previewImage: string | undefined;
+    try {
+      const body = (await c.req.json()) as { previewImage?: string | null };
+      if (body?.previewImage && typeof body.previewImage === 'string'
+          && body.previewImage.startsWith('data:image/')
+          && body.previewImage.length < 300_000) {
+        previewImage = body.previewImage;
+      }
+    } catch {
+      // body might not be JSON — fine, just no image
+    }
+
     // Devvit creates the post + returns its id. Title carries the
     // author's name so the feed reads as "playing alice's show".
     // runAs: 'USER' makes the post show up as authored by the player
@@ -65,6 +81,14 @@ publish.post('/chart', async (c) => {
     // leaderboard / inbox endpoints can route to the right author the
     // first time a visitor opens the post.
     await setPostOwner(redis, post.id, username);
+
+    // Store the cat-stage snapshot keyed by post id so splash.html
+    // can fetch the right preview for each post (vs the player's
+    // current Decorate state which would mean every post they ever
+    // make shows the same stage).
+    if (previewImage) {
+      await redis.set(`meowcert:post-preview:${post.id}`, previewImage);
+    }
 
     // Use post.permalink for the URL — post.id is a T3 string with a
     // 't3_' prefix which Reddit's URL routing chokes on. The permalink
