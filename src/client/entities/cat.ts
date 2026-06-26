@@ -376,6 +376,21 @@ export class Cat {
     });
   }
 
+  /** Tear down the celebration loop — clears the recurring pulse timer,
+   *  rips the ANIMATION_COMPLETE listener that drives bridgeToNextStep,
+   *  flips celebrating off. Use this when something else needs to take
+   *  over the sprite's animation surface (e.g. the publish-time snapshot
+   *  poses cats into 'meow' but the celebration's listener would
+   *  immediately bridge back to idle and override the pose). Safe to
+   *  call when not celebrating — it's idempotent. */
+  stopCelebration(): void {
+    if (!this.celebrating && !this.celebrationPulseTimer) return;
+    this.celebrating = false;
+    this.celebrationPulseTimer?.remove(false);
+    this.celebrationPulseTimer = undefined;
+    this.sprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
+  }
+
   /** End-of-round disappointment — counterpart to startCelebration for a
    *  failed rehearsal. Cat holds a hissing loop with a sad tint and a
    *  recurring effect-dim pulse so its aura / particles visibly droop.

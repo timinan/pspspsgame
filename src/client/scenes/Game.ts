@@ -1918,15 +1918,22 @@ export class Game extends Scene {
       const comboOriginalAlpha = this.comboText?.alpha ?? 0;
       this.comboText?.setAlpha(0);
 
-      // Pose every seated cat into 'meow' for the snapshot. setAnimation
-      // is a no-op when the breed has no frames for the requested anim,
-      // so this gracefully degrades for cats without a meow set. Track
-      // the previous animation so we can restore — the visible scene
-      // post-publish should be unchanged.
+      // Pose every seated cat into 'meow' for the snapshot. Need to
+      // stopCelebration() FIRST — when publish is hit, cats are in the
+      // end-round celebration loop, which has an ANIMATION_COMPLETE
+      // listener that bridges back to idle and advances to the next
+      // step. Without stopping it, the meow pose lands for a few ms
+      // then gets overridden by bridge-to-idle before the 120 ms
+      // snapshot delay fires (Tim: "doesnt seem to be doing the meow
+      // like you said"). setAnimation is a no-op when the breed has
+      // no frames for the requested anim, so this gracefully degrades
+      // for cats without a meow set.
+      console.info('[Game] snapshot: posing', this.cats.length, 'cats into meow');
       const restoreCatAnims: Array<() => void> = [];
       for (let i = 0; i < this.cats.length; i++) {
         const cat = this.cats[i]!;
         const prevAnim = cat.model.animation;
+        cat.stopCelebration();
         cat.setAnimation('meow');
         restoreCatAnims.push(() => cat.setAnimation(prevAnim));
 
