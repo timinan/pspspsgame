@@ -11,7 +11,6 @@ import { fetchVisit, type VisitData } from '@/services/visit-client';
 import { loadChart } from '@/services/state-client';
 import { fetchLeaderboard } from '@/services/social-client';
 import type { LeaderboardEntry } from '@/../shared/social-loop';
-import { requestExpandedMode, getWebViewMode } from '@devvit/web/client';
 
 /**
  * Visitor splash for a posted show. Boot routing lands here when a
@@ -69,11 +68,6 @@ export class VisitPost extends Scene {
   private playBtnBg!: GameObjects.Rectangle;
   private playBtnText!: GameObjects.Text;
   private playBusy = false;
-  /** Invisible native <button> overlaid on the Phaser PLAY visual so
-   *  its click is a trusted DOM gesture (Devvit requires this for
-   *  requestExpandedMode). Torn down on cleanup. */
-  private htmlPlayButton: HTMLButtonElement | null = null;
-  private btnPositionHandler: (() => void) | null = null;
 
   constructor() {
     super(SceneKeys.VisitPost);
@@ -367,60 +361,20 @@ export class VisitPost extends Scene {
     const btnW = Math.min(220, width - 56);
     const btnH = 48;
 
-    this.playBtnBg = this.add.rectangle(width / 2, ctaY, btnW, btnH, 0xffd34d, 1);
+    this.playBtnBg = this.add.rectangle(width / 2, ctaY, btnW, btnH, 0xffd34d, 1)
+      .setInteractive({ useHandCursor: true });
     this.playBtnText = this.add.text(width / 2, ctaY, '▶  TAP TO PLAY', {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontStyle: 'bold',
       fontSize: '18px',
       color: '#1a0a2e',
     }).setOrigin(0.5);
-
-    // HTML <button> overlaid invisibly on top of the Phaser PLAY visual
-    // so the click event is a TRUSTED DOM gesture (Devvit's
-    // requestExpandedMode rejects synthesized Phaser events). Position
-    // tracks the canvas + design-coords via the same canvas-rect math
-    // the custom-song file-picker overlay uses.
-    //
-    // DIAGNOSTIC: while debugging fullscreen, button has a faint
-    // outline + 0.15 opacity background so Tim can see its bounds and
-    // confirm alignment. Drop to opacity 0 + no border once verified.
-    const btn = document.createElement('button');
-    btn.style.position = 'absolute';
-    btn.style.opacity = '1';
-    btn.style.zIndex = '9999';
-    btn.style.border = '2px solid #ff00ff';
-    btn.style.background = 'rgba(255, 0, 255, 0.15)';
-    btn.style.cursor = 'pointer';
-    btn.style.borderRadius = '8px';
-    document.body.appendChild(btn);
-    this.htmlPlayButton = btn;
-
-    const positionBtn = (): void => {
-      const canvas = this.game.canvas;
-      const rect = canvas.getBoundingClientRect();
-      const sx = rect.width / this.scale.width;
-      const sy = rect.height / this.scale.height;
-      btn.style.left = `${rect.left + (width / 2 - btnW / 2) * sx}px`;
-      btn.style.top = `${rect.top + (ctaY - btnH / 2) * sy}px`;
-      btn.style.width = `${btnW * sx}px`;
-      btn.style.height = `${btnH * sy}px`;
-    };
-    positionBtn();
-    this.btnPositionHandler = positionBtn;
-    window.addEventListener('resize', positionBtn);
-    window.addEventListener('scroll', positionBtn, true);
-
-    btn.addEventListener('click', (e: MouseEvent) => {
-      const modeBefore = (() => { try { return getWebViewMode(); } catch { return 'unknown'; } })();
-      console.info(`[VisitPost] PLAY click fired — mode=${modeBefore} trusted=${e.isTrusted}`);
-      try {
-        requestExpandedMode(e, 'default');
-        console.info('[VisitPost] requestExpandedMode call returned without throwing');
-      } catch (err) {
-        console.warn('[VisitPost] requestExpandedMode threw:', err);
-      }
-      this.onPlayClicked();
-    });
+    this.playBtnBg.on('pointerover', () => this.playBtnBg.setFillStyle(0xffe680, 1));
+    this.playBtnBg.on('pointerout', () => this.playBtnBg.setFillStyle(0xffd34d, 1));
+    this.playBtnBg.on('pointerdown', () => this.onPlayClicked());
+    // Fullscreen expand is handled by the canvas-level first-touch
+    // handler armed in Preloader.armFullscreenOnFirstTouch — no need
+    // for a per-scene HTML overlay anymore.
   }
 
   private buildBuildLink(): void {
@@ -494,15 +448,6 @@ export class VisitPost extends Scene {
   private cleanup(): void {
     for (const c of this.cats) c.destroy();
     this.cats = [];
-    if (this.htmlPlayButton) {
-      try { this.htmlPlayButton.remove(); } catch { /* ignore */ }
-      this.htmlPlayButton = null;
-    }
-    if (this.btnPositionHandler) {
-      window.removeEventListener('resize', this.btnPositionHandler);
-      window.removeEventListener('scroll', this.btnPositionHandler, true);
-      this.btnPositionHandler = null;
-    }
     this.hud?.destroy();
     this.bg?.destroy();
     this.tweens.killAll();

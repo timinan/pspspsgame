@@ -5,6 +5,7 @@ import { Balance } from '@/constants/balance';
 import { fetchState } from '@/services/state-client';
 import { BACKGROUND_CATALOG, MEOW_STEM_CATALOG } from '@/../shared/state';
 import type { PlayerState } from '@/../shared/state';
+import { requestExpandedMode } from '@devvit/web/client';
 
 // All logical cat breeds. 'rainbow' has no atlas frames of its own — it borrows
 // cat6's frames but registers them under its own animation keys so the Cat entity
@@ -94,6 +95,16 @@ export class Preloader extends Scene {
   }
 
   async create() {
+    // First-touch fullscreen expand. Devvit's requestExpandedMode needs
+    // a TRUSTED user gesture to swap the inline embed for a fullscreen
+    // modal. The old splash.html had this on its Start button — when we
+    // removed splash.html, the only path to fullscreen went with it.
+    // Now a canvas-level listener catches the player's very first
+    // touch/click ANYWHERE in the embed and triggers expand. capture +
+    // once so it fires before Phaser's own input handlers AND removes
+    // itself after the first hit (subsequent taps go straight to game).
+    this.armFullscreenOnFirstTouch();
+
     // Make sure the Pixeloid Sans face is actually loaded into the browser
     // before we kick off the next scene, otherwise the first frame of
     // Phaser text would render with the system sans-serif and the layout
@@ -370,6 +381,38 @@ export class Preloader extends Scene {
         });
       }
     }
+  }
+
+  /** Attach a one-shot capture-phase listener to the canvas that fires
+   *  Devvit's requestExpandedMode on the player's first touch / click
+   *  anywhere in the embed, then removes itself. capture:true so it
+   *  fires BEFORE Phaser's bubble-phase input handlers — the same tap
+   *  still reaches the game scene. Devvit throws if already expanded;
+   *  swallow + continue. */
+  private armFullscreenOnFirstTouch(): void {
+    const canvas = this.game.canvas;
+    if (!canvas) return;
+    const handler = (e: Event): void => {
+      try {
+        requestExpandedMode(e as MouseEvent, 'default');
+      } catch (err) {
+        console.warn('[Preloader] requestExpandedMode threw:', err);
+      }
+    };
+    const opts: AddEventListenerOptions = { capture: true, once: true };
+    canvas.addEventListener('click', handler, opts);
+    canvas.addEventListener('touchstart', handler, opts);
+    // Once one fires, the {once: true} flag removes it — but we have
+    // two listeners (click + touchstart). On touch devices, touchstart
+    // fires before click; the click listener never runs but lingers as
+    // a no-op. That's fine (single dead handler reference) but tidier
+    // to remove explicitly when the first one fires.
+    const cleanupOther = (): void => {
+      canvas.removeEventListener('click', handler, opts);
+      canvas.removeEventListener('touchstart', handler, opts);
+    };
+    canvas.addEventListener('click', cleanupOther, { capture: true, once: true });
+    canvas.addEventListener('touchstart', cleanupOther, { capture: true, once: true });
   }
 
   private async loadFontsOrTimeout(timeoutMs: number): Promise<void> {
