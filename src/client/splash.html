@@ -7,26 +7,25 @@
       name="viewport"
       content="initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, width=device-width, height=device-height, user-scalable=0"
     />
-    <title>devvit</title>
+    <title>Meowcert</title>
   </head>
-  <body class="app">
-    <img class="snoo" src="/snoo.png" alt="Snoo" />
-    <div class="content">
-      <h1 class="title" id="title"></h1>
-      <p class="description">
-        Edit <span class="code">src/client/splash.ts</span> to get started.
-      </p>
+  <body class="splash">
+    <div class="card">
+      <div class="cat-row" aria-hidden="true">
+        <span class="cat">🐱</span>
+        <span class="note">♪</span>
+        <span class="cat">😺</span>
+        <span class="note">♫</span>
+        <span class="cat">🐱</span>
+      </div>
+      <h1 class="brand">MEOWCERT</h1>
+      <p class="subtitle">a rhythm show from a fellow redditor</p>
+      <button class="play-button" id="start-button">
+        <span class="play-arrow">▶</span>
+        <span class="play-text">TAP TO PLAY</span>
+      </button>
+      <p class="hint">Tap the notes. Help the cats catch them.</p>
     </div>
-    <div>
-      <button class="start-button" id="start-button">Start</button>
-    </div>
-    <footer class="footer">
-      <div class="docs-link" tabindex="0" id="docs-link">Docs</div>
-      <span class="divider">|</span>
-      <div class="docs-link" tabindex="0" id="playtest-link">r/Devvit</div>
-      <span class="divider">|</span>
-      <div class="docs-link" tabindex="0" id="discord-link">Discord</div>
-    </footer>
     <script type="module" src="splash.ts" defer></script>
   </body>
 </html>

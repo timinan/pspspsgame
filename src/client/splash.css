@@ -2,85 +2,123 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  color: #000000;
+  font-family: "Courier New", Menlo, monospace;
 }
 
-.app {
+.splash {
   display: flex;
-  position: relative;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  height: 100vh;
-  margin: 0;
-  gap: 16px;
+  justify-content: center;
+  /* Meowcert chrome — dark purple gradient, same palette as the in-game
+     scenes so the feed preview and the game itself read as one app. */
+  background:
+    radial-gradient(ellipse at top, #2c1856 0%, #1a0a2e 60%, #0b041a 100%);
+  min-height: 100vh;
+  padding: 24px;
+  color: #ffffff;
+  /* Subtle scanline overlay for the pixel-art feel without an image. */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    radial-gradient(ellipse at top, #2c1856 0%, #1a0a2e 60%, #0b041a 100%);
 }
 
-.snoo {
-  object-fit: contain;
-  width: 50%;
-  max-width: 250px;
-  margin: 0 auto;
-}
-
-.content {
+.card {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  max-width: 320px;
+  width: 100%;
+}
+
+.cat-row {
+  font-size: 32px;
+  letter-spacing: 6px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  /* Soft bob so the row feels alive without animations being distracting. */
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+.cat {
+  display: inline-block;
+}
+
+.note {
+  color: #ffd34d;
+  font-family: "Pixeloid Sans", "Courier New", monospace;
+  text-shadow: 0 0 8px rgba(255, 211, 77, 0.6);
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+.brand {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffd34d;
+  text-shadow:
+    0 0 12px rgba(255, 211, 77, 0.55),
+    2px 2px 0 #0b041a;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #c0a0e6;
+  margin-top: -4px;
+}
+
+.play-button {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-.title {
-  font-size: 1.5em;
-  font-weight: bold;
-  text-align: center;
-}
-
-.description {
-  font-size: 1em;
-  text-align: center;
-  color: #5c6c74;
-}
-
-.code {
-  background-color: #e5ebee;
-  padding: 2px 4px;
-  border-radius: 4px;
-}
-
-.start-button {
-  background-color: #d93900;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  border: none;
-  padding: 6px 16px;
-  height: 28px;
-  font-size: 1.1em;
-  border-radius: 12px;
+  background: #ffd34d;
+  color: #1a0a2e;
+  border: 2px solid #0b041a;
+  border-radius: 999px;
+  padding: 12px 28px;
+  font-family: "Courier New", Menlo, monospace;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  box-shadow:
+    0 4px 0 0 #b07e00,
+    0 8px 20px rgba(255, 211, 77, 0.25);
+  transition: transform 80ms ease, box-shadow 80ms ease, background 80ms ease;
+  margin-top: 4px;
 }
 
-.footer {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 12px;
-  font-size: 0.8em;
-  color: #666666;
+.play-button:hover {
+  background: #ffe680;
 }
 
-.docs-link {
-  cursor: pointer;
+.play-button:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 0 #b07e00,
+    0 4px 10px rgba(255, 211, 77, 0.25);
 }
 
-.divider {
-  color: rgba(0, 0, 0, 0.1);
+.play-arrow {
+  font-size: 18px;
+}
+
+.hint {
+  font-size: 11px;
+  color: #c0a0e6;
+  opacity: 0.7;
+  margin-top: 6px;
 }

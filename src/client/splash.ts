@@ -1,30 +1,21 @@
-import { navigateTo, context, requestExpandedMode } from '@devvit/web/client';
+import { requestExpandedMode } from '@devvit/web/client';
 
-const docsLink = document.getElementById('docs-link') as HTMLDivElement;
-const playtestLink = document.getElementById('playtest-link') as HTMLDivElement;
-const discordLink = document.getElementById('discord-link') as HTMLDivElement;
-const startButton = document.getElementById('start-button') as HTMLButtonElement;
+/**
+ * Feed-preview splash for Meowcert posts. This is the static surface
+ * Reddit shows in the feed BEFORE the user expands the post into the
+ * game webview. Kept intentionally lightweight (no network calls, no
+ * Phaser) so the feed scroll stays fast.
+ *
+ * The post title (set in publish.ts → "🎵 {owner}'s show") already
+ * carries the owner attribution above the embed, so this splash
+ * focuses on the call-to-action.
+ */
 
-startButton.addEventListener('click', (e) => {
+const startButton = document.getElementById('start-button') as HTMLButtonElement | null;
+
+startButton?.addEventListener('click', (e) => {
+  // 'game' is the entrypoint key registered in devvit.json — this swaps
+  // the splash for the full Phaser game webview. The VisitPost scene
+  // takes over from there (visitor detection happens in the Preloader).
   requestExpandedMode(e, 'game');
 });
-
-docsLink.addEventListener('click', () => {
-  navigateTo('https://developers.reddit.com/docs');
-});
-
-playtestLink.addEventListener('click', () => {
-  navigateTo('https://www.reddit.com/r/Devvit');
-});
-
-discordLink.addEventListener('click', () => {
-  navigateTo('https://discord.com/invite/R7yu2wh9Qz');
-});
-
-const titleElement = document.getElementById('title') as HTMLHeadingElement;
-
-function init() {
-  titleElement.textContent = `Hey ${context.username ?? 'user'} 👋`;
-}
-
-init();
