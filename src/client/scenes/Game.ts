@@ -192,6 +192,7 @@ export class Game extends Scene {
     const fromRegistry = this.registry.get('rehearseReplayChart') as Chart | undefined;
     this.pendingReplayChart = fromRegistry ?? data?.replayChart ?? null;
     if (fromRegistry) this.registry.remove('rehearseReplayChart');
+    console.info(`[Game] init — testMode=${this.testMode} pendingReplayChart=${!!this.pendingReplayChart} (registry=${!!fromRegistry} data=${!!data?.replayChart})`);
     // Editor passes its current scrollOffset here so rehearsal starts
     // at the author's working page (chart + music both seek). Defaults
     // to 0 = start at the top.
@@ -265,8 +266,20 @@ export class Game extends Scene {
       // Play Again: skip the SongPicker and re-attach the same chart
       // the player just finished. Music + chart-player rebuild fresh
       // off the same chart object; the round kicks immediately.
-      this.attachChartAndMusic(this.pendingReplayChart);
-      void this.beginRound();
+      console.info(`[Game] create — replay path: audioKey=${this.pendingReplayChart.audioKey} stepCount=${this.pendingReplayChart.stepCount}`);
+      try {
+        this.attachChartAndMusic(this.pendingReplayChart);
+      } catch (err) {
+        console.error('[Game] attachChartAndMusic threw on replay:', err);
+        // Fall back to song picker so the player isn't stranded
+        this.showSongPicker();
+        return;
+      }
+      void this.beginRound().then(() => {
+        console.info('[Game] beginRound resolved on replay');
+      }).catch((err: unknown) => {
+        console.error('[Game] beginRound threw on replay:', err);
+      });
     } else {
       // Fresh Rehearse entry: two-step picker. SongPicker (vibe → song
       // list → preview + select) → DifficultyPicker (easy/normal/hard
@@ -1541,6 +1554,10 @@ export class Game extends Scene {
    *  and skip the SongPicker on reboot, jumping straight into the same
    *  chart with music. */
   private onPlayAgainClicked = (): void => {
+    const hasChart = !!this.playChart;
+    const audioKey = this.playChart?.audioKey;
+    const stepCount = this.playChart?.stepCount;
+    console.info(`[Game] Play Again clicked — playChart=${hasChart} audioKey=${audioKey} stepCount=${stepCount}`);
     if (this.playChart) {
       this.registry.set('rehearseReplayChart', this.playChart);
     }
