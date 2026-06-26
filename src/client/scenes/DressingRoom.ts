@@ -149,11 +149,13 @@ export class DressingRoom extends Scene {
     const breed = catInstance?.breed ?? this.catInstanceId;
     const heroFrame = breed === 'rainbow' ? 'cat6_idle_00' : `${breed}_idle_00`;
     const heroY = modalY + HERO_OFFSET_Y;
-    // 1.4× matches the seated-stage scale (Game.seatCats uses CAT_SCALE
-    // = 1.4) so the cat reads at the same size you remember from the
-    // round you just played. Cat is then anchored vertically so it
-    // never overlaps the DRESSING <NAME> title or the slot label below.
-    const heroScale = 1.4;
+    // 1.15× (was 1.4 to match seated-stage) — tall cosmetics like the
+    // cherry-blossom wreath were extending above + to the sides of the
+    // hero and getting clipped by the modal top + side edges at 1.4.
+    // Smaller hero means cosmetic atlas frames (some 80×80, taller than
+    // the 48×48 cat) fit cleanly inside the preview. Cat still reads
+    // big enough to recognize at this scale.
+    const heroScale = 1.15;
     this.heroSprite = this.add
       .image(cx, heroY, AssetKeys.Atlas.Cats, heroFrame)
       .setScale(heroScale)
