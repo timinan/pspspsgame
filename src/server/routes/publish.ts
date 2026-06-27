@@ -158,19 +158,13 @@ publish.post('/chart', async (c) => {
       console.info(`[publish] skipped creator seed — score=${creatorScore} acc=${creatorAccuracy}`);
     }
 
-    // Short-form post URL: `https://reddit.com/comments/<id-without-t3>/`.
-    // Suggested by a Devvit Discord respondent (paraphrased: "Have you
-    // tried navigating by post ID?"). Reddit's router resolves this
-    // form to the post directly without needing the subreddit path —
-    // it's the canonical "open by id" pattern. Used in addition to the
-    // entry:'default' fix shipped in 9e409ee (the entry fix already
-    // makes OPEN POST work; this is a comparison test to see if the
-    // short form is simpler/more robust).
-    //
-    // Permalink is still passed in the response so the client can
-    // construct alternate forms for diagnostics if needed.
-    const postIdWithoutT3 = post.id.replace(/^t3_/, '');
-    const url = `https://reddit.com/comments/${postIdWithoutT3}/`;
+    // Long form `https://reddit.com${post.permalink}` — proven to work
+    // alongside the entry:'default' fix in 9e409ee. The short form
+    // `https://reddit.com/comments/<id>/` (Discord-respondent
+    // suggestion, shipped briefly in 589add6) regressed OPEN POST per
+    // Tim's testing — reverted here. entry:'default' was the actual
+    // missing piece, not the URL form.
+    const url = `https://reddit.com${post.permalink}`;
     console.info('[publish] returning ok', {
       postId: post.id,
       authorName: post.authorName,
