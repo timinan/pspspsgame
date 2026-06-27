@@ -89,7 +89,14 @@ social.post('/play', async (c) => {
   // PB, repeat, self-play — all count). Splash + VisitPost render this
   // as "X plays" so the host sees engagement traffic, not just unique
   // players. Distinct from the leaderboard zCard which is PB-only.
-  await incrementPlayCount(r, body.postId);
+  // Wrapped defensively: a failure here (Devvit redis method drift,
+  // quota, etc.) must NOT block the rest of the play pipeline (lb +
+  // inbox + Reddit comment) — they're independently valuable.
+  try {
+    await incrementPlayCount(r, body.postId);
+  } catch (err) {
+    console.error('[social/play] incrementPlayCount failed (continuing)', err);
+  }
   // Leaderboard: only passing runs land on it.
   await submitLeaderboardScore(r, summary);
   // Inbox: EVERY play, pass or fail (so the owner sees every visitor).

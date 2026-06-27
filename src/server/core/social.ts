@@ -44,7 +44,12 @@ export interface SocialRedis extends RedisLike {
   lPush(key: string, ...values: string[]): Promise<unknown>;
   lRange(key: string, start: number, stop: number): Promise<string[]>;
   lTrim(key: string, start: number, stop: number): Promise<unknown>;
-  incr(key: string): Promise<number>;
+  // Devvit exposes incrBy(key, value) — NOT incr(key). Standard Redis
+  // has both (INCR = +1, INCRBY = +n); Devvit only ships incrBy. Calling
+  // incr() at runtime throws TypeError: e.incr is not a function and
+  // breaks the entire enclosing handler because the throw isn't caught
+  // by Hono's per-route boundary.
+  incrBy(key: string, value: number): Promise<number>;
 }
 
 const LB_KEY = (postId: string): string => `meowcert:lb:${postId}`;
@@ -98,7 +103,7 @@ export async function incrementPlayCount(
   redis: SocialRedis,
   postId: string,
 ): Promise<number> {
-  return await redis.incr(PLAYS_KEY(postId));
+  return await redis.incrBy(PLAYS_KEY(postId), 1);
 }
 
 /** Fetch the top N entries for a post + the requesting visitor's rank
