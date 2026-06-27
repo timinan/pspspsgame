@@ -118,9 +118,19 @@ export class PublishedModal {
       // navigation. Today's 1c8f90e tried `{url, permalink}` resolver
       // form which Tim flagged as the regression. Logging the target
       // so the next failure tells us what's being sent.
-      console.info('[PublishedModal] OPEN POST tapped — args.url:', args.url, 'args.permalink:', args.permalink);
+      // Pass {url, permalink} object form so Devvit's resolver runs its
+      // path-equality heuristic ("if url's pathname equals permalink,
+      // navigate to url" — that's how Devvit identifies a post vs a
+      // subreddit). Plain string form left Reddit's app inferring it
+      // was a subreddit URL and routing there. Falls back to plain
+      // string when permalink wasn't supplied (defensive only — caller
+      // currently always provides it).
+      const target = args.permalink
+        ? { url: args.url, permalink: args.permalink }
+        : args.url;
+      console.info('[PublishedModal] OPEN POST tapped — target:', target);
       try {
-        navigateTo(args.url);
+        navigateTo(target);
         console.info('[PublishedModal] navigateTo returned without throwing');
       } catch (err) {
         console.error('[PublishedModal] navigateTo threw:', err);
