@@ -136,12 +136,7 @@ export class CommentComposeModal {
     // we use an HTML overlay <textarea> positioned over the panel. Game
     // scenes pass pointer events through to canvas; the textarea floats
     // above it. Cleaned up on close.
-    // taContainerY shifted from panelY + 70 → panelY + 96 to make room
-    // for POST + SKIP buttons sitting between the title and the
-    // textarea (see btnRowY below). Tim's bug: POST button was hidden
-    // by the iOS keyboard at panelY + 158. Moving the primary action
-    // ABOVE the textarea guarantees it's always visible.
-    const taContainerY = panelY + 96;
+    const taContainerY = panelY + 70;
     const taContainerH = 56;
     const taContainerW = panelW - 32;
     const taContainerX = panelX + 16;
@@ -251,16 +246,14 @@ export class CommentComposeModal {
     // closure has something to point at without branching everywhere.
     const previewText = { setText: (_: string): void => {} };
 
-    // Layout order: Title → POST/SKIP (TOP, between title and input) →
-    // SAY SOMETHING label → textarea → ADD A GIFT chip → gift sub-panel.
-    // POST + SKIP sit at the TOP of the panel so the iOS keyboard
-    // (which covers ~280px of bottom viewport when open) NEVER hides
-    // the primary submit action. Tim called this out 5+ times today —
-    // every prior layout had POST below the textarea where the keyboard
-    // ate it. The gift chip (secondary opt-in) lives below the textarea
-    // and IS OK if the keyboard hides it.
-    const btnRowY = panelY + 50;                              // POST + SKIP center (top of panel)
-    const giftToggleY = taContainerY + taContainerH + 14;     // gift chip top (below textarea)
+    // Layout order: Input → POST/SKIP (immediately under) → gift chip.
+    // POST/SKIP are the primary action and must stay above the iOS
+    // keyboard fold; the gift chip (a secondary opt-in) can sit
+    // further down where the keyboard would cover it.
+    const btnRowY = taContainerY + taContainerH + 32;       // POST + SKIP center
+    const giftToggleY = btnRowY + 22 + 16;                   // gift chip top
+    // (was: giftToggleY = taContainerY + taContainerH + 14 — kept above
+    //  shape for the gift chip + sub-panel layout below).
     const giftChip = this.scene.add
       .rectangle(panelX + 16 + 70, giftToggleY + 14, 140, 28, 0x2c1856, 1)
       .setStrokeStyle(1, 0xc0a0e6, 0.55)
