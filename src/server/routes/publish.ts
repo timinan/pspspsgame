@@ -150,14 +150,15 @@ publish.post('/chart', async (c) => {
       console.info(`[publish] skipped creator seed — score=${creatorScore} acc=${creatorAccuracy}`);
     }
 
-    // Reverted to the EXACT shape from f4d9bbf (the version Tim
-    // confirmed worked yesterday): plain `https://reddit.com${permalink}`
-    // string. Today's 1c8f90e tried Devvit's `{url, permalink}` resolver
-    // form using post.url — Tim flagged that as a regression. Sticking
-    // to the known-good behavior + logging both fields so the next
-    // failure has enough signal to diagnose without guessing.
-    const url = `https://reddit.com${post.permalink}`;
-    console.info('[publish] returning ok url:', url, 'post.url:', post.url, 'post.permalink:', post.permalink);
+    // Use Devvit's canonical post.url (includes `www.`). The bare
+    // `https://reddit.com${permalink}` form has been tested all day
+    // and either routes to subreddit or doesn't open the post via
+    // navigateTo. post.url is the form Reddit's app emits internally
+    // — most likely to be the form Reddit's webview parent expects to
+    // route as "post" rather than "subreddit". Logging both so we can
+    // tell from the dev log which string is being sent next time.
+    const url = post.url;
+    console.info('[publish] returning ok url:', url, 'constructed:', `https://reddit.com${post.permalink}`, 'post.permalink:', post.permalink);
     return c.json({ ok: true, postId: post.id, url, permalink: post.permalink });
   } catch (err) {
     console.error('[publish] failed to create post:', err);
