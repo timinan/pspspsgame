@@ -70,6 +70,18 @@ export class Game extends Scene {
    *  visitor sees the show's bg, not their own current Decorate bg.
    *  Empty string in non-visitor flows. */
   private visitPostBg = '';
+  /** Full per-post stage snapshot (seatedCats + ownedCats + cosmetics).
+   *  Set by VisitPost.startVisitorRound; preferred in visitor mode over
+   *  playerState because the visitor's playerState may have completely
+   *  different seated cats from what was published. Tim's bug:
+   *  splash showed Mochi/Pebble/Marble (right) but in-round rendered
+   *  Snow White/Jade/Sakura from visitor's stale playerState. */
+  private visitPostStage: {
+    seatedCats: Record<string, string | null>;
+    ownedCats: Array<{ id: string; name: string; breed: string }>;
+    equippedCosmetics: Record<string, Record<string, string>>;
+    equippedCosmeticTypes: Record<string, string>;
+  } | null = null;
   private bg!: BackgroundManager;
   private cats: Cat[] = [];
   /** Name labels rendered below each seated cat (matches Decorate preview). */
@@ -207,6 +219,12 @@ export class Game extends Scene {
     visitOwnerUsername?: string;
     visitPostId?: string;
     visitPostBg?: string;
+    visitPostStage?: {
+      seatedCats: Record<string, string | null>;
+      ownedCats: Array<{ id: string; name: string; breed: string }>;
+      equippedCosmetics: Record<string, Record<string, string>>;
+      equippedCosmeticTypes: Record<string, string>;
+    } | null;
   }): void {
     this.playerState = data?.playerState ?? null;
     this.testMode = data?.testMode === true;
@@ -214,6 +232,7 @@ export class Game extends Scene {
     this.visitOwnerUsername = data?.visitOwnerUsername ?? '';
     this.visitPostId = data?.visitPostId ?? '';
     this.visitPostBg = data?.visitPostBg ?? '';
+    this.visitPostStage = data?.visitPostStage ?? null;
     // Editor passes its current scrollOffset here so rehearsal starts
     // at the author's working page (chart + music both seek). Defaults
     // to 0 = start at the top.
@@ -479,7 +498,27 @@ export class Game extends Scene {
     const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.78) * scaleY;
     const CAT_SCALE = 1.4;
 
-    const seatedCats = this.playerState?.seatedCats ?? {};
+    // Source-of-truth for cats + cosmetics:
+    //   visitor mode + visitPostStage set  → the published per-post
+    //   stage snapshot (so visitors see what the OWNER posted, not
+    //   their own current Decorate state). Tim's bug: splash showed
+    //   Mochi/Pebble/Marble per the per-post stage, but the round
+    //   rendered Snow White/Jade/Sakura from the visitor's stale
+    //   playerState. Mirrors the visitPostBg pattern.
+    //   non-visitor → playerState (Decorate / rehearsal flow).
+    const useVisitStage = this.visitorMode && this.visitPostStage !== null;
+    const seatedCats = useVisitStage
+      ? this.visitPostStage!.seatedCats
+      : this.playerState?.seatedCats ?? {};
+    const ownedCatsLookup = useVisitStage
+      ? this.visitPostStage!.ownedCats
+      : this.playerState?.ownedCats ?? [];
+    const equippedCosmeticsLookup = useVisitStage
+      ? this.visitPostStage!.equippedCosmetics
+      : this.playerState?.equippedCosmetics ?? {};
+    const equippedCosmeticTypesLookup: Record<string, string> = useVisitStage
+      ? this.visitPostStage!.equippedCosmeticTypes
+      : (this.playerState?.equippedCosmeticTypes ?? {});
     // seatedCats maps seatId → cat instance id.
     const SEAT_ORDER: SeatId[] = ['seat-left', 'seat-center', 'seat-right'];
 
@@ -491,7 +530,7 @@ export class Game extends Scene {
       const instanceId = seatedCats[seatId];
       if (!instanceId) continue;
 
-      const catInstance = this.playerState?.ownedCats.find((cat) => cat.id === instanceId);
+      const catInstance = ownedCatsLookup.find((cat) => cat.id === instanceId);
       if (!catInstance) continue;
       const catEntry = CAT_CATALOG.find((c) => c.id === catInstance.breed);
       if (!catEntry) continue;
@@ -511,8 +550,8 @@ export class Game extends Scene {
       // Resolve cosmetic INSTANCE ids → catalog TYPE ids via the sidecar
       // before handing the model to Cat. Cat's renderer looks up
       // COSMETIC_CATALOG by type id; instance ids wouldn't match anything.
-      const slots = this.playerState?.equippedCosmetics?.[instanceId];
-      const typeMap = this.playerState?.equippedCosmeticTypes ?? {};
+      const slots = equippedCosmeticsLookup[instanceId];
+      const typeMap = equippedCosmeticTypesLookup;
       if (slots && Object.keys(slots).length > 0) {
         const resolved: Partial<Record<string, string>> = {};
         for (const [slotKey, cosInstanceId] of Object.entries(slots)) {

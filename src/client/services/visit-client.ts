@@ -18,7 +18,10 @@ export interface VisitData {
     activeBackground: string;
     ownedCats: OwnedCat[];
     equippedCosmetics: Record<string, Record<string, string>>;
-    equippedCosmeticTypes: Record<string, Record<string, string>>;
+    // FLAT cosInstanceId → typeId, matching PlayerState shape. The
+    // previous nested type was the source of the cosmetics-not-rendering
+    // bug — kept the type honest to prevent regressions.
+    equippedCosmeticTypes: Record<string, string>;
   };
 }
 

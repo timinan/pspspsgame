@@ -583,6 +583,18 @@ export class VisitPost extends Scene {
       // show's background during the round, not whatever the visitor
       // (or the owner) has set as their current Decorate bg.
       visitPostBg: this.visit?.stage.activeBackground ?? '',
+      // Hand the FULL per-post stage so Game's seatCats reads the
+      // OWNER's published cats + cosmetics instead of the visitor's
+      // stale playerState. Tim's bug: round rendered Snow White/Jade/
+      // Sakura when the published post was Mochi/Pebble/Marble.
+      visitPostStage: this.visit?.stage
+        ? {
+            seatedCats: this.visit.stage.seatedCats,
+            ownedCats: this.visit.stage.ownedCats,
+            equippedCosmetics: this.visit.stage.equippedCosmetics,
+            equippedCosmeticTypes: this.visit.stage.equippedCosmeticTypes,
+          }
+        : null,
     });
   }
 
