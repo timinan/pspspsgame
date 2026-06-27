@@ -150,19 +150,13 @@ publish.post('/chart', async (c) => {
       console.info(`[publish] skipped creator seed — score=${creatorScore} acc=${creatorAccuracy}`);
     }
 
-    // Use the `https://reddit.com/r/_/comments/<id>` wildcard form.
-    // Devvit's own `showShareSheet` constructs this exact pattern
-    // (`@devvit/client/effects/share.js`): strip the `t3_` prefix
-    // from the post id and route through `/r/_/`. The `_` is Reddit's
-    // subreddit-wildcard — it tells Reddit's webview router "this is
-    // a post id, don't try to match the path as a subreddit". Every
-    // other URL form we've shipped today (constructed reddit.com,
-    // post.url with www., {url, permalink} object form) ended up
-    // routing to the subreddit instead, because Reddit's router sees
-    // the `/r/<actual sub>/comments/` path and prefers the subreddit
-    // root over the comments suffix.
-    const postIdWithoutT3 = post.id.replace(/^t3_/, '');
-    const url = `https://reddit.com/r/_/comments/${postIdWithoutT3}`;
+    // Reverted to the EXACT shape from f4d9bbf (the version Tim
+    // confirmed worked yesterday): plain `https://reddit.com${permalink}`
+    // string. Today's 1c8f90e tried Devvit's `{url, permalink}` resolver
+    // form using post.url — Tim flagged that as a regression. Sticking
+    // to the known-good behavior + logging both fields so the next
+    // failure has enough signal to diagnose without guessing.
+    const url = `https://reddit.com${post.permalink}`;
     console.info('[publish] returning ok url:', url, 'post.url:', post.url, 'post.permalink:', post.permalink);
     return c.json({ ok: true, postId: post.id, url, permalink: post.permalink });
   } catch (err) {
