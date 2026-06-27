@@ -44,6 +44,20 @@ export class DressingRoom extends Scene {
   }
 
   init(data: { catInstanceId: string; playerState: PlayerState }): void {
+    // Defensive teardown — if the previous DressingRoom launch's
+    // SHUTDOWN handler didn't fire cleanly (Phaser launch/stop edge
+    // cases), the prior effect's particle timer keeps spawning text
+    // emojis into the scene with no live reference to destroy them.
+    // Tim's bug: 🐾 Paw Prints effect from cat 2's dressing session
+    // lingered on cat 3's preview. Calling each effect's destroy()
+    // here BEFORE replacing the map ensures particles + timers + tweens
+    // are torn down even if cleanup() missed a beat last close.
+    for (const slot of Object.keys(this.heroEffects)) {
+      this.heroEffects[slot]?.destroy();
+    }
+    for (const slot of Object.keys(this.heroCosmetics)) {
+      this.heroCosmetics[slot]?.destroy();
+    }
     this.catInstanceId = data.catInstanceId;
     this.playerState = data.playerState;
     this.page = 0;
