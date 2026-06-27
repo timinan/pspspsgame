@@ -119,6 +119,44 @@ publish.post('/chart', async (c) => {
       console.warn('[publish] per-post chart write failed:', err);
     }
 
+    // Per-post STAGE snapshot — same idea as per-post chart: visitor
+    // should see the cats + bg + cosmetics the author had set at
+    // publish time, not whatever the author's current Decorate state
+    // drifted to since. Tim: "the cats and backgrounds that i set for
+    // the show are not showing up". Stored under
+    // meowcert:post-stage:<postId>; consumed by visit.ts with the
+    // ownerState fallback for legacy posts.
+    try {
+      // Trim ownedCats to just the seated ones — visitor doesn't need
+      // the whole collection. Same trim visit.ts does on the fallback
+      // path.
+      const seatedInstanceIds = new Set(
+        Object.values(state.seatedCats ?? {}).filter((v): v is string => typeof v === 'string'),
+      );
+      const seatedOwnedCats = (state.ownedCats ?? []).filter((c) => seatedInstanceIds.has(c.id));
+      const equippedSlice: Record<string, Record<string, string>> = {};
+      for (const id of seatedInstanceIds) {
+        const slots = state.equippedCosmetics?.[id];
+        if (slots) equippedSlice[id] = slots;
+      }
+      const equippedTypesSlice: Record<string, Record<string, string>> = {};
+      for (const id of seatedInstanceIds) {
+        const types = state.equippedCosmeticTypes?.[id];
+        if (types) equippedTypesSlice[id] = types;
+      }
+      const stageSnapshot = {
+        seatedCats: state.seatedCats ?? {},
+        activeBackground: state.activeBackground ?? 'stage',
+        ownedCats: seatedOwnedCats,
+        equippedCosmetics: equippedSlice,
+        equippedCosmeticTypes: equippedTypesSlice,
+      };
+      await redis.set(`meowcert:post-stage:${post.id}`, JSON.stringify(stageSnapshot));
+      console.info(`[publish] stored per-post stage for ${post.id} (bg=${stageSnapshot.activeBackground}, seatedCount=${seatedInstanceIds.size})`);
+    } catch (err) {
+      console.warn('[publish] per-post stage write failed:', err);
+    }
+
     // Store the cat-stage snapshot keyed by post id so splash.html
     // can fetch the right preview for each post (vs the player's
     // current Decorate state which would mean every post they ever

@@ -232,6 +232,22 @@ export class Game extends Scene {
   }
 
   async create(): Promise<void> {
+    // Kick off music preload BEFORE any other scene setup. The mp3
+    // download is on the critical path of "tap PLAY → hear backing
+    // track" — Tim measured ~10 s from PLAY tap to song start. By
+    // firing preload first thing, the file streams in parallel with
+    // the drawLanes / buildHud / seatCats work. If the cache already
+    // has it (VisitPost preloaded for the splash), preload is a no-op.
+    const earlyChart = (this.registry.get('hostChart') as Chart | undefined)
+      ?? this.playerState?.chart;
+    if (earlyChart) {
+      const earlyMusic = new MusicSystem(this, earlyChart);
+      void earlyMusic.preload();
+      // Stash it so attachChartPlayer reuses instead of constructing a
+      // second one (which would re-trigger preload).
+      this.music = earlyMusic;
+    }
+
     // Reset score per round
     this.score = new ScoreSystem();
 
@@ -2222,11 +2238,14 @@ export class Game extends Scene {
 
     // Music for the round: real backing track from BACKING_CATALOG
     // (selected by chart.bpm + vibe + author hash). Backings are lazy-
-    // loaded, so kick the download off RIGHT NOW — in the editor TRY
-    // path the Ready modal gives it plenty of time to land; in the
-    // Generate path showGenerateModal awaits start() before begin.
-    this.music = new MusicSystem(this, playChart);
-    void this.music.preload();
+    // loaded. Reuse the earlyMusic instance from create() if it was
+    // for the SAME chart (Decorate-edit-then-rehearse path) — avoids
+    // re-triggering preload + losing the head-start. If the chart
+    // changed (Generate flow regenerates) replace it.
+    if (!this.music || this.music['chart' as keyof typeof this.music] !== playChart) {
+      this.music = new MusicSystem(this, playChart);
+      void this.music.preload();
+    }
 
     // Lane pulse to beat — each lane's alpha oscillates 0.78↔0.92 at
     // BPM cadence so the playfield feels alive between notes. One

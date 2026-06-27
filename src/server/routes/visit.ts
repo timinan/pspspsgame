@@ -26,27 +26,51 @@ visit.get('/', async (c) => {
     return c.json({ error: 'post has no owner mapping' }, 404);
   }
 
-  const ownerState = await loadOrInit(redis, ownerUsername);
+  // Prefer the per-post stage snapshot (written by publish.ts at
+  // publish time) so the visitor sees the cats / bg / cosmetics the
+  // author had set when they posted, not whatever drifted since.
+  // Falls back to the owner's current state for legacy posts that
+  // predate per-post storage. Tim: "the cats and backgrounds that i
+  // set for the show are not showing up" — was the same drift issue
+  // we already fixed for the per-post chart.
+  let stage: {
+    seatedCats: Record<string, string | null>;
+    activeBackground: string;
+    ownedCats: unknown[];
+    equippedCosmetics: Record<string, Record<string, string>>;
+    equippedCosmeticTypes: Record<string, Record<string, string>>;
+  } | null = null;
 
-  // Trim ownedCats to just the ones in seated slots — the visitor
-  // doesn't need the owner's whole collection, only the cats showing
-  // on their stage. Keeps the payload small (~3 entries vs dozens).
-  const seatedInstanceIds = new Set(
-    Object.values(ownerState.seatedCats ?? {}).filter((v): v is string => typeof v === 'string'),
-  );
-  const seatedOwnedCats = (ownerState.ownedCats ?? []).filter((c) => seatedInstanceIds.has(c.id));
-
-  // Per-cat equipped cosmetics are also load-bearing for the render
-  // (the splash should mirror exactly what the owner sees in Decorate).
-  const equippedSlice: Record<string, Record<string, string>> = {};
-  for (const id of seatedInstanceIds) {
-    const slots = ownerState.equippedCosmetics?.[id];
-    if (slots) equippedSlice[id] = slots;
+  const postStageRaw = await redis.get(`meowcert:post-stage:${postId}`);
+  if (postStageRaw) {
+    try { stage = JSON.parse(postStageRaw); }
+    catch (err) { console.warn(`[visit] post-stage parse fail for ${postId}:`, err); }
   }
-  const equippedTypesSlice: Record<string, Record<string, string>> = {};
-  for (const id of seatedInstanceIds) {
-    const types = ownerState.equippedCosmeticTypes?.[id];
-    if (types) equippedTypesSlice[id] = types;
+
+  if (!stage) {
+    // Legacy fallback — owner's current state.
+    const ownerState = await loadOrInit(redis, ownerUsername);
+    const seatedInstanceIds = new Set(
+      Object.values(ownerState.seatedCats ?? {}).filter((v): v is string => typeof v === 'string'),
+    );
+    const seatedOwnedCats = (ownerState.ownedCats ?? []).filter((c) => seatedInstanceIds.has(c.id));
+    const equippedSlice: Record<string, Record<string, string>> = {};
+    for (const id of seatedInstanceIds) {
+      const slots = ownerState.equippedCosmetics?.[id];
+      if (slots) equippedSlice[id] = slots;
+    }
+    const equippedTypesSlice: Record<string, Record<string, string>> = {};
+    for (const id of seatedInstanceIds) {
+      const types = ownerState.equippedCosmeticTypes?.[id];
+      if (types) equippedTypesSlice[id] = types;
+    }
+    stage = {
+      seatedCats: (ownerState.seatedCats ?? {}) as Record<string, string | null>,
+      activeBackground: ownerState.activeBackground ?? 'stage',
+      ownedCats: seatedOwnedCats,
+      equippedCosmetics: equippedSlice,
+      equippedCosmeticTypes: equippedTypesSlice,
+    };
   }
 
   // Whether the requester IS the owner — lets the client suppress
@@ -58,12 +82,6 @@ visit.get('/', async (c) => {
     postId,
     ownerUsername,
     isOwner,
-    stage: {
-      seatedCats: ownerState.seatedCats ?? {},
-      activeBackground: ownerState.activeBackground ?? 'stage',
-      ownedCats: seatedOwnedCats,
-      equippedCosmetics: equippedSlice,
-      equippedCosmeticTypes: equippedTypesSlice,
-    },
+    stage,
   });
 });

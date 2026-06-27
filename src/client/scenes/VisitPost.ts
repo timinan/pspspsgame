@@ -353,10 +353,16 @@ export class VisitPost extends Scene {
       color: '#ffd34d',
     }).setOrigin(0.5, 0);
 
+    // wordWrap + multi-line center align so long backing-track names
+    // (e.g. "Red Hot Chili Peppers - By The Way (Official Music Video)")
+    // don't truncate off the right edge — which was clipping the
+    // " · spicy" difficulty suffix Tim wanted to see.
     this.songText = this.add.text(panelX + panelW / 2, padTop + 22, '— song —', {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontSize: '10px',
       color: '#c0a0e6',
+      align: 'center',
+      wordWrap: { width: panelW - 24, useAdvancedWrap: true },
     }).setOrigin(0.5, 0);
 
     this.statsText = this.add.text(panelX + panelW / 2, padTop + 40, '', {
