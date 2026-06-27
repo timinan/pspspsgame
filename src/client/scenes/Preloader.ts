@@ -1,3 +1,4 @@
+import * as Phaser from 'phaser';
 import { Scene } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
@@ -94,6 +95,15 @@ export class Preloader extends Scene {
   }
 
   async create() {
+    // Scoped NEAREST filter for the cats atlas only — keeps cat sprites
+    // crisp at upscale without paying the global pixelArt:true cost
+    // (which introduced lane lag and made the AI-generated bgs read as
+    // obviously-AI by sharpening their soft edges). Cosmetics / bgs /
+    // effects keep their default LINEAR filtering.
+    this.textures
+      .get(AssetKeys.Atlas.Cats)
+      .setFilter(Phaser.Textures.FilterMode.NEAREST);
+
     // Make sure the Pixeloid Sans face is actually loaded into the browser
     // before we kick off the next scene, otherwise the first frame of
     // Phaser text would render with the system sans-serif and the layout
