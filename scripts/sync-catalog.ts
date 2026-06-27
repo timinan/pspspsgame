@@ -190,11 +190,15 @@ async function genThemes(): Promise<number> {
     if (typeof v.bgShiftUp === 'number') optional.push(`bgShiftUp: ${v.bgShiftUp}`);
     if (typeof v.bgScale === 'number') optional.push(`bgScale: ${v.bgScale}`);
     const optionalStr = optional.length > 0 ? `, ${optional.join(', ')}` : '';
+    // JSON.stringify the key so hyphenated ids ("hidden-oasis-cave")
+    // emit as ["hidden-oasis-cave"]: instead of an unquoted hidden-oasis-cave:
+    // which is a vite/rolldown parse error. Same below for the array-items
+    // access form.
     catalogLines.push(
-      `  ${id}: { id: ${JSON.stringify(id)}, displayName: ${JSON.stringify(v.displayName)}, backdropKey: ${JSON.stringify(v.backdropKey)}, musicKey: ${JSON.stringify(v.musicKey)}, rarity: ${JSON.stringify(v.rarity)} as const${optionalStr} },`,
+      `  ${JSON.stringify(id)}: { id: ${JSON.stringify(id)}, displayName: ${JSON.stringify(v.displayName)}, backdropKey: ${JSON.stringify(v.backdropKey)}, musicKey: ${JSON.stringify(v.musicKey)}, rarity: ${JSON.stringify(v.rarity)} as const${optionalStr} },`,
     );
   }
-  const arrayItems = entries.map(([id]) => `  BACKGROUND_CATALOG.${id},`);
+  const arrayItems = entries.map(([id]) => `  BACKGROUND_CATALOG[${JSON.stringify(id)}],`);
   const lines: string[] = [
     BANNER,
     '',
