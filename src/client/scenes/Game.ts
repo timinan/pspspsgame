@@ -991,10 +991,16 @@ export class Game extends Scene {
     // Wire the three page-2 buttons. BACK returns to page-1 without
     // submitting. POST reads the textarea + finalizes with body. SKIP
     // finalizes without a body (base reward, no Reddit comment).
-    this.summaryPage2BackBg.on('pointerup', () => {
+    // Use pointerdown (matching page-1's right-button pattern) so the
+    // same physical tap that triggers Post-Comment-on-page-1 can't
+    // chain into a page-2 button — pointerdown is consumed when
+    // delivered, pointerup arrives AFTER page-2 is interactive at
+    // the same screen coords as page-1's Post Comment button and would
+    // fire SKIP, instant scene restart, page-2 only briefly visible.
+    this.summaryPage2BackBg.on('pointerdown', () => {
       this.setSummaryPage(1);
     });
-    this.summaryPage2PostBg.on('pointerup', () => {
+    this.summaryPage2PostBg.on('pointerdown', () => {
       const summary = this.summaryPage2PlaySummary;
       if (!summary) {
         console.warn('[Game] page-2 POST tapped with no cached summary');
@@ -1005,7 +1011,7 @@ export class Game extends Scene {
       this.summaryPage2PlaySummary = null;
       void this.finalizePlay(summary, body.length > 0 ? body : undefined, undefined);
     });
-    this.summaryPage2SkipBg.on('pointerup', () => {
+    this.summaryPage2SkipBg.on('pointerdown', () => {
       const summary = this.summaryPage2PlaySummary;
       if (!summary) {
         console.warn('[Game] page-2 SKIP tapped with no cached summary');
