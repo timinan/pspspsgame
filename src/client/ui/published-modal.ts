@@ -120,35 +120,18 @@ export class PublishedModal {
     openBg.on('pointerover', () => openBg.setFillStyle(0xffe680, 1));
     openBg.on('pointerout', () => openBg.setFillStyle(0xffd34d, 1));
     openBg.on('pointerdown', () => {
-      const target = args.permalink
-        ? { url: args.url, permalink: args.permalink }
-        : args.url;
-      // Diagnostic: log what we hand to navigateTo, what string Devvit's
-      // resolver returns from it, and what the normalized URL ends up
-      // being. If Reddit's webview routes the resulting URL to the
-      // subreddit instead of the post, the logs show us exactly what
-      // string Reddit's parent is rejecting. Mirrors Devvit's
-      // resolveNavigationInput logic so we don't depend on it being
-      // exported.
-      let resolved: string;
-      if (typeof target === 'string') {
-        resolved = target;
-      } else if (target.permalink === undefined) {
-        resolved = target.url;
-      } else {
-        try {
-          resolved = new URL(target.url).pathname === target.permalink
-            ? target.url
-            : new URL(target.permalink, 'https://www.reddit.com').toString();
-        } catch {
-          resolved = new URL(target.permalink, 'https://www.reddit.com').toString();
-        }
-      }
+      // Pass URL as a plain STRING. With the new `r/_/comments/<id>`
+      // wildcard form (publish.ts), the URL's pathname does NOT match
+      // permalink — so Devvit's resolveNavigationInput object-form
+      // heuristic would fall back to the permalink URL (the subreddit-
+      // rooted form that's been failing all day). Plain string passes
+      // through unchanged to navigateTo's URL normalize + emitEffect.
+      const target = args.url;
       let normalized = '<invalid>';
-      try { normalized = new URL(resolved).toString(); } catch (err) {
+      try { normalized = new URL(target).toString(); } catch (err) {
         console.error('[PublishedModal] URL normalize threw:', err);
       }
-      console.info('[PublishedModal] OPEN POST tapped — target:', target, 'resolved:', resolved, 'normalized:', normalized);
+      console.info('[PublishedModal] OPEN POST tapped — target:', target, 'normalized:', normalized);
       try {
         navigateTo(target);
       } catch (err) {
