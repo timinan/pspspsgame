@@ -54,14 +54,11 @@ export class CommentComposeModal {
     const cx = width / 2;
     const cy = height / 2;
     const panelW = Math.min(300, width - 16);
-    // Shrunk from 300 → 220. Even at 300 the POST + SKIP buttons sat at
-    // ~y=300 (panelY + 158) which is below the iOS keyboard fold —
-    // visitor literally couldn't find the button. Tim has called this
-    // out 4+ times. At 220 the buttons land high enough that they're
-    // above the keyboard regardless of viewport. Gift chip + sub-panel
-    // are optional and can extend below the keyboard fold; the primary
-    // "type comment + POST" path is what must stay visible.
-    const panelH = Math.min(220, height - 40);
+    // Shrunk from 520 → 300 now that COMMENT PREVIEW is gone. Modal
+    // fits above the iOS keyboard so POST + SKIP are visible even
+    // when the input is focused. Vertically centered shifts up since
+    // the panel's shorter.
+    const panelH = Math.min(300, height - 40);
     const panelX = cx - panelW / 2;
     const panelY = cy - panelH / 2;
 
@@ -91,24 +88,21 @@ export class CommentComposeModal {
     );
     this.container.add(panel);
 
-    // Title — tighter (was panelY+22) to make room for input + buttons
-    // above the iOS keyboard fold.
+    // Title
     this.container.add(
       this.scene.add
-        .text(cx, panelY + 16, 'POST YOUR SCORE', {
+        .text(cx, panelY + 22, 'POST YOUR SCORE', {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '14px',
+          fontSize: '16px',
           color: '#ffd34d',
         })
         .setOrigin(0.5),
     );
-    // 2× bonus chip — moved BELOW the buttons (was panelY+44 next to
-    // title) since title+input+buttons need the top half. The bonus
-    // chip + gift section live in the lower half that's keyboard-
-    // covered, but they're opt-in so it's fine if they're hidden.
+    // 2× bonus chip — sits next to the title so it's the first thing
+    // the eye reads. Reward dollar value updates on toggle/gift change.
     const bonusChip = this.scene.add
-      .text(cx, panelY + 168, '', {
+      .text(cx, panelY + 44, '', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '10px',
@@ -119,7 +113,7 @@ export class CommentComposeModal {
 
     // ✕ close
     const closeBg = this.scene.add
-      .circle(panelX + panelW - 18, panelY + 14, 12, 0xff5050, 1)
+      .circle(panelX + panelW - 18, panelY + 18, 12, 0xff5050, 1)
       .setStrokeStyle(2, 0x0b041a, 1)
       .setInteractive({ useHandCursor: true });
     closeBg.on('pointerdown', () => {
@@ -129,7 +123,7 @@ export class CommentComposeModal {
     this.container.add(closeBg);
     this.container.add(
       this.scene.add
-        .text(panelX + panelW - 18, panelY + 14, '✕', {
+        .text(panelX + panelW - 18, panelY + 18, '✕', {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
           fontSize: '12px',
@@ -142,13 +136,8 @@ export class CommentComposeModal {
     // we use an HTML overlay <textarea> positioned over the panel. Game
     // scenes pass pointer events through to canvas; the textarea floats
     // above it. Cleaned up on close.
-    // Aggressively moved up so POST/SKIP land at panelY + ~72, which
-    // is design Y ~252 with panelY=180 — well above the ~280 iOS
-    // keyboard cutoff. Title + input + buttons own the top half;
-    // bonus chip + gift section live below in the keyboard-covered
-    // zone (they're opt-in/secondary so it's OK if they're hidden).
-    const taContainerY = panelY + 32;
-    const taContainerH = 32;
+    const taContainerY = panelY + 70;
+    const taContainerH = 56;
     const taContainerW = panelW - 32;
     const taContainerX = panelX + 16;
     this.scene.add
@@ -248,12 +237,12 @@ export class CommentComposeModal {
     // closure has something to point at without branching everywhere.
     const previewText = { setText: (_: string): void => {} };
 
-    // Layout order: Input → POST/SKIP (immediately under, tight gap) →
-    // gift chip. POST/SKIP must stay above the iOS keyboard fold; the
-    // gift chip (a secondary opt-in) can sit further down where the
-    // keyboard would cover it.
-    const btnRowY = taContainerY + taContainerH + 8;        // tight gap, max headroom
-    const giftToggleY = btnRowY + 22 + 12;                  // gift chip top
+    // Layout order: Input → POST/SKIP (immediately under) → gift chip.
+    // POST/SKIP are the primary action and must stay above the iOS
+    // keyboard fold; the gift chip (a secondary opt-in) can sit
+    // further down where the keyboard would cover it.
+    const btnRowY = taContainerY + taContainerH + 32;       // POST + SKIP center
+    const giftToggleY = btnRowY + 22 + 16;                   // gift chip top
     // (was: giftToggleY = taContainerY + taContainerH + 14 — kept above
     //  shape for the gift chip + sub-panel layout below).
     const giftChip = this.scene.add
