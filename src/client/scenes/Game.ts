@@ -1819,8 +1819,14 @@ export class Game extends Scene {
     this.lastEmittedPageBoundary = 0;
     // Hide the summary modal so the new round isn't drawing over it.
     this.summary?.setVisible(false);
-    // Clear feedback texts in case any are mid-tween.
-    for (const t of this.hitFeedbackTexts) t.setVisible(false);
+    // Clear feedback texts in case any are mid-tween. Match buildFeedback's
+    // initial state (alpha 0, visible true) — setVisible(false) here would
+    // permanently hide them since showHitFeedback only writes text/alpha,
+    // never flips visible back on, so subsequent rounds rendered nothing.
+    for (const t of this.hitFeedbackTexts) {
+      this.tweens.killTweensOf(t);
+      t.setAlpha(0);
+    }
     // Reset combo text to its pre-round empty state so the celebratory
     // "thank you for coming" line doesn't linger across rounds.
     this.tweens.killTweensOf(this.comboText);
