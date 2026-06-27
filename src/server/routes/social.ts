@@ -126,8 +126,15 @@ social.post('/play', async (c) => {
   // skipped because the owner shouldn't see their own runs as inbox items.
   if (body.commentBody && body.commentBody.trim().length > 0) {
     try {
+      // Devvit's submitComment uses `id` (parent thing-id, t3_ or t1_) —
+      // NOT `postId`. The reddit-api.mdx doc example shows `postId` but
+      // it's outdated; every other doc (media-uploads.mdx, interactive-
+      // posts, the API class reference) + the runtime API itself uses
+      // `id`. Sending `postId` made `options.id` undefined on the server
+      // side and surfaced as a `TypeError: "string" must be a string,
+      // received undefined` from inside Devvit's submitComment.
       await reddit.submitComment({
-        postId: body.postId,
+        id: body.postId,
         text: body.commentBody,
         runAs: 'USER',
       });
