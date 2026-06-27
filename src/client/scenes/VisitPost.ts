@@ -523,6 +523,10 @@ export class VisitPost extends Scene {
       visitorMode: true,
       visitOwnerUsername: this.visit?.ownerUsername ?? '',
       visitPostId: this.postId,
+      // Hand the POST's published bg to Game so the visitor sees the
+      // show's background during the round, not whatever the visitor
+      // (or the owner) has set as their current Decorate bg.
+      visitPostBg: this.visit?.stage.activeBackground ?? '',
     });
   }
 

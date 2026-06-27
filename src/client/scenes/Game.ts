@@ -64,6 +64,12 @@ export class Game extends Scene {
   /** Reddit postId of the post being visited — used to scope the
    *  leaderboard + inbox events server-side. */
   private visitPostId = '';
+  /** Background the POST was published with (from the per-post stage
+   *  snapshot). Set by VisitPost.startVisitorRound when launching
+   *  Game; preferred over playerState.activeBackground so the
+   *  visitor sees the show's bg, not their own current Decorate bg.
+   *  Empty string in non-visitor flows. */
+  private visitPostBg = '';
   private bg!: BackgroundManager;
   private cats: Cat[] = [];
   /** Name labels rendered below each seated cat (matches Decorate preview). */
@@ -200,12 +206,14 @@ export class Game extends Scene {
     visitorMode?: boolean;
     visitOwnerUsername?: string;
     visitPostId?: string;
+    visitPostBg?: string;
   }): void {
     this.playerState = data?.playerState ?? null;
     this.testMode = data?.testMode === true;
     this.visitorMode = data?.visitorMode === true;
     this.visitOwnerUsername = data?.visitOwnerUsername ?? '';
     this.visitPostId = data?.visitPostId ?? '';
+    this.visitPostBg = data?.visitPostBg ?? '';
     // Editor passes its current scrollOffset here so rehearsal starts
     // at the author's working page (chart + music both seek). Defaults
     // to 0 = start at the top.
@@ -251,12 +259,18 @@ export class Game extends Scene {
     // Reset score per round
     this.score = new ScoreSystem();
 
-    // Background — read from playerState (same source as Decorate). The
-    // registry fallback drifted from Decorate's playerState.activeBackground
-    // so the player saw two different backgrounds across screens.
+    // Background priority:
+    //   1. visitor mode + visitPostBg set  → the POST's published bg
+    //      (so the visitor sees the show the way the author posted it,
+    //      not their own current Decorate state). Tim's bug: "still
+    //      not the right background when i was playing".
+    //   2. playerState.activeBackground   → drawer rehearsal / own play
+    //   3. 'stage' fallback                → unknown context
     this.bg = new BackgroundManager(this);
     this.bg.create();
-    const activeBg = this.playerState?.activeBackground ?? 'stage';
+    const activeBg = (this.visitorMode && this.visitPostBg)
+      ? this.visitPostBg
+      : this.playerState?.activeBackground ?? 'stage';
     this.bg.setBackground(activeBg);
 
     this.drawLanes();
