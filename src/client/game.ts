@@ -42,6 +42,7 @@ const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
   parent: 'game-container',
   backgroundColor: '#0b041a',
+  pixelArt: true,
   scale: {
     // FIT preserves the 320×580 portrait aspect across every device: on
     // mobile the canvas fills the iframe, on desktop it letterboxes
