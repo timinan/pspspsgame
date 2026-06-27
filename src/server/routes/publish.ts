@@ -158,13 +158,19 @@ publish.post('/chart', async (c) => {
       console.info(`[publish] skipped creator seed — score=${creatorScore} acc=${creatorAccuracy}`);
     }
 
-    const url = `https://reddit.com${post.permalink}`;
-    // Aggressive logging — Devvit docs say navigateTo requires the app
-    // account to have access to the Reddit content. Posts created with
-    // runAs:'USER' during unapproved playtest may not be accessible to
-    // the app account, which would explain the navigation falling back
-    // to the subreddit. Log every field about the post so Discord
-    // questions have full context.
+    // Short-form post URL: `https://reddit.com/comments/<id-without-t3>/`.
+    // Suggested by a Devvit Discord respondent (paraphrased: "Have you
+    // tried navigating by post ID?"). Reddit's router resolves this
+    // form to the post directly without needing the subreddit path —
+    // it's the canonical "open by id" pattern. Used in addition to the
+    // entry:'default' fix shipped in 9e409ee (the entry fix already
+    // makes OPEN POST work; this is a comparison test to see if the
+    // short form is simpler/more robust).
+    //
+    // Permalink is still passed in the response so the client can
+    // construct alternate forms for diagnostics if needed.
+    const postIdWithoutT3 = post.id.replace(/^t3_/, '');
+    const url = `https://reddit.com/comments/${postIdWithoutT3}/`;
     console.info('[publish] returning ok', {
       postId: post.id,
       authorName: post.authorName,
@@ -173,7 +179,7 @@ publish.post('/chart', async (c) => {
       'post.url': post.url,
       'post.permalink': post.permalink,
       runAs: 'USER',
-      isPlaytest: true,
+      entry: 'default',
     });
     return c.json({ ok: true, postId: post.id, url, permalink: post.permalink });
   } catch (err) {
