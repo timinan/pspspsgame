@@ -50,6 +50,9 @@ export class VisitPost extends Scene {
   private bg!: BackgroundManager;
   private hud!: TopHud;
   private cats: Cat[] = [];
+  /** Name labels rendered below each seated cat — same look as Game.ts'
+   *  seatedNameLabels so the splash matches the in-round view. */
+  private seatedNameLabels: GameObjects.Text[] = [];
 
   // Data state — populated by parallel fetches.
   private visit: VisitData | null = null;
@@ -303,6 +306,8 @@ export class VisitPost extends Scene {
   private seatOwnerCats(): void {
     for (const c of this.cats) c.destroy();
     this.cats = [];
+    for (const l of this.seatedNameLabels) l.destroy();
+    this.seatedNameLabels = [];
     if (!this.visit) return;
     const { stage } = this.visit;
 
@@ -351,6 +356,23 @@ export class VisitPost extends Scene {
       const cat = new Cat(this, model);
       cat.setPosition(cx, catY);
       this.cats.push(cat);
+
+      // Cat's custom name right under their feet — matches Game.ts'
+      // seatedNameLabel pattern so visitors see the same label they
+      // see during the round. Tim flagged that names were missing on
+      // the splash even though Decorate has them on the cats; this
+      // was a feature gap in seatOwnerCats(), not a data bug.
+      const nameLabel = this.add
+        .text(cx, catY + 4, catInstance.name.toUpperCase(), {
+          fontFamily: '"Courier New", monospace',
+          fontStyle: 'bold',
+          fontSize: '10px',
+          color: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5, 0);
+      this.seatedNameLabels.push(nameLabel);
     }
   }
 
@@ -590,6 +612,8 @@ export class VisitPost extends Scene {
     this.music = null;
     for (const c of this.cats) c.destroy();
     this.cats = [];
+    for (const l of this.seatedNameLabels) l.destroy();
+    this.seatedNameLabels = [];
     this.hud?.destroy();
     this.bg?.destroy();
     this.tweens.killAll();
