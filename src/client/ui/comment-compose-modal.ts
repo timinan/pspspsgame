@@ -145,9 +145,15 @@ export class CommentComposeModal {
     const taContainerH = 56;
     const taContainerW = panelW - 32;
     const taContainerX = panelX + 16;
+    // Border + fill bumped so the textarea reads as an input. Previous
+    // fill 0x2c1856 + faint 0xc0a0e6/0.45 stroke blended into the
+    // panel's 0x1a0a2e bg — Tim: "we should make it more clear that
+    // section is a text box." Yellow accent stroke (matches the panel's
+    // outer yellow border) at full alpha + slightly lighter fill make
+    // it pop.
     const taBoxRect = this.scene.add
-      .rectangle(taContainerX + taContainerW / 2, taContainerY + taContainerH / 2, taContainerW, taContainerH, 0x2c1856, 1)
-      .setStrokeStyle(1, 0xc0a0e6, 0.45);
+      .rectangle(taContainerX + taContainerW / 2, taContainerY + taContainerH / 2, taContainerW, taContainerH, 0x3a2070, 1)
+      .setStrokeStyle(2, 0xffd34d, 0.7);
     this.container.add(taBoxRect);
     const freeTextLabel = this.scene.add
       .text(taContainerX + 8, taContainerY + 6, 'SAY SOMETHING (optional)', {
@@ -172,7 +178,9 @@ export class CommentComposeModal {
     // text re-appearing on next open + the text overlay leaking onto
     // the game canvas after dismiss. Both root-cause to the same leak.
     ta.className = 'meowcert-comment-overlay-input';
-    ta.placeholder = 'nice run! 🐱';
+    // Placeholder reads as a prompt to tap, not a sample comment. Tim:
+    // "we should make it more clear that section is a text box."
+    ta.placeholder = 'tap to leave a comment…';
     // position:fixed — iOS Safari scrolls the document up when the
     // keyboard pops up, which made an absolute-positioned textarea
     // (computed off rect.top of the moving canvas) drift above the
