@@ -12,6 +12,9 @@ import { navigateTo } from '@devvit/web/client';
  */
 export class PublishedModal {
   private container: GameObjects.Container | null = null;
+  /** HTML overlay button + its teardown. Held so close() can rip it out.
+   *  See makeOpenOverlay() for why this isn't a plain Phaser button. */
+  private overlay: { btn: HTMLButtonElement; teardown: () => void } | null = null;
 
   constructor(private scene: Scene) {}
 
@@ -100,9 +103,15 @@ export class PublishedModal {
       args.onClose?.();
     });
 
+    // OPEN POST — Phaser visuals kept for the pixel-art look, but the
+    // tap target is an HTML overlay button. Devvit's webview escape-
+    // hatch APIs (navigateTo, requestExpandedMode) require a TRUSTED
+    // user gesture; Phaser pointer events are JS-synthesized from
+    // canvas hits and are NOT trusted, so navigateTo silently no-ops
+    // and Reddit's app falls back to the subreddit landing. Splash's
+    // TAP TO PLAY already uses this pattern for the same reason.
     const openBg = this.scene.add
-      .rectangle(rightX, btnY, btnW, btnH, 0xffd34d, 1)
-      .setInteractive({ useHandCursor: true });
+      .rectangle(rightX, btnY, btnW, btnH, 0xffd34d, 1);
     const openTxt = this.scene.add
       .text(rightX, btnY, 'OPEN POST', {
         fontFamily: 'Pixeloid Sans, sans-serif',
@@ -111,36 +120,83 @@ export class PublishedModal {
         color: '#1a0a2e',
       })
       .setOrigin(0.5);
-    openBg.on('pointerover', () => openBg.setFillStyle(0xffe680, 1));
-    openBg.on('pointerout', () => openBg.setFillStyle(0xffd34d, 1));
-    openBg.on('pointerdown', () => {
-      // Reverted to the EXACT call shape from f4d9bbf — plain string
-      // navigation. Today's 1c8f90e tried `{url, permalink}` resolver
-      // form which Tim flagged as the regression. Logging the target
-      // so the next failure tells us what's being sent.
-      // Pass {url, permalink} object form so Devvit's resolver runs its
-      // path-equality heuristic ("if url's pathname equals permalink,
-      // navigate to url" — that's how Devvit identifies a post vs a
-      // subreddit). Plain string form left Reddit's app inferring it
-      // was a subreddit URL and routing there. Falls back to plain
-      // string when permalink wasn't supplied (defensive only — caller
-      // currently always provides it).
+    this.container.add([doneBg, doneTxt, openBg, openTxt]);
+
+    const openOverlay = this.makeOpenOverlay(rightX, btnY, btnW, btnH, openBg, args);
+    this.overlay = openOverlay;
+  }
+
+  /** Build an HTML <button> sitting on top of the OPEN POST Phaser
+   *  rectangle. Its real DOM `click` event is the trusted gesture
+   *  Devvit's navigateTo needs to escape the webview. Position is
+   *  recomputed on resize so the overlay tracks the canvas. */
+  private makeOpenOverlay(
+    rectX: number,
+    rectY: number,
+    rectW: number,
+    rectH: number,
+    visualBg: Phaser.GameObjects.Rectangle,
+    args: { url: string; permalink?: string },
+  ): { btn: HTMLButtonElement; teardown: () => void } {
+    const btn = document.createElement('button');
+    btn.setAttribute('aria-label', 'Open post');
+    btn.style.position = 'fixed';
+    btn.style.background = 'transparent';
+    btn.style.border = 'none';
+    btn.style.outline = 'none';
+    btn.style.cursor = 'pointer';
+    btn.style.padding = '0';
+    btn.style.zIndex = '9999';
+    document.body.appendChild(btn);
+
+    const place = (): void => {
+      const canvas = this.scene.game.canvas;
+      const rect = canvas.getBoundingClientRect();
+      const sx = rect.width / this.scene.scale.width;
+      const sy = rect.height / this.scene.scale.height;
+      btn.style.left = `${rect.left + (rectX - rectW / 2) * sx}px`;
+      btn.style.top = `${rect.top + (rectY - rectH / 2) * sy}px`;
+      btn.style.width = `${rectW * sx}px`;
+      btn.style.height = `${rectH * sy}px`;
+    };
+    place();
+    const onResize = (): void => place();
+    window.addEventListener('resize', onResize);
+
+    const onClick = (e: MouseEvent): void => {
+      // Trusted DOM gesture — navigateTo escapes the webview cleanly.
+      // Object form so Devvit's resolver routes to the post (not the
+      // subreddit landing it would infer from a plain reddit.com URL).
       const target = args.permalink
         ? { url: args.url, permalink: args.permalink }
         : args.url;
-      console.info('[PublishedModal] OPEN POST tapped — target:', target);
+      console.info('[PublishedModal] OPEN POST (HTML overlay) tapped — target:', target, 'isTrusted:', e.isTrusted);
       try {
         navigateTo(target);
-        console.info('[PublishedModal] navigateTo returned without throwing');
       } catch (err) {
         console.error('[PublishedModal] navigateTo threw:', err);
       }
-    });
+    };
+    btn.addEventListener('click', onClick);
 
-    this.container.add([doneBg, doneTxt, openBg, openTxt]);
+    // Hover affordance — match the previous Phaser hover by tinting
+    // the underlying rectangle on pointerenter/leave of the overlay.
+    btn.addEventListener('pointerenter', () => visualBg.setFillStyle(0xffe680, 1));
+    btn.addEventListener('pointerleave', () => visualBg.setFillStyle(0xffd34d, 1));
+
+    return {
+      btn,
+      teardown: () => {
+        window.removeEventListener('resize', onResize);
+        btn.removeEventListener('click', onClick);
+        if (btn.parentElement) btn.parentElement.removeChild(btn);
+      },
+    };
   }
 
   close(): void {
+    this.overlay?.teardown();
+    this.overlay = null;
     if (this.container) {
       this.container.destroy(true);
       this.container = null;
