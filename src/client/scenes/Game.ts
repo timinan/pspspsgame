@@ -1009,7 +1009,13 @@ export class Game extends Scene {
       const body = this.summaryPage2Textarea?.value?.trim() ?? '';
       this.setSummaryPage(1);
       this.summaryPage2PlaySummary = null;
-      void this.finalizePlay(summary, body.length > 0 ? body : undefined, undefined);
+      // recordPlay (not finalizePlay) — submits play + Reddit comment WITHOUT
+      // scene.restart. Restart loses visitor-mode state (visitPostId /
+      // visitPostStage), so the new round boots into default mode with
+      // default assets. Staying on summary page-1 lets the user see their
+      // result + tap Play Again (which uses replayInPlace, preserving
+      // everything) when they want to retry.
+      void this.recordPlay(summary, body.length > 0 ? body : undefined, undefined);
     });
     this.summaryPage2SkipBg.on('pointerdown', () => {
       const summary = this.summaryPage2PlaySummary;
@@ -1019,7 +1025,7 @@ export class Game extends Scene {
       }
       this.setSummaryPage(1);
       this.summaryPage2PlaySummary = null;
-      void this.finalizePlay(summary, undefined, undefined);
+      void this.recordPlay(summary, undefined, undefined);
     });
 
     container.add(page2);
