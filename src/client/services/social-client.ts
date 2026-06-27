@@ -49,6 +49,10 @@ export interface FetchLeaderboardResult {
   yourRank: number | null;
   yourScore: number | null;
   yourAccuracy: number | null;
+  /** Total play submissions for this post (NOT unique players —
+   *  same player playing 100 times = 100, even though the leaderboard
+   *  only stores their PB). */
+  totalPlays: number;
 }
 
 export async function fetchLeaderboard(postId: string): Promise<FetchLeaderboardResult | { ok: false; reason: string }> {

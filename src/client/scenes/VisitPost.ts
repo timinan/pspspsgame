@@ -243,10 +243,10 @@ export class VisitPost extends Scene {
     const lb = await fetchLeaderboard(this.postId);
     if (!this.scene.isActive() || !lb.ok) return;
     this.leaderboardTop = lb.top ?? [];
-    // The leaderboard endpoint doesn't return a totalPlays field today
-    // — fall back to top.length for now. (Future: extend the endpoint
-    // with a zCard count for the precise total.)
-    this.leaderboardTotal = lb.top?.length ?? 0;
+    // Server-counted total plays (every submission counts). Falls back
+    // to top.length for the very-old fetch response shape (without
+    // totalPlays) — defensive only; the current endpoint always sends it.
+    this.leaderboardTotal = lb.totalPlays ?? lb.top?.length ?? 0;
     this.leaderboardYourRank = lb.yourRank;
     this.leaderboardYourScore = lb.yourScore;
     this.refreshLeaderboardUi();

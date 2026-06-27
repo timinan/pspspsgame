@@ -8,6 +8,7 @@ import {
   markInboxSeen,
   transferGift,
   setPostOwner,
+  incrementPlayCount,
   type SocialRedis,
 } from '../core/social';
 import { classifyScore, type PlaySummary, type InboxEvent } from '../../shared/social-loop';
@@ -84,6 +85,11 @@ social.post('/play', async (c) => {
     baseReward,
     ...(body.gift ? { gift: body.gift } : {}),
   };
+  // Total play counter — increments on EVERY submission (pass, fail,
+  // PB, repeat, self-play — all count). Splash + VisitPost render this
+  // as "X plays" so the host sees engagement traffic, not just unique
+  // players. Distinct from the leaderboard zCard which is PB-only.
+  await incrementPlayCount(r, body.postId);
   // Leaderboard: only passing runs land on it.
   await submitLeaderboardScore(r, summary);
   // Inbox: EVERY play, pass or fail (so the owner sees every visitor).

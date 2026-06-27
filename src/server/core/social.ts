@@ -44,12 +44,18 @@ export interface SocialRedis extends RedisLike {
   lPush(key: string, ...values: string[]): Promise<unknown>;
   lRange(key: string, start: number, stop: number): Promise<string[]>;
   lTrim(key: string, start: number, stop: number): Promise<unknown>;
+  incr(key: string): Promise<number>;
 }
 
 const LB_KEY = (postId: string): string => `meowcert:lb:${postId}`;
 const LB_META_KEY = (postId: string): string => `meowcert:lb:meta:${postId}`;
 const INBOX_KEY = (owner: string): string => `meowcert:inbox:${owner}`;
 const POST_OWNER_KEY = (postId: string): string => `meowcert:post-owner:${postId}`;
+// Total play count per post — increments on every play submission,
+// regardless of pass/fail or PB status. Distinct from `zCard(LB_KEY)`
+// which counts unique players (leaderboard is PB-only, so the same
+// player playing 100 times still = 1 zCard entry).
+const PLAYS_KEY = (postId: string): string => `meowcert:plays:${postId}`;
 
 // -- Leaderboard ------------------------------------------------------
 
@@ -84,14 +90,28 @@ export async function submitLeaderboardScore(
   await redis.set(POST_OWNER_KEY(summary.postId), summary.owner);
 }
 
+/** Increment the per-post total play count. Called on EVERY play
+ *  submission (pass, fail, PB, repeat — all count). Distinct from the
+ *  leaderboard zCard (= unique players, PB-only). Returns the new value
+ *  so callers can use it without an extra GET round-trip if they want. */
+export async function incrementPlayCount(
+  redis: SocialRedis,
+  postId: string,
+): Promise<number> {
+  return await redis.incr(PLAYS_KEY(postId));
+}
+
 /** Fetch the top N entries for a post + the requesting visitor's rank
  *  (1-based) if they're not in the top N. Returns null for rank when
- *  the visitor has no qualifying run on this board. */
+ *  the visitor has no qualifying run on this board. Also returns
+ *  totalPlays — total play submissions for this post (NOT unique
+ *  players). Falls back to zCard for posts created before play counting
+ *  was added (counter is unset → null from get → fallback). */
 export async function fetchLeaderboard(
   redis: SocialRedis,
   postId: string,
   visitor: string | null,
-): Promise<{ top: LeaderboardEntry[]; yourRank: number | null; yourScore: number | null; yourAccuracy: number | null }> {
+): Promise<{ top: LeaderboardEntry[]; yourRank: number | null; yourScore: number | null; yourAccuracy: number | null; totalPlays: number }> {
   // Get top entries sorted descending by score. zRange returns
   // {member, score}[] in Devvit — score is right there, no per-row
   // zScore round-trip needed.
@@ -149,7 +169,15 @@ export async function fetchLeaderboard(
       }
     }
   }
-  return { top, yourRank, yourScore, yourAccuracy };
+  // Total play count — prefer the incrementing counter, fall back to
+  // zCard (unique players) for posts that pre-date the counter so they
+  // still show a non-zero number.
+  const playsRaw = await redis.get(PLAYS_KEY(postId));
+  const playsParsed = playsRaw != null ? Number(playsRaw) : NaN;
+  const totalPlays = Number.isFinite(playsParsed) && playsParsed > 0
+    ? playsParsed
+    : await redis.zCard(LB_KEY(postId));
+  return { top, yourRank, yourScore, yourAccuracy, totalPlays };
 }
 
 // -- Inbox ------------------------------------------------------------

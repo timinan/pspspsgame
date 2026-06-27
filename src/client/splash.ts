@@ -51,6 +51,9 @@ interface LeaderboardData {
   top?: Array<{ visitor: string; score: number; accuracy?: number; playedAt?: number }>;
   yourRank?: number | null;
   yourScore?: number | null;
+  /** Total play submissions for this post (server-incremented on
+   *  every play, not derived from leaderboard size which is PB-only). */
+  totalPlays?: number;
 }
 
 /** Wall-clock of the last successful leaderboard load — used to render
@@ -112,7 +115,10 @@ function renderVisit(d: VisitData): void {
 function renderLeaderboard(d: LeaderboardData): void {
   const top = d.top ?? [];
   if (statsEl) {
-    statsEl.textContent = top.length === 1 ? '1 play' : `${top.length} plays`;
+    // Prefer server-counted total plays (every submission counts) over
+    // top.length (unique players, since the board is PB-only).
+    const plays = d.totalPlays ?? top.length;
+    statsEl.textContent = plays === 1 ? '1 play' : `${plays} plays`;
   }
   for (let i = 0; i < 3; i++) {
     const li = lbEls[i];
