@@ -118,6 +118,34 @@ export function buildCommentBody(summary: PlaySummary, freeText: string = ''): s
     : stats;
 }
 
+/** Markdown stats block posted as an auto-reply under the post's
+ *  bot-pinned root comment on every play. Distinct from
+ *  buildCommentBody (which is the free-text + stats body of the
+ *  visitor's root-level comment). Format mirrors the Nuzzle convention
+ *  Tim referenced — table-style for clean alignment under a stickied
+ *  thread, headline emoji + tier badge so it scans fast in a feed. */
+export function formatStatsComment(
+  summary: PlaySummary,
+  rank: number | null,
+  totalPlayers: number,
+): string {
+  const tierLabel = summary.tier === 'fail' ? 'DIDN\'T PASS' : summary.tier.toUpperCase();
+  const accPct = Math.round(summary.accuracy * 100);
+  const rankCell = rank != null && totalPlayers > 0
+    ? `#${rank} of ${totalPlayers}`
+    : '—';
+  return (
+    `🏆 **I played this show!**\n\n` +
+    `| Stat | Value |\n` +
+    `|---|---|\n` +
+    `| 🎯 Score | **${summary.score.toLocaleString()}** |\n` +
+    `| ✨ Accuracy | ${accPct}% |\n` +
+    `| 🔥 Max Combo | x${summary.maxCombo} |\n` +
+    `| 🏅 Tier | ${tierLabel} |\n` +
+    `| 📊 Rank | ${rankCell} |\n`
+  );
+}
+
 // -- Gift payload + transfer model ------------------------------------
 
 export interface GiftPayload {
