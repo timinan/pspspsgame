@@ -61,6 +61,11 @@ const POST_OWNER_KEY = (postId: string): string => `meowcert:post-owner:${postId
 // which counts unique players (leaderboard is PB-only, so the same
 // player playing 100 times still = 1 zCard entry).
 const PLAYS_KEY = (postId: string): string => `meowcert:plays:${postId}`;
+// Per-post bot-pinned root comment id (t1_xxxxx). Created once at
+// publish time; auto-stats replies on every play nest under it.
+// Posts that pre-date this storage (or where the pin failed) have no
+// entry; the /play handler skips the auto-reply in that case.
+const PINNED_COMMENT_KEY = (postId: string): string => `meowcert:post-pinned-comment:${postId}`;
 
 // -- Leaderboard ------------------------------------------------------
 
@@ -104,6 +109,27 @@ export async function incrementPlayCount(
   postId: string,
 ): Promise<number> {
   return await redis.incrBy(PLAYS_KEY(postId), 1);
+}
+
+/** Record the bot-pinned root comment id for this post (called once at
+ *  publish time, after the comment is submitted + distinguished). */
+export async function setPinnedCommentId(
+  redis: SocialRedis,
+  postId: string,
+  commentId: string,
+): Promise<void> {
+  await redis.set(PINNED_COMMENT_KEY(postId), commentId);
+}
+
+/** Look up the bot-pinned root comment id for this post. Returns null
+ *  for posts that pre-date pinned-comment storage or where the publish-
+ *  time pin failed — caller skips the auto-stats reply in that case. */
+export async function getPinnedCommentId(
+  redis: SocialRedis,
+  postId: string,
+): Promise<string | null> {
+  const id = await redis.get(PINNED_COMMENT_KEY(postId));
+  return id ?? null;
 }
 
 /** Fetch the top N entries for a post + the requesting visitor's rank
