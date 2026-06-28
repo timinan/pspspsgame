@@ -828,7 +828,7 @@ export class Game extends Scene {
     //   drawer rehearsal → 'Change Song' (back to song picker)
     const rightLabel = this.testMode
       ? 'PUT ON A SHOW'
-      : this.visitorMode ? 'Post Comment' : 'Change Song';
+      : this.visitorMode ? 'Done' : 'Change Song';
     const rightBg = this.add.rectangle(
       cx + btnW / 2 + btnGap / 2, btnY, btnW, btnH, 0xffd34d, 1,
     ).setInteractive({ useHandCursor: true });
@@ -1068,11 +1068,15 @@ export class Game extends Scene {
         console.warn('[Game] page-2 SKIP tapped with no cached summary');
         return;
       }
-      // SKIP does nothing extra — the stats-only auto-reply under the
-      // mod-pinned root already fired via /play at endRound. No root-
-      // level post comment is desired on SKIP (the user explicitly
-      // chose not to share text). Just dismiss the page-2 UI.
-      this.setSummaryPage(1);
+      // SKIP does nothing extra on Reddit — the stats-only auto-reply
+      // under the mod-pinned root already fired via /play at endRound.
+      // No root-level post comment is desired on SKIP. UI-wise, SKIP
+      // advances to page-3 (what's next menu) same as POST so the
+      // player isn't dropped back on a summary where they could
+      // re-tap Post Comment in a confusing loop. Tim: "if i press
+      // skip it goes back to the summary screen... it should also
+      // just go to the selection screen like after posting comment".
+      this.setSummaryPage(3);
       this.summaryPage2PlaySummary = null;
     });
 
