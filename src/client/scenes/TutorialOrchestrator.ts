@@ -662,12 +662,35 @@ export class TutorialOrchestrator extends Scene {
     this.seatedCat?.destroy();
     const { width } = this.scale;
     const x = width / 2;
-    const y = 325; // bottom-anchored — sprite fills ~229–325 at scale 1.5
+    const y = 325; // bottom-anchored — sprite fills ~218–325 at scale 1.7
     this.seatedCat = this.add
       .sprite(x, y, AssetKeys.Atlas.Cats, `${breed}_idle_00`)
       .setOrigin(0.5, 1)
       .setScale(1.7)
       .setDepth(-100);
+  }
+
+  /** Reposition the seated cat (and any stacked cosmetic sprites +
+   *  active effect) for the merch beats — bigger + lower so the
+   *  player can clearly see cosmetic pulls land on him. Per Tim:
+   *  "move the player's cat down and him bigger while we get
+   *   cosmetics for him." */
+  private switchToMerchLayout(): void {
+    if (!this.seatedCat) return;
+    const merchY = 480;
+    const merchScale = 2.4;
+    this.seatedCat.setY(merchY);
+    this.seatedCat.setScale(merchScale);
+    // Stacked cosmetic sprites ride the same anchor.
+    for (const cs of this.equippedCosmeticSprites) {
+      cs.setPosition(this.seatedCat.x, merchY);
+      cs.setScale(merchScale);
+    }
+    // Active effect is a particle emitter tied to the prior cat
+    // position — tear it down so it doesn't continue spawning at the
+    // old anchor. Re-applies on the next box-effect pull.
+    this.activeEffectHandle?.destroy();
+    this.activeEffectHandle = undefined;
   }
 
   // -----------------------------------------------------------------------
@@ -700,6 +723,15 @@ export class TutorialOrchestrator extends Scene {
     await this.persistStep(next);
     this.currentStep = next;
     this.dialogueIndex = 0;
+
+    // Layout swap on transition into the merch section — bigger cat,
+    // lower position so the cosmetic + effect pulls land prominently
+    // on him. Stays in this layout through box-effect; the next layout
+    // swap happens when we transition into rehearsal-intro (TBD).
+    if (next === 'merch-intro') {
+      this.switchToMerchLayout();
+    }
+
     this.renderStep();
   }
 
