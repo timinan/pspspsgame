@@ -10,14 +10,21 @@ import {
   setPostOwner,
   incrementPlayCount,
   getPinnedCommentId,
+  incrementPassCount,
+  getPassCount,
+  setFirstPasserIfUnset,
+  getFirstPasser,
+  fetchCombinedScore,
   type SocialRedis,
 } from '../core/social';
 import {
   classifyScore,
   formatStatsComment,
+  formatPinnedSummary,
   type PlaySummary,
   type InboxEvent,
 } from '../../shared/social-loop';
+import { BACKING_CATALOG, type Chart } from '../../shared/state';
 
 /**
  * Server routes for the social loop:
@@ -163,6 +170,19 @@ social.post('/play', async (c) => {
     }
   }
 
+  // Pass-count + first-passer tracking — feeds the pinned-comment
+  // summary. Owner plays count toward the pass counter (Tim's call for
+  // overall stats) but NEVER qualify as first-passer (so the host
+  // can't claim that badge on their own post).
+  if (passed) {
+    try { await incrementPassCount(r, body.postId); }
+    catch (err) { console.error('[social/play] incrementPassCount failed (continuing)', err); }
+    if (visitor !== body.owner) {
+      try { await setFirstPasserIfUnset(r, body.postId, visitor); }
+      catch (err) { console.error('[social/play] setFirstPasserIfUnset failed (continuing)', err); }
+    }
+  }
+
   // Auto-stats reply under the bot-pinned root — fires on EVERY play
   // (pass/fail/PB/repeat/self-play all post). Visitor-authored so the
   // comment shows in their account history (Nuzzle convention). Best-
@@ -170,14 +190,9 @@ social.post('/play', async (c) => {
   // leaderboard write, inbox event, free-text comment, and play counter
   // already landed above. Skipped silently for posts with no pinned
   // root (pre-dates pinned-comment storage, or publish-time pin failed).
-  try {
-    const pinnedId = await getPinnedCommentId(r, body.postId);
-    if (pinnedId) {
-      // Fetch the visitor's current rank + total players AFTER the lb
-      // write above. yourRank is server-computed for visitors NOT in
-      // the top N; for top-N visitors, derive rank from their index
-      // in the top list. totalPlayers approximation: top.length when
-      // not at cap, else totalPlays (close enough for the comment).
+  const pinnedId = await getPinnedCommentId(r, body.postId);
+  if (pinnedId) {
+    try {
       const lb = await fetchLeaderboard(r, body.postId, visitor);
       const topIdx = lb.top.findIndex((e) => e.visitor === visitor);
       const rank = topIdx >= 0 ? topIdx + 1 : lb.yourRank;
@@ -189,11 +204,51 @@ social.post('/play', async (c) => {
         runAs: 'USER',
       });
       console.info('[social/play] auto-stats reply posted under', pinnedId);
-    } else {
-      console.info('[social/play] no pinned root for', body.postId, '— skipping auto-stats');
+    } catch (err) {
+      console.error('[social/play] auto-stats reply failed (continuing)', err);
     }
-  } catch (err) {
-    console.error('[social/play] auto-stats reply failed (continuing)', err);
+
+    // Refresh the pinned mod comment with the latest live stats —
+    // fetch + format + edit. Owner-excluded top player + first passer
+    // so the host can't self-rank as "best" or "first pass" on their
+    // own post. Owner plays still count in totalPlays / passes /
+    // combinedScore (overall engagement metrics). Best-effort — refresh
+    // failure does not break the play submission.
+    try {
+      const lbForSummary = await fetchLeaderboard(r, body.postId, null);
+      const nonOwnerTop = lbForSummary.top.find((e) => e.visitor !== body.owner);
+      const topPlayer = nonOwnerTop
+        ? { username: nonOwnerTop.visitor, score: nonOwnerTop.score }
+        : null;
+      const firstPasser = await getFirstPasser(r, body.postId);
+      const passCount = await getPassCount(r, body.postId);
+      const combinedScore = await fetchCombinedScore(r, body.postId);
+      const postChartRaw = await r.get(`meowcert:post-chart:${body.postId}`);
+      let chart: Chart | undefined;
+      if (postChartRaw) {
+        try { chart = JSON.parse(postChartRaw) as Chart; }
+        catch { /* ignore parse fail, fall through to null fields */ }
+      }
+      const audioKey = chart?.audioKey;
+      const songTitle = audioKey ? (BACKING_CATALOG[audioKey]?.displayName ?? null) : null;
+      const summaryBody = formatPinnedSummary({
+        ownerUsername: body.owner,
+        difficulty: chart?.difficulty ?? null,
+        songTitle,
+        totalPlays: lbForSummary.totalPlays,
+        passCount,
+        combinedScore,
+        topPlayer,
+        firstPasser,
+      });
+      const comment = await reddit.getCommentById(pinnedId);
+      await comment.edit({ text: summaryBody, runAs: 'APP' });
+      console.info('[social/play] pinned summary refreshed for', pinnedId);
+    } catch (err) {
+      console.error('[social/play] pinned summary refresh failed (continuing)', err);
+    }
+  } else {
+    console.info('[social/play] no pinned root for', body.postId, '— skipping auto-stats + summary refresh');
   }
 
   return c.json({
