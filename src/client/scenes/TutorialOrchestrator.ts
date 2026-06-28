@@ -13,14 +13,19 @@ import {
   completeOnboarding,
   setBackground,
   seedStarterCat,
+  openBox,
 } from '@/services/state-client';
 import { TutorialCatOverlay } from '@/ui/tutorial-cat';
 import { Picker } from '@/ui/picker';
+import { playBoxOpenAnimation } from '@/ui/box-open-animation';
 import {
   BACKGROUND_CATALOG,
   CAT_CATALOG,
+  COSMETIC_CATALOG,
   type BackgroundId,
+  type BoxId,
   type CatBreed,
+  type CosmeticId,
   type PlayerState,
 } from '@/../shared/state';
 
@@ -69,6 +74,11 @@ export class TutorialOrchestrator extends Scene {
   private dialogueIndex = 0;
   private overlay: TutorialCatOverlay | undefined;
   private picker: Picker<string> | undefined;
+  /** True after pick-cat completes — flips on the skip link top-right. */
+  private skipUnlocked = false;
+  /** True while a box-open animation or other async beat is in flight —
+   *  suppresses double-taps on the Continue button. */
+  private busy = false;
 
   constructor() {
     super(SceneKeys.TutorialOrchestrator);
@@ -164,12 +174,30 @@ export class TutorialOrchestrator extends Scene {
       return;
     }
 
+    // Box-open beats — the dialogue plays first, then on Continue we
+    // fire openBox + playBoxOpenAnimation, then advance on the
+    // animation's onDone callback.
+    if (this.currentStep === 'box-cosmetic' || this.currentStep === 'box-effect') {
+      const boxId: BoxId = this.currentStep === 'box-cosmetic' ? 'cosmeticBox' : 'effectsBox';
+      this.overlay = new TutorialCatOverlay(this);
+      this.overlay.show(line, {
+        continueLabel: 'Open box →',
+        onContinue: () => {
+          if (this.busy) return;
+          void this.runBoxOpen(boxId);
+        },
+      });
+      this.renderSkipLinkIfUnlocked();
+      return;
+    }
+
     // Default: dialogue + Continue.
     const continueLabel = hasMoreDialogue ? 'Next →' : 'Continue →';
     this.overlay = new TutorialCatOverlay(this);
     this.overlay.show(line, {
       continueLabel,
       onContinue: () => {
+        if (this.busy) return;
         if (hasMoreDialogue) {
           this.dialogueIndex += 1;
           this.renderStep();
@@ -178,6 +206,118 @@ export class TutorialOrchestrator extends Scene {
         }
       },
     });
+    this.renderSkipLinkIfUnlocked();
+  }
+
+  /** Render a small "skip tutorial" link in top-right. Only visible
+   *  after pick-cat completes (set by `advance()` when transitioning
+   *  away from `pick-cat`). Lower visual weight than Continue — it's
+   *  an emergency exit, not the normalized path. */
+  private renderSkipLinkIfUnlocked(): void {
+    if (!this.skipUnlocked) return;
+    const { width } = this.scale;
+    const skipText = this.add
+      .text(width - 16, 36, 'skip tutorial', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontSize: '10px',
+        color: '#c0a0e6',
+      })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true });
+    skipText.on('pointerover', () => skipText.setColor('#ffd34d'));
+    skipText.on('pointerout', () => skipText.setColor('#c0a0e6'));
+    skipText.on('pointerdown', () => {
+      if (this.busy) return;
+      void this.skipTutorial();
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — async beat handlers
+  // -----------------------------------------------------------------------
+
+  private async runBoxOpen(boxId: BoxId): Promise<void> {
+    this.busy = true;
+    try {
+      const result = await openBox(boxId);
+      if (!result.ok) {
+        console.warn('[tutorial] openBox failed:', result.reason);
+        this.busy = false;
+        await this.advance();
+        return;
+      }
+      this.playerState = result.state;
+      const pull = result.pull;
+      const isCat = pull.kind === 'cat';
+      const entry = isCat
+        ? CAT_CATALOG.find((c) => c.id === pull.itemId)
+        : COSMETIC_CATALOG.find((c) => c.id === (pull.itemId as CosmeticId));
+      const itemName = entry?.name ?? pull.itemId;
+
+      // Frame resolution mirrors the existing Welcome.ts pattern.
+      let frame: string;
+      let tint: number | undefined;
+      let rainbow: boolean | undefined;
+      if (isCat) {
+        if (pull.itemId === 'rainbow') {
+          frame = 'cat6_idle_00';
+          rainbow = true;
+        } else {
+          frame = `${pull.itemId}_idle_00`;
+        }
+      } else {
+        const cosEntry = COSMETIC_CATALOG.find((c) => c.id === pull.itemId);
+        const renderId = cosEntry?.sourceFrame?.match(/^cosmetic_(c\d+)_/)?.[1] ?? pull.itemId;
+        frame = `cosmetic_${renderId}_idle_00`;
+        if (cosEntry?.tint) {
+          tint = parseInt(cosEntry.tint.replace('#', ''), 16);
+        }
+      }
+
+      playBoxOpenAnimation(
+        this,
+        {
+          textureKey: isCat ? AssetKeys.Atlas.Cats : AssetKeys.Atlas.Cosmetics,
+          frame,
+          itemName: isCat ? '' : itemName,
+          ...(isCat
+            ? { inlineRarityTemplate: { prefix: 'A ', suffix: ' cat has been adopted' } }
+            : {}),
+          rarity: pull.rarity,
+          ...(rainbow ? { rainbow: true } : {}),
+          ...(tint !== undefined ? { tint } : {}),
+          duplicate: pull.duplicate,
+          refundCoins: pull.refundCoins,
+        },
+        () => {
+          this.busy = false;
+          void this.advance();
+        },
+      );
+    } catch (e) {
+      console.warn('[tutorial] runBoxOpen threw', e);
+      this.busy = false;
+      await this.advance();
+    }
+  }
+
+  private async skipTutorial(): Promise<void> {
+    this.busy = true;
+    try {
+      const updated = await completeOnboarding();
+      this.playerState = updated;
+    } catch (e) {
+      console.warn('[tutorial] skip → completeOnboarding failed', e);
+    }
+    // Route per originalPostId (same rule as completeTutorial).
+    if (this.originalPostId) {
+      this.scene.start(SceneKeys.VisitPost, {
+        postId: this.originalPostId,
+        playerState: this.playerState,
+      });
+      return;
+    }
+    this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
   }
 
   private async handleStagePick(stageId: BackgroundId): Promise<void> {
@@ -205,6 +345,13 @@ export class TutorialOrchestrator extends Scene {
   // -----------------------------------------------------------------------
 
   private async advance(): Promise<void> {
+    // Flip the skip link on as soon as the player leaves pick-cat —
+    // identity-setting beats are unavoidable but everything after is
+    // optional.
+    if (this.currentStep === 'pick-cat') {
+      this.skipUnlocked = true;
+    }
+
     // Branch override: editor-tour decides Route A vs Route B based on
     // originalPostId. Route A goes through the visit-pointer beat
     // before the outro; Route B skips it.
