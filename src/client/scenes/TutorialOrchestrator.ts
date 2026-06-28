@@ -20,7 +20,8 @@ import { Picker } from '@/ui/picker';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
 import { CatNamingModal } from '@/ui/cat-naming-modal';
 import { loadBgIfMissing } from '@/entities/background-manager';
-import { renameCat } from '@/services/state-client';
+import { renameCat, equipCosmetic } from '@/services/state-client';
+import { CAT_EFFECT_BY_ID } from '@/effects/cat-effects';
 import {
   BACKGROUND_CATALOG,
   CAT_CATALOG,
@@ -96,6 +97,12 @@ export class TutorialOrchestrator extends Scene {
   /** Live seated cat — appears after pick-cat, persists. */
   private seatedCat: Phaser.GameObjects.Sprite | undefined;
   private seatedCatBreed: CatBreed | undefined;
+  /** Cosmetic sprites stacked on the live cat (one per equipped slot
+   *  — head/face/neck etc). Persistent across step transitions. */
+  private equippedCosmeticSprites: Phaser.GameObjects.Sprite[] = [];
+  /** Active effect handle (e.g. particle emitter for sparkles).
+   *  Destroyed before applying a new effect. */
+  private activeEffectHandle: { destroy(): void } | undefined;
 
   constructor() {
     super(SceneKeys.TutorialOrchestrator);
@@ -319,6 +326,12 @@ export class TutorialOrchestrator extends Scene {
           refundCoins: pull.refundCoins,
         },
         () => {
+          // Animation finished — auto-equip the pull on the live cat
+          // before advancing so the player sees it land. Cat-pull
+          // (not used in the tutorial) is a no-op here.
+          if (pull.kind === 'cosmetic' && pull.instanceId) {
+            void this.autoEquipCosmetic(pull.itemId, pull.instanceId);
+          }
           this.busy = false;
           void this.advance();
         },
@@ -528,6 +541,48 @@ export class TutorialOrchestrator extends Scene {
         this.stageBg.setDisplaySize(width, height);
       }).catch(() => { /* fallback rect stays */ });
     }
+  }
+
+  /** Auto-equip a freshly-pulled cosmetic on the live seated cat and
+   *  render the visual immediately. Server-side equip fires fire-and-
+   *  forget — visual updates synchronously so the player sees the
+   *  cosmetic land at the moment the box-open animation finishes. */
+  private async autoEquipCosmetic(cosmeticId: string, instanceId: string): Promise<void> {
+    const seatedCatInstance = this.playerState?.ownedCats.find((c) => c.breed === this.seatedCatBreed);
+    if (!seatedCatInstance) return;
+    const cosEntry = COSMETIC_CATALOG.find((c) => c.id === cosmeticId);
+    if (!cosEntry) return;
+    const slot = cosEntry.slot;
+
+    // Server-side equip — fire-and-forget. Local visual is what the
+    // player notices; server state can lag a moment.
+    equipCosmetic(seatedCatInstance.id, slot, instanceId).catch((e) =>
+      console.warn('[tutorial] equipCosmetic failed (visual still applied)', e),
+    );
+
+    // Visual: effects use the cat-effects.ts apply() pattern; static
+    // cosmetics stack a sprite at the seated cat's position.
+    const effectEntry = CAT_EFFECT_BY_ID[cosmeticId];
+    if (effectEntry && this.seatedCat) {
+      // Tear down any previous effect before applying the new one.
+      this.activeEffectHandle?.destroy();
+      this.activeEffectHandle = effectEntry.apply(this, this.seatedCat, this.seatedCat.scaleX);
+      return;
+    }
+
+    // Static cosmetic — render as a stacked sprite at the cat's anchor.
+    if (!this.seatedCat) return;
+    const renderId = cosEntry.sourceFrame?.match(/^cosmetic_(c\d+)_/)?.[1] ?? cosmeticId;
+    const frame = `cosmetic_${renderId}_idle_00`;
+    const sprite = this.add
+      .sprite(this.seatedCat.x, this.seatedCat.y, AssetKeys.Atlas.Cosmetics, frame)
+      .setOrigin(0.5, 1)
+      .setScale(this.seatedCat.scaleX)
+      .setDepth(-90);
+    if (cosEntry.tint) {
+      sprite.setTint(parseInt(cosEntry.tint.replace('#', ''), 16));
+    }
+    this.equippedCosmeticSprites.push(sprite);
   }
 
   /** Render the picked cat in the middle-center of the canvas, on top
