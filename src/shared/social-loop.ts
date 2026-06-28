@@ -137,25 +137,34 @@ export function formatStatsComment(
   freeText: string = '',
 ): string {
   const passed = summary.tier !== 'fail';
-  const header = passed
-    ? '🏆 **I completed this show!**'
-    : '❌ **I didn\'t pass this show**';
+  const headerLabel = passed ? '🏆 I completed this show!' : '❌ I didn\'t pass this show';
   const accPct = Math.round(summary.accuracy * 100);
-  const statsLine = `🎯 Score: **${summary.score.toLocaleString()}** · ✨ Accuracy: ${accPct}%`;
-  const giftLine = summary.gift
-    ? `🎁 ${summary.gift.coins > 0 ? `Tipped ${summary.gift.coins.toLocaleString()} gold` : ''}${
-        summary.gift.coins > 0 && summary.gift.itemInstanceIds.length > 0 ? ' · ' : ''
-      }${summary.gift.itemInstanceIds.length > 0 ? `Gifted ${summary.gift.itemInstanceIds.length} cosmetic${summary.gift.itemInstanceIds.length === 1 ? '' : 's'}` : ''}`
+  // Stats line uses italics + horizontal rule above to read as a small
+  // footer below the player's typed text — Tim: "the comment text
+  // should be the big text on top and the stats line smaller at the
+  // bottom". Reddit markdown lacks a true "smaller font" but italics
+  // after an hr is the conventional "footer caption" pattern.
+  const statsLine = `*${headerLabel} · 🎯 Score: ${summary.score.toLocaleString()} · ✨ Accuracy: ${accPct}%*`;
+  const giftStr = summary.gift
+    ? [
+        summary.gift.coins > 0 ? `Tipped ${summary.gift.coins.toLocaleString()} gold` : '',
+        summary.gift.itemInstanceIds.length > 0
+          ? `Gifted ${summary.gift.itemInstanceIds.length} cosmetic${summary.gift.itemInstanceIds.length === 1 ? '' : 's'}`
+          : '',
+      ].filter((s) => s.length > 0).join(' · ')
     : '';
+  const giftLine = giftStr.length > 0 ? `*🎁 ${giftStr}*` : '';
   const trimmedText = freeText.trim();
-  // Blockquote (>) gives the player's comment visual distinction +
-  // indentation; Reddit renders it as a left-bordered offset block.
-  // Reddit doesn't have a native "smaller font" markdown — blockquote
-  // is the conventional way to set off quoted/secondary text.
-  const textBlock = trimmedText.length > 0
-    ? `> ${trimmedText.split('\n').join('\n> ')}`
-    : '';
-  return [header, statsLine, giftLine, textBlock]
+  if (trimmedText.length === 0) {
+    // SKIP path — no free text. Just the stats, full strength (drop
+    // italics + leading hr since there's nothing to be secondary to).
+    const skipHeader = `**${headerLabel}**`;
+    const skipStats = `🎯 Score: **${summary.score.toLocaleString()}** · ✨ Accuracy: ${accPct}%`;
+    return [skipHeader, skipStats, giftLine.replace(/\*/g, '')].filter((s) => s.length > 0).join('\n\n');
+  }
+  // POST path — player text big on top, horizontal rule, italic
+  // stats + gift as a footer-style caption underneath.
+  return [trimmedText, '---', statsLine, giftLine]
     .filter((s) => s.length > 0)
     .join('\n\n');
 }

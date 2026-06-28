@@ -166,30 +166,15 @@ social.post('/play', async (c) => {
     }
   }
 
-  // Auto-stats reply under the bot-pinned root — fires on EVERY play
-  // (pass/fail/PB/repeat/self-play all post). Visitor-authored so the
-  // comment shows in their account history (Nuzzle convention). Best-
-  // effort: a failure here MUST NOT block the play submission — the
-  // leaderboard write, inbox event, free-text comment, and play counter
-  // already landed above. Skipped silently for posts with no pinned
-  // root (pre-dates pinned-comment storage, or publish-time pin failed).
+  // Auto-stats reply moved to POST /api/social/comment — endRound auto-
+  // submit calls /play (persistence only); page-2 POST/SKIP calls
+  // /comment (Reddit reply only). Splitting these prevents the double-
+  // comment bug where endRound's submission + page-2's submission each
+  // posted their own auto-stats reply. The pinned summary refresh BELOW
+  // stays in /play so the dashboard updates on every play regardless
+  // of whether the user takes a POST/SKIP action.
   const pinnedId = await getPinnedCommentId(r, body.postId);
   if (pinnedId) {
-    try {
-      // ONE comment per play, posted under the pinned root. Includes
-      // stats + tip/gift line + the visitor's free-text (in blockquote)
-      // if they typed one. Replaces the previous two-comment design.
-      const text = formatStatsComment(summary, body.commentBody ?? '');
-      await reddit.submitComment({
-        id: pinnedId,
-        text,
-        runAs: 'USER',
-      });
-      console.info('[social/play] auto-stats reply posted under', pinnedId);
-    } catch (err) {
-      console.error('[social/play] auto-stats reply failed (continuing)', err);
-    }
-
     // Refresh the pinned mod comment with the latest live stats —
     // fetch + format + edit. Owner-excluded top player + first passer
     // so the host can't self-rank as "best" or "first pass" on their
@@ -251,6 +236,49 @@ social.post('/play', async (c) => {
     baseReward,
     passed,
   });
+});
+
+interface CommentBody {
+  postId: string;
+  owner: string;
+  /** Play summary the client already built — passed in so /comment
+   *  doesn't need to recompute or refetch. */
+  summary: PlaySummary;
+  /** Visitor's free-text. Empty / omitted = SKIP path (stats only). */
+  commentBody?: string;
+}
+
+/**
+ * POST /comment — fires the auto-stats reply under the post's bot-pinned
+ * root, on user action (page-2 POST/SKIP only — endRound auto-submit
+ * does NOT call this). Keeps the Reddit reply on a user-triggered path
+ * so a single play yields exactly one comment, regardless of whether
+ * the persistence-side /play was already auto-submitted at endRound.
+ */
+social.post('/comment', async (c) => {
+  const visitor = await currentUsername();
+  const body = (await c.req.json()) as CommentBody;
+  if (!body.postId || !body.owner || !body.summary) {
+    return c.json({ ok: false, reason: 'postId + owner + summary required' }, 400);
+  }
+  const pinnedId = await getPinnedCommentId(r, body.postId);
+  if (!pinnedId) {
+    console.info('[social/comment] no pinned root for', body.postId, '— skipping');
+    return c.json({ ok: true, posted: false });
+  }
+  try {
+    const text = formatStatsComment(body.summary, body.commentBody ?? '');
+    await reddit.submitComment({
+      id: pinnedId,
+      text,
+      runAs: 'USER',
+    });
+    console.info('[social/comment] reply posted under', pinnedId, { visitor });
+    return c.json({ ok: true, posted: true });
+  } catch (err) {
+    console.error('[social/comment] reply failed', err);
+    return c.json({ ok: false, reason: 'reddit submitComment failed' }, 500);
+  }
 });
 
 social.get('/leaderboard', async (c) => {

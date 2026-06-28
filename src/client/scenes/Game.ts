@@ -26,7 +26,7 @@ import { PublishedModal } from '@/ui/published-modal';
 import { publishChart } from '@/services/publish-client';
 import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
 import { getUserSettings } from '@/systems/user-settings';
-import { submitPlay } from '@/services/social-client';
+import { submitPlay, submitComment } from '@/services/social-client';
 import { getBest, recordRun, type BestStats, type StatKey } from '@/services/rehearsal-best';
 import {
   classifyScore,
@@ -1045,15 +1045,20 @@ export class Game extends Scene {
         return;
       }
       const body = this.summaryPage2Textarea?.value?.trim() ?? '';
-      // POST flips to page-3 (what's next menu) instead of page-1 —
-      // user just submitted, give them a forward path (own stage / find
-      // shows) rather than dumping them back on the stats they already
-      // saw. recordPlay (not finalizePlay) — no scene.restart, so the
-      // page-3 visibility flip from setSummaryPage(3) survives until the
-      // user picks an option.
+      // POST flips to page-3 (what's next menu) instead of page-1.
+      // submitComment (not recordPlay) — endRound already persisted this
+      // play via recordPlay/submitPlay. Calling recordPlay again here
+      // double-counted everything AND posted a second Reddit reply.
+      // submitComment posts the single user-facing reply with the
+      // visitor's free-text + stats; persistence is untouched.
       this.setSummaryPage(3);
       this.summaryPage2PlaySummary = null;
-      void this.recordPlay(summary, body.length > 0 ? body : undefined, undefined);
+      void submitComment({
+        postId: summary.postId,
+        owner: summary.owner,
+        summary,
+        ...(body.length > 0 ? { commentBody: body } : {}),
+      });
     });
     this.summaryPage2SkipBg.on('pointerdown', () => {
       const summary = this.summaryPage2PlaySummary;
@@ -1061,9 +1066,15 @@ export class Game extends Scene {
         console.warn('[Game] page-2 SKIP tapped with no cached summary');
         return;
       }
+      // SKIP path also calls submitComment (stats-only reply, no
+      // freeText). Persistence already landed via endRound auto-submit.
       this.setSummaryPage(1);
       this.summaryPage2PlaySummary = null;
-      void this.recordPlay(summary, undefined, undefined);
+      void submitComment({
+        postId: summary.postId,
+        owner: summary.owner,
+        summary,
+      });
     });
 
     container.add(page2);

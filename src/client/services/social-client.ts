@@ -43,6 +43,27 @@ export async function submitPlay(args: SubmitPlayArgs): Promise<SubmitPlayResult
   return (await r.json()) as SubmitPlayResult;
 }
 
+/** Args for POST /api/social/comment — fired by page-2 POST/SKIP to
+ *  post the auto-stats reply under the mod-pinned root. Distinct from
+ *  submitPlay (which only persists). */
+export interface SubmitCommentArgs {
+  postId: string;
+  owner: string;
+  summary: PlaySummary;
+  /** Visitor's free-text. Empty / omitted = SKIP path (stats only). */
+  commentBody?: string;
+}
+
+export async function submitComment(args: SubmitCommentArgs): Promise<{ ok: true; posted: boolean } | { ok: false; reason: string }> {
+  const r = await fetch('/api/social/comment', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(args),
+  });
+  if (!r.ok) return { ok: false, reason: `submitComment ${r.status}` };
+  return (await r.json()) as { ok: true; posted: boolean };
+}
+
 export interface FetchLeaderboardResult {
   ok: true;
   top: LeaderboardEntry[];
