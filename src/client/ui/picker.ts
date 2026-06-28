@@ -79,7 +79,11 @@ export class Picker<T extends string> {
         .setInteractive({ useHandCursor: true });
       this.container!.add(card);
 
-      // Sprite — fills the top ~80% of the card.
+      // Sprite — fills the top ~80% of the card. Aspect-preserved fit:
+      // scale so the source fully fits inside spriteW × spriteH WITHOUT
+      // stretching. Cat atlas frames are 91 × 64 (landscape) and would
+      // squish vertically if forced into a portrait card via the
+      // previous setDisplaySize call — Tim flagged this in feedback.
       const spriteY = y - cardH * 0.1;
       const spriteW = cardW - 16;
       const spriteH = cardH * 0.75;
@@ -89,7 +93,10 @@ export class Picker<T extends string> {
       } else {
         sprite = this.scene.add.image(x + cardW / 2, spriteY, item.imageKey);
       }
-      sprite.setDisplaySize(spriteW, spriteH);
+      const sourceW = sprite.width;
+      const sourceH = sprite.height;
+      const fitScale = Math.min(spriteW / sourceW, spriteH / sourceH);
+      sprite.setScale(fitScale);
       this.container!.add(sprite);
 
       // Label
@@ -121,12 +128,23 @@ export class Picker<T extends string> {
         this.busy = true;
         // Pulse animation — quick yellow tint + scale punch before
         // firing the callback. Reads as "selected, locking in".
+        // Scale-by-multiplier (not absolute) so the sprite's fit-scale
+        // is preserved through the pulse.
         card.setFillStyle(PULSE_TINT, 1);
+        const cardOrigScale = card.scaleX;
+        const spriteOrigScale = sprite.scaleX;
+        const labelOrigScale = label.scaleX;
         this.scene.tweens.add({
-          targets: [card, sprite, label],
-          scale: 1.06,
+          targets: { t: 1 },
+          t: 1.06,
           duration: 120,
           yoyo: true,
+          onUpdate: (tw) => {
+            const t = (tw.getValue() ?? 1) as number;
+            card.setScale(cardOrigScale * t);
+            sprite.setScale(spriteOrigScale * t);
+            label.setScale(labelOrigScale * t);
+          },
           onComplete: () => this.opts.onPick(item.id),
         });
       });
