@@ -51,22 +51,18 @@ export class TutorialCatOverlay {
     this.container.setDepth(2000);
 
     // -- Host cat sprite ----------------------------------------------
-    // Top-left, moved down a touch to fill more vertical space and
-    // line up beside the speech bubble. Origin bottom-center so we
-    // position by the cat's feet.
+    // Moved further down per Tim's screenshot feedback — sits lower so
+    // the speech bubble tail points naturally at Butters' head.
     const catScale = 1.7;
     const catX = 60;
-    const catY = 56 + 64 * catScale; // top margin + scaled height
+    const catY = 220;
     const catSprite = this.scene.add
       .sprite(catX, catY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
       .setOrigin(0.5, 1)
       .setScale(catScale);
     this.container.add(catSprite);
 
-    // Grey glasses accessory — Butters' tutorial-host signature. Stacked
-    // sprite at the same anchor so it rides the cat's bottom-center
-    // origin. Cosmetics atlas + cat atlas use matching 91 × 64 frames
-    // so the accessory aligns out of the box.
+    // Grey glasses accessory — Butters' tutorial-host signature.
     const accessorySprite = this.scene.add
       .sprite(catX, catY, AssetKeys.Atlas.Cosmetics, HOST_ACCESSORY_FRAME)
       .setOrigin(0.5, 1)
@@ -74,19 +70,37 @@ export class TutorialCatOverlay {
     this.container.add(accessorySprite);
 
     // -- Speech bubble ------------------------------------------------
-    // Borderless white rounded rect — per Tim's screenshot feedback
-    // ("get rid of the border of the text box and the speech arrow
-    // part"). Just the bubble shape + dialogue text. No tail.
-    const bubbleX = catX + 36;
-    const bubbleY = 36;
-    const bubbleW = Math.min(width - bubbleX - 16, 240);
-    const bubbleH = 168;
+    // Borderless white rounded rect with a tail pointing at Butters'
+    // head (per the second round of feedback — Tim asked for the tail
+    // back, attached to Butters specifically).
+    const bubbleX = catX + 50;
+    const bubbleY = 28;
+    const bubbleW = Math.min(width - bubbleX - 12, 230);
+    const bubbleH = 152;
     const bubbleRadius = 16;
 
     const bubbleGfx = this.scene.add.graphics();
     bubbleGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
     bubbleGfx.fillRoundedRect(bubbleX, bubbleY, bubbleW, bubbleH, bubbleRadius);
     this.container.add(bubbleGfx);
+
+    // Tail — filled triangle at bubble's bottom-left area, tip pointing
+    // down-left at Butters' head. Same fill as the bubble so the two
+    // read as one shape.
+    const tailBaseY = bubbleY + bubbleH - 1;
+    const tailBaseLeftX = bubbleX + 12;
+    const tailBaseRightX = bubbleX + 44;
+    const tailTipX = catX + 24; // tip lands near Butters' head
+    const tailTipY = catY - 64; // head-level (60% up from feet)
+
+    const tailGfx = this.scene.add.graphics();
+    tailGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
+    tailGfx.fillTriangle(
+      tailBaseLeftX, tailBaseY,
+      tailBaseRightX, tailBaseY,
+      tailTipX, tailTipY,
+    );
+    this.container.add(tailGfx);
 
     // -- Dialogue text -----------------------------------------------
     const text = this.scene.add
