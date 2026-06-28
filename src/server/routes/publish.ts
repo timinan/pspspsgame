@@ -1,8 +1,19 @@
 import { Hono } from 'hono';
 import { redis, reddit, context } from '@devvit/web/server';
 import { loadOrInit } from '../core/player-state';
-import { setPostOwner, submitLeaderboardScore, setPinnedCommentId } from '../core/social';
-import { classifyScore } from '../../shared/social-loop';
+import {
+  setPostOwner,
+  submitLeaderboardScore,
+  setPinnedCommentId,
+  incrementPlayCount,
+  incrementPassCount,
+  getPassCount,
+  getFirstPasser,
+  fetchCombinedScore,
+  fetchLeaderboard,
+} from '../core/social';
+import { classifyScore, formatPinnedSummary } from '../../shared/social-loop';
+import { BACKING_CATALOG } from '../../shared/state';
 
 /**
  * Publish flow — turn an authored chart into a live Reddit post that
@@ -228,8 +239,56 @@ publish.post('/chart', async (c) => {
         baseReward,
       });
       console.info(`[publish] seeded creator leaderboard entry: ${username} → ${creatorScore} (acc=${creatorAccuracy.toFixed(2)})`);
+      // Also count the seed as a play in the post-stats counters so the
+      // pinned summary shows "1 play" right after publish (and "1 pass"
+      // when the creator rehearsed at >= 75% accuracy). Owner self-plays
+      // count toward overall stats per Tim's call. Best-effort — pinned
+      // summary tolerates missing counters.
+      try { await incrementPlayCount(redis, post.id); }
+      catch (err) { console.warn('[publish] seed incrementPlayCount failed (continuing)', err); }
+      if (creatorAccuracy >= 0.75) {
+        try { await incrementPassCount(redis, post.id); }
+        catch (err) { console.warn('[publish] seed incrementPassCount failed (continuing)', err); }
+      }
     } else {
       console.info(`[publish] skipped creator seed — score=${creatorScore} acc=${creatorAccuracy}`);
+    }
+
+    // Initial pinned mod comment refresh — replace the static welcome
+    // text written at pin-time with the live stats summary so the very
+    // first thing a visitor sees on a freshly-published post is the
+    // dashboard. Subsequent plays refresh it again from /play.
+    // Best-effort: failure leaves the pinned comment with the static
+    // welcome text (still functional, just not yet showing live stats).
+    try {
+      const pinnedId = await redis.get(`meowcert:post-pinned-comment:${post.id}`);
+      if (pinnedId) {
+        const lb = await fetchLeaderboard(redis, post.id, null);
+        const nonOwnerTop = lb.top.find((e) => e.visitor !== username);
+        const topPlayer = nonOwnerTop
+          ? { username: nonOwnerTop.visitor, score: nonOwnerTop.score }
+          : null;
+        const firstPasser = await getFirstPasser(redis, post.id);
+        const passCount = await getPassCount(redis, post.id);
+        const combinedScore = await fetchCombinedScore(redis, post.id);
+        const audioKey = chart.audioKey;
+        const songTitle = audioKey ? (BACKING_CATALOG[audioKey]?.displayName ?? null) : null;
+        const summaryBody = formatPinnedSummary({
+          ownerUsername: username,
+          difficulty: chart.difficulty ?? null,
+          songTitle,
+          totalPlays: lb.totalPlays,
+          passCount,
+          combinedScore,
+          topPlayer,
+          firstPasser,
+        });
+        const comment = await reddit.getCommentById(pinnedId);
+        await comment.edit({ text: summaryBody, runAs: 'APP' });
+        console.info(`[publish] initial pinned summary refresh for ${post.id}`);
+      }
+    } catch (err) {
+      console.error('[publish] initial pinned summary refresh failed (continuing)', err);
     }
 
     // Long form `https://reddit.com${post.permalink}` — proven to work
