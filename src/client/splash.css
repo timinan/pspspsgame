@@ -88,14 +88,14 @@
 .info {
   width: calc(100% - 16px);
   max-width: 364px;
-  margin: 10px 0 0;
-  padding: 12px 14px 10px;
+  margin: 6px 0 0;
+  padding: 8px 12px 6px;
   background: #1a0a2e;
   border: 2px solid #ffd34d;
   border-radius: 0;  /* in-game boxes are squared, no rounded corners */
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .author {
@@ -130,8 +130,8 @@
 .plays-banner {
   width: calc(100% - 16px);
   max-width: 364px;
-  margin: 12px 0 0;
-  padding: 8px 14px;
+  margin: 6px 0 0;
+  padding: 5px 12px;
   background: #1a0a2e;
   border: 2px solid #ffd34d;
   border-radius: 0;
@@ -139,17 +139,17 @@
   font-family: "Pixeloid Sans", "Courier New", Menlo, monospace;
 }
 .plays-banner-count {
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 700;
   color: #ffd34d;
   letter-spacing: 1px;
 }
 .plays-banner-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #c0a0e6;
   letter-spacing: 2px;
-  margin-left: 6px;
+  margin-left: 5px;
   text-transform: uppercase;
 }
 
@@ -187,21 +187,21 @@
 .play-button {
   width: calc(100% - 16px);
   max-width: 364px;
-  padding: 14px 18px;
+  padding: 9px 16px;
   background: #ffd34d;
   color: #1a0a2e;
   border: 2px solid #ffd34d;
   border-radius: 0;
   font-family: "Pixeloid Sans", "Courier New", Menlo, monospace;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 1px;
   cursor: pointer;
-  margin: 8px 0 12px;
+  margin: 6px 0 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
 .play-button:active { background: #ffe680; }
-.play-arrow { font-size: 16px; }
+.play-arrow { font-size: 14px; }
