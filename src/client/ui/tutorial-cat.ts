@@ -24,6 +24,25 @@ const TEXT_COLOR = '#1a0a2e';
 const CONTINUE_FILL = 0xffd34d;
 const CONTINUE_TEXT = '#1a0a2e';
 
+/** Register a cosmetic's idle animation lazily — the Cat entity does
+ *  this internally per cosmetic, but the tutorial overlay sidesteps
+ *  Cat and renders a raw sprite, so it needs to register the loop
+ *  itself. Returns the anim key on success, '' if no frames matched. */
+function ensureCosmeticIdleAnim(scene: Scene, cosmeticRenderId: string): string {
+  const key = `cosmetic_${cosmeticRenderId}_idle`;
+  if (scene.anims.exists(key)) return key;
+  const atlas = scene.textures.get(AssetKeys.Atlas.Cosmetics);
+  const prefix = `cosmetic_${cosmeticRenderId}_idle_`;
+  const frames = atlas
+    .getFrameNames()
+    .filter((n) => n.startsWith(prefix))
+    .sort()
+    .map((frame) => ({ key: AssetKeys.Atlas.Cosmetics, frame }));
+  if (frames.length === 0) return '';
+  scene.anims.create({ key, frames, frameRate: 7, repeat: -1 });
+  return key;
+}
+
 interface ShowOptions {
   /** Optional Continue button. When omitted, the overlay is dialogue-
    *  only — the caller controls dismissal externally (e.g. a guided-
@@ -88,13 +107,23 @@ export class TutorialCatOverlay {
         .sprite(catX, catY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
         .setOrigin(0.5, 1)
         .setScale(catScale);
+      // Play the idle anim so Butters' tail wags instead of standing
+      // as a still frame. Preloader pre-registered every breed_idle
+      // key, so this just kicks off the loop.
+      catSprite.play('cat13_idle', true);
       this.container.add(catSprite);
 
       // Grey glasses accessory — Butters' tutorial-host signature.
+      // Cosmetic anims aren't pre-registered (Cat entity does it
+      // lazily); register on first use here so the glasses bob along
+      // with the head idle instead of holding frame 00 while the cat
+      // moves underneath.
+      const accessoryAnimKey = ensureCosmeticIdleAnim(this.scene, 'c2');
       const accessorySprite = this.scene.add
         .sprite(catX, catY, AssetKeys.Atlas.Cosmetics, HOST_ACCESSORY_FRAME)
         .setOrigin(0.5, 1)
         .setScale(catScale);
+      if (accessoryAnimKey) accessorySprite.play(accessoryAnimKey, true);
       this.container.add(accessorySprite);
     }
 
@@ -141,12 +170,13 @@ export class TutorialCatOverlay {
     // height. Floor 50 so a one-line beat still has a sensible shape.
     const bubbleH = Math.max(50, text.height + bubblePadding * 2);
 
-    // -- Tail target: where the tip should point.
-    // hero: Butters' head (top of the big seated sprite).
-    // normal: face just above his shoulders.
-    // stage: caller-supplied stageTailAt.
-    const tipX = stageMode ? opts.stageTailAt!.x : (hero ? catX : catX + 16);
-    const tipY = stageMode ? opts.stageTailAt!.y : (hero ? catY - 200 : catY - 60);
+    // -- Tail target: where the tip should point. Per Tim feedback
+    // (Image 27): the tip should land just OFF Butters' head, not
+    // pierce into it. After we compute the candidate target we pull
+    // the tip back along the line from the bubble corner so it stops
+    // ~26px short of Butters' face.
+    const rawTipX = stageMode ? opts.stageTailAt!.x : (hero ? catX : catX + 16);
+    const rawTipY = stageMode ? opts.stageTailAt!.y : (hero ? catY - 200 : catY - 60);
 
     // -- Tail emerges from the bubble corner nearest the tip. Two base
     // vertices live on the two edges adjacent to the chosen corner
@@ -181,15 +211,31 @@ export class TutorialCatOverlay {
     let bestCorner = corners[0]!;
     let bestDist = Infinity;
     for (const c of corners) {
-      const d = Math.hypot(c.x - tipX, c.y - tipY);
+      const d = Math.hypot(c.x - rawTipX, c.y - rawTipY);
       if (d < bestDist) {
         bestDist = d;
         bestCorner = c;
       }
     }
 
+    // Pull the tip back along the line from the chosen corner so it
+    // stops ~26px short of Butters' face (Image 27: "start a little
+    // bit off to the side of the head not overlayed on"). Clamp so
+    // the tip can't end up behind the corner on a very short run.
+    const stopShort = 26;
+    const dx = rawTipX - bestCorner.x;
+    const dy = rawTipY - bestCorner.y;
+    const fullDist = Math.hypot(dx, dy);
+    const targetDist = Math.max(40, fullDist - stopShort);
+    const ratio = fullDist > 0 ? targetDist / fullDist : 0;
+    const tipX = bestCorner.x + dx * ratio;
+    const tipY = bestCorner.y + dy * ratio;
+
     // Draw tail FIRST, then bubble fills over its base portion, then
-    // text on top. Result: tail and bubble look like one shape.
+    // text on top. Result: tail and bubble look like one shape. Tail
+    // tip is rounded with a fillCircle (radius 9) so it reads as a
+    // soft nub rather than a sharp dart — Image 27: "make the arrow
+    // part a bit more rounded it looks weird being so sharp".
     const tailGfx = this.scene.add.graphics();
     tailGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
     tailGfx.fillTriangle(
@@ -197,6 +243,7 @@ export class TutorialCatOverlay {
       bestCorner.b2.x, bestCorner.b2.y,
       tipX, tipY,
     );
+    tailGfx.fillCircle(tipX, tipY, 9);
     this.container.add(tailGfx);
 
     const bubbleGfx = this.scene.add.graphics();
