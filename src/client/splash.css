@@ -27,6 +27,24 @@
   gap: 0;
   color: #ffffff;
   background: #0b041a;
+  position: relative;
+}
+
+/* Full-page background layer — splash.ts sets background-image to the
+   post's activeBackground PNG once the preview fetch resolves. Sits
+   behind everything (z-index -1) so the cat-stage band, info panel,
+   plays banner, and play button all render on top. Default opacity is
+   slightly dimmed (0.6) so foreground text stays readable over busy
+   bgs. Hidden until the bg URL is set (no flash of color shift). */
+.splash-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 /* === Cat stage (captured screenshot fills here) ============= */

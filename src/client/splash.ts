@@ -19,6 +19,7 @@ import { context, requestExpandedMode } from '@devvit/web/client';
 
 const LB_POLL_MS = 10_000;
 
+const splashBg = document.getElementById('splash-bg') as HTMLDivElement | null;
 const stage = document.getElementById('stage') as HTMLDivElement | null;
 const marqueeFallback = document.getElementById('marquee-fallback') as HTMLDivElement | null;
 const infoPanel = document.getElementById('info') as HTMLDivElement | null;
@@ -46,6 +47,10 @@ const postId = context.postId;
 interface VisitData {
   ownerUsername?: string;
   previewImage?: string | null;
+  /** Post's stage background id (e.g. 'saloon', 'cathedral') — splash
+   *  applies the matching theme PNG as a full-page background layer
+   *  so the inline preview reads like the in-game stage. */
+  activeBackground?: string | null;
   song?: { title?: string; vibe?: string; difficulty?: string };
 }
 
@@ -92,6 +97,13 @@ async function loadLeaderboard(): Promise<void> {
 }
 
 function renderVisit(d: VisitData): void {
+  // Full-page bg layer — Preloader.ts loads theme bgs from
+  // /assets/themes/<id>-bg.png; we use the same path here so splash
+  // and in-game show the same source asset for any given post.
+  if (d.activeBackground && splashBg) {
+    splashBg.style.backgroundImage = `url(/assets/themes/${d.activeBackground}-bg.png)`;
+    splashBg.style.display = '';
+  }
   if (d.previewImage && stage && marqueeFallback) {
     stage.style.backgroundImage = `url(${d.previewImage})`;
     marqueeFallback.style.display = 'none';

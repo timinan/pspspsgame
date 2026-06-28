@@ -10,6 +10,13 @@
     <title>Meowcert</title>
   </head>
   <body class="splash">
+    <!-- Full-page background layer (z-index -1). splash.ts sets its
+         background-image to the post's bg PNG so the splash reads like
+         the in-game stage — bg fills the whole page, captured cat
+         snapshot sits on top in the .stage band. Hidden by default;
+         shown once we have the activeBackground id from /api/preview-image. -->
+    <div class="splash-bg" id="splash-bg" style="display: none;"></div>
+
     <!-- Cat-stage band — owner's captured screenshot fills this once
          the preview fetch resolves. Until then, the marquee fallback
          keeps the splash branded instead of blank. -->

@@ -37,6 +37,21 @@ preview.get('/', async (c) => {
   const previewImage = await redis.get(`meowcert:post-preview:${postId}`);
   console.info(`[preview] owner=${ownerUsername} hasImage=${!!previewImage}`);
 
+  // Per-post stage's activeBackground — used by the splash to render
+  // the host's bg as the page background under the cat-stage snapshot,
+  // so the inline preview reads like the in-game stage (bg fills the
+  // whole splash, not just the captured band).
+  let activeBackground: string | null = null;
+  const postStageRaw = await redis.get(`meowcert:post-stage:${postId}`);
+  if (postStageRaw) {
+    try {
+      const parsed = JSON.parse(postStageRaw) as { activeBackground?: string };
+      activeBackground = parsed.activeBackground ?? null;
+    } catch (err) {
+      console.warn(`[preview] post-stage parse fail for ${postId}:`, err);
+    }
+  }
+
   // Song line uses the BACKING song's displayName (recognizable thing
   // like "Mahalia - I Wish I Missed My Ex"), NOT chart.title (which is
   // hardcoded 'My Beat' or 'Rehearsal' from the generator). Resolved
@@ -67,6 +82,7 @@ preview.get('/', async (c) => {
     postId,
     ownerUsername,
     previewImage: previewImage ?? null,
+    activeBackground,
     song: { title, vibe, difficulty },
   });
 });
