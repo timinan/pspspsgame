@@ -1,9 +1,15 @@
+import * as Phaser from 'phaser';
 import { GameObjects, Scene } from 'phaser';
 import { BACKGROUND_CATALOG } from '@/../shared/state';
 import type { BackgroundId } from '@/../shared/state';
 import { TopHud } from '@/ui/top-hud';
 
 const KNOWN_IDS = Object.keys(BACKGROUND_CATALOG) as BackgroundId[];
+
+/** Module-level dedup so multiple BackgroundManager instances (across
+ *  scenes, or this scene + Decorate's picker) don't trigger duplicate
+ *  fetches for the same bg key. Resolves to the same promise. */
+const pendingBgLoads = new Map<string, Promise<void>>();
 
 /**
  * Draws a themed procedural backdrop behind the cat stage.
@@ -33,7 +39,23 @@ export class BackgroundManager {
 
   setBackground(id: BackgroundId): void {
     this.active = KNOWN_IDS.includes(id) ? id : 'stage';
-    this.draw();
+    this.draw(); // shows fallback rect immediately if texture missing
+    // Lazy-load the bg PNG if it's not already in the texture cache.
+    // Preloader no longer eager-loads every theme (was 119MB cold-load);
+    // theme bgs fetch on demand here. Once loaded, draw() runs again so
+    // the fallback rect swaps to the real bg.
+    const entry = BACKGROUND_CATALOG[this.active];
+    if (entry && !this.scene.textures.exists(entry.backdropKey)) {
+      const targetId = this.active;
+      void loadBgIfMissing(this.scene, this.active).then(() => {
+        // Only redraw if the user hasn't picked a different bg while
+        // this one was loading. Stale completions are silently dropped.
+        if (this.active === targetId && this.container) this.draw();
+      }).catch((err) => {
+        console.warn('[bg] lazy load failed for', targetId, err);
+        // Fallback rect already showing from the draw() above; nothing to undo.
+      });
+    }
   }
 
   /** Redraws the container contents for the active background id.
@@ -92,4 +114,45 @@ export class BackgroundManager {
     this.container?.destroy(true);
     this.container = undefined;
   }
+}
+
+/** Lazy-load a single theme bg PNG into the scene's texture cache.
+ *  Idempotent + deduped at module scope — calling twice for the same
+ *  bg returns the same in-flight promise. No-ops if the texture is
+ *  already loaded.
+ *
+ *  Uses a FRESH Phaser.Loader.LoaderPlugin (not the scene's default
+ *  `this.load`) so the load doesn't put the scene into its LOADING
+ *  state. Prior attempt #1 used `this.load.image + this.load.start`
+ *  on the active scene, which conflicted with the hamburger drawer's
+ *  open/close tween. A separate LoaderPlugin instance has its own
+ *  state machine + still uses Phaser's URL resolver + texture cache
+ *  (fixes prior attempt #2's native-Image URL-resolution issue in
+ *  Devvit's webview iframe). `setPath('assets')` mirrors Preloader's
+ *  base path exactly so theme URLs resolve identically. */
+export function loadBgIfMissing(scene: Scene, bgId: BackgroundId): Promise<void> {
+  const entry = BACKGROUND_CATALOG[bgId];
+  if (!entry) return Promise.reject(new Error(`unknown bg id: ${bgId}`));
+  if (scene.textures.exists(entry.backdropKey)) return Promise.resolve();
+  const existing = pendingBgLoads.get(entry.backdropKey);
+  if (existing) return existing;
+  const promise = new Promise<void>((resolve, reject) => {
+    const loader = new Phaser.Loader.LoaderPlugin(scene);
+    loader.setPath('assets');
+    loader.image(entry.backdropKey, `themes/${entry.id}-bg.png`);
+    loader.once(Phaser.Loader.Events.COMPLETE, () => {
+      pendingBgLoads.delete(entry.backdropKey);
+      loader.destroy();
+      resolve();
+    });
+    loader.once(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
+      console.warn('[bg-lazy] failed:', file.key, file.url);
+      pendingBgLoads.delete(entry.backdropKey);
+      loader.destroy();
+      reject(new Error(`bg load failed: ${file.url}`));
+    });
+    loader.start();
+  });
+  pendingBgLoads.set(entry.backdropKey, promise);
+  return promise;
 }

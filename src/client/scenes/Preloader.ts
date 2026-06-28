@@ -54,15 +54,23 @@ export class Preloader extends Scene {
     this.load.image(AssetKeys.Image.MeowcertElementBallWhite, 'images/PSElement_ball-white.png');
     this.load.image(AssetKeys.Image.MeowcertElementLetters, 'images/PSElement_letters.png');
     this.load.image(AssetKeys.Image.MeowcertTubeWhite, 'images/PSTube-white.png');
-    // Eager-load all theme bgs. Tried lazy-loading non-stage bgs to
-    // shrink cold-load — both Phaser's Loader (state conflict with
-    // tweens) and native Image fallback (URL resolution issue in
-    // Devvit's WebView) created bigger problems than they solved
-    // (hamburger freeze, missing thumbnails). Slow cold-load is the
-    // lesser pain until we have time for a proper fix (webp + smaller
-    // thumbnails, or a CDN-side prefetch hint).
-    for (const bg of Object.values(BACKGROUND_CATALOG)) {
-      this.load.image(bg.backdropKey, `themes/${bg.id}-bg.png`);
+    // Only eager-load the default 'stage' bg — every other theme
+    // lazy-loads on demand via BackgroundManager.setBackground() which
+    // calls loadBgIfMissing() on first use. Was eagerly loading all
+    // ~25 themes (~119MB cold-load); now ships ~1-2MB for the default.
+    // Decorate's theme picker falls back to a placeholder rect for
+    // un-loaded thumbnails (already-existing graceful path), then the
+    // actual bg loads when the user taps to pick it.
+    //
+    // Prior lazy attempts failed because they used the active scene's
+    // `this.load.image + start` (conflicted with hamburger drawer
+    // tween) or native Image with URL-resolution issues in Devvit's
+    // iframe. The new helper uses a fresh Phaser.Loader.LoaderPlugin
+    // instance (no scene-state conflict) + setPath('assets') (Devvit
+    // URL resolver). See entities/background-manager.ts loadBgIfMissing.
+    const defaultBg = BACKGROUND_CATALOG['stage'];
+    if (defaultBg) {
+      this.load.image(defaultBg.backdropKey, `themes/${defaultBg.id}-bg.png`);
     }
 
     // Per-frame translation offsets for each cat animation. Cat.ts reads
