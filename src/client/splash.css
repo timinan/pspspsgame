@@ -47,6 +47,15 @@
   background-position: center;
   background-repeat: no-repeat;
   pointer-events: none;
+  /* Fade the leftmost and rightmost 60px to transparent so theme PNGs
+     with decorative edge elements (yellow stars on the cosmic theme,
+     etc.) don't show as vertical streaks in the gutter beside the
+     centered content. 60px works for narrow Reddit feed widths where
+     the gutter is ~10-30px; on wider viewports the bg just extends
+     further before fading, which is fine (no streaks right next to
+     the content). */
+  -webkit-mask-image: linear-gradient(to right, transparent 0px, black 60px, black calc(100% - 60px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0px, black 60px, black calc(100% - 60px), transparent 100%);
 }
 
 /* === Cat stage (captured screenshot fills here) ============= */
