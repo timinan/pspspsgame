@@ -18,6 +18,7 @@ import {
 import { TutorialCatOverlay } from '@/ui/tutorial-cat';
 import { Picker } from '@/ui/picker';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
+import { loadBgIfMissing } from '@/entities/background-manager';
 import {
   BACKGROUND_CATALOG,
   CAT_CATALOG,
@@ -79,6 +80,20 @@ export class TutorialOrchestrator extends Scene {
   /** True while a box-open animation or other async beat is in flight —
    *  suppresses double-taps on the Continue button. */
   private busy = false;
+  /** Step-specific UI gets thrown into here; renderStep() destroys this
+   *  container at the start of every step so we don't leak. Live-preview
+   *  elements (stage bg, seated cat, equipped cosmetics) live OUTSIDE
+   *  this container so they persist across step transitions. */
+  private stepUI: Phaser.GameObjects.Container | undefined;
+  /** Persistent backdrop fallback — shows under everything when no
+   *  stage has been picked yet. */
+  private backdropFallback: Phaser.GameObjects.Rectangle | undefined;
+  /** Live stage preview — appears after pick-stage, persists. */
+  private stageBg: Phaser.GameObjects.Image | undefined;
+  private stageBgId: BackgroundId | undefined;
+  /** Live seated cat — appears after pick-cat, persists. */
+  private seatedCat: Phaser.GameObjects.Sprite | undefined;
+  private seatedCatBreed: CatBreed | undefined;
 
   constructor() {
     super(SceneKeys.TutorialOrchestrator);
@@ -93,6 +108,17 @@ export class TutorialOrchestrator extends Scene {
   }
 
   create(): void {
+    const { width, height } = this.scale;
+
+    // Persistent backdrop — sits below everything and stays for the
+    // whole scene lifecycle. Stage bg (when picked) layers on top of
+    // this; otherwise this is the only thing visible behind the
+    // overlay.
+    this.backdropFallback = this.add
+      .rectangle(0, 0, width, height, 0x261540, 1)
+      .setOrigin(0, 0)
+      .setDepth(-200);
+
     this.renderStep();
     // Persist the entry step so a refresh during the very first beat
     // still resumes here. Subsequent advances persist in `advance()`.
@@ -104,8 +130,10 @@ export class TutorialOrchestrator extends Scene {
   // -----------------------------------------------------------------------
 
   private renderStep(): void {
-    // Tear down the previous step's children.
-    this.children.removeAll(true);
+    // Tear down ONLY step-specific UI. The live preview (stage bg +
+    // seated cat + cosmetics) persists across steps.
+    this.stepUI?.destroy(true);
+    this.stepUI = this.add.container(0, 0);
     this.overlay?.destroy();
     this.overlay = undefined;
     this.picker?.destroy();
@@ -113,19 +141,17 @@ export class TutorialOrchestrator extends Scene {
 
     const { width, height } = this.scale;
 
-    // Deep purple backdrop. The TutorialCatOverlay sits on top.
-    this.add.rectangle(0, 0, width, height, 0x261540, 1).setOrigin(0, 0);
-
     // Step indicator — kept small + dim in the corner during the
     // skeleton phases. Useful for QA + screenshots. Tomorrow's polish
     // pass can remove or replace.
-    this.add
+    const stepLabel = this.add
       .text(width - 12, 12, this.currentStep, {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontSize: '8px',
         color: '#6f5a91',
       })
       .setOrigin(1, 0);
+    this.stepUI.add(stepLabel);
 
     const lines = getTutorialDialogue(this.currentStep);
     const rawLine = lines[Math.min(this.dialogueIndex, lines.length - 1)] ?? '';
@@ -230,6 +256,7 @@ export class TutorialOrchestrator extends Scene {
       if (this.busy) return;
       void this.skipTutorial();
     });
+    this.stepUI?.add(skipText);
   }
 
   // -----------------------------------------------------------------------
@@ -327,6 +354,7 @@ export class TutorialOrchestrator extends Scene {
     } catch (e) {
       console.warn('[tutorial] setBackground failed (continuing anyway)', e);
     }
+    this.applyLiveStageBg(stageId);
     await this.advance();
   }
 
@@ -337,7 +365,69 @@ export class TutorialOrchestrator extends Scene {
     } catch (e) {
       console.warn('[tutorial] seedStarterCat failed (continuing anyway)', e);
     }
+    this.applyLiveCat(breed);
     await this.advance();
+  }
+
+  // -----------------------------------------------------------------------
+  // Private — live stage preview (persists across step transitions)
+  // -----------------------------------------------------------------------
+
+  /** Render the picked stage's background behind the overlay. Uses the
+   *  thumb texture (eager-loaded) immediately; lazy-loads the full bg
+   *  and swaps to the higher-res version when it arrives.  */
+  private applyLiveStageBg(stageId: BackgroundId): void {
+    this.stageBgId = stageId;
+    const entry = BACKGROUND_CATALOG[stageId];
+    if (!entry) return;
+    const { width, height } = this.scale;
+
+    // Prefer the full bg if cached; fall back to the thumb (always
+    // loaded). Same fallback chain the BackgroundManager uses.
+    const fullKey = entry.backdropKey;
+    const thumbKey = `${fullKey}-thumb`;
+    const initialKey = this.textures.exists(fullKey)
+      ? fullKey
+      : this.textures.exists(thumbKey)
+        ? thumbKey
+        : null;
+    if (!initialKey) return;
+
+    // Tear down any previous stage bg before drawing.
+    this.stageBg?.destroy();
+    this.stageBg = this.add
+      .image(width / 2, height / 2, initialKey)
+      .setDisplaySize(width, height)
+      .setDepth(-150);
+
+    // Lazy-load the full version if we started with the thumb.
+    if (initialKey !== fullKey) {
+      void loadBgIfMissing(this, stageId).then(() => {
+        // Stale-completion guard — bail if the user picked a different
+        // stage while this one was loading.
+        if (this.stageBgId !== stageId || !this.stageBg) return;
+        this.stageBg.setTexture(fullKey);
+        this.stageBg.setDisplaySize(width, height);
+      }).catch(() => { /* fallback rect stays */ });
+    }
+  }
+
+  /** Render the picked cat in the middle-center of the canvas, on top
+   *  of the stage bg. Replaces any existing seated cat. */
+  private applyLiveCat(breed: CatBreed): void {
+    this.seatedCatBreed = breed;
+    this.seatedCat?.destroy();
+    const { width, height } = this.scale;
+    // Position roughly where the player would expect the center-stage
+    // cat — about 60% down from the top so it sits in the lower half
+    // of the canvas, below the tutorial-cat overlay zone.
+    const x = width / 2;
+    const y = height * 0.62;
+    this.seatedCat = this.add
+      .sprite(x, y, AssetKeys.Atlas.Cats, `${breed}_idle_00`)
+      .setOrigin(0.5, 1)
+      .setScale(2.0)
+      .setDepth(-100);
   }
 
   // -----------------------------------------------------------------------
