@@ -34,11 +34,11 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
   'box-effect':
     "next, let's open up an effects box — that's where you'll find sparkles, flames, and particle flair that make your cats stand out.",
   'stage-set-confirm':
-    "your stage is set! you can always come back here when you've got more merch, hired more bandmembers, or even found cooler venues for your gigs — change them up any time.",
+    "your stage is set! this is what you'll see when you practice or when you put on a show for others. you can always come back here with this tab on the menu.",
   'rehearsal-intro':
     "now let's get to rehearsing. you'll find REHEARSE in here whenever you want to practice. tap it to head to the stage.",
   'play-tutorial-intro':
-    "your stage is set! let's rehearse for your first show. we'll be pspspsing the cat — they prefer little ps sounds over loud claps.",
+    "let's rehearse! we'll be pspspsing the performers — they prefer being cheered on that way over loud claps.",
   'play-tutorial': [
     "nice! those are taps. they're the basic note.",
     "your cat lives in the middle for now, but the side lanes still work — they're ready for when you hire more bandmembers.",
