@@ -204,12 +204,19 @@ export class Game extends Scene {
   // panel covers the SHOW COMPLETE content, so page-1 doesn't need
   // per-child hiding. Wired up in stage 3 (Page-2 currently has no
   // interaction handlers; visual layout only.)
-  private summaryActivePage: 1 | 2 = 1;
+  private summaryActivePage: 1 | 2 | 3 = 1;
   private summaryPage2: Phaser.GameObjects.Container | null = null;
   private summaryPage2PostBg!: Phaser.GameObjects.Rectangle;
   private summaryPage2SkipBg!: Phaser.GameObjects.Rectangle;
   private summaryPage2BackBg!: Phaser.GameObjects.Rectangle;
   private summaryPage2TextareaBox!: Phaser.GameObjects.Rectangle;
+  // Page 3 — "what's next" menu shown after a successful POST. Lets the
+  // visitor leave the host's post for either their own stage (Decorate)
+  // or browse other posts (VisitShows). SKIP path doesn't reach here —
+  // it returns to page-1 so the user stays in the current play loop.
+  private summaryPage3: Phaser.GameObjects.Container | null = null;
+  private summaryPage3StageBg!: Phaser.GameObjects.Rectangle;
+  private summaryPage3ShowsBg!: Phaser.GameObjects.Rectangle;
   // HTML textarea overlay over the page-2 placeholder rect. Mounted on
   // page-2 show, unmounted on page-2 hide / summary close / scene shutdown.
   // Lives outside Phaser so it survives canvas redraws but follows the
@@ -1004,14 +1011,14 @@ export class Game extends Scene {
         return;
       }
       const body = this.summaryPage2Textarea?.value?.trim() ?? '';
-      this.setSummaryPage(1);
+      // POST flips to page-3 (what's next menu) instead of page-1 —
+      // user just submitted, give them a forward path (own stage / find
+      // shows) rather than dumping them back on the stats they already
+      // saw. recordPlay (not finalizePlay) — no scene.restart, so the
+      // page-3 visibility flip from setSummaryPage(3) survives until the
+      // user picks an option.
+      this.setSummaryPage(3);
       this.summaryPage2PlaySummary = null;
-      // recordPlay (not finalizePlay) — submits play + Reddit comment WITHOUT
-      // scene.restart. Restart loses visitor-mode state (visitPostId /
-      // visitPostStage), so the new round boots into default mode with
-      // default assets. Staying on summary page-1 lets the user see their
-      // result + tap Play Again (which uses replayInPlace, preserving
-      // everything) when they want to retry.
       void this.recordPlay(summary, body.length > 0 ? body : undefined, undefined);
     });
     this.summaryPage2SkipBg.on('pointerdown', () => {
@@ -1028,18 +1035,99 @@ export class Game extends Scene {
     container.add(page2);
     this.summaryPage2 = page2;
 
+    // ---- Page 3: "what's next" menu shown after a successful POST ----
+    // Same dimensions + colors as page-1/page-2 panels so transitions
+    // read as same surface, different page. Two stacked options:
+    // Go to your stage (Decorate) + Find other shows (VisitShows).
+    const page3 = this.add.container(0, 0).setVisible(false);
+    const page3Panel = this.add.rectangle(cx, cy, panelW, panelH, 0x1a0a2e, 1);
+    page3Panel.setStrokeStyle(2, 0xc678ff, 0.8);
+    page3.add(page3Panel);
+
+    const page3Title = this.add
+      .text(cx, cy - panelH / 2 + 22, "WHAT'S NEXT?", {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '14px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5, 0);
+    page3.add(page3Title);
+
+    const page3Sub = this.add
+      .text(cx, cy - panelH / 2 + 46, 'comment posted · thanks for playing', {
+        ...fontBase,
+        fontSize: '9px',
+        color: '#c0a0e6',
+      })
+      .setOrigin(0.5, 0);
+    page3.add(page3Sub);
+
+    // Stacked CTA buttons. Stage (yellow primary, top) sits where the
+    // eye is drawn after reading the title. Shows (purple secondary,
+    // below) is the alternate path.
+    const p3BtnW = panelW - 64;
+    const p3BtnH = 44;
+    const p3StageY = cy - 4;
+    const p3ShowsY = cy + 56;
+
+    this.summaryPage3StageBg = this.add
+      .rectangle(cx, p3StageY, p3BtnW, p3BtnH, 0xffd34d, 1)
+      .setInteractive({ useHandCursor: true });
+    const p3StageText = this.add
+      .text(cx, p3StageY, '😺  GO TO YOUR STAGE', {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '13px',
+        color: '#1a0a2e',
+      })
+      .setOrigin(0.5);
+    page3.add([this.summaryPage3StageBg, p3StageText]);
+    this.summaryPage3StageBg.on('pointerover', () => this.summaryPage3StageBg.setFillStyle(0xffe680, 1));
+    this.summaryPage3StageBg.on('pointerout', () => this.summaryPage3StageBg.setFillStyle(0xffd34d, 1));
+    this.summaryPage3StageBg.on('pointerdown', () => {
+      // scene.start carries playerState — visitor's own state, so Decorate
+      // boots with the visitor's cats + bg, not the host's. The host's
+      // visitPostStage is Game-scene-local and dies with the teardown.
+      this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
+    });
+
+    this.summaryPage3ShowsBg = this.add
+      .rectangle(cx, p3ShowsY, p3BtnW, p3BtnH, 0x2c1856, 1)
+      .setStrokeStyle(1, 0xc0a0e6, 0.5)
+      .setInteractive({ useHandCursor: true });
+    const p3ShowsText = this.add
+      .text(cx, p3ShowsY, '👀  FIND OTHER SHOWS', {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '13px',
+        color: '#c0a0e6',
+      })
+      .setOrigin(0.5);
+    page3.add([this.summaryPage3ShowsBg, p3ShowsText]);
+    this.summaryPage3ShowsBg.on('pointerover', () => this.summaryPage3ShowsBg.setFillStyle(0x3d2566, 1));
+    this.summaryPage3ShowsBg.on('pointerout', () => this.summaryPage3ShowsBg.setFillStyle(0x2c1856, 1));
+    this.summaryPage3ShowsBg.on('pointerdown', () => {
+      this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState });
+    });
+
+    container.add(page3);
+    this.summaryPage3 = page3;
+
     this.summary = container;
   }
 
   /** Toggle the summary panel between page-1 (stats + Play Again/Post
-   *  Comment) and page-2 (comment compose surface). Page-2's panel fully
-   *  overlays page-1 when visible, so this is a single visibility flip
-   *  on the page-2 sub-container — page-1 doesn't need per-child hiding.
-   *  Mounts / unmounts the HTML textarea overlay as a side effect. */
-  private setSummaryPage(page: 1 | 2): void {
-    if (!this.summaryPage2) return;
+   *  Comment), page-2 (comment compose), and page-3 (what's-next menu
+   *  after a successful POST). Page-2/3 panels fully overlay page-1 when
+   *  visible, so toggling is a per-sub-container visibility flip — page-1
+   *  doesn't need per-child hiding. Mounts / unmounts the HTML textarea
+   *  overlay as a side effect (only mounted on page-2). */
+  private setSummaryPage(page: 1 | 2 | 3): void {
+    if (!this.summaryPage2 || !this.summaryPage3) return;
     this.summaryActivePage = page;
     this.summaryPage2.setVisible(page === 2);
+    this.summaryPage3.setVisible(page === 3);
     if (page === 2) this.mountSummaryPage2Overlay();
     else this.unmountSummaryPage2Overlay();
   }
