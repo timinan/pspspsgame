@@ -168,7 +168,13 @@ export class TutorialOrchestrator extends Scene {
 
     const lines = getTutorialDialogue(this.currentStep);
     const rawLine = lines[Math.min(this.dialogueIndex, lines.length - 1)] ?? '';
-    const line = personalize(rawLine, this.posterUsername);
+    // Resolve the seated cat's name for <catname> substitution in
+    // merch-intro etc. Falls back to the breed default if rename
+    // hasn't fired yet.
+    const seatedCatName = (this.seatedCatBreed
+      ? this.playerState?.ownedCats.find((c) => c.breed === this.seatedCatBreed)?.name
+      : undefined) ?? this.seatedCatBreed;
+    const line = personalize(rawLine, this.posterUsername, seatedCatName);
     const hasMoreDialogue = this.dialogueIndex < lines.length - 1;
 
     // Picker steps: tapping a card previews the choice live; an
@@ -838,8 +844,11 @@ export class TutorialOrchestrator extends Scene {
    *   cosmetics for him." */
   private switchToMerchLayout(): void {
     if (!this.seatedCat) return;
-    const merchY = 460;
-    const merchScale = 2.2;
+    // Tim: 'cat can be more to the center and just slightly bigger'.
+    // y=460 → 430 (lifts the cat into the empty middle zone) +
+    // scale 2.2 → 2.7 (bigger silhouette).
+    const merchY = 430;
+    const merchScale = 2.7;
     this.seatedCat.setY(merchY);
     this.seatedCat.setScale(merchScale);
     // Stacked cosmetic sprites ride the same anchor.

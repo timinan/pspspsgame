@@ -36,6 +36,10 @@ interface ShowOptions {
    *  beat per Tim's feedback ("make butters big and then move him to
    *  the current position for the next screen on"). */
   hero?: boolean;
+  /** Override the bubble's top Y. Defaults to 28 (top of canvas).
+   *  Push down on merch beats so the bubble sits just above the big
+   *  seated cat instead of leaving a giant gap in the middle. */
+  bubbleY?: number;
 }
 
 export class TutorialCatOverlay {
@@ -85,7 +89,7 @@ export class TutorialCatOverlay {
     // Hero layout puts the bubble at the top spanning the canvas;
     // normal layout puts it beside Butters in the top-right zone.
     const bubbleX = hero ? 16 : catX + 50;
-    const bubbleY = hero ? 28 : 28;
+    const bubbleY = hero ? 28 : (opts.bubbleY ?? 28);
     const bubbleW = hero ? width - 32 : Math.min(width - bubbleX - 12, 230);
     const bubblePadding = 16;
     const bubbleRadius = 16;

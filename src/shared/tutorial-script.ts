@@ -28,11 +28,11 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
   'pick-cat':
     "next, pick your first bandmember. you'll be able to hire more bandmembers as you earn rewards from hosting and attending shows.",
   'merch-intro':
-    "let's check the merch table — looks like you've got two boxes to open. one for cosmetics (hats, bows, accessories) and one for effects (sparkles, flames, particle flair that makes your cats stand out).",
+    "welcome to the band, <catname>! let's check the merch table to spice up your new bandmember.",
   'box-cosmetic':
-    "let's see what's in the cosmetic box…",
+    "first, let's open up a cosmetic box — that's where you'll find hats, bows, and other accessories for your cats.",
   'box-effect':
-    "and now the effect box…",
+    "next, let's open up an effects box — that's where you'll find sparkles, flames, and particle flair that make your cats stand out.",
   'stage-set-confirm':
     "your stage is set! you can always come back here when you've got more merch, hired more bandmembers, or even found cooler venues for your gigs — change them up any time.",
   'rehearsal-intro':
@@ -70,9 +70,23 @@ export function getTutorialDialogue(step: TutorialStepId): string[] {
   return Array.isArray(d) ? d : [d];
 }
 
-/** Substitute `<poster>` with a real Reddit username for the route-b
- *  outro. Returns the line unchanged if `<poster>` isn't present. */
-export function personalize(line: string, posterUsername: string | undefined): string {
-  if (!posterUsername) return line.replace('<poster>', 'your friend');
-  return line.replace('<poster>', `u/${posterUsername}`);
+/** Substitute template placeholders:
+ *   - `<poster>` → the deep-link poster's username (route-b-outro)
+ *   - `<catname>` → the player's seated starter cat name (merch-intro)
+ *  Returns the line unchanged where a placeholder isn't present.
+ *  Missing values get sensible fallbacks. */
+export function personalize(
+  line: string,
+  posterUsername: string | undefined,
+  catName?: string,
+): string {
+  let out = posterUsername
+    ? line.replace('<poster>', `u/${posterUsername}`)
+    : line.replace('<poster>', 'your friend');
+  if (catName) {
+    out = out.replace('<catname>', catName);
+  } else {
+    out = out.replace('<catname>', 'your new bandmember');
+  }
+  return out;
 }
