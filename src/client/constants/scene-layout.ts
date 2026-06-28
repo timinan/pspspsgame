@@ -8,11 +8,13 @@ export const CAT_STAGE_H = 190;
 export const BOTTOM_HUD_H = 0;
 export const LANE_TOP_Y = TOP_HUD_H + CAT_STAGE_H;        // = 226
 export const LANE_BOTTOM_Y = DESIGN_H;                    // = 580
-// Hit line sits 40px above the lane bottom so the falling note can
-// continue past the target before it leaves the lane — gives the player
-// a chance to land a great/perfect tap on the "other side" of the
-// target instead of missing the moment it touches the target.
-export const HIT_LINE_Y = LANE_BOTTOM_Y - 40;             // = 540
+// Hit line sits 70px above the lane bottom so the fuzzball targets
+// catch closer to the cats (Tim's request — "move them up slightly").
+// The remaining 70px below the hit line still gives the player room
+// for great/perfect taps on the "other side" of the target before the
+// note leaves the lane. Was 40 (= 540); 70 = 510. Iterate if Tim
+// wants higher (closer to cats) or lower.
+export const HIT_LINE_Y = LANE_BOTTOM_Y - 70;             // = 510
 // Bars run edge-to-edge with no padding between them — the rhythm bar
 // texture is the floor of the playfield and Tim wants no background gaps
 // peeking through. laneCenterX and the lane-width math both honor these

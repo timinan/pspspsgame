@@ -706,8 +706,10 @@ export class Game extends Scene {
     const fontBase = { fontFamily: 'Pixeloid Sans, sans-serif' };
 
     // Title — defaults to the success copy; showSummary() overrides for
-    // the test-mode fail case.
-    this.summaryTitleText = this.add.text(cx, cy - 112, 'SHOW COMPLETE!', {
+    // the test-mode fail case. Anchored close to panel top (~12px gap)
+    // so there's no awkward whitespace above the title. Tim: "no need
+    // for so much white space above show failed."
+    this.summaryTitleText = this.add.text(cx, cy - 128, 'SHOW COMPLETE!', {
       ...fontBase,
       fontStyle: 'bold',
       fontSize: '13px',
@@ -715,19 +717,21 @@ export class Game extends Scene {
     }).setOrigin(0.5, 0);
     container.add(this.summaryTitleText);
 
-    // Divider line
-    const divider = this.add.rectangle(cx, cy - 94, panelW - 32, 1, 0xc0a0e6, 0.3);
+    // Divider line — title moved up 16px so this + everything below
+    // shifts up 16px too, freeing room at the bottom for the gate text
+    // (which was overlapping the BEST score row).
+    const divider = this.add.rectangle(cx, cy - 110, panelW - 32, 1, 0xc0a0e6, 0.3);
     container.add(divider);
 
     // Final score label + value
-    const scoreLabel = this.add.text(cx, cy - 84, 'FINAL SCORE', {
+    const scoreLabel = this.add.text(cx, cy - 100, 'FINAL SCORE', {
       ...fontBase,
       fontSize: '10px',
       color: '#c0a0e6',
     }).setOrigin(0.5, 0);
     container.add(scoreLabel);
 
-    this.summaryScoreText = this.add.text(cx, cy - 68, '0', {
+    this.summaryScoreText = this.add.text(cx, cy - 84, '0', {
       ...fontBase,
       fontStyle: 'bold',
       fontSize: '32px',
@@ -738,7 +742,7 @@ export class Game extends Scene {
     // Stats row: accuracy / max combo / hits / misses. Four equal cols
     // so the player can read landed-vs-missed at a glance instead of
     // just inferring it from the percentage.
-    const statsY = cy - 24;
+    const statsY = cy - 40;
     const statLabels = ['ACCURACY', 'MAX COMBO', 'HITS', 'MISSES'];
     const margin = 8;
     const slotW = (panelW - margin * 2) / 4;
