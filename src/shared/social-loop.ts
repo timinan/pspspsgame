@@ -146,6 +146,63 @@ export function formatStatsComment(
   );
 }
 
+/** Stats payload for the per-post pinned mod comment. Server reads
+ *  everything Redis-side and passes a structured object to the
+ *  formatter — keeps the markdown shape in one place (testable from
+ *  shared) and the data fetches in routes. */
+export interface PinnedSummaryStats {
+  ownerUsername: string;
+  difficulty: string | null;
+  songTitle: string | null;
+  totalPlays: number;
+  passCount: number;
+  combinedScore: number;
+  /** Highest-PB non-owner entry — null if no non-owner has played yet
+   *  (test-only window where only the owner has self-played). Excludes
+   *  the owner intentionally so they can't claim "best player" on
+   *  their own post. */
+  topPlayer: { username: string; score: number } | null;
+  /** First non-owner visitor who passed — null until a non-owner
+   *  passes. Owner self-passes never qualify. */
+  firstPasser: string | null;
+}
+
+/** Markdown body for the per-post pinned mod comment. Rendered + posted
+ *  via reddit.submitComment(runAs:APP) at publish; re-rendered + edited
+ *  via Comment.edit() on every play. Owner-friendly degradation —
+ *  topPlayer / firstPasser fall back to '—' when only the owner has
+ *  played, so the format stays consistent through the post's lifecycle. */
+export function formatPinnedSummary(s: PinnedSummaryStats): string {
+  const diffEmoji: Record<string, string> = {
+    easy: '🟢',
+    medium: '🟡',
+    spicy: '🟠',
+    hard: '🔴',
+    insane: '💀',
+  };
+  const diffLabel = s.difficulty
+    ? `${diffEmoji[s.difficulty] ?? '⭐'} ${s.difficulty.toUpperCase()}`
+    : '';
+  const songLine = s.songTitle ? ` · 🎵 ${s.songTitle}` : '';
+  const passPct = s.totalPlays > 0
+    ? Math.round((s.passCount / s.totalPlays) * 100)
+    : 0;
+  const topLine = s.topPlayer
+    ? `🥇 Top player: u/${s.topPlayer.username} — **${s.topPlayer.score.toLocaleString()}**`
+    : '🥇 Top player: —';
+  const firstLine = s.firstPasser
+    ? `🐱 First pass: u/${s.firstPasser}`
+    : '🐱 First pass: —';
+  return (
+    `🏆 **u/${s.ownerUsername}'s show**${diffLabel ? ' · ' + diffLabel : ''}${songLine}\n\n` +
+    `📊 **${s.totalPlays.toLocaleString()} plays** · ✅ ${s.passCount.toLocaleString()} passes (${passPct}%)\n` +
+    `🎯 Combined score: **${s.combinedScore.toLocaleString()}**\n\n` +
+    `${topLine}\n` +
+    `${firstLine}\n\n` +
+    `*Tap the post above to play. Stats refresh after every run.*`
+  );
+}
+
 // -- Gift payload + transfer model ------------------------------------
 
 export interface GiftPayload {
