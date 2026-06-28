@@ -41,6 +41,10 @@ interface PickerOptions<T> {
    *  change selection. When false, the first tap is final and the
    *  picker locks after the tap-pulse. */
   allowReselect?: boolean;
+  /** Card id to highlight on initial render. Doesn't fire onPick —
+   *  caller is expected to manage the initial side-effects. Useful
+   *  for "default to the first option" UX. */
+  defaultSelectedId?: string;
 }
 
 const CARD_FILL = 0x261540;
@@ -82,6 +86,8 @@ export class Picker<T extends string> {
     this.container = this.scene.add.container(0, 0);
     this.container.setDepth(1500);
 
+    // After build, apply selection chrome so the default-selected
+    // card is visually highlighted on first render.
     items.forEach((item, i) => {
       const x = startX + i * (cardW + gap);
 
@@ -136,6 +142,12 @@ export class Picker<T extends string> {
 
       this.cardChromeBySlot.push({ card, sprite, label, id: item.id });
 
+      // Default selected card paint (no onPick fire — caller handles
+      // the initial side-effects).
+      if (this.opts.defaultSelectedId && item.id === this.opts.defaultSelectedId) {
+        this.selectedId = item.id;
+      }
+
       // Selection
       card.on('pointerdown', () => {
         if (this.busy) return;
@@ -170,6 +182,11 @@ export class Picker<T extends string> {
         });
       });
     });
+
+    // Apply initial selection chrome — paints the default-highlighted
+    // card (if any) without firing onPick. Caller wires the initial
+    // side-effects after constructing the Picker.
+    if (this.selectedId) this.applySelectionChrome();
   }
 
   /** After a card is tapped, re-paint every card chrome so the selected

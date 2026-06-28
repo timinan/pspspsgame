@@ -31,6 +31,11 @@ interface ShowOptions {
   onContinue?: () => void;
   /** Default 'Continue →'. Override for "Next →" on multi-line beats. */
   continueLabel?: string;
+  /** When true: Butters is rendered large + centered to fill the
+   *  screen ('hero' intro layout). Used by the very first tutorial
+   *  beat per Tim's feedback ("make butters big and then move him to
+   *  the current position for the next screen on"). */
+  hero?: boolean;
 }
 
 export class TutorialCatOverlay {
@@ -51,11 +56,15 @@ export class TutorialCatOverlay {
     this.container.setDepth(2000);
 
     // -- Host cat sprite ----------------------------------------------
-    // Moved further down per Tim's screenshot feedback — sits lower so
-    // the speech bubble tail points naturally at Butters' head.
-    const catScale = 1.7;
-    const catX = 60;
-    const catY = 220;
+    // Two layouts:
+    //   hero (intro only): centered + scale 3.2, fills the screen so
+    //     Butters has full-screen presence at first introduction.
+    //   normal (default): top-left at scale 1.7, bubble runs from his
+    //     head across the top of the screen.
+    const hero = opts.hero === true;
+    const catScale = hero ? 3.2 : 1.7;
+    const catX = hero ? width / 2 : 60;
+    const catY = hero ? 360 : 220;
     const catSprite = this.scene.add
       .sprite(catX, catY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
       .setOrigin(0.5, 1)
@@ -73,9 +82,11 @@ export class TutorialCatOverlay {
     // Per Tim: bubble must always be the height of the text — no
     // whitespace under it. Approach: render the text first to measure
     // its height, then draw the bubble + tail sized to fit.
-    const bubbleX = catX + 50;
-    const bubbleY = 28;
-    const bubbleW = Math.min(width - bubbleX - 12, 230);
+    // Hero layout puts the bubble at the top spanning the canvas;
+    // normal layout puts it beside Butters in the top-right zone.
+    const bubbleX = hero ? 16 : catX + 50;
+    const bubbleY = hero ? 28 : 28;
+    const bubbleW = hero ? width - 32 : Math.min(width - bubbleX - 12, 230);
     const bubblePadding = 16;
     const bubbleRadius = 16;
 
@@ -101,14 +112,15 @@ export class TutorialCatOverlay {
     // Re-add text on top so it renders above the bubble fill.
     this.container.add(text);
 
-    // Tail — filled triangle at bubble's bottom-left area, tip pointing
-    // down-left at Butters' head. Same fill as the bubble so the two
-    // read as one shape.
+    // Tail — filled triangle pointing at Butters' head. Same fill as
+    // the bubble so the two read as one shape. Hero layout positions
+    // the tail at the bubble's bottom-center (pointing down at
+    // Butters); normal layout at bottom-left.
     const tailBaseY = bubbleY + bubbleH - 1;
-    const tailBaseLeftX = bubbleX + 12;
-    const tailBaseRightX = bubbleX + 44;
-    const tailTipX = catX + 24; // tip lands near Butters' head
-    const tailTipY = catY - 64; // head-level (60% up from feet)
+    const tailBaseLeftX = hero ? width / 2 - 16 : bubbleX + 12;
+    const tailBaseRightX = hero ? width / 2 + 16 : bubbleX + 44;
+    const tailTipX = hero ? width / 2 : catX + 24;
+    const tailTipY = hero ? catY - 200 : catY - 64;
 
     const tailGfx = this.scene.add.graphics();
     tailGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);

@@ -190,6 +190,7 @@ export class TutorialOrchestrator extends Scene {
         }),
         centerY: 420,
         allowReselect: true,
+        defaultSelectedId: STARTER_STAGES[0],
         onPick: (stageId) => {
           this.applyLiveStageBg(stageId as BackgroundId);
           // Server write fires on every preview so a refresh mid-pick
@@ -201,6 +202,15 @@ export class TutorialOrchestrator extends Scene {
           this.renderConfirmButton();
         },
       });
+      // Per Tim: default to the first venue highlighted + shown as bg
+      // on entry. Subsequent taps swap; Confirm advances.
+      const defaultStage = STARTER_STAGES[0];
+      if (defaultStage) {
+        this.applyLiveStageBg(defaultStage);
+        setBackground(defaultStage).catch(() => {});
+        this.pendingPickerSelection = defaultStage;
+        this.renderConfirmButton();
+      }
       return;
     }
 
@@ -272,11 +282,15 @@ export class TutorialOrchestrator extends Scene {
       return;
     }
 
-    // Default: dialogue + Continue.
+    // Default: dialogue + Continue. The intro step uses the 'hero'
+    // layout — Butters big + centered to fill the screen on first
+    // introduction; every subsequent step uses the normal top-left
+    // position.
     const continueLabel = hasMoreDialogue ? 'Next →' : 'Continue →';
     this.overlay = new TutorialCatOverlay(this);
     this.overlay.show(line, {
       continueLabel,
+      hero: this.currentStep === 'intro',
       onContinue: () => {
         if (this.busy) return;
         if (hasMoreDialogue) {

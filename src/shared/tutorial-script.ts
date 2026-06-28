@@ -22,7 +22,7 @@ import type { TutorialStepId } from './tutorial-types';
 
 export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
   'intro':
-    "hey, I'm Butters — I'll show you the ropes before you go off on your own. we are here to put on a meowcert for all to enjoy.",
+    "hey, I'm Butters. I noticed you're new here, so let me show you the ropes before we put on a Meowcert.",
   'pick-stage':
     "first, let's pick a venue for your show. don't worry — there will be cooler venues for you to perform at later, but for now pick one of the 3 available.",
   'pick-cat':
