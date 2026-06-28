@@ -3,6 +3,7 @@ export const SceneKeys = {
   Preloader: 'Preloader',
   MainMenu: 'MainMenu',
   Welcome: 'Welcome',
+  TutorialOrchestrator: 'TutorialOrchestrator',
   Game: 'Game',
   Purchase: 'Purchase',
   Decorate: 'Decorate',

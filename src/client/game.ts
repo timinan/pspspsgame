@@ -9,6 +9,7 @@ import * as Phaser from 'phaser';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { Welcome } from './scenes/Welcome';
+import { TutorialOrchestrator } from './scenes/TutorialOrchestrator';
 import { VisitShows } from './scenes/VisitShows';
 import { VisitPost } from './scenes/VisitPost';
 import { DESIGN_W, DESIGN_H } from './constants/scene-layout';
@@ -55,7 +56,7 @@ const config: Phaser.Types.Core.GameConfig = {
     width: DESIGN_W,
     height: DESIGN_H,
   },
-  scene: [Boot, Preloader, MainMenu, Welcome, MainGame, Purchase, Decorate, DressingRoom, ChartEditor, VisitShows, VisitPost],
+  scene: [Boot, Preloader, MainMenu, Welcome, TutorialOrchestrator, MainGame, Purchase, Decorate, DressingRoom, ChartEditor, VisitShows, VisitPost],
 };
 
 const StartGame = (parent: string) => {
