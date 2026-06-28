@@ -994,12 +994,22 @@ export class Decorate extends Scene {
 
       const isActive = activeBg === entry.id;
 
-      // Background backdrop as the actual thumbnail. Borderless on
-      // inactive thumbs (matches dressing room treatment); active bg
-      // gets a green ring so the current pick still pops.
-      const thumb = this.textures.exists(entry.backdropKey)
+      // Prefer the small picker thumbnail (eager-loaded by Preloader,
+      // ~18KB each) over the full bg texture — the full bg is only
+      // loaded after the user actually equips/previews a theme, so
+      // for most cells it isn't in the texture cache yet. Falls back
+      // to the full bg when the thumb is missing (newly-added theme
+      // that hasn't been backfilled by tools/gen-thumbs.mjs), and
+      // finally to a flat rect when neither is available.
+      const thumbKey = `${entry.backdropKey}-thumb`;
+      const tex = this.textures.exists(thumbKey)
+        ? thumbKey
+        : this.textures.exists(entry.backdropKey)
+          ? entry.backdropKey
+          : null;
+      const thumb = tex
         ? this.add
-            .image(x + thumbW / 2, y + thumbH / 2, entry.backdropKey)
+            .image(x + thumbW / 2, y + thumbH / 2, tex)
             .setDisplaySize(thumbW, thumbH)
             .setInteractive({ useHandCursor: true })
         : this.add

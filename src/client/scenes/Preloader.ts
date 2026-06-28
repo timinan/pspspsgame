@@ -73,6 +73,22 @@ export class Preloader extends Scene {
       this.load.image(defaultBg.backdropKey, `themes/${defaultBg.id}-bg.png`);
     }
 
+    // Eager-load the small picker thumbnail for every theme. ~18KB per
+    // PNG × ~100 themes = ~1.9MB total, vs the 119MB cold-load if we
+    // eager-loaded full bgs. Decorate's BG tray now renders the thumb
+    // texture (sharp picture) instead of a grey placeholder rect for
+    // unloaded full bgs. Full bgs still lazy-load on equip via
+    // BackgroundManager.setBackground() / loadBgIfMissing().
+    // Backfilled by tools/gen-thumbs.mjs; per-theme regen via the
+    // calibrator's "Save Thumb" button (POST /save-thumb/<id>).
+    // If a thumb is missing (newly added theme that hasn't been
+    // backfilled yet) Phaser swallows the 404 quietly and Decorate's
+    // tray falls back to the placeholder rect for that one cell.
+    for (const entry of Object.values(BACKGROUND_CATALOG)) {
+      const thumbKey = `${entry.backdropKey}-thumb`;
+      this.load.image(thumbKey, `themes/thumbs/${entry.id}-thumb.png`);
+    }
+
     // Per-frame translation offsets for each cat animation. Cat.ts reads
     // this from cache to ride static cosmetics along with their cat. Falls
     // back to a no-op (no offset applied) if the file is missing.
