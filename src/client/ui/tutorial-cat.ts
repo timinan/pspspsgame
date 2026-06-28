@@ -40,6 +40,17 @@ interface ShowOptions {
    *  Push down on merch beats so the bubble sits just above the big
    *  seated cat instead of leaving a giant gap in the middle. */
   bubbleY?: number;
+  /** Stage-mode layout — Butters is ALREADY rendered elsewhere on the
+   *  canvas (e.g. seated at the left lane during play-tutorial); the
+   *  overlay skips the inline Butters sprite and draws only the bubble
+   *  with its tail pointing at the given anchor (Butters' face). Used
+   *  by the rehearsal beats per Tim's feedback ("butters can shrink
+   *  down... where the usual other band member goes"). */
+  stageTailAt?: { x: number; y: number };
+  /** Center the bubble's TIP horizontally on this X. Pairs with
+   *  stageTailAt so the bubble width is constrained and the tail
+   *  reads as a callout from Butters, not a top-of-screen banner. */
+  stageBubbleCenterX?: number;
 }
 
 export class TutorialCatOverlay {
@@ -66,21 +77,26 @@ export class TutorialCatOverlay {
     //   normal (default): top-left at scale 1.7, bubble runs from his
     //     head across the top of the screen.
     const hero = opts.hero === true;
-    const catScale = hero ? 2.5 : 1.7;
-    const catX = hero ? width / 2 : 60;
-    const catY = hero ? 320 : 220;
-    const catSprite = this.scene.add
-      .sprite(catX, catY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
-      .setOrigin(0.5, 1)
-      .setScale(catScale);
-    this.container.add(catSprite);
+    const stageMode = opts.stageTailAt !== undefined;
+    let catX = 0;
+    let catY = 0;
+    if (!stageMode) {
+      const catScale = hero ? 2.5 : 1.7;
+      catX = hero ? width / 2 : 60;
+      catY = hero ? 320 : 220;
+      const catSprite = this.scene.add
+        .sprite(catX, catY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
+        .setOrigin(0.5, 1)
+        .setScale(catScale);
+      this.container.add(catSprite);
 
-    // Grey glasses accessory — Butters' tutorial-host signature.
-    const accessorySprite = this.scene.add
-      .sprite(catX, catY, AssetKeys.Atlas.Cosmetics, HOST_ACCESSORY_FRAME)
-      .setOrigin(0.5, 1)
-      .setScale(catScale);
-    this.container.add(accessorySprite);
+      // Grey glasses accessory — Butters' tutorial-host signature.
+      const accessorySprite = this.scene.add
+        .sprite(catX, catY, AssetKeys.Atlas.Cosmetics, HOST_ACCESSORY_FRAME)
+        .setOrigin(0.5, 1)
+        .setScale(catScale);
+      this.container.add(accessorySprite);
+    }
 
     // -- Dialogue text + auto-sized speech bubble ---------------------
     // Per Tim: bubble must always be the height of the text — no
@@ -88,11 +104,28 @@ export class TutorialCatOverlay {
     // its height, then draw the bubble + tail sized to fit.
     // Hero layout puts the bubble at the top spanning the canvas;
     // normal layout puts it beside Butters in the top-right zone.
-    const bubbleX = hero ? 16 : catX + 50;
-    const bubbleY = hero ? 28 : (opts.bubbleY ?? 28);
-    const bubbleW = hero ? width - 32 : Math.min(width - bubbleX - 12, 230);
+    // Per Tim feedback (Image 24): always keep whitespace between
+    // bubble borders and screen sides — sideMargin bumped to 24.
+    const sideMargin = 24;
+    let bubbleX: number;
+    let bubbleY: number;
+    let bubbleW: number;
+    if (stageMode) {
+      const cx = opts.stageBubbleCenterX ?? width / 2;
+      bubbleW = Math.min(width - sideMargin * 2, 240);
+      bubbleX = Math.max(sideMargin, Math.min(cx - bubbleW / 2, width - sideMargin - bubbleW));
+      bubbleY = opts.bubbleY ?? 250;
+    } else if (hero) {
+      bubbleX = sideMargin;
+      bubbleY = opts.bubbleY ?? 28;
+      bubbleW = width - sideMargin * 2;
+    } else {
+      bubbleX = catX + 50;
+      bubbleY = opts.bubbleY ?? 28;
+      bubbleW = Math.min(width - bubbleX - sideMargin, 220);
+    }
     const bubblePadding = 16;
-    const bubbleRadius = 16;
+    const bubbleRadius = 20;
 
     const text = this.scene.add
       .text(bubbleX + bubblePadding, bubbleY + bubblePadding, dialogue, {
@@ -105,35 +138,72 @@ export class TutorialCatOverlay {
       .setOrigin(0, 0);
 
     // Use measured text height + symmetric padding for the bubble's
-    // height. Floor 60 so a one-line beat still has a sensible shape.
-    const bubbleH = Math.max(60, text.height + bubblePadding * 2);
+    // height. Floor 50 so a one-line beat still has a sensible shape.
+    const bubbleH = Math.max(50, text.height + bubblePadding * 2);
 
-    // Bubble background drawn underneath the text.
+    // -- Tail target: where the tip should point.
+    // hero: Butters' head (top of the big seated sprite).
+    // normal: face just above his shoulders.
+    // stage: caller-supplied stageTailAt.
+    const tipX = stageMode ? opts.stageTailAt!.x : (hero ? catX : catX + 16);
+    const tipY = stageMode ? opts.stageTailAt!.y : (hero ? catY - 200 : catY - 60);
+
+    // -- Tail emerges from the bubble corner nearest the tip. Two base
+    // vertices live on the two edges adjacent to the chosen corner
+    // (offset past the rounded-corner radius so the edges fuse cleanly
+    // with the bubble fill); third vertex is the tip. Drawn UNDER the
+    // bubble so the two shapes read as one organic silhouette per
+    // Tim's Image 26 sketch ("come out of the nearest corner... like
+    // how i have it").
+    const tailOffset = bubbleRadius + 6;
+    const corners = [
+      {
+        x: bubbleX, y: bubbleY,
+        b1: { x: bubbleX + tailOffset, y: bubbleY },
+        b2: { x: bubbleX, y: bubbleY + tailOffset },
+      },
+      {
+        x: bubbleX + bubbleW, y: bubbleY,
+        b1: { x: bubbleX + bubbleW - tailOffset, y: bubbleY },
+        b2: { x: bubbleX + bubbleW, y: bubbleY + tailOffset },
+      },
+      {
+        x: bubbleX, y: bubbleY + bubbleH,
+        b1: { x: bubbleX + tailOffset, y: bubbleY + bubbleH },
+        b2: { x: bubbleX, y: bubbleY + bubbleH - tailOffset },
+      },
+      {
+        x: bubbleX + bubbleW, y: bubbleY + bubbleH,
+        b1: { x: bubbleX + bubbleW - tailOffset, y: bubbleY + bubbleH },
+        b2: { x: bubbleX + bubbleW, y: bubbleY + bubbleH - tailOffset },
+      },
+    ];
+    let bestCorner = corners[0]!;
+    let bestDist = Infinity;
+    for (const c of corners) {
+      const d = Math.hypot(c.x - tipX, c.y - tipY);
+      if (d < bestDist) {
+        bestDist = d;
+        bestCorner = c;
+      }
+    }
+
+    // Draw tail FIRST, then bubble fills over its base portion, then
+    // text on top. Result: tail and bubble look like one shape.
+    const tailGfx = this.scene.add.graphics();
+    tailGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
+    tailGfx.fillTriangle(
+      bestCorner.b1.x, bestCorner.b1.y,
+      bestCorner.b2.x, bestCorner.b2.y,
+      tipX, tipY,
+    );
+    this.container.add(tailGfx);
+
     const bubbleGfx = this.scene.add.graphics();
     bubbleGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
     bubbleGfx.fillRoundedRect(bubbleX, bubbleY, bubbleW, bubbleH, bubbleRadius);
     this.container.add(bubbleGfx);
-    // Re-add text on top so it renders above the bubble fill.
     this.container.add(text);
-
-    // Tail — filled triangle pointing at Butters' head. Same fill as
-    // the bubble so the two read as one shape. Hero layout positions
-    // the tail at the bubble's bottom-center (pointing down at
-    // Butters); normal layout at bottom-left.
-    const tailBaseY = bubbleY + bubbleH - 1;
-    const tailBaseLeftX = hero ? width / 2 - 16 : bubbleX + 12;
-    const tailBaseRightX = hero ? width / 2 + 16 : bubbleX + 44;
-    const tailTipX = hero ? width / 2 : catX + 24;
-    const tailTipY = hero ? catY - 200 : catY - 64;
-
-    const tailGfx = this.scene.add.graphics();
-    tailGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
-    tailGfx.fillTriangle(
-      tailBaseLeftX, tailBaseY,
-      tailBaseRightX, tailBaseY,
-      tailTipX, tailTipY,
-    );
-    this.container.add(tailGfx);
 
     // -- Continue button ---------------------------------------------
     if (opts.onContinue) {
