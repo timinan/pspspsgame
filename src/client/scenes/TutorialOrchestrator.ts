@@ -144,11 +144,14 @@ export class TutorialOrchestrator extends Scene {
       .setOrigin(0, 0)
       .setDepth(-200);
 
-    // Show the first venue's bg right from the intro screen so Butters
-    // never appears on an empty purple backdrop (Image 21 feedback).
-    // Pick-stage overrides if the player picks a different one.
-    const initialBg = (this.playerState?.activeBackground as BackgroundId | undefined)
-      ?? STARTER_STAGES[0];
+    // Show the first venue (the first card in the upcoming pick-stage
+    // picker) as the intro bg so Butters never appears on an empty
+    // purple backdrop AND the bg matches what the player is about to
+    // see in the picker — NOT whatever activeBackground is on the
+    // playerState (which can be a stale dev seed). Tim's feedback:
+    // "it should be selecting the first background that is in the
+    //  next sections picker not the first background we have".
+    const initialBg = STARTER_STAGES[0];
     if (initialBg) {
       this.applyLiveStageBg(initialBg);
     }
@@ -790,7 +793,10 @@ export class TutorialOrchestrator extends Scene {
   /** Render the picked cat in the middle of the canvas, ABOVE the
    *  picker cards. Per Tim's drawn-overlay feedback: preview moved up
    *  and scale reduced so it fits between Butters' feet (y≈220) and
-   *  the picker cards (centerY 420 → top ≈ 361). */
+   *  the picker cards (centerY 420 → top ≈ 361). Plays the breed's
+   *  idle animation so the tail wags instead of holding a still
+   *  frame — Image 27 feedback "do the same for the new band member
+   *  cat" (mirroring the Butters animation fix). */
   private applyLiveCat(breed: CatBreed): void {
     this.seatedCatBreed = breed;
     this.seatedCat?.destroy();
@@ -802,6 +808,7 @@ export class TutorialOrchestrator extends Scene {
       .setOrigin(0.5, 1)
       .setScale(1.7)
       .setDepth(-100);
+    this.seatedCat.play(`${breed}_idle`, true);
     this.renderSeatedCatNameLabel();
   }
 
@@ -1024,12 +1031,17 @@ export class TutorialOrchestrator extends Scene {
       .setScale(stageScale)
       .setDepth(-100)
       .setAlpha(0);
+    this.stageButters.play('cat13_idle', true);
     this.stageButtersGlasses = this.add
       .sprite(buttersX, stageY, AssetKeys.Atlas.Cosmetics, 'cosmetic_c2_idle_00')
       .setOrigin(0.5, 1)
       .setScale(stageScale)
       .setDepth(-90)
       .setAlpha(0);
+    // Lazy-register the cosmetic idle anim so the glasses bob with
+    // Butters' head instead of holding frame 00 while the cat moves.
+    const glassesAnimKey = this.ensureCosmeticIdleAnim('c2');
+    if (glassesAnimKey) this.stageButtersGlasses.play(glassesAnimKey, true);
     // Fade Butters in alongside the cat tween for a soft entrance.
     this.tweens.add({
       targets: [this.stageButters, this.stageButtersGlasses],
@@ -1044,6 +1056,25 @@ export class TutorialOrchestrator extends Scene {
   private tearDownStageLanes(): void {
     for (const gfx of this.stageLaneGfx) gfx.destroy();
     this.stageLaneGfx = [];
+  }
+
+  /** Register a cosmetic's idle anim lazily — the Cat entity does this
+   *  per-cosmetic internally, but the orchestrator renders raw sprites
+   *  for Butters' glasses on the stage and needs to bootstrap the
+   *  anim itself. Returns the anim key on success, '' if no frames. */
+  private ensureCosmeticIdleAnim(cosmeticRenderId: string): string {
+    const key = `cosmetic_${cosmeticRenderId}_idle`;
+    if (this.anims.exists(key)) return key;
+    const atlas = this.textures.get(AssetKeys.Atlas.Cosmetics);
+    const prefix = `cosmetic_${cosmeticRenderId}_idle_`;
+    const frames = atlas
+      .getFrameNames()
+      .filter((n) => n.startsWith(prefix))
+      .sort()
+      .map((frame) => ({ key: AssetKeys.Atlas.Cosmetics, frame }));
+    if (frames.length === 0) return '';
+    this.anims.create({ key, frames, frameRate: 7, repeat: -1 });
+    return key;
   }
 
   /** Draw the 3 lanes + hit targets behind the seated cats, matching
