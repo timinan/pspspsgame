@@ -103,6 +103,9 @@ export class TutorialOrchestrator extends Scene {
   /** Active effect handle (e.g. particle emitter for sparkles).
    *  Destroyed before applying a new effect. */
   private activeEffectHandle: { destroy(): void } | undefined;
+  /** Nametag under the seated cat — shown alongside the live preview
+   *  from pick-cat onward. Updates after the rename modal. */
+  private seatedCatNameLabel: Phaser.GameObjects.Text | undefined;
   /** For picker steps (pick-stage, pick-cat): tracks the currently
    *  previewed selection. Confirm button only enables once this is
    *  set; advancing clears it. */
@@ -184,7 +187,9 @@ export class TutorialOrchestrator extends Scene {
     // selection and add a button at the bottom to confirm same with cats".
     if (this.currentStep === 'pick-stage') {
       this.overlay = new TutorialCatOverlay(this);
-      this.overlay.show(line, {});
+      // Push the bubble down so more of the picked venue bg is visible
+      // up top per Tim's feedback.
+      this.overlay.show(line, { bubbleY: 170 });
       this.picker = new Picker(this, {
         items: STARTER_STAGES.map((id) => {
           const entry = BACKGROUND_CATALOG[id as BackgroundId];
@@ -617,6 +622,7 @@ export class TutorialOrchestrator extends Scene {
             const live = this.playerState.ownedCats.find((c) => c.id === seatedInstance.id);
             if (live) live.name = name;
           }
+          this.renderSeatedCatNameLabel();
           renameCat(seatedInstance.id, name).catch((e) =>
             console.warn('[tutorial] renameCat failed (advancing anyway)', e),
           );
@@ -727,6 +733,32 @@ export class TutorialOrchestrator extends Scene {
       .setOrigin(0.5, 1)
       .setScale(1.7)
       .setDepth(-100);
+    this.renderSeatedCatNameLabel();
+  }
+
+  /** Render/refresh the cat's name as a label below the seated sprite.
+   *  Reads the current name from playerState.ownedCats so it picks up
+   *  the renamed value after the name-choice modal closes. Called from
+   *  every method that creates / moves the seated cat sprite. */
+  private renderSeatedCatNameLabel(): void {
+    this.seatedCatNameLabel?.destroy();
+    if (!this.seatedCat) return;
+    const seatedInstance = this.seatedCatBreed
+      ? this.playerState?.ownedCats.find((c) => c.breed === this.seatedCatBreed)
+      : undefined;
+    const name = seatedInstance?.name ?? this.seatedCatBreed;
+    if (!name) return;
+    this.seatedCatNameLabel = this.add
+      .text(this.seatedCat.x, this.seatedCat.y + 8, name.toUpperCase(), {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#ffffff',
+        stroke: '#1a0a2e',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(-90);
   }
 
   /** Mocked hamburger drawer + hamburger icon (top-right). Renders a
@@ -835,6 +867,7 @@ export class TutorialOrchestrator extends Scene {
     // on the cat instance; the actual rehearsal scene re-renders).
     this.activeEffectHandle?.destroy();
     this.activeEffectHandle = undefined;
+    this.renderSeatedCatNameLabel();
   }
 
   /** Reposition the seated cat (and any stacked cosmetic sprites +
@@ -861,6 +894,7 @@ export class TutorialOrchestrator extends Scene {
     // old anchor. Re-applies on the next box-effect pull.
     this.activeEffectHandle?.destroy();
     this.activeEffectHandle = undefined;
+    this.renderSeatedCatNameLabel();
   }
 
   // -----------------------------------------------------------------------

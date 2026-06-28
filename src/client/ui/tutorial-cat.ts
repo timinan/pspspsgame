@@ -66,9 +66,9 @@ export class TutorialCatOverlay {
     //   normal (default): top-left at scale 1.7, bubble runs from his
     //     head across the top of the screen.
     const hero = opts.hero === true;
-    const catScale = hero ? 3.2 : 1.7;
+    const catScale = hero ? 2.5 : 1.7;
     const catX = hero ? width / 2 : 60;
-    const catY = hero ? 360 : 220;
+    const catY = hero ? 320 : 220;
     const catSprite = this.scene.add
       .sprite(catX, catY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
       .setOrigin(0.5, 1)
