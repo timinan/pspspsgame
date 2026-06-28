@@ -6,6 +6,7 @@ import {
   submitLeaderboardScore,
   setPinnedCommentId,
   incrementPlayCount,
+  incrementCombinedScore,
   incrementPassCount,
   getPassCount,
   getFirstPasser,
@@ -246,6 +247,8 @@ publish.post('/chart', async (c) => {
       // summary tolerates missing counters.
       try { await incrementPlayCount(redis, post.id); }
       catch (err) { console.warn('[publish] seed incrementPlayCount failed (continuing)', err); }
+      try { await incrementCombinedScore(redis, post.id, creatorScore); }
+      catch (err) { console.warn('[publish] seed incrementCombinedScore failed (continuing)', err); }
       if (creatorAccuracy >= 0.75) {
         try { await incrementPassCount(redis, post.id); }
         catch (err) { console.warn('[publish] seed incrementPassCount failed (continuing)', err); }

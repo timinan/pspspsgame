@@ -9,6 +9,7 @@ import {
   transferGift,
   setPostOwner,
   incrementPlayCount,
+  incrementCombinedScore,
   getPinnedCommentId,
   incrementPassCount,
   getPassCount,
@@ -110,6 +111,16 @@ social.post('/play', async (c) => {
     await incrementPlayCount(r, body.postId);
   } catch (err) {
     console.error('[social/play] incrementPlayCount failed (continuing)', err);
+  }
+  // Combined score counter — incrBy by this play's score on every
+  // submission (matches the totalPlays counter pattern). Distinct from
+  // sum-of-PBs which only counted each player's best run once. Same
+  // defensive wrap as the play counter — failures must not block lb +
+  // inbox + Reddit comment + pinned summary refresh.
+  try {
+    await incrementCombinedScore(r, body.postId, body.score);
+  } catch (err) {
+    console.error('[social/play] incrementCombinedScore failed (continuing)', err);
   }
   // Leaderboard: only passing runs land on it.
   await submitLeaderboardScore(r, summary);

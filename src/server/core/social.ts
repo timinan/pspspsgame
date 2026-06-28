@@ -76,6 +76,14 @@ const PASSES_KEY = (postId: string): string => `meowcert:passes:${postId}`;
 // unset). Owner self-passes don't qualify so the host can't claim
 // the "first pass" badge on their own post.
 const FIRST_PASSER_KEY = (postId: string): string => `meowcert:first-passer:${postId}`;
+// Running sum of every play's score for this post — incrBy(score) on
+// EVERY play submission (pass, fail, PB, repeat, self-play, creator
+// seed at publish). Distinct from sum-of-PBs (which is what the
+// pre-counter implementation of fetchCombinedScore was returning) — a
+// player who plays 10 times contributes ALL 10 of their run scores,
+// not just their best one. The "Combined score" line on the pinned
+// mod summary reads this.
+const COMBINED_SCORE_KEY = (postId: string): string => `meowcert:combined-score:${postId}`;
 
 // -- Leaderboard ------------------------------------------------------
 
@@ -181,19 +189,63 @@ export async function getFirstPasser(
   return v ?? null;
 }
 
-/** Sum every player's PB score on the leaderboard. Used by the pinned
- *  mod-comment summary's "combined score" line. Includes owner — Tim's
- *  call. zRange returns all entries; we just add scores. */
-export async function fetchCombinedScore(
+/** Sum the scores from every PB on the leaderboard. Internal — used as
+ *  the seed/fallback for the running combined-score counter so legacy
+ *  posts (and counter reads taken before the first incrBy lands) don't
+ *  visibly regress to zero. */
+async function sumPbScores(
   redis: SocialRedis,
   postId: string,
 ): Promise<number> {
-  // 0..-1 with by:'rank' returns the full sorted set in Devvit.
-  // We don't care about order here; just want every score for the sum.
   const rows = await redis.zRange(LB_KEY(postId), 0, -1, { by: 'rank' });
   let total = 0;
   for (const { score } of rows) total += score;
   return total;
+}
+
+/** Running sum of all play scores for this post. Used by the pinned
+ *  mod-comment summary's "Combined score" line. Reads the counter at
+ *  `meowcert:combined-score:<postId>`; for posts that pre-date the
+ *  counter (never been written) falls back to summing PB scores so the
+ *  display stays non-zero until the next /play arrives and seeds the
+ *  counter. Once seeded, the counter is authoritative — it captures
+ *  every submission, not just the best per player. */
+export async function fetchCombinedScore(
+  redis: SocialRedis,
+  postId: string,
+): Promise<number> {
+  const raw = await redis.get(COMBINED_SCORE_KEY(postId));
+  if (raw != null) {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  return await sumPbScores(redis, postId);
+}
+
+/** incrBy(score) the combined-score counter for this post. Called on
+ *  EVERY play submission (pass, fail, PB, repeat, self-play) AND from
+ *  the publish creator-seed. On the very first write for a post, seeds
+ *  the counter from the existing PB-sum so the displayed value doesn't
+ *  drop from "sum of all PBs so far" to "score of just this play" when
+ *  legacy posts cross the migration boundary. Returns the new counter
+ *  value so callers can log it. */
+export async function incrementCombinedScore(
+  redis: SocialRedis,
+  postId: string,
+  score: number,
+): Promise<number> {
+  // Don't allow negative scores to skew the counter — guard at the
+  // boundary even though shared types should already enforce >= 0.
+  if (!Number.isFinite(score) || score < 0) return await fetchCombinedScore(redis, postId);
+  const existing = await redis.get(COMBINED_SCORE_KEY(postId));
+  if (existing == null) {
+    // First write for this post — seed from the historical PB-sum so
+    // the displayed combined doesn't visibly regress. After this single
+    // round-trip every subsequent call is a single incrBy.
+    const seed = await sumPbScores(redis, postId);
+    return await redis.incrBy(COMBINED_SCORE_KEY(postId), seed + score);
+  }
+  return await redis.incrBy(COMBINED_SCORE_KEY(postId), score);
 }
 
 /** Fetch the top N entries for a post + the requesting visitor's rank
