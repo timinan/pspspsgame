@@ -2064,6 +2064,11 @@ export class Game extends Scene {
     // and others can actually play. Only the PUT ON A SHOW button
     // is gated to test mode (post flow doesn't exist outside it yet).
     const passed = accuracyPct >= Balance.passAccuracyPct;
+    // Compute bests FIRST so the success gate text knows whether to
+    // prepend the NEW HIGH SCORE line. updateBestScoreLine still does
+    // the BEST row visual work; it now also reports which stats were
+    // beaten this run.
+    const newBests = this.updateBestScoreLine(passed);
     if (passed) {
       this.summaryTitleText.setText('SHOW COMPLETE!');
       this.summaryTitleText.setColor('#ffd34d');
@@ -2071,11 +2076,16 @@ export class Game extends Scene {
       // empty stripe below the BEST score row (mirrors the fail case
       // which always shows a message). testMode = author rehearsal;
       // visitor = player on someone's post. Different framings.
-      this.summaryGateText.setText(
-        this.testMode
-          ? 'Nice — your show is ready to post.'
-          : 'Great show! Tap Done to wrap up.',
-      );
+      const baseMsg = this.testMode
+        ? 'Nice — your show is ready to post.'
+        : 'Great show! Tap Done to wrap up.';
+      // Any new personal best on this run (any of accuracy / maxCombo /
+      // hits / misses / score) triggers the celebratory line. Two lines
+      // max — fits the panel without pushing FINAL SCORE around.
+      const gate = newBests.size > 0
+        ? `🏆 NEW HIGH SCORE!\n${baseMsg}`
+        : baseMsg;
+      this.summaryGateText.setText(gate);
       this.summaryGateText.setColor('#a4ffb4');
       this.summaryRightBg.setVisible(true);
       this.summaryRightText.setVisible(true);
@@ -2099,8 +2109,6 @@ export class Game extends Scene {
       this.comboText.setColor('#c6b3ff');
     }
 
-    this.updateBestScoreLine(passed);
-
     this.summary.setVisible(true);
   }
 
@@ -2109,8 +2117,11 @@ export class Game extends Scene {
    *  difficulty — scratch charts have no difficulty so they skip
    *  best-tracking (would be misleading since they're authored ad-hoc).
    *  Only passing runs get recorded as bests; failing runs still display
-   *  the previously stored row for reference. */
-  private updateBestScoreLine(passed: boolean): void {
+   *  the previously stored row for reference. Returns the set of stats
+   *  that this run set a new best for (empty on fail or first-time
+   *  rows). Caller uses the size to gate the NEW HIGH SCORE line on the
+   *  success gate text. */
+  private updateBestScoreLine(passed: boolean): Set<StatKey> {
     const chart = this.playChart;
     const audioKey = chart?.audioKey;
     const difficulty = chart?.difficulty;
@@ -2125,7 +2136,7 @@ export class Game extends Scene {
     ];
     if (!audioKey || !difficulty) {
       for (const o of allBestObjs) o.setVisible(false);
-      return;
+      return new Set<StatKey>();
     }
     const run: BestStats = {
       score: this.score.get(),
@@ -2150,7 +2161,7 @@ export class Game extends Scene {
       // Shouldn't happen — first-pass recordRun creates the row — but
       // defensive guard in case the failing-first-run case lands here.
       for (const o of allBestObjs) o.setVisible(false);
-      return;
+      return new Set<StatKey>();
     }
     // Match BEST text colors to the run's stat colors above (per Tim:
     // 'match the colors of best scores and accuracy etc match the color
@@ -2169,12 +2180,6 @@ export class Game extends Scene {
         case 'score': return '#ffffff';
       }
     };
-    // newBests intentionally unused here — the "new high score" cue
-    // moved to a single line on the success gate text (see showSummary).
-    // Keeping the per-cell highlight off avoids clashing with the
-    // per-stat palette match.
-    void newBests;
-
     this.summaryBestAccuracyText.setText(`${stored.accuracy}%`).setColor(colorFor('accuracy'));
     this.summaryBestComboText.setText(`x${stored.maxCombo}`).setColor(colorFor('maxCombo'));
     this.summaryBestHitsText.setText(String(stored.hits)).setColor(colorFor('hits'));
@@ -2182,6 +2187,7 @@ export class Game extends Scene {
     this.summaryBestScoreBig.setText(stored.score.toLocaleString()).setColor(colorFor('score'));
 
     for (const o of allBestObjs) o.setVisible(true);
+    return newBests;
   }
 
   /** Replay the chart the player just finished. Avoids scene.restart
