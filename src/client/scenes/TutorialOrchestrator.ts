@@ -1,6 +1,8 @@
 import { Scene } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
+import * as L from '@/constants/scene-layout';
+import { liftTowardWhite, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
 import {
   nextTutorialStep,
   STARTER_CATS,
@@ -110,6 +112,13 @@ export class TutorialOrchestrator extends Scene {
    *  previewed selection. Confirm button only enables once this is
    *  set; advancing clears it. */
   private pendingPickerSelection: string | undefined;
+  /** Persistent stage rig drawn by switchToRehearsalStage — 3 lanes +
+   *  small Butters at the left seat. Stays alive through play-tutorial
+   *  beats so each next dialogue line just swaps the bubble, not the
+   *  underlying stage. */
+  private stageLaneGfx: Phaser.GameObjects.GameObject[] = [];
+  private stageButters: Phaser.GameObjects.Sprite | undefined;
+  private stageButtersGlasses: Phaser.GameObjects.Sprite | undefined;
 
   constructor() {
     super(SceneKeys.TutorialOrchestrator);
@@ -134,6 +143,15 @@ export class TutorialOrchestrator extends Scene {
       .rectangle(0, 0, width, height, 0x261540, 1)
       .setOrigin(0, 0)
       .setDepth(-200);
+
+    // Show the first venue's bg right from the intro screen so Butters
+    // never appears on an empty purple backdrop (Image 21 feedback).
+    // Pick-stage overrides if the player picks a different one.
+    const initialBg = (this.playerState?.activeBackground as BackgroundId | undefined)
+      ?? STARTER_STAGES[0];
+    if (initialBg) {
+      this.applyLiveStageBg(initialBg);
+    }
 
     this.renderStep();
     // Persist the entry step so a refresh during the very first beat
@@ -206,9 +224,9 @@ export class TutorialOrchestrator extends Scene {
           this.applyLiveStageBg(stageId as BackgroundId);
           // Server write fires on every preview so a refresh mid-pick
           // doesn't lose the last seen choice. Best-effort.
-          setBackground(stageId as BackgroundId).catch((e) =>
-            console.warn('[tutorial] setBackground failed (preview only)', e),
-          );
+          void setBackground(stageId as BackgroundId)
+            .then((updated) => { this.playerState = updated; })
+            .catch((e) => console.warn('[tutorial] setBackground failed (preview only)', e));
           this.pendingPickerSelection = stageId;
           this.renderConfirmButton();
         },
@@ -218,7 +236,9 @@ export class TutorialOrchestrator extends Scene {
       const defaultStage = STARTER_STAGES[0];
       if (defaultStage) {
         this.applyLiveStageBg(defaultStage);
-        setBackground(defaultStage).catch(() => {});
+        void setBackground(defaultStage)
+          .then((updated) => { this.playerState = updated; })
+          .catch(() => {});
         this.pendingPickerSelection = defaultStage;
         this.renderConfirmButton();
       }
@@ -241,12 +261,10 @@ export class TutorialOrchestrator extends Scene {
         centerY: 420,
         allowReselect: true,
         onPick: (breed) => {
+          // Local preview only on tap — seedStarterCat is deferred to
+          // Confirm so re-tapping cards doesn't create duplicate
+          // ownedCats entries on the server.
           this.applyLiveCat(breed as CatBreed);
-          // Server write — seat in middle. Fire-and-forget; advance
-          // happens on Confirm.
-          seedStarterCat(breed as CatBreed).catch((e) =>
-            console.warn('[tutorial] seedStarterCat failed (preview only)', e),
-          );
           this.pendingPickerSelection = breed;
           this.renderConfirmButton();
         },
@@ -313,12 +331,19 @@ export class TutorialOrchestrator extends Scene {
     // Default: dialogue + Continue. The intro step uses the 'hero'
     // layout — Butters big + centered to fill the screen on first
     // introduction; every subsequent step uses the normal top-left
-    // position.
+    // position. Steps past rehearsal-intro (when stageButters is on
+    // the stage) use stage-mode so the bubble points at the seated
+    // small Butters instead of rendering a duplicate avatar.
     const continueLabel = hasMoreDialogue ? 'Next →' : 'Continue →';
+    const useStageMode = this.stageButters !== undefined;
+    const stageTailAt = useStageMode
+      ? this.getStageButtersFacePos()
+      : undefined;
     this.overlay = new TutorialCatOverlay(this);
     this.overlay.show(line, {
       continueLabel,
       hero: this.currentStep === 'intro',
+      ...(stageTailAt ? { stageTailAt, stageBubbleCenterX: width / 2 } : {}),
       onContinue: () => {
         if (this.busy) return;
         if (hasMoreDialogue) {
@@ -330,6 +355,17 @@ export class TutorialOrchestrator extends Scene {
       },
     });
     this.renderSkipLinkIfUnlocked();
+  }
+
+  /** Where the stage-mode bubble's tail should point — Butters' face
+   *  at the left seat. Returns undefined if the stage rig isn't up. */
+  private getStageButtersFacePos(): { x: number; y: number } | undefined {
+    if (!this.stageButters) return undefined;
+    // Cat sprites are bottom-anchored (origin 0.5, 1) and roughly 64px
+    // tall at scale 1; face sits ~mid-sprite — offset up by half the
+    // visible height for a clean tail target.
+    const halfH = (this.stageButters.height * this.stageButters.scaleY) / 2;
+    return { x: this.stageButters.x, y: this.stageButters.y - halfH };
   }
 
   /** Bottom-of-screen Confirm button used by picker steps (pick-stage,
@@ -368,22 +404,38 @@ export class TutorialOrchestrator extends Scene {
         onComplete: () => {
           this.busy = false;
           this.pendingPickerSelection = undefined;
-          this.confirmButton?.destroy(true);
-          this.confirmButton = undefined;
           // Tear the picker down NOW so it doesn't sit under the
-          // name-choice modal / next step's UI. (stepUI would clear it
-          // on the next renderStep anyway, but during the cat-pick
-          // showNameChoice we don't transition steps — the modal
-          // overlays the existing picker if we don't kill it here.)
+          // name-choice modal / next step's UI.
           this.picker?.destroy();
           this.picker = undefined;
           if (this.currentStep === 'pick-cat') {
-            // Cat-pick has the name-or-keep modal as a gate before
-            // advancing to merch-intro.
+            // Cat-pick: seed the chosen breed server-side, then gate
+            // on the name-choice modal before advancing to merch-intro.
+            // Per Tim feedback (Image 23): keep the Continue button
+            // visible — just dim and disable it — so the player still
+            // sees the action target underneath the modal.
+            this.disableConfirmButton();
             const breed = this.seatedCatBreed;
-            if (breed) this.showNameChoice(breed);
-            else void this.advance();
+            if (!breed) {
+              void this.advance();
+              return;
+            }
+            void seedStarterCat(breed)
+              .then((updated) => {
+                this.playerState = updated;
+                // Re-render the name label off the now-canonical
+                // ownedCats entry so the label below the seated cat
+                // shows the real name, not the breed default.
+                this.renderSeatedCatNameLabel();
+                this.showNameChoice(breed);
+              })
+              .catch((e) => {
+                console.warn('[tutorial] seedStarterCat failed; advancing', e);
+                void this.advance();
+              });
           } else {
+            this.confirmButton?.destroy(true);
+            this.confirmButton = undefined;
             void this.advance();
           }
         },
@@ -391,6 +443,23 @@ export class TutorialOrchestrator extends Scene {
     });
     this.confirmButton = container;
     this.stepUI?.add(container);
+  }
+
+  /** Dim + de-interact the Confirm button without destroying it. Used
+   *  during the name-choice modal so the bottom-of-screen button stays
+   *  in place (no layout shift) while the modal is the active target.
+   *  Tim's feedback (Image 23): "don't get rid of continue button at the
+   *  bottom just have it unclickable and darkened." */
+  private disableConfirmButton(): void {
+    if (!this.confirmButton) return;
+    for (const child of this.confirmButton.list) {
+      const obj = child as Phaser.GameObjects.GameObject & { setAlpha?: (a: number) => unknown };
+      const interactive = child as Phaser.GameObjects.GameObject;
+      if ((interactive as { disableInteractive?: () => void }).disableInteractive) {
+        (interactive as { disableInteractive: () => void }).disableInteractive();
+      }
+      obj.setAlpha?.(0.4);
+    }
   }
 
   /** Render a small "skip tutorial" link in top-right. Only visible
@@ -891,31 +960,123 @@ export class TutorialOrchestrator extends Scene {
   }
 
   /** Transition the orchestrator's live preview from the merch layout
-   *  (one big cat lower-center) to the "ready to rehearse" stage — a
-   *  Decorate-style row of 3 seats with the player's cat in the
-   *  middle and the outer 2 empty per Tim's brief: "set the stage how
-   *  it would normally be with the bg and cats in their usual position
-   *  placed in the center for now and other 2 lanes empty." Tears down
-   *  the drawer mock + Butters overlay so play-tutorial-intro renders
-   *  on top of the staged scene. */
+   *  (one big cat lower-center) to the "ready to rehearse" stage —
+   *  matches the real Game scene's seat positions: player cat at the
+   *  center seat (lane 1), small Butters at the left seat (lane 0),
+   *  right seat empty. Plus 3 lanes drawn underneath so the player
+   *  sees the actual playfield they're about to rehearse on.
+   *  Persistent across play-tutorial beats. */
   private switchToRehearsalStage(): void {
     if (!this.seatedCat) return;
-    // Decorate-style center-seat position. Cat sits roughly where the
-    // real game seats the middle cat (~y=210 design-px-bottom at the
-    // Game scene's 1.4× seated scale).
-    const stageY = 235;
+    const { width } = this.scale;
+    // Match Game.seatCats: catY = (TOP_HUD_H + CAT_STAGE_H * 0.78) on
+    // the design canvas, scale 1.4. This puts the cat IN the cat-stage
+    // band just above LANE_TOP_Y.
+    const stageY = L.TOP_HUD_H + L.CAT_STAGE_H * 0.78; // ≈ 184
     const stageScale = 1.4;
-    this.seatedCat.setY(stageY);
-    this.seatedCat.setScale(stageScale);
-    for (const cs of this.equippedCosmeticSprites) {
-      cs.setPosition(this.seatedCat.x, stageY);
-      cs.setScale(stageScale);
-    }
-    // Effect: tear down + leave to re-apply (the player's effect rides
-    // on the cat instance; the actual rehearsal scene re-renders).
+    const centerX = L.laneCenterX(1, width);
+
+    // Animate the move — tween cat + cosmetics from current pos/scale
+    // to the center seat for a smooth transition (Tim feedback:
+    // "any time the cats are moving from one section to another try to
+    // add a little animation to make that transition smooth"). Hide
+    // the name label for the duration so it doesn't lag behind the
+    // tweening sprite; re-render at the end position on completion.
+    this.seatedCatNameLabel?.destroy();
+    this.seatedCatNameLabel = undefined;
+    const cosmetics = [...this.equippedCosmeticSprites];
+    this.tweens.add({
+      targets: [this.seatedCat, ...cosmetics],
+      x: centerX,
+      y: stageY,
+      scale: stageScale,
+      duration: 360,
+      ease: 'Cubic.Out',
+      onComplete: () => {
+        this.renderSeatedCatNameLabel();
+      },
+    });
+
+    // Effect handle: tear down — it's anchored to the previous cat
+    // position. Won't re-apply during the tutorial rehearsal beats; the
+    // real Game scene re-applies it when the rehearsal actually starts.
     this.activeEffectHandle?.destroy();
     this.activeEffectHandle = undefined;
-    this.renderSeatedCatNameLabel();
+
+    // Draw the 3-lane playfield underneath the seats. Mirrors
+    // Game.drawLanes (rhythm-bar texture + fuzzball target per lane),
+    // but tinted with the default LANE_COLORS so a missing-seat lane
+    // still reads (we don't have full per-cat lane-tint resolution at
+    // this point in the tutorial).
+    this.tearDownStageLanes();
+    this.drawStageLanes();
+
+    // Seat a small Butters at the left lane (lane 0) so the player
+    // can see who's narrating. Same scale as the player cat per Tim's
+    // brief ("butters can also shrink down to be the same size next to
+    // the cat sort of where the usual other band member goes").
+    this.stageButters?.destroy();
+    this.stageButtersGlasses?.destroy();
+    const buttersX = L.laneCenterX(0, width);
+    this.stageButters = this.add
+      .sprite(buttersX, stageY, AssetKeys.Atlas.Cats, 'cat13_idle_00')
+      .setOrigin(0.5, 1)
+      .setScale(stageScale)
+      .setDepth(-100)
+      .setAlpha(0);
+    this.stageButtersGlasses = this.add
+      .sprite(buttersX, stageY, AssetKeys.Atlas.Cosmetics, 'cosmetic_c2_idle_00')
+      .setOrigin(0.5, 1)
+      .setScale(stageScale)
+      .setDepth(-90)
+      .setAlpha(0);
+    // Fade Butters in alongside the cat tween for a soft entrance.
+    this.tweens.add({
+      targets: [this.stageButters, this.stageButtersGlasses],
+      alpha: 1,
+      duration: 360,
+      ease: 'Sine.Out',
+    });
+  }
+
+  /** Tear down the 3-lane rhythm-bar visuals seeded by drawStageLanes.
+   *  Safe to call when nothing is rendered. */
+  private tearDownStageLanes(): void {
+    for (const gfx of this.stageLaneGfx) gfx.destroy();
+    this.stageLaneGfx = [];
+  }
+
+  /** Draw the 3 lanes + hit targets behind the seated cats, matching
+   *  Game.drawLanes' geometry so the tutorial preview reads as the
+   *  actual playfield. Lane tints fall back to LANE_COLORS — the
+   *  Game scene re-samples per-cat tints when rehearsal actually runs. */
+  private drawStageLanes(): void {
+    const { width, height } = this.scale;
+    const scaleY = height / L.DESIGN_H;
+    const laneTopY = L.LANE_TOP_Y * scaleY;
+    const laneH = (L.LANE_BOTTOM_Y - L.LANE_TOP_Y) * scaleY;
+    const hitLineY = L.HIT_LINE_Y * scaleY;
+    const inner = width - L.LANE_GUTTER_PX * 2;
+    const colW = (inner - L.LANE_GAP_PX * (L.LANE_COUNT - 1)) / L.LANE_COUNT;
+
+    for (let i = 0; i < L.LANE_COUNT; i++) {
+      const cx = L.laneCenterX(i as 0 | 1 | 2, width);
+      const color = L.LANE_COLORS[i]!;
+      const bar = this.add.image(cx, laneTopY + laneH / 2, AssetKeys.Image.RhythmBarBackgroundWhite);
+      bar.displayWidth = laneH;
+      bar.displayHeight = colW;
+      bar.setRotation(-Math.PI / 2);
+      bar.setTint(liftTowardWhite(color, LANE_BRIGHTNESS_LIFT));
+      bar.setAlpha(0.78);
+      bar.setDepth(-120);
+      this.stageLaneGfx.push(bar);
+
+      const target = this.add.image(cx, hitLineY, AssetKeys.Image.MeowcertTargetWhite);
+      target.setDisplaySize(72, 72);
+      target.setTint(color);
+      target.setDepth(-110);
+      this.stageLaneGfx.push(target);
+    }
   }
 
   /** Reposition the seated cat (and any stacked cosmetic sprites +
@@ -930,19 +1091,27 @@ export class TutorialOrchestrator extends Scene {
     // scale 2.2 → 2.7 (bigger silhouette).
     const merchY = 430;
     const merchScale = 2.7;
-    this.seatedCat.setY(merchY);
-    this.seatedCat.setScale(merchScale);
-    // Stacked cosmetic sprites ride the same anchor.
-    for (const cs of this.equippedCosmeticSprites) {
-      cs.setPosition(this.seatedCat.x, merchY);
-      cs.setScale(merchScale);
-    }
+    // Tween instead of snap — Tim wants smooth transitions between
+    // sections. Hide the name label during the tween; re-render at
+    // the end position so it stays anchored to the sprite cleanly.
+    this.seatedCatNameLabel?.destroy();
+    this.seatedCatNameLabel = undefined;
+    const cosmetics = [...this.equippedCosmeticSprites];
+    this.tweens.add({
+      targets: [this.seatedCat, ...cosmetics],
+      y: merchY,
+      scale: merchScale,
+      duration: 360,
+      ease: 'Cubic.Out',
+      onComplete: () => {
+        this.renderSeatedCatNameLabel();
+      },
+    });
     // Active effect is a particle emitter tied to the prior cat
     // position — tear it down so it doesn't continue spawning at the
     // old anchor. Re-applies on the next box-effect pull.
     this.activeEffectHandle?.destroy();
     this.activeEffectHandle = undefined;
-    this.renderSeatedCatNameLabel();
   }
 
   // -----------------------------------------------------------------------
