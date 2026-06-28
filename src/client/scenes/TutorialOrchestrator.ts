@@ -297,7 +297,7 @@ export class TutorialOrchestrator extends Scene {
     // but PUT ON A SHOW highlighted — that's the gateway Butters is
     // saying you can come back to any time.
     if (this.currentStep === 'stage-set-confirm') {
-      this.renderHamburgerMock('PUT ON A SHOW');
+      this.renderHamburgerMock('SET STAGE');
       this.overlay = new TutorialCatOverlay(this);
       this.overlay.show(line, {
         continueLabel: 'Continue →',
@@ -762,75 +762,123 @@ export class TutorialOrchestrator extends Scene {
   }
 
   /** Mocked hamburger drawer + hamburger icon (top-right). Renders a
-   *  vertical list of menu items styled to match the real in-game
-   *  drawer but shrunken for the tutorial overlay. `highlight` picks
-   *  which item gets the yellow border + yellow text. Used by:
-   *  - stage-set-confirm with 'PUT ON A SHOW' (the gateway to changing
-   *    stage / cosmetics / cats later).
-   *  - rehearsal-intro with 'REHEARSE' (the entry point Butters is
-   *    pointing at to head into the rehearsal). */
-  private renderHamburgerMock(highlight: 'PUT ON A SHOW' | 'REHEARSE'): void {
-    const { width } = this.scale;
-    // Centered narrow column resembling the real drawer's footprint.
-    const drawerW = 200;
-    const drawerH = 260;
+   *  miniature version of the real in-game drawer (icon + label +
+   *  description per row) styled to match exactly. `highlight` picks
+   *  which row gets the yellow border + 'you are here' subtitle. */
+  private renderHamburgerMock(highlight: 'SET STAGE' | 'REHEARSE'): void {
+    const { width, height } = this.scale;
+
+    // Drawer dimensions sized to fit the canvas with margin — Tim:
+    // 'MAKE THE MENU LOOK SMALLER AND FITS IN THE SCREEN HAVING
+    //  WHITESPACE NOT CROWDING ANYTHING OR OVERLAPPING'.
+    // Sits between Butters' bubble (top ~200) and the Continue button
+    // (mid ~520) with breathing room on both sides.
+    const drawerW = width - 40;
+    const drawerH = 270;
     const drawerX = width / 2;
-    const drawerY = 380;
+    const drawerY = 350;
+    void height;
     const drawerBg = this.add
-      .rectangle(drawerX, drawerY, drawerW, drawerH, 0x1a0a2e, 0.95)
-      .setStrokeStyle(2, 0xc678ff, 1);
+      .rectangle(drawerX, drawerY, drawerW, drawerH, 0x261540, 1)
+      .setStrokeStyle(2, 0xc678ff, 1)
+      .setDepth(1000);
     this.stepUI?.add(drawerBg);
 
-    // Header bar — matches real drawer style.
+    // Header — "MENU" + a close-X on the right (decorative — clicking
+    // it just advances since Continue does the same).
     const headerY = drawerY - drawerH / 2 + 18;
     const header = this.add
-      .text(drawerX, headerY, 'MENU', {
+      .text(drawerX - drawerW / 2 + 16, headerY, 'MENU', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '11px',
+        fontSize: '13px',
         color: '#c0a0e6',
       })
-      .setOrigin(0.5);
-    this.stepUI?.add(header);
+      .setOrigin(0, 0.5)
+      .setDepth(1001);
+    const closeIcon = this.add
+      .text(drawerX + drawerW / 2 - 18, headerY, 'ⓧ', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontSize: '14px',
+        color: '#c0a0e6',
+      })
+      .setOrigin(1, 0.5)
+      .setDepth(1001);
+    this.stepUI?.add([header, closeIcon]);
 
-    // Menu items.
-    const items = [
-      'PUT ON A SHOW',
-      'REHEARSE',
-      'CATCH A SHOW',
-      'INBOX',
-      'SETTINGS',
+    // Menu items — same shape as Decorate.ts buildHud.
+    const items: Array<{ label: string; description: string; icon: string }> = [
+      { label: 'SET STAGE',     description: 'Dress the band, light the room', icon: '😺' },
+      { label: 'REHEARSE',      description: 'Pawractice makes purrfect',      icon: '🎵' },
+      { label: 'PUT ON A SHOW', description: 'Cook up your next hit',          icon: '🎼' },
+      { label: 'MERCH',         description: 'Fresh drops at the merch table', icon: '🛒' },
+      { label: 'CATCH A SHOW',  description: 'Front row for fellow artists',   icon: '🎪' },
+      { label: 'INBOX',         description: 'Who played your shows?',         icon: '📬' },
+      { label: 'SETTINGS',      description: 'Tune effects + audio to taste',  icon: '⚙️' },
     ];
-    const itemStartY = drawerY - drawerH / 2 + 50;
-    const itemGap = 40;
-    items.forEach((label, i) => {
-      const itemY = itemStartY + i * itemGap;
-      const isHi = label === highlight;
+
+    // 7 items + header (~36) + footer (~14) in drawerH=270 leaves
+    // ~220 for items: 7 × 28 + 6 × 3 = 214. Fits with a few px slack.
+    const itemStartY = drawerY - drawerH / 2 + 36;
+    const itemH = 28;
+    const itemGap = 3;
+    items.forEach((item, i) => {
+      const itemY = itemStartY + i * (itemH + itemGap);
+      const isHi = item.label === highlight;
       const cellBg = this.add
-        .rectangle(drawerX, itemY, drawerW - 24, 32, isHi ? 0x4a2c7a : 0x2c1856, 1)
-        .setStrokeStyle(2, isHi ? 0xffd34d : 0xc0a0e6, isHi ? 1 : 0.4);
-      const cellText = this.add
-        .text(drawerX, itemY, label, {
+        .rectangle(drawerX, itemY + itemH / 2, drawerW - 24, itemH, isHi ? 0x4a2c7a : 0x2c1856, 1)
+        .setStrokeStyle(2, isHi ? 0xffd34d : 0xc0a0e6, isHi ? 1 : 0.4)
+        .setDepth(1001);
+      const iconText = this.add
+        .text(drawerX - drawerW / 2 + 22, itemY + itemH / 2, item.icon, {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontSize: '14px',
+          color: '#ffffff',
+        })
+        .setOrigin(0.5)
+        .setDepth(1002);
+      const labelText = this.add
+        .text(drawerX - drawerW / 2 + 44, itemY + 4, isHi ? `★ ${item.label}` : item.label, {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '10px',
+          fontSize: '9px',
+          color: isHi ? '#ffd34d' : '#ffffff',
+        })
+        .setOrigin(0, 0)
+        .setDepth(1002);
+      const descText = this.add
+        .text(drawerX - drawerW / 2 + 44, itemY + 16, isHi ? 'you are here' : item.description, {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontSize: '7px',
           color: isHi ? '#ffd34d' : '#c0a0e6',
         })
-        .setOrigin(0.5);
-      this.stepUI?.add([cellBg, cellText]);
+        .setOrigin(0, 0)
+        .setDepth(1002);
+      this.stepUI?.add([cellBg, iconText, labelText, descText]);
     });
+
+    // Footer hint.
+    const footerY = drawerY + drawerH / 2 - 14;
+    const footer = this.add
+      .text(drawerX, footerY, 'tap outside to close', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontSize: '9px',
+        color: '#6f5a91',
+      })
+      .setOrigin(0.5)
+      .setDepth(1001);
+    this.stepUI?.add(footer);
 
     // Hamburger icon top-right — visual hint that this menu lives
     // behind the ☰ button in the real game. Depth above the tutorial-
-    // cat overlay (2000) so it stays visible if Butters' bubble
-    // sneaks under it.
+    // cat overlay (2000) so it stays visible.
     const iconX = width - 24;
     const iconY = 28;
     const iconBg = this.add
       .rectangle(iconX, iconY, 32, 32, 0xffd34d, 1)
       .setStrokeStyle(2, 0x1a0a2e, 1)
       .setDepth(2500);
-    const iconText = this.add
+    const iconLabel = this.add
       .text(iconX, iconY, '☰', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
@@ -839,7 +887,7 @@ export class TutorialOrchestrator extends Scene {
       })
       .setOrigin(0.5)
       .setDepth(2501);
-    this.stepUI?.add([iconBg, iconText]);
+    this.stepUI?.add([iconBg, iconLabel]);
   }
 
   /** Transition the orchestrator's live preview from the merch layout
