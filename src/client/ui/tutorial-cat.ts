@@ -51,52 +51,88 @@ export class TutorialCatOverlay {
     this.container.setDepth(2000);
 
     // -- Host cat sprite ----------------------------------------------
-    // Anchored bottom-left of the dialogue zone. Scaled to ~84 design
-    // pixels tall — readable but doesn't dominate the bubble.
+    // Anchored top-left of the screen so it shares the top zone with
+    // the speech bubble and stays out of the way of pickers / box-open
+    // animations / Continue button below. Origin bottom-center so we
+    // position by the cat's feet.
+    const catScale = 1.6;
     const catX = 56;
-    const catY = height * 0.62;
+    const catY = 28 + 64 * catScale; // top margin 28 + sprite height
     const catSprite = this.scene.add
       .sprite(catX, catY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
       .setOrigin(0.5, 1)
-      .setScale(1.3);
+      .setScale(catScale);
     this.container.add(catSprite);
 
     // -- Speech bubble ------------------------------------------------
-    // Bubble fills the dialogue zone — width adapts to the canvas,
-    // centered horizontally on the cat's right side. A tiny tail-arrow
-    // anchors it to the cat.
+    // Rounded white bubble with a thick purple stroke + a chunky tail
+    // pointing at the cat. Per Tim's reference screenshots — wants the
+    // cute pixel-game speech-bubble vibe (rounded corners, hand-drawn
+    // tail).
     const bubbleX = catX + 36;
-    const bubbleY = catY - 92;
-    const bubbleW = Math.min(width - bubbleX - 24, 240);
-    const bubbleH = 140;
-    const bubble = this.scene.add
-      .rectangle(bubbleX, bubbleY, bubbleW, bubbleH, SPEECH_BUBBLE_COLOR, 1)
-      .setOrigin(0, 0)
-      .setStrokeStyle(2, SPEECH_BUBBLE_STROKE, 1);
-    this.container.add(bubble);
+    const bubbleY = 28;
+    const bubbleW = Math.min(width - bubbleX - 16, 240);
+    const bubbleH = 152;
+    const bubbleRadius = 14;
+    const strokeW = 3;
 
-    // Tail-arrow — small triangle anchored to the cat. Pointing left.
-    const tail = this.scene.add.triangle(
-      bubbleX,
-      bubbleY + bubbleH - 16,
-      0,
-      0,
-      -10,
-      8,
-      0,
-      16,
-      SPEECH_BUBBLE_COLOR,
+    const bubbleGfx = this.scene.add.graphics();
+    bubbleGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
+    bubbleGfx.fillRoundedRect(bubbleX, bubbleY, bubbleW, bubbleH, bubbleRadius);
+    bubbleGfx.lineStyle(strokeW, SPEECH_BUBBLE_STROKE, 1);
+    bubbleGfx.strokeRoundedRect(bubbleX, bubbleY, bubbleW, bubbleH, bubbleRadius);
+    this.container.add(bubbleGfx);
+
+    // Tail — chunky filled triangle pointing down-left toward the cat's
+    // head. Drawn as fillTriangle so it inherits the same fill color +
+    // separately strokeTriangled with the same purple border. Notch
+    // overlap on the bubble bottom is intentional (covers the seam).
+    const tailTipX = catX + 20;
+    const tailTipY = catY - 56; // up around cat's head
+    const tailBaseX = bubbleX + 20;
+    const tailBaseY = bubbleY + bubbleH - 2;
+    const tailWide = 22;
+
+    const tailGfx = this.scene.add.graphics();
+    tailGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
+    tailGfx.fillTriangle(
+      tailBaseX, tailBaseY,
+      tailBaseX + tailWide, tailBaseY,
+      tailTipX, tailTipY,
     );
-    tail.setStrokeStyle(2, SPEECH_BUBBLE_STROKE, 1);
-    this.container.add(tail);
+    tailGfx.lineStyle(strokeW, SPEECH_BUBBLE_STROKE, 1);
+    // Stroke only the two outer edges of the tail (skip the top — the
+    // bubble bottom already strokes that). Two line segments.
+    tailGfx.beginPath();
+    tailGfx.moveTo(tailBaseX, tailBaseY);
+    tailGfx.lineTo(tailTipX, tailTipY);
+    tailGfx.strokePath();
+    tailGfx.beginPath();
+    tailGfx.moveTo(tailBaseX + tailWide, tailBaseY);
+    tailGfx.lineTo(tailTipX, tailTipY);
+    tailGfx.strokePath();
+    this.container.add(tailGfx);
+
+    // Small cover-rect to hide the bubble's bottom stroke between the
+    // two tail base points (so the bubble + tail read as one continuous
+    // shape rather than a tail OVERLAID on a closed rect).
+    const seamCover = this.scene.add.rectangle(
+      tailBaseX + tailWide / 2,
+      tailBaseY,
+      tailWide - 4,
+      strokeW + 2,
+      SPEECH_BUBBLE_COLOR,
+      1,
+    ).setOrigin(0.5, 0.5);
+    this.container.add(seamCover);
 
     // -- Dialogue text -----------------------------------------------
     const text = this.scene.add
-      .text(bubbleX + 12, bubbleY + 12, dialogue, {
+      .text(bubbleX + 14, bubbleY + 14, dialogue, {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontSize: '11px',
         color: TEXT_COLOR,
-        wordWrap: { width: bubbleW - 24 },
+        wordWrap: { width: bubbleW - 28 },
         lineSpacing: 2,
       })
       .setOrigin(0, 0);
@@ -105,7 +141,7 @@ export class TutorialCatOverlay {
     // -- Continue button ---------------------------------------------
     if (opts.onContinue) {
       const label = opts.continueLabel ?? 'Continue →';
-      const btnY = height * 0.86;
+      const btnY = height - 60;
       const btnW = 220;
       const btnH = 52;
       const btnBg = this.scene.add
