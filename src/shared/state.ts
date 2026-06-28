@@ -8,6 +8,7 @@
  */
 
 import { BACKGROUND_CATALOG } from './themes-catalog.generated';
+import type { TutorialStepId } from './tutorial-types';
 
 // -- Item identifiers ---------------------------------------------------
 
@@ -48,7 +49,7 @@ export function makeInstanceId(): string {
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
-export type BoxId = 'catBox' | 'cosmeticBox' | 'backgroundBox';
+export type BoxId = 'catBox' | 'cosmeticBox' | 'backgroundBox' | 'effectsBox';
 
 // -- Catalog entries ----------------------------------------------------
 
@@ -112,6 +113,11 @@ export interface BoxConfig {
   rewardKind: 'cat' | 'cosmetic' | 'background';
   /** Drop weights by rarity. Must sum to 100 (enforced by tests). */
   rates: Record<Rarity, number>;
+  /** If true, the cosmetic-pool roll filters to effects-only (cosmetics
+   *  registered in CAT_EFFECT_BY_ID). Used by `effectsBox` so the
+   *  player can target effects without touching the static-cosmetic
+   *  pool. No-op when rewardKind !== 'cosmetic'. */
+  effectsOnly?: boolean;
 }
 
 // -- Cat catalog --------------------------------------------------------
@@ -318,6 +324,18 @@ export const BOX_CATALOG: Record<BoxId, BoxConfig> = {
     price: 250,
     rewardKind: 'background',
     rates: { common: 70, uncommon: 25, rare: 5, legendary: 0 },
+  },
+  effectsBox: {
+    id: 'effectsBox',
+    displayName: 'Effects Box',
+    description: 'Opens a random effect — sparkles, flames, particle flair that makes your cats stand out.',
+    price: 80,
+    // Effects are stored alongside static cosmetics in COSMETIC_CATALOG;
+    // the `effectsOnly: true` flag tells box-pull to filter the pool to
+    // entries registered in CAT_EFFECT_BY_ID.
+    rewardKind: 'cosmetic',
+    rates: { common: 70, uncommon: 25, rare: 5, legendary: 0 },
+    effectsOnly: true,
   },
 };
 
@@ -580,8 +598,15 @@ export interface PlayerState {
    */
   equippedCosmeticTypes: Record<string, CosmeticId>;
   bestScore: number;
-  /** True after the player has completed the Welcome scene. */
+  /** True after the player has completed the tutorial OR explicitly
+   *  skipped it (post-pickers skip flow). When false, Preloader routes
+   *  the player into TutorialOrchestrator. */
   onboardingDone: boolean;
+  /** Resume index for the tutorial — set on every step advance, cleared
+   *  to null when the tutorial completes or is skipped. Lets the player
+   *  close the tab mid-tutorial and pick up where they left off on
+   *  next open. null === not in tutorial / never started / completed. */
+  tutorialStep: TutorialStepId | null;
   /** Unix-ms of last write. */
   updatedAt: number;
   house: PlayerHouseState;
@@ -665,7 +690,10 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
     equippedCosmeticTypes,
     bestScore: 0,
     // Skip the Welcome tutorial — players land straight in Decorate.
+    // (DEV ONLY — flip to `false` + `tutorialStep: null` before shipping
+    // so fresh accounts run the new TutorialOrchestrator flow.)
     onboardingDone: true,
+    tutorialStep: null,
     updatedAt: Date.now(),
     house: {
       themeId: 'default',

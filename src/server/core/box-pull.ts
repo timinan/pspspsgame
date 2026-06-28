@@ -2,6 +2,7 @@ import {
   BOX_CATALOG,
   CAT_CATALOG,
   COSMETIC_CATALOG,
+  EFFECT_COSMETIC_CATALOG,
   BACKGROUND_CATALOG,
   DUPLICATE_REFUND,
   makeInstanceId,
@@ -80,13 +81,25 @@ export function pullBox(
   }
 
   if (box.rewardKind === 'cosmetic') {
-    const pool = COSMETIC_CATALOG.filter((c) => c.rarity === rarity);
+    // effectsBox sets `effectsOnly: true` so the cosmetic-pool roll
+    // filters to entries in EFFECT_COSMETIC_CATALOG only. Lets the
+    // player target effects without polluting the static-cosmetic pool.
+    const effectIds = new Set(EFFECT_COSMETIC_CATALOG.map((e) => e.id));
+    const sourcePool = box.effectsOnly
+      ? COSMETIC_CATALOG.filter((c) => effectIds.has(c.id))
+      : COSMETIC_CATALOG;
+    let pool = sourcePool.filter((c) => c.rarity === rarity);
+    if (pool.length === 0) {
+      // Effects-only with no entries at the rolled rarity — fall back
+      // to ANY effect rarity so the roll never returns nothing.
+      pool = sourcePool;
+    }
     const pick = pool[Math.floor(rng() * pool.length)]!;
     const instanceId = makeInstanceId();
     return {
       kind: 'cosmetic',
       itemId: pick.id,
-      rarity,
+      rarity: pick.rarity,
       duplicate: false,
       refundCoins: 0,
       instanceId,
