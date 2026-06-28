@@ -24,10 +24,11 @@ export const CAT_COLOR_BY_BREED: Record<string, number> = {
   cat6:     0xd28a4a,  // Inkwell — toasted tabby brown (sprite is orange-brown tabby, not purple)
   cat7:     0xffa7e0,  // Pinky — vivid pink
   cat8:     0x6c6c84,  // Inky — lifted slate (pure black washes flat)
-  cat9:     0xeef3fb,  // Snow White — clean bright cool white
+  cat9:     0x9aa6b6,  // Gregre — British Shorthair cool blue-grey, lifted brighter than realism per the rule
   cat10:    0x6cf088,  // Jade — pop jade green (matches green aura)
   cat11:    0xb968ff,  // Purps — punchy purple
   cat12:    0xffc4de,  // Sakura — bright blossom pink
+  cat13:    0x6c7785,  // Butters — darker British Shorthair grey, lifted brighter than realism per the rule
 };
 
 const SEAT_ORDER: SeatId[] = ['seat-left', 'seat-center', 'seat-right'];
