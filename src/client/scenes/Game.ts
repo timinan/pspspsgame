@@ -935,16 +935,10 @@ export class Game extends Scene {
       .setOrigin(0.5, 0.5)
       .setStrokeStyle(2, 0xffd34d, 0.7);
     page2.add(this.summaryPage2TextareaBox);
-    const taPlaceholder = this.add
-      .text(cx, taY, 'tap to leave a comment…', {
-        ...fontBase,
-        fontSize: '10px',
-        color: '#8b6fb0',
-        align: 'center',
-        wordWrap: { width: panelW - 48 },
-      })
-      .setOrigin(0.5);
-    page2.add(taPlaceholder);
+    // Phaser placeholder text removed — HTML textarea overlay has its
+    // own native placeholder ("tap to leave a comment…"), and the Phaser
+    // version was redundantly showing through underneath when the
+    // textarea was empty. One source of truth = the input itself.
 
     // Buttons row: SKIP (purple secondary, LEFT) + POST (yellow primary,
     // RIGHT). Affirmative-right matches general UI convention (iOS,
