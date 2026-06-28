@@ -7,6 +7,7 @@ import type {
   SeatId,
   ThemeId,
 } from '../../shared/state';
+import type { TutorialStepId } from '../../shared/tutorial-types';
 
 export interface PullResult {
   kind: 'cat' | 'cosmetic' | 'background';
@@ -76,6 +77,20 @@ export async function equipCosmetic(
 export async function completeOnboarding(): Promise<PlayerState> {
   const r = await fetch('/api/onboarding/complete', { method: 'POST' });
   if (!r.ok) throw new Error(`completeOnboarding ${r.status}`);
+  const data = (await r.json()) as { state: PlayerState };
+  return data.state;
+}
+
+/** Persist the tutorial-resume index. Call with the new step on every
+ *  orchestrator advance. Call with null when the tutorial completes or
+ *  the player skips (alongside completeOnboarding). */
+export async function setTutorialStep(step: TutorialStepId | null): Promise<PlayerState> {
+  const r = await fetch('/api/tutorial-step', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ step }),
+  });
+  if (!r.ok) throw new Error(`setTutorialStep ${r.status}`);
   const data = (await r.json()) as { state: PlayerState };
   return data.state;
 }

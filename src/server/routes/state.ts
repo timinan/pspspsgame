@@ -11,6 +11,7 @@ import {
   type SeatId,
   type CosmeticId,
 } from '../../shared/state';
+import type { TutorialStepId } from '../../shared/tutorial-types';
 
 // DEV ONLY — every GET /api/state wipes the player's record and hands
 // back a fresh one with DEV_STARTER_COINS. Onboarding re-runs each page
@@ -148,6 +149,23 @@ state.post('/onboarding/complete', async (c) => {
   const username = await currentUsername();
   const player = await loadOrInit(redis, username);
   player.onboardingDone = true;
+  // Completing onboarding always clears any in-progress tutorial step
+  // so re-entry after first complete doesn't resurrect a stale resume.
+  player.tutorialStep = null;
+  await save(redis, player);
+  return c.json({ state: player });
+});
+
+/** POST /api/state/tutorial-step — body: { step: TutorialStepId | null }.
+ *  Persists the resume index for the tutorial. Called by the orchestrator
+ *  on every step advance and by the skip / complete paths (with null).
+ *  Returns the updated PlayerState so the client can stay in sync without
+ *  a follow-up GET. */
+state.post('/tutorial-step', async (c) => {
+  const body = (await c.req.json()) as { step: TutorialStepId | null };
+  const username = await currentUsername();
+  const player = await loadOrInit(redis, username);
+  player.tutorialStep = body.step;
   await save(redis, player);
   return c.json({ state: player });
 });
