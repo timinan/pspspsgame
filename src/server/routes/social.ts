@@ -166,15 +166,30 @@ social.post('/play', async (c) => {
     }
   }
 
-  // Auto-stats reply moved to POST /api/social/comment — endRound auto-
-  // submit calls /play (persistence only); page-2 POST/SKIP calls
-  // /comment (Reddit reply only). Splitting these prevents the double-
-  // comment bug where endRound's submission + page-2's submission each
-  // posted their own auto-stats reply. The pinned summary refresh BELOW
-  // stays in /play so the dashboard updates on every play regardless
-  // of whether the user takes a POST/SKIP action.
+  // Auto-stats reply under the pinned mod — fires on EVERY /play (which
+  // is once per round, triggered by endRound auto-submit). Stats-only,
+  // no free-text. If the player ALSO taps POST + types something,
+  // page-2 triggers /comment separately to post a root-level comment
+  // on the post itself (different surface — root post vs nested under
+  // mod). One mod reply per round + optional root comment if they
+  // typed. Tim: "only add to the post under the mod post IF the player
+  // didn't add a comment themselves" — but the mod reply still fires
+  // for everyone since it's the structured stats anchor; the root
+  // comment is what changes based on POST vs SKIP/no-action.
   const pinnedId = await getPinnedCommentId(r, body.postId);
   if (pinnedId) {
+    try {
+      const text = formatStatsComment(summary, ''); // stats-only, no freeText
+      await reddit.submitComment({
+        id: pinnedId,
+        text,
+        runAs: 'USER',
+      });
+      console.info('[social/play] auto-stats reply posted under', pinnedId);
+    } catch (err) {
+      console.error('[social/play] auto-stats reply failed (continuing)', err);
+    }
+
     // Refresh the pinned mod comment with the latest live stats —
     // fetch + format + edit. Owner-excluded top player + first passer
     // so the host can't self-rank as "best" or "first pass" on their
@@ -249,11 +264,18 @@ interface CommentBody {
 }
 
 /**
- * POST /comment — fires the auto-stats reply under the post's bot-pinned
- * root, on user action (page-2 POST/SKIP only — endRound auto-submit
- * does NOT call this). Keeps the Reddit reply on a user-triggered path
- * so a single play yields exactly one comment, regardless of whether
- * the persistence-side /play was already auto-submitted at endRound.
+ * POST /comment — fires a ROOT-LEVEL comment on the post itself (NOT
+ * nested under the mod-pinned root). Used only by page-2 POST when
+ * the player typed something. The mod-pinned reply (stats-only) is
+ * handled by /play's auto-stats path; /comment is the user-content
+ * surface — their text big on top, stats as a smaller footer caption.
+ *
+ * Tim: "when i do comment its still going under the mod post rather
+ * than the post itself" — clarifying that the typed comment belongs
+ * on the root post, not under the mod thread. The mod thread is for
+ * the structured per-play stats; the post root is for user voice.
+ *
+ * Page-2 SKIP does NOT call this — there's no text to post.
  */
 social.post('/comment', async (c) => {
   const visitor = await currentUsername();
@@ -261,22 +283,17 @@ social.post('/comment', async (c) => {
   if (!body.postId || !body.owner || !body.summary) {
     return c.json({ ok: false, reason: 'postId + owner + summary required' }, 400);
   }
-  const pinnedId = await getPinnedCommentId(r, body.postId);
-  if (!pinnedId) {
-    console.info('[social/comment] no pinned root for', body.postId, '— skipping');
-    return c.json({ ok: true, posted: false });
-  }
   try {
     const text = formatStatsComment(body.summary, body.commentBody ?? '');
     await reddit.submitComment({
-      id: pinnedId,
+      id: body.postId,  // ROOT-LEVEL — not nested under pinned
       text,
       runAs: 'USER',
     });
-    console.info('[social/comment] reply posted under', pinnedId, { visitor });
+    console.info('[social/comment] root-level comment posted on', body.postId, { visitor });
     return c.json({ ok: true, posted: true });
   } catch (err) {
-    console.error('[social/comment] reply failed', err);
+    console.error('[social/comment] comment failed', err);
     return c.json({ ok: false, reason: 'reddit submitComment failed' }, 500);
   }
 });

@@ -1045,20 +1045,22 @@ export class Game extends Scene {
         return;
       }
       const body = this.summaryPage2Textarea?.value?.trim() ?? '';
-      // POST flips to page-3 (what's next menu) instead of page-1.
-      // submitComment (not recordPlay) — endRound already persisted this
-      // play via recordPlay/submitPlay. Calling recordPlay again here
-      // double-counted everything AND posted a second Reddit reply.
-      // submitComment posts the single user-facing reply with the
-      // visitor's free-text + stats; persistence is untouched.
+      // POST flips to page-3 (what's next menu).
+      // submitComment ONLY fires when the player actually typed text —
+      // it posts a ROOT-LEVEL comment on the post with their text +
+      // stats. If they tapped POST with empty text, treat as a SKIP
+      // (no root comment; the stats-only mod reply already fired via
+      // endRound auto-submit's /play call). Persistence side untouched.
       this.setSummaryPage(3);
       this.summaryPage2PlaySummary = null;
-      void submitComment({
-        postId: summary.postId,
-        owner: summary.owner,
-        summary,
-        ...(body.length > 0 ? { commentBody: body } : {}),
-      });
+      if (body.length > 0) {
+        void submitComment({
+          postId: summary.postId,
+          owner: summary.owner,
+          summary,
+          commentBody: body,
+        });
+      }
     });
     this.summaryPage2SkipBg.on('pointerdown', () => {
       const summary = this.summaryPage2PlaySummary;
@@ -1066,15 +1068,12 @@ export class Game extends Scene {
         console.warn('[Game] page-2 SKIP tapped with no cached summary');
         return;
       }
-      // SKIP path also calls submitComment (stats-only reply, no
-      // freeText). Persistence already landed via endRound auto-submit.
+      // SKIP does nothing extra — the stats-only auto-reply under the
+      // mod-pinned root already fired via /play at endRound. No root-
+      // level post comment is desired on SKIP (the user explicitly
+      // chose not to share text). Just dismiss the page-2 UI.
       this.setSummaryPage(1);
       this.summaryPage2PlaySummary = null;
-      void submitComment({
-        postId: summary.postId,
-        owner: summary.owner,
-        summary,
-      });
     });
 
     container.add(page2);
