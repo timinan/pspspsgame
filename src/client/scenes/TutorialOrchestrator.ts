@@ -18,7 +18,9 @@ import {
 import { TutorialCatOverlay } from '@/ui/tutorial-cat';
 import { Picker } from '@/ui/picker';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
+import { CatNamingModal } from '@/ui/cat-naming-modal';
 import { loadBgIfMissing } from '@/entities/background-manager';
+import { renameCat } from '@/services/state-client';
 import {
   BACKGROUND_CATALOG,
   CAT_CATALOG,
@@ -366,7 +368,123 @@ export class TutorialOrchestrator extends Scene {
       console.warn('[tutorial] seedStarterCat failed (continuing anyway)', e);
     }
     this.applyLiveCat(breed);
-    await this.advance();
+    // Show the name-or-keep choice. Picker drove us here; this modal
+    // gates the next advance.
+    this.showNameChoice(breed);
+  }
+
+  /** Tutorial-only naming flow per Tim:
+   *  "as if they are good with the original name or would you like to
+   *   name them something else?"
+   *  Two buttons rendered over the live preview — Keep [default] or
+   *  Rename (opens the existing CatNamingModal HTML overlay). Either
+   *  path advances to merch-intro when resolved. */
+  private showNameChoice(breed: CatBreed): void {
+    const seatedInstance = this.playerState?.ownedCats.find((c) => c.breed === breed);
+    if (!seatedInstance) {
+      // Defensive — couldn't find the just-seated instance. Skip the
+      // naming UX, advance.
+      void this.advance();
+      return;
+    }
+    const defaultName = seatedInstance.name;
+
+    // Dim backdrop + panel — gated on the stepUI container so it tears
+    // down with the next step transition.
+    const { width, height } = this.scale;
+    const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.5).setOrigin(0, 0).setDepth(2500);
+    const panelW = Math.min(280, width - 40);
+    const panelH = 200;
+    const panel = this.add
+      .rectangle(width / 2, height / 2, panelW, panelH, 0x1a0a2e, 1)
+      .setStrokeStyle(2, 0xc678ff, 1)
+      .setDepth(2500);
+    const title = this.add
+      .text(width / 2, height / 2 - 70, `Meet ${defaultName}!`, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '14px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5)
+      .setDepth(2501);
+    const body = this.add
+      .text(width / 2, height / 2 - 30, `${defaultName} is a fine name — but if\nyou'd like to call them something\nelse, tap Rename.`, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontSize: '10px',
+        color: '#c0a0e6',
+        align: 'center',
+        lineSpacing: 2,
+      })
+      .setOrigin(0.5)
+      .setDepth(2501);
+
+    const btnY = height / 2 + 50;
+    const keepBg = this.add
+      .rectangle(width / 2 - 70, btnY, 120, 40, 0xffd34d, 1)
+      .setStrokeStyle(2, 0x1a0a2e, 1)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(2501);
+    const keepText = this.add
+      .text(width / 2 - 70, btnY, `Keep ${defaultName}`, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '10px',
+        color: '#1a0a2e',
+      })
+      .setOrigin(0.5)
+      .setDepth(2502);
+
+    const renameBg = this.add
+      .rectangle(width / 2 + 70, btnY, 120, 40, 0x2c1856, 1)
+      .setStrokeStyle(2, 0xc0a0e6, 1)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(2501);
+    const renameText = this.add
+      .text(width / 2 + 70, btnY, 'Rename', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5)
+      .setDepth(2502);
+
+    const items = [dim, panel, title, body, keepBg, keepText, renameBg, renameText];
+    this.stepUI?.add(items);
+
+    const teardown = (): void => {
+      for (const it of items) it.destroy();
+    };
+
+    keepBg.on('pointerdown', () => {
+      teardown();
+      void this.advance();
+    });
+    renameBg.on('pointerdown', () => {
+      teardown();
+      // Open the existing HTML naming modal. onSubmit fires renameCat
+      // then advances.
+      const otherCats = (this.playerState?.ownedCats ?? []).filter((c) => c.id !== seatedInstance.id);
+      const modal = new CatNamingModal(this, {
+        defaultName,
+        existingCats: otherCats,
+        onSubmit: (name) => {
+          // Optimistic local update first so the live preview reflects
+          // the name immediately, then persist server-side (fire-and-
+          // forget — advance even if the rename request fails).
+          if (this.playerState) {
+            const live = this.playerState.ownedCats.find((c) => c.id === seatedInstance.id);
+            if (live) live.name = name;
+          }
+          renameCat(seatedInstance.id, name).catch((e) =>
+            console.warn('[tutorial] renameCat failed (advancing anyway)', e),
+          );
+          void this.advance();
+        },
+      });
+      void modal;
+    });
   }
 
   // -----------------------------------------------------------------------
