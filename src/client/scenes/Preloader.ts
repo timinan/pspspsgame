@@ -184,21 +184,43 @@ export class Preloader extends Scene {
       console.warn('[preloader] visit detection failed; falling back to home flow', e);
     }
 
+    // Tutorial routing — first-timers run the orchestrator before any
+    // other scene. Two flavors:
+    //   Route A: cold-start (no visitPostId) + first-time. Orchestrator
+    //     runs through to route-a-outro → exits to Decorate.
+    //   Route B: visitPostId + first-time. Orchestrator runs the same
+    //     content but route-branch picks route-b-outro → exits to
+    //     VisitPost(originalPostId) so the player lands on the friend's
+    //     post the deep-link was for.
+    // Resume on tab-reopen: playerState.tutorialStep is the index;
+    // orchestrator starts there instead of 'intro'.
+    const isFirstTime = playerState !== null && !playerState.onboardingDone;
+    const resumeAt = playerState?.tutorialStep ?? undefined;
+
+    if (visitPostId && isFirstTime) {
+      this.scene.start(SceneKeys.TutorialOrchestrator, {
+        playerState,
+        originalPostId: visitPostId,
+        ...(resumeAt ? { resumeAt } : {}),
+      });
+      return;
+    }
     if (visitPostId) {
       this.scene.start(SceneKeys.VisitPost, { postId: visitPostId, playerState });
       return;
     }
-
-    const goToWelcome = playerState !== null && !playerState.onboardingDone;
-    if (goToWelcome) {
-      this.scene.start(SceneKeys.Welcome, { playerState });
-    } else {
-      // Always land in Decorate post-onboarding — that's where the player
-      // sees their cat house. They can hit Play from the hamburger when
-      // they're ready. (Fresh state seeds 3 cats + seats them so this
-      // works immediately without an empty Decorate screen.)
-      this.scene.start(SceneKeys.Decorate, { playerState });
+    if (isFirstTime) {
+      this.scene.start(SceneKeys.TutorialOrchestrator, {
+        playerState,
+        ...(resumeAt ? { resumeAt } : {}),
+      });
+      return;
     }
+    // Always land in Decorate post-onboarding — that's where the player
+    // sees their cat house. They can hit Play from the hamburger when
+    // they're ready. (Fresh state seeds 3 cats + seats them so this
+    // works immediately without an empty Decorate screen.)
+    this.scene.start(SceneKeys.Decorate, { playerState });
   }
 
   /** Build a paws-only mask from the bar-background texture. Pixels
