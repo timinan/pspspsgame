@@ -20,6 +20,7 @@ import {
 import {
   classifyScore,
   formatStatsComment,
+  formatAutoStatsReply,
   formatPinnedSummary,
   type PlaySummary,
   type InboxEvent,
@@ -179,7 +180,16 @@ social.post('/play', async (c) => {
   const pinnedId = await getPinnedCommentId(r, body.postId);
   if (pinnedId) {
     try {
-      const text = formatStatsComment(summary, ''); // stats-only, no freeText
+      // Compute rank + total players AFTER the leaderboard write above
+      // so the visitor sees their fresh rank in the reply. yourRank is
+      // null for visitors in the top N → derive from their index in
+      // the top list. totalPlayers approx: top.length when not at cap,
+      // else totalPlays for posts with > 10 unique players.
+      const lb = await fetchLeaderboard(r, body.postId, visitor);
+      const topIdx = lb.top.findIndex((e) => e.visitor === visitor);
+      const rank = topIdx >= 0 ? topIdx + 1 : lb.yourRank;
+      const totalPlayers = lb.top.length >= 10 ? lb.totalPlays : lb.top.length;
+      const text = formatAutoStatsReply(summary, rank, totalPlayers);
       await reddit.submitComment({
         id: pinnedId,
         text,

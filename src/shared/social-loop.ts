@@ -132,6 +132,38 @@ export function buildCommentBody(summary: PlaySummary, freeText: string = ''): s
  *    🎁 Tipped Z gold   (only if gift in summary)
  *    > [player's typed text]   (only if freeText)
  */
+/** Nuzzle-style markdown TABLE for the auto-stats reply posted under
+ *  the mod-pinned root on every play. Fuller stats than the compact
+ *  footer-style format used for root-level POST comments — this is the
+ *  primary content of the reply (no player text competing for visual
+ *  attention), so a 5-row table reads cleanly and matches the reference
+ *  Tim showed (Nuzzle's "I Nuzzled it!" stats card). */
+export function formatAutoStatsReply(
+  summary: PlaySummary,
+  rank: number | null,
+  totalPlayers: number,
+): string {
+  const passed = summary.tier !== 'fail';
+  const header = passed ? '🏆 **I played this show!**' : '❌ **I didn\'t pass this show**';
+  const accPct = Math.round(summary.accuracy * 100);
+  const rankCell = rank != null && totalPlayers > 0
+    ? `#${rank} of ${totalPlayers}`
+    : '—';
+  const tierLabel = summary.tier === 'fail'
+    ? 'DIDN\'T PASS'
+    : summary.tier.toUpperCase();
+  return (
+    `${header}\n\n` +
+    `| Stat | Value |\n` +
+    `|---|---|\n` +
+    `| 🎯 Score | **${summary.score.toLocaleString()}** |\n` +
+    `| ✨ Accuracy | ${accPct}% |\n` +
+    `| 🔥 Max Combo | x${summary.maxCombo} |\n` +
+    `| 🏅 Tier | ${tierLabel} |\n` +
+    `| 📊 Rank | ${rankCell} |\n`
+  );
+}
+
 export function formatStatsComment(
   summary: PlaySummary,
   freeText: string = '',
