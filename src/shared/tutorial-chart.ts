@@ -162,6 +162,11 @@ export interface TutorialPhaseConfig {
   /** Player must land this many hits before Game returns to orchestrator.
    *  Ignored when `durationMs` is set (insane phase). */
   hitsToAdvance?: number;
+  /** Slide-phase counter. Counts SLIDE COMPLETIONS specifically (not the
+   *  engage tap, not any other hits) so the 3-slide gate doesn't trip
+   *  after 1 slide + a stray tap. Use instead of hitsToAdvance on slide
+   *  phases; takes precedence when set. */
+  slideCompletionsToAdvance?: number;
   /** Hard wall-clock cap. When set, Game exits after this many ms
    *  regardless of hit count (insane phase). */
   durationMs?: number;
@@ -180,9 +185,9 @@ export const TUTORIAL_INTRO_PHASE_CONFIG: TutorialPhaseConfig = {
 export const TUTORIAL_PHASE_CONFIGS: ReadonlyArray<TutorialPhaseConfig | null> = [
   { chart: TUTORIAL_CHART_CHORDS,   hitsToAdvance: 10 }, // 0 chords (5 chord events, 12 notes)
   { chart: TUTORIAL_CHART_HOLDS,    hitsToAdvance: 6 },  // 1 holds (2 singles + 2 doubles; final double required)
-  { chart: TUTORIAL_CHART_SLIDES_1, hitsToAdvance: 3 },  // 2 slides-1
-  { chart: TUTORIAL_CHART_SLIDES_2, hitsToAdvance: 3 },  // 3 slides-2
-  { chart: TUTORIAL_CHART_DOUBLES,  hitsToAdvance: 3 },  // 4 double-slides
+  { chart: TUTORIAL_CHART_SLIDES_1, slideCompletionsToAdvance: 3 }, // 2 slides-1
+  { chart: TUTORIAL_CHART_SLIDES_2, slideCompletionsToAdvance: 3 }, // 3 slides-2
+  { chart: TUTORIAL_CHART_DOUBLES,  slideCompletionsToAdvance: 3 }, // 4 double-slides
   { chart: TUTORIAL_CHART_INSANE,   durationMs: 5000 },  // 5 insane
   null,                                                   // 6 outro (orchestrator handles)
 ];

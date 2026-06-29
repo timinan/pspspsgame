@@ -160,6 +160,13 @@ export class Game extends Scene {
    *  set, Game loads a tutorial chart, slows noteFallMs, and suppresses
    *  leaderboard / score-saving / summary / pass-fail / social-loop. */
   private tutorialPhase: number | null = null;
+  /** Slide-phase advance counter — counts completeSlide() calls, NOT
+   *  generic score hits. Lets the slide tutorial phases gate on "3
+   *  full slide actions" without tripping on the engage tap's
+   *  registerHit (which would let 1 slide + 1 stray tap advance the
+   *  phase). Reset in init(). Read in update() against
+   *  cfg.slideCompletionsToAdvance. */
+  private tutorialSlideCompletions = 0;
   /** Per-round noteFallMs — defaults to Balance.noteFallMs. Tutorial
    *  mode passes a slower override via init.noteFallMs so players have
    *  more time to learn each gesture. Replaces every direct
@@ -321,6 +328,7 @@ export class Game extends Scene {
     this.cats = [];
     this.tutorialDialogueGfx = [];
     this.tutorialButtersGfx = [];
+    this.tutorialSlideCompletions = 0;
     this.seatedNameLabels = [];
     this.laneRects = [];
     this.hitTargets = [];
@@ -417,14 +425,15 @@ export class Game extends Scene {
 
     if (this.tutorialPhase !== null) {
       // Tutorial mode: skip every chart-source branch (registry,
-      // playerState, SongPicker). initChartPlayer short-circuits to
-      // the per-phase mini-chart; beginRound starts immediately; the
-      // dialogue overlay pins to the top of the screen for the round;
-      // Butters seats himself in the empty lane-0 band-member slot.
+      // playerState, SongPicker). Seat Butters + dialogue FIRST so
+      // they're on screen during the chart-load wait — otherwise the
+      // player sees an empty playfield between phase transitions and
+      // Butters appears to disappear. Then load the chart + start the
+      // round.
+      this.seatTutorialButters();
+      this.setupTutorialOverlay();
       await this.initChartPlayer();
       void this.beginRound();
-      this.setupTutorialOverlay();
-      this.seatTutorialButters();
     } else if (this.testMode) {
       // Editor → REHEARSE path: chart is already authored. Tim's rule:
       // hitting REHEARSE in the editor starts the round immediately —
@@ -481,6 +490,10 @@ export class Game extends Scene {
       const cfg = this.getTutorialPhaseConfig();
       if (cfg) {
         if (cfg.durationMs && this.time.now - this.startTimeMs >= cfg.durationMs) {
+          this.endRound();
+          return;
+        }
+        if (cfg.slideCompletionsToAdvance && this.tutorialSlideCompletions >= cfg.slideCompletionsToAdvance) {
           this.endRound();
           return;
         }
@@ -2016,6 +2029,7 @@ export class Game extends Scene {
     n.recycle();
     this.pulseCombo();
     this.updateHud();
+    if (this.tutorialPhase !== null) this.tutorialSlideCompletions++;
   }
 
   /** Mark a slide as missed — original-lane miss feedback, recycle.
@@ -2784,15 +2798,17 @@ export class Game extends Scene {
   }
 
   /** Return to TutorialOrchestrator after a tutorial-mode round.
-   *  - phase -1 (intro)  → resume at 'play-tutorial' phase 0
-   *  - phase 0-5         → resume at 'play-tutorial' phase N+1
-   *  - phase 6           → orchestrator advances OUT of play-tutorial
-   *                        (shouldn't actually call Game; outro is
-   *                        orchestrator-only — guard anyway)
-   *  Orchestrator's resumeAt + playTutorialPhase init props pick up
-   *  the next beat exactly. */
+   *  - phase -1 (intro)  → next phase 0
+   *  - phase 0-4         → next phase N+1 (gameplay phases chain through Game)
+   *  - phase 5 (insane)  → next phase 6 = outro → orchestrator handles
+   *  - phase 6           → out of play-tutorial → orchestrator advances
+   *
+   *  When the NEXT phase is a Game-scene phase, scene.start straight to
+   *  Game again — skipping the orchestrator entirely keeps Butters seated
+   *  continuously across the gameplay loop instead of flashing through
+   *  the orchestrator's brief boot frame. Only hand back to the
+   *  orchestrator for non-gameplay beats (outro = phase 6). */
   private returnToTutorialOrchestrator(): void {
-    let resumeAt: 'play-tutorial' | 'play-tutorial-intro' = 'play-tutorial';
     let playTutorialPhase: number;
     if (this.tutorialPhase === -1) {
       // intro just finished → first sub-phase of play-tutorial
@@ -2800,9 +2816,20 @@ export class Game extends Scene {
     } else {
       playTutorialPhase = (this.tutorialPhase ?? 0) + 1;
     }
+    const nextCfg = (playTutorialPhase >= 0 && playTutorialPhase < TUTORIAL_PHASE_CONFIGS.length)
+      ? TUTORIAL_PHASE_CONFIGS[playTutorialPhase] ?? null
+      : null;
+    if (nextCfg) {
+      this.scene.start(SceneKeys.Game, {
+        playerState: this.playerState,
+        tutorialPhase: playTutorialPhase,
+        noteFallMs: this.noteFallMsActual,
+      });
+      return;
+    }
     this.scene.start(SceneKeys.TutorialOrchestrator, {
       playerState: this.playerState,
-      resumeAt,
+      resumeAt: 'play-tutorial',
       playTutorialPhase,
     });
   }
