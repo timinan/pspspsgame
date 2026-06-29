@@ -15,7 +15,7 @@ import { TUTORIAL_PHASE_CONFIGS } from '@/../shared/tutorial-chart';
 
 /** Slower than Balance.noteFallMs (2400) so the player has time to
  *  learn each gesture during the tutorial round. */
-const TUTORIAL_NOTE_FALL_MS = 3600;
+const TUTORIAL_NOTE_FALL_MS = 4800;
 import {
   setTutorialStep,
   completeOnboarding,
@@ -935,10 +935,10 @@ export class TutorialOrchestrator extends Scene {
    *  miniature version of the real in-game drawer (icon + label +
    *  description per row) styled to match exactly. `highlight` picks
    *  which row gets the yellow border + 'you are here' subtitle. */
-  /** Dispatch a play-tutorial sub-phase. Gameplay phases (0, 2-6) hand
-   *  off to Game scene with the matching mini-chart. Phase 1 (lane
-   *  styling) + phase 7 (outro menu mock) stay in the orchestrator
-   *  since they're non-gameplay beats. */
+  /** Dispatch a play-tutorial sub-phase. Gameplay phases (0-5) hand
+   *  off to Game scene with the matching mini-chart. Phase 6 (outro
+   *  menu mock) stays in the orchestrator since it's a non-gameplay
+   *  beat. */
   private runPlayTutorialPhase(phase: number): void {
     const cfg = TUTORIAL_PHASE_CONFIGS[phase] ?? null;
     if (cfg) {
@@ -949,11 +949,7 @@ export class TutorialOrchestrator extends Scene {
       });
       return;
     }
-    if (phase === 1) {
-      this.renderLaneStylingPhase();
-      return;
-    }
-    if (phase === 7) {
+    if (phase === 6) {
       this.renderOutroPhase();
       return;
     }
@@ -962,43 +958,13 @@ export class TutorialOrchestrator extends Scene {
     void this.advance();
   }
 
-  /** Phase 1 of play-tutorial — lane-styling explainer. Draws the 3
-   *  lanes + targets (so the player has something to look at while
-   *  Butters explains), pulses them briefly, dialogue bubble + Next
-   *  button. No notes drop. */
-  private renderLaneStylingPhase(): void {
-    const { width } = this.scale;
-    void width;
-    this.drawStageLanes();
-    this.tweens.add({
-      targets: this.stageLaneGfx,
-      scale: 1.18,
-      duration: 220,
-      yoyo: true,
-      repeat: 1,
-      ease: 'Sine.InOut',
-    });
-    const lines = getTutorialDialogue('play-tutorial');
-    const line = lines[1] ?? '';
-    this.overlay = new TutorialCatOverlay(this);
-    this.overlay.show(line, {
-      continueLabel: 'Next →',
-      onContinue: () => {
-        if (this.busy) return;
-        this.dialogueIndex = 2;
-        this.renderStep();
-      },
-    });
-    this.renderSkipLinkIfUnlocked();
-  }
-
-  /** Phase 7 of play-tutorial — outro with PUT ON A SHOW highlighted in
+  /** Phase 6 of play-tutorial — outro with PUT ON A SHOW highlighted in
    *  the menu mock so the player sees where to head next. Next button
    *  advances OUT of play-tutorial to editor-tour-intro. */
   private renderOutroPhase(): void {
     this.renderHamburgerMock('PUT ON A SHOW');
     const lines = getTutorialDialogue('play-tutorial');
-    const line = lines[7] ?? '';
+    const line = lines[6] ?? '';
     this.overlay = new TutorialCatOverlay(this);
     this.overlay.show(line, {
       continueLabel: 'Continue →',

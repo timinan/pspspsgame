@@ -42,19 +42,17 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
   'play-tutorial': [
     // 0 — taps + chord intro (drops chord notes after first tap-only round)
     "nice! those are taps — the basic note. two or three lanes at once? both work, it's just a chord.",
-    // 1 — lane styling explainer (no notes, Continue advances)
-    "your cat lives in the middle for now, but the side lanes still work — they're ready for when you hire more bandmembers. who you put on stage affects how your lanes look in-game. since i'm here you'll see my lane is set to match me — let me get out my butter effect for you too.",
-    // 2 — holds
-    "holds are tap-and-hold — keep your finger down until it ends.",
-    // 3 — slides (1 lane)
+    // 1 — holds (single + double-lane)
+    "holds are tap-and-hold — keep your finger down until it ends. double-lane holds need both fingers down at once.",
+    // 2 — slides (1 lane)
     "slides next! tap and drag to the next lane.",
-    // 4 — slides (2 lanes)
+    // 3 — slides (2 lanes)
     "you can slide across 2 lanes too — same gesture, longer drag.",
-    // 5 — double slide
+    // 4 — double slide
     "and the double slide ◀▶ — drag out, then drag back. takes practice.",
-    // 6 — insane chart (5s timer)
+    // 5 — insane chart (5s timer)
     "ok! you're ready for an insane run!",
-    // 7 — outro + menu mock w/ PUT ON A SHOW highlighted
+    // 6 — outro + menu mock w/ PUT ON A SHOW highlighted
     "...just kidding 😼. you've got a long way to go before that. now i'll show you how to put on a show — let's first head to this tab.",
   ],
   'editor-tour-intro':

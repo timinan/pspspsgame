@@ -319,6 +319,8 @@ export class Game extends Scene {
     // to 0 = start at the top.
     this.initialStartStep = typeof data?.startStep === 'number' ? Math.max(0, data.startStep) : 0;
     this.cats = [];
+    this.tutorialDialogueGfx = [];
+    this.tutorialButtersGfx = [];
     this.seatedNameLabels = [];
     this.laneRects = [];
     this.hitTargets = [];
@@ -417,10 +419,12 @@ export class Game extends Scene {
       // Tutorial mode: skip every chart-source branch (registry,
       // playerState, SongPicker). initChartPlayer short-circuits to
       // the per-phase mini-chart; beginRound starts immediately; the
-      // dialogue overlay pins to the top of the screen for the round.
+      // dialogue overlay pins to the top of the screen for the round;
+      // Butters seats himself in the empty lane-0 band-member slot.
       await this.initChartPlayer();
       void this.beginRound();
       this.setupTutorialOverlay();
+      this.seatTutorialButters();
     } else if (this.testMode) {
       // Editor → REHEARSE path: chart is already authored. Tim's rule:
       // hitting REHEARSE in the editor starts the round immediately —
@@ -2707,6 +2711,45 @@ export class Game extends Scene {
    *  plays. Built in setupTutorialOverlay(); destroyed by doCleanup(). */
   private tutorialDialogueGfx: Phaser.GameObjects.GameObject[] = [];
 
+  /** Tutorial-mode Butters seat — sprite + accessory + nametag at lane 0.
+   *  Visual only (no cat reactions, no lane logic); seated to fill the
+   *  empty top-left band-member slot so the player sees Butters during
+   *  tutorial gameplay. Built in seatTutorialButters(); destroyed by
+   *  doCleanup(). */
+  private tutorialButtersGfx: Phaser.GameObjects.GameObject[] = [];
+
+  /** Seat Butters' sprite in the lane-0 (top-left) band-member slot
+   *  during tutorial mode. Mirrors seatCats's coordinate math + scale so
+   *  Butters reads as a real seated band-member. Plays cat13_idle so he
+   *  bobs with the same idle loop as the player's seated starter cat. */
+  private seatTutorialButters(): void {
+    if (this.tutorialPhase === null) return;
+    const { width, height } = this.scale;
+    const scaleY = height / L.DESIGN_H;
+    const catY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.78) * scaleY;
+    const CAT_SCALE = 1.4;
+    const cx = L.laneCenterX(0, width);
+
+    const butters = this.add
+      .sprite(cx, catY, AssetKeys.Atlas.Cats, 'cat13_idle_00')
+      .setOrigin(0.5, 1)
+      .setScale(CAT_SCALE);
+    butters.play('cat13_idle', true);
+    this.tutorialButtersGfx.push(butters);
+
+    const nameLabel = this.add
+      .text(cx, catY + 4, 'BUTTERS', {
+        fontFamily: '"Courier New", monospace',
+        fontStyle: 'bold',
+        fontSize: '10px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5, 0);
+    this.tutorialButtersGfx.push(nameLabel);
+  }
+
   /** Show the dialogue bubble for the current tutorial phase. Reads the
    *  matching line from tutorial-script. Pinned at the top of the canvas
    *  so the playfield + cats + lanes stay fully visible underneath. */
@@ -2742,8 +2785,8 @@ export class Game extends Scene {
 
   /** Return to TutorialOrchestrator after a tutorial-mode round.
    *  - phase -1 (intro)  → resume at 'play-tutorial' phase 0
-   *  - phase 0-6         → resume at 'play-tutorial' phase N+1
-   *  - phase 7           → orchestrator advances OUT of play-tutorial
+   *  - phase 0-5         → resume at 'play-tutorial' phase N+1
+   *  - phase 6           → orchestrator advances OUT of play-tutorial
    *                        (shouldn't actually call Game; outro is
    *                        orchestrator-only — guard anyway)
    *  Orchestrator's resumeAt + playTutorialPhase init props pick up
@@ -2765,9 +2808,9 @@ export class Game extends Scene {
   }
 
   /** Lookup the tutorial config for the current phase. -1 = intro;
-   *  0-7 = play-tutorial sub-phase per TUTORIAL_PHASE_CONFIGS. Returns
+   *  0-6 = play-tutorial sub-phase per TUTORIAL_PHASE_CONFIGS. Returns
    *  null when tutorial mode is off OR the phase has no Game-mode
-   *  config (phases 1 + 7 are orchestrator-only). */
+   *  config (phase 6 is orchestrator-only). */
   private getTutorialPhaseConfig(): TutorialPhaseConfig | null {
     if (this.tutorialPhase === null) return null;
     if (this.tutorialPhase === -1) return TUTORIAL_INTRO_PHASE_CONFIG;
@@ -3585,6 +3628,10 @@ export class Game extends Scene {
     tearDown('tutorial-dialogue', () => {
       for (const obj of this.tutorialDialogueGfx) obj.destroy();
       this.tutorialDialogueGfx = [];
+    });
+    tearDown('tutorial-butters', () => {
+      for (const obj of this.tutorialButtersGfx) obj.destroy();
+      this.tutorialButtersGfx = [];
     });
     tearDown('hud', () => this.hud?.destroy());
     tearDown('summary', () => {

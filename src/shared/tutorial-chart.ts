@@ -14,15 +14,14 @@
  *     on a wall-clock timer instead of hits.
  *
  * Sequence (mirrors TUTORIAL_DIALOGUE['play-tutorial']):
- *   intro (play-tutorial-intro)  — taps on lane 1
- *   0 chords                      — 2- AND 3-note chords
- *   1 lane-styling                — no chart (orchestrator handles)
- *   2 holds                       — hold lane 1
- *   3 slides-1                    — 0→1, 2→1 (adjacent)
- *   4 slides-2                    — 0→2, 2→0 (cross)
- *   5 double-slides               — slide-returns adjacent
- *   6 insane                      — dense mixed, exits on 5s timer
- *   7 outro                       — no chart (orchestrator handles)
+ *   intro (play-tutorial-intro)  — sparse taps on lane 1
+ *   0 chords                      — 5 chord events (2- and 3-note)
+ *   1 holds                       — 2 single-lane + 2 double-lane
+ *   2 slides-1                    — 0→1, 2→1 (adjacent)
+ *   3 slides-2                    — 0→2, 2→0 (cross)
+ *   4 double-slides               — slide-returns adjacent
+ *   5 insane                      — dense mixed, exits on 5s timer
+ *   6 outro                       — no chart (orchestrator handles)
  */
 
 import type { Chart, ChartStep, LaneId } from './state';
@@ -45,42 +44,58 @@ const base = (title: string, stepCount = STEPS, bpm = BPM): Pick<
   updatedAt: 0,
 });
 
-/** play-tutorial-intro — 4 taps on the center lane (player cat). */
+/** play-tutorial-intro — 5 sparse taps on the center lane (player cat).
+ *  3-step spacing between taps so beginners have breathing room. */
 export const TUTORIAL_CHART_INTRO: Chart = {
-  ...base('Tutorial — Taps'),
+  ...base('Tutorial — Taps', 16),
   steps: [
-    tap(1), emptyStep(),
-    tap(1), emptyStep(),
-    tap(1), emptyStep(),
-    tap(1), emptyStep(),
+    tap(1), emptyStep(), emptyStep(),
+    tap(1), emptyStep(), emptyStep(),
+    tap(1), emptyStep(), emptyStep(),
+    tap(1), emptyStep(), emptyStep(),
+    tap(1), emptyStep(), emptyStep(),
+    emptyStep(),
   ],
   holds: [], slides: [], slideReturns: [],
 };
 
-/** play-tutorial phase 0 — taps + 2-note AND 3-note chords (Tim's spec). */
+/** play-tutorial phase 0 — 5 chord events (2-note + 3-note). hitsToAdvance:10
+ *  catches notes-not-chords (2+3+2+2+3=12 notes total; floor below 10 lets
+ *  player finish without nailing every note but still requires most chords). */
 export const TUTORIAL_CHART_CHORDS: Chart = {
-  ...base('Tutorial — Chords'),
+  ...base('Tutorial — Chords', 16),
   steps: [
-    chord(0, 1), emptyStep(),       // 2-note chord
-    chord(0, 1, 2), emptyStep(),    // 3-note chord
-    chord(1, 2), emptyStep(),       // 2-note chord
-    chord(0, 2), emptyStep(),       // 2-note chord (outer)
+    chord(0, 1), emptyStep(), emptyStep(),       // 2-note chord
+    chord(0, 1, 2), emptyStep(), emptyStep(),    // 3-note chord
+    chord(1, 2), emptyStep(), emptyStep(),       // 2-note chord
+    chord(0, 2), emptyStep(), emptyStep(),       // 2-note chord (outer)
+    chord(0, 1, 2), emptyStep(), emptyStep(),    // 3-note chord
+    emptyStep(),
   ],
   holds: [], slides: [], slideReturns: [],
 };
 
-/** play-tutorial phase 2 — holds on the center lane. */
+/** play-tutorial phase 1 — 2 single-lane holds + 2 double-lane holds.
+ *  hitsToAdvance:6 = 1+1+2+2 (each lane scores at hold-end). The 6th
+ *  hit only lands when the player completes the final double, so the
+ *  advance gate naturally requires a clean double-hold. */
 export const TUTORIAL_CHART_HOLDS: Chart = {
-  ...base('Tutorial — Holds'),
-  steps: Array.from({ length: STEPS }, emptyStep),
+  ...base('Tutorial — Holds', 16),
+  steps: Array.from({ length: 16 }, emptyStep),
   holds: [
+    // 2 single-lane holds on the center lane
     { lane: 1, startStep: 0, endStep: 2 },
     { lane: 1, startStep: 4, endStep: 6 },
+    // 2 double-lane holds (outer lanes simultaneously)
+    { lane: 0, startStep: 8, endStep: 10 },
+    { lane: 2, startStep: 8, endStep: 10 },
+    { lane: 0, startStep: 12, endStep: 14 },
+    { lane: 2, startStep: 12, endStep: 14 },
   ],
   slides: [], slideReturns: [],
 };
 
-/** play-tutorial phase 3 — adjacent 1-lane slides (0→1 and 2→1). */
+/** play-tutorial phase 2 — adjacent 1-lane slides (0→1 and 2→1). */
 export const TUTORIAL_CHART_SLIDES_1: Chart = {
   ...base('Tutorial — 1-Lane Slides'),
   steps: Array.from({ length: STEPS }, emptyStep),
@@ -94,7 +109,7 @@ export const TUTORIAL_CHART_SLIDES_1: Chart = {
   slideReturns: [],
 };
 
-/** play-tutorial phase 4 — cross 2-lane slides (0→2 and 2→0). */
+/** play-tutorial phase 3 — cross 2-lane slides (0→2 and 2→0). */
 export const TUTORIAL_CHART_SLIDES_2: Chart = {
   ...base('Tutorial — 2-Lane Slides'),
   steps: Array.from({ length: STEPS }, emptyStep),
@@ -108,7 +123,7 @@ export const TUTORIAL_CHART_SLIDES_2: Chart = {
   slideReturns: [],
 };
 
-/** play-tutorial phase 5 — slide-returns (adjacent ◀▶). */
+/** play-tutorial phase 4 — slide-returns (adjacent ◀▶). */
 export const TUTORIAL_CHART_DOUBLES: Chart = {
   ...base('Tutorial — Double Slides'),
   steps: Array.from({ length: STEPS }, emptyStep),
@@ -121,7 +136,7 @@ export const TUTORIAL_CHART_DOUBLES: Chart = {
   ],
 };
 
-/** play-tutorial phase 6 — insane density (5s timer in Game scene). */
+/** play-tutorial phase 5 — insane density (5s timer in Game scene). */
 export const TUTORIAL_CHART_INSANE: Chart = {
   ...base('Tutorial — Insane', STEPS, BPM * 2),  // 2x BPM = double density
   steps: [
@@ -139,9 +154,8 @@ export const TUTORIAL_CHART_INSANE: Chart = {
  * Per-phase Game-mode config: which chart to load, hit threshold to
  * exit, optional wall-clock duration override (insane phase only).
  *
- * Phase 1 (lane styling) + Phase 7 (outro) are NULL — they don't use
- * Game scene at all; TutorialOrchestrator handles them with non-
- * gameplay visuals (lane flash + menu mock).
+ * Phase 6 (outro) is NULL — it doesn't use Game scene at all;
+ * TutorialOrchestrator handles it with non-gameplay visuals (menu mock).
  */
 export interface TutorialPhaseConfig {
   chart: Chart;
@@ -158,18 +172,17 @@ export interface TutorialPhaseConfig {
  *  the play-tutorial array. */
 export const TUTORIAL_INTRO_PHASE_CONFIG: TutorialPhaseConfig = {
   chart: TUTORIAL_CHART_INTRO,
-  hitsToAdvance: 3,
+  hitsToAdvance: 5,
 };
 
-/** Maps `playTutorialPhase` (0-7) to its Game-mode config, or null
+/** Maps `playTutorialPhase` (0-6) to its Game-mode config, or null
  *  when the phase is handled entirely by TutorialOrchestrator. */
 export const TUTORIAL_PHASE_CONFIGS: ReadonlyArray<TutorialPhaseConfig | null> = [
-  { chart: TUTORIAL_CHART_CHORDS,   hitsToAdvance: 3 },  // 0 chords
-  null,                                                   // 1 lane-styling (orchestrator handles)
-  { chart: TUTORIAL_CHART_HOLDS,    hitsToAdvance: 3 },  // 2 holds
-  { chart: TUTORIAL_CHART_SLIDES_1, hitsToAdvance: 3 },  // 3 slides-1
-  { chart: TUTORIAL_CHART_SLIDES_2, hitsToAdvance: 3 },  // 4 slides-2
-  { chart: TUTORIAL_CHART_DOUBLES,  hitsToAdvance: 3 },  // 5 double-slides
-  { chart: TUTORIAL_CHART_INSANE,   durationMs: 5000 },  // 6 insane
-  null,                                                   // 7 outro (orchestrator handles)
+  { chart: TUTORIAL_CHART_CHORDS,   hitsToAdvance: 10 }, // 0 chords (5 chord events, 12 notes)
+  { chart: TUTORIAL_CHART_HOLDS,    hitsToAdvance: 6 },  // 1 holds (2 singles + 2 doubles; final double required)
+  { chart: TUTORIAL_CHART_SLIDES_1, hitsToAdvance: 3 },  // 2 slides-1
+  { chart: TUTORIAL_CHART_SLIDES_2, hitsToAdvance: 3 },  // 3 slides-2
+  { chart: TUTORIAL_CHART_DOUBLES,  hitsToAdvance: 3 },  // 4 double-slides
+  { chart: TUTORIAL_CHART_INSANE,   durationMs: 5000 },  // 5 insane
+  null,                                                   // 6 outro (orchestrator handles)
 ];
