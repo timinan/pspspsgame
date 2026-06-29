@@ -903,31 +903,9 @@
       "_thickTopY": 4
     },
     {
-      "filename": "cosmetic_c57_idle_00",
-      "frame": {
-        "x": 1720,
-        "y": 2,
-        "w": 40,
-        "h": 40
-      },
-      "rotated": false,
-      "trimmed": true,
-      "spriteSourceSize": {
-        "x": 25,
-        "y": 0,
-        "w": 40,
-        "h": 40
-      },
-      "sourceSize": {
-        "w": 91,
-        "h": 64
-      },
-      "_thickTopY": 0
-    },
-    {
       "filename": "cosmetic_c34_happy_00",
       "frame": {
-        "x": 1762,
+        "x": 1720,
         "y": 2,
         "w": 38,
         "h": 39
@@ -949,7 +927,7 @@
     {
       "filename": "cosmetic_c34_happy_01",
       "frame": {
-        "x": 1802,
+        "x": 1760,
         "y": 2,
         "w": 38,
         "h": 39
@@ -971,7 +949,7 @@
     {
       "filename": "cosmetic_c34_happy_02",
       "frame": {
-        "x": 1842,
+        "x": 1800,
         "y": 2,
         "w": 38,
         "h": 39
@@ -993,7 +971,7 @@
     {
       "filename": "cosmetic_c34_happy_03",
       "frame": {
-        "x": 1882,
+        "x": 1840,
         "y": 2,
         "w": 38,
         "h": 39
@@ -1015,7 +993,7 @@
     {
       "filename": "cosmetic_c34_happy_04",
       "frame": {
-        "x": 1922,
+        "x": 1880,
         "y": 2,
         "w": 38,
         "h": 39
@@ -1037,7 +1015,7 @@
     {
       "filename": "cosmetic_c34_happy_05",
       "frame": {
-        "x": 1962,
+        "x": 1920,
         "y": 2,
         "w": 38,
         "h": 39
@@ -1059,7 +1037,7 @@
     {
       "filename": "cosmetic_c34_happy_06",
       "frame": {
-        "x": 2002,
+        "x": 1960,
         "y": 2,
         "w": 38,
         "h": 39
@@ -1081,8 +1059,8 @@
     {
       "filename": "cosmetic_c34_happy_07",
       "frame": {
-        "x": 2,
-        "y": 53,
+        "x": 2000,
+        "y": 2,
         "w": 38,
         "h": 39
       },
@@ -1103,7 +1081,7 @@
     {
       "filename": "cosmetic_c34_happy_08",
       "frame": {
-        "x": 42,
+        "x": 2,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1125,7 +1103,7 @@
     {
       "filename": "cosmetic_c34_happy_09",
       "frame": {
-        "x": 82,
+        "x": 42,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1147,7 +1125,7 @@
     {
       "filename": "cosmetic_c34_happy_10",
       "frame": {
-        "x": 122,
+        "x": 82,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1169,7 +1147,7 @@
     {
       "filename": "cosmetic_c35_idle_00",
       "frame": {
-        "x": 162,
+        "x": 122,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1191,7 +1169,7 @@
     {
       "filename": "cosmetic_c35_idle_01",
       "frame": {
-        "x": 202,
+        "x": 162,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1213,7 +1191,7 @@
     {
       "filename": "cosmetic_c35_idle_02",
       "frame": {
-        "x": 242,
+        "x": 202,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1235,7 +1213,7 @@
     {
       "filename": "cosmetic_c35_idle_03",
       "frame": {
-        "x": 282,
+        "x": 242,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1257,7 +1235,7 @@
     {
       "filename": "cosmetic_c35_idle_04",
       "frame": {
-        "x": 322,
+        "x": 282,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1279,7 +1257,7 @@
     {
       "filename": "cosmetic_c35_idle_05",
       "frame": {
-        "x": 362,
+        "x": 322,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1301,7 +1279,7 @@
     {
       "filename": "cosmetic_c35_idle_06",
       "frame": {
-        "x": 402,
+        "x": 362,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1323,7 +1301,7 @@
     {
       "filename": "cosmetic_c35_idle_07",
       "frame": {
-        "x": 442,
+        "x": 402,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1345,7 +1323,7 @@
     {
       "filename": "cosmetic_c35_idle_08",
       "frame": {
-        "x": 482,
+        "x": 442,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1367,7 +1345,7 @@
     {
       "filename": "cosmetic_c35_lick_00",
       "frame": {
-        "x": 522,
+        "x": 482,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1389,7 +1367,7 @@
     {
       "filename": "cosmetic_c35_lick_01",
       "frame": {
-        "x": 562,
+        "x": 522,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1411,7 +1389,7 @@
     {
       "filename": "cosmetic_c35_lick_02",
       "frame": {
-        "x": 602,
+        "x": 562,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1433,7 +1411,7 @@
     {
       "filename": "cosmetic_c35_lick_03",
       "frame": {
-        "x": 642,
+        "x": 602,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1455,7 +1433,7 @@
     {
       "filename": "cosmetic_c35_lick_04",
       "frame": {
-        "x": 682,
+        "x": 642,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1477,7 +1455,7 @@
     {
       "filename": "cosmetic_c35_lick_05",
       "frame": {
-        "x": 722,
+        "x": 682,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1499,7 +1477,7 @@
     {
       "filename": "cosmetic_c35_lick_06",
       "frame": {
-        "x": 762,
+        "x": 722,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1521,7 +1499,7 @@
     {
       "filename": "cosmetic_c35_lick_07",
       "frame": {
-        "x": 802,
+        "x": 762,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1543,7 +1521,7 @@
     {
       "filename": "cosmetic_c35_hiss_00",
       "frame": {
-        "x": 842,
+        "x": 802,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1565,7 +1543,7 @@
     {
       "filename": "cosmetic_c35_hiss_01",
       "frame": {
-        "x": 882,
+        "x": 842,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1587,7 +1565,7 @@
     {
       "filename": "cosmetic_c35_hiss_02",
       "frame": {
-        "x": 922,
+        "x": 882,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1609,7 +1587,7 @@
     {
       "filename": "cosmetic_c35_hiss_03",
       "frame": {
-        "x": 962,
+        "x": 922,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1631,7 +1609,7 @@
     {
       "filename": "cosmetic_c35_hiss_04",
       "frame": {
-        "x": 1002,
+        "x": 962,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1653,7 +1631,7 @@
     {
       "filename": "cosmetic_c35_hiss_05",
       "frame": {
-        "x": 1042,
+        "x": 1002,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1675,7 +1653,7 @@
     {
       "filename": "cosmetic_c35_hiss_06",
       "frame": {
-        "x": 1082,
+        "x": 1042,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1697,7 +1675,7 @@
     {
       "filename": "cosmetic_c35_hiss_07",
       "frame": {
-        "x": 1122,
+        "x": 1082,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1719,7 +1697,7 @@
     {
       "filename": "cosmetic_c35_hiss_08",
       "frame": {
-        "x": 1162,
+        "x": 1122,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1741,7 +1719,7 @@
     {
       "filename": "cosmetic_c35_hiss_09",
       "frame": {
-        "x": 1202,
+        "x": 1162,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1763,7 +1741,7 @@
     {
       "filename": "cosmetic_c35_hiss_10",
       "frame": {
-        "x": 1242,
+        "x": 1202,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1785,7 +1763,7 @@
     {
       "filename": "cosmetic_c36_happy_00",
       "frame": {
-        "x": 1282,
+        "x": 1242,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1807,7 +1785,7 @@
     {
       "filename": "cosmetic_c36_happy_01",
       "frame": {
-        "x": 1322,
+        "x": 1282,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1829,7 +1807,7 @@
     {
       "filename": "cosmetic_c36_happy_02",
       "frame": {
-        "x": 1362,
+        "x": 1322,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1851,7 +1829,7 @@
     {
       "filename": "cosmetic_c36_happy_03",
       "frame": {
-        "x": 1402,
+        "x": 1362,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1873,7 +1851,7 @@
     {
       "filename": "cosmetic_c36_happy_04",
       "frame": {
-        "x": 1442,
+        "x": 1402,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1895,7 +1873,7 @@
     {
       "filename": "cosmetic_c36_happy_05",
       "frame": {
-        "x": 1482,
+        "x": 1442,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1917,7 +1895,7 @@
     {
       "filename": "cosmetic_c36_happy_06",
       "frame": {
-        "x": 1522,
+        "x": 1482,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1939,7 +1917,7 @@
     {
       "filename": "cosmetic_c36_happy_07",
       "frame": {
-        "x": 1562,
+        "x": 1522,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1961,7 +1939,7 @@
     {
       "filename": "cosmetic_c36_happy_08",
       "frame": {
-        "x": 1602,
+        "x": 1562,
         "y": 53,
         "w": 38,
         "h": 39
@@ -1983,7 +1961,7 @@
     {
       "filename": "cosmetic_c36_happy_09",
       "frame": {
-        "x": 1642,
+        "x": 1602,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2005,7 +1983,7 @@
     {
       "filename": "cosmetic_c36_happy_10",
       "frame": {
-        "x": 1682,
+        "x": 1642,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2027,7 +2005,7 @@
     {
       "filename": "cosmetic_c37_idle_00",
       "frame": {
-        "x": 1722,
+        "x": 1682,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2049,7 +2027,7 @@
     {
       "filename": "cosmetic_c37_idle_01",
       "frame": {
-        "x": 1762,
+        "x": 1722,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2071,7 +2049,7 @@
     {
       "filename": "cosmetic_c37_idle_02",
       "frame": {
-        "x": 1802,
+        "x": 1762,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2093,7 +2071,7 @@
     {
       "filename": "cosmetic_c37_idle_03",
       "frame": {
-        "x": 1842,
+        "x": 1802,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2115,7 +2093,7 @@
     {
       "filename": "cosmetic_c37_idle_04",
       "frame": {
-        "x": 1882,
+        "x": 1842,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2137,7 +2115,7 @@
     {
       "filename": "cosmetic_c37_idle_05",
       "frame": {
-        "x": 1922,
+        "x": 1882,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2159,7 +2137,7 @@
     {
       "filename": "cosmetic_c37_idle_06",
       "frame": {
-        "x": 1962,
+        "x": 1922,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2181,7 +2159,7 @@
     {
       "filename": "cosmetic_c37_idle_07",
       "frame": {
-        "x": 2002,
+        "x": 1962,
         "y": 53,
         "w": 38,
         "h": 39
@@ -2203,8 +2181,8 @@
     {
       "filename": "cosmetic_c37_idle_08",
       "frame": {
-        "x": 2,
-        "y": 94,
+        "x": 2002,
+        "y": 53,
         "w": 38,
         "h": 39
       },
@@ -2225,7 +2203,7 @@
     {
       "filename": "cosmetic_c37_lick_01",
       "frame": {
-        "x": 42,
+        "x": 2,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2247,7 +2225,7 @@
     {
       "filename": "cosmetic_c37_lick_03",
       "frame": {
-        "x": 82,
+        "x": 42,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2269,7 +2247,7 @@
     {
       "filename": "cosmetic_c37_lick_05",
       "frame": {
-        "x": 122,
+        "x": 82,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2291,7 +2269,7 @@
     {
       "filename": "cosmetic_c37_lick_07",
       "frame": {
-        "x": 162,
+        "x": 122,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2313,7 +2291,7 @@
     {
       "filename": "cosmetic_c37_hiss_00",
       "frame": {
-        "x": 202,
+        "x": 162,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2335,7 +2313,7 @@
     {
       "filename": "cosmetic_c37_hiss_01",
       "frame": {
-        "x": 242,
+        "x": 202,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2357,7 +2335,7 @@
     {
       "filename": "cosmetic_c37_hiss_02",
       "frame": {
-        "x": 282,
+        "x": 242,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2379,7 +2357,7 @@
     {
       "filename": "cosmetic_c37_hiss_03",
       "frame": {
-        "x": 322,
+        "x": 282,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2401,7 +2379,7 @@
     {
       "filename": "cosmetic_c37_hiss_04",
       "frame": {
-        "x": 362,
+        "x": 322,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2423,7 +2401,7 @@
     {
       "filename": "cosmetic_c37_hiss_05",
       "frame": {
-        "x": 402,
+        "x": 362,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2445,7 +2423,7 @@
     {
       "filename": "cosmetic_c37_hiss_06",
       "frame": {
-        "x": 442,
+        "x": 402,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2467,7 +2445,7 @@
     {
       "filename": "cosmetic_c37_hiss_07",
       "frame": {
-        "x": 482,
+        "x": 442,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2489,7 +2467,7 @@
     {
       "filename": "cosmetic_c37_hiss_08",
       "frame": {
-        "x": 522,
+        "x": 482,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2511,7 +2489,7 @@
     {
       "filename": "cosmetic_c37_hiss_09",
       "frame": {
-        "x": 562,
+        "x": 522,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2533,7 +2511,7 @@
     {
       "filename": "cosmetic_c37_hiss_10",
       "frame": {
-        "x": 602,
+        "x": 562,
         "y": 94,
         "w": 38,
         "h": 39
@@ -2551,6 +2529,28 @@
         "h": 64
       },
       "_thickTopY": 5
+    },
+    {
+      "filename": "cosmetic_c57_idle_00",
+      "frame": {
+        "x": 602,
+        "y": 94,
+        "w": 38,
+        "h": 39
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 26,
+        "y": 0,
+        "w": 38,
+        "h": 39
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 64
+      },
+      "_thickTopY": 0
     },
     {
       "filename": "cosmetic_c37_lick_02",
