@@ -70,6 +70,11 @@ interface ShowOptions {
    *  stageTailAt so the bubble width is constrained and the tail
    *  reads as a callout from Butters, not a top-of-screen banner. */
   stageBubbleCenterX?: number;
+  /** Tween Butters in from the hero pose (centered, scale 2.5) to the
+   *  destination pose for this layout. Bubble + button fade in after
+   *  the tween lands. Used on the intro → pick-stage transition so
+   *  Butters' move reads as motion, not a snap. */
+  tweenFromHero?: boolean;
 }
 
 export class TutorialCatOverlay {
@@ -97,16 +102,25 @@ export class TutorialCatOverlay {
     //     head across the top of the screen.
     const hero = opts.hero === true;
     const stageMode = opts.stageTailAt !== undefined;
+    const tweenFromHero = opts.tweenFromHero === true && !stageMode && !hero;
     let catX = 0;
     let catY = 0;
+    let catSprite: GameObjects.Sprite | undefined;
+    let accessorySprite: GameObjects.Sprite | undefined;
     if (!stageMode) {
       const catScale = hero ? 2.5 : 1.7;
       catX = hero ? width / 2 : 60;
       catY = hero ? 320 : 220;
-      const catSprite = this.scene.add
-        .sprite(catX, catY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
+      // tweenFromHero: place Butters at the HERO pose first so we can
+      // animate him toward the destination pose for this layout. Bubble
+      // + tail + button start hidden and fade in once Butters arrives.
+      const startX = tweenFromHero ? width / 2 : catX;
+      const startY = tweenFromHero ? 320 : catY;
+      const startScale = tweenFromHero ? 2.5 : catScale;
+      catSprite = this.scene.add
+        .sprite(startX, startY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
         .setOrigin(0.5, 1)
-        .setScale(catScale);
+        .setScale(startScale);
       // Play the idle anim so Butters' tail wags instead of standing
       // as a still frame. Preloader pre-registered every breed_idle
       // key, so this just kicks off the loop.
@@ -119,10 +133,10 @@ export class TutorialCatOverlay {
       // with the head idle instead of holding frame 00 while the cat
       // moves underneath.
       const accessoryAnimKey = ensureCosmeticIdleAnim(this.scene, 'c2');
-      const accessorySprite = this.scene.add
-        .sprite(catX, catY, AssetKeys.Atlas.Cosmetics, HOST_ACCESSORY_FRAME)
+      accessorySprite = this.scene.add
+        .sprite(startX, startY, AssetKeys.Atlas.Cosmetics, HOST_ACCESSORY_FRAME)
         .setOrigin(0.5, 1)
-        .setScale(catScale);
+        .setScale(startScale);
       if (accessoryAnimKey) accessorySprite.play(accessoryAnimKey, true);
       this.container.add(accessorySprite);
     }
@@ -236,16 +250,18 @@ export class TutorialCatOverlay {
     this.container.add(text);
 
     // -- Continue button ---------------------------------------------
+    let btnBg: GameObjects.Rectangle | undefined;
+    let btnText: GameObjects.Text | undefined;
     if (opts.onContinue) {
       const label = opts.continueLabel ?? 'Continue →';
       const btnY = height - 60;
       const btnW = 220;
       const btnH = 52;
-      const btnBg = this.scene.add
+      btnBg = this.scene.add
         .rectangle(width / 2, btnY, btnW, btnH, CONTINUE_FILL, 1)
         .setInteractive({ useHandCursor: true });
       btnBg.setStrokeStyle(2, 0x1a0a2e, 1);
-      const btnText = this.scene.add
+      btnText = this.scene.add
         .text(width / 2, btnY, label, {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
@@ -254,20 +270,51 @@ export class TutorialCatOverlay {
         })
         .setOrigin(0.5);
       this.container.add([btnBg, btnText]);
+      const localBtnBg = btnBg;
+      const localBtnText = btnText;
       btnBg.on('pointerdown', () => {
         // Disable the button on first tap so rapid-fire taps during
         // the 160ms feedback tween can't queue up multiple onContinue
         // calls — without this, hammering Continue on a box-open beat
         // fires openBox() three or four times before busy flips,
         // opening more boxes than the script allows.
-        btnBg.disableInteractive();
+        localBtnBg.disableInteractive();
         this.scene.tweens.add({
-          targets: [btnBg, btnText],
+          targets: [localBtnBg, localBtnText],
           scale: 0.96,
           duration: 80,
           yoyo: true,
           onComplete: () => opts.onContinue?.(),
         });
+      });
+    }
+
+    // -- tweenFromHero: animate Butters from the hero pose to the
+    // destination pose, fade bubble + button in on arrival. Skipped
+    // for hero + stage layouts (they don't have a separate destination).
+    if (tweenFromHero && catSprite && accessorySprite) {
+      const fadeTargets: GameObjects.GameObject[] = [tailGfx, bubbleGfx, text];
+      if (btnBg) fadeTargets.push(btnBg);
+      if (btnText) fadeTargets.push(btnText);
+      for (const obj of fadeTargets) {
+        (obj as unknown as { setAlpha: (a: number) => unknown }).setAlpha(0);
+      }
+      const destScale = 1.7;
+      this.scene.tweens.add({
+        targets: [catSprite, accessorySprite],
+        x: catX,
+        y: catY,
+        scale: destScale,
+        duration: 420,
+        ease: 'Cubic.Out',
+        onComplete: () => {
+          this.scene.tweens.add({
+            targets: fadeTargets,
+            alpha: 1,
+            duration: 180,
+            ease: 'Linear',
+          });
+        },
       });
     }
   }

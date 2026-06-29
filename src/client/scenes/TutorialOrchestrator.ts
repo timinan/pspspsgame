@@ -73,6 +73,10 @@ interface InitData {
 export class TutorialOrchestrator extends Scene {
   private playerState: PlayerState | null = null;
   private currentStep: TutorialStepId = 'intro';
+  /** The step we were on right before currentStep — set by advance().
+   *  renderStep reads it to know when a layout change needs a transition
+   *  tween (e.g., intro → pick-stage animates Butters into the corner). */
+  private previousStep: TutorialStepId | undefined;
   private originalPostId: string | undefined;
   private posterUsername: string | undefined;
   /** Index into multi-line dialogue (for `dressing-walkthrough` and
@@ -209,8 +213,11 @@ export class TutorialOrchestrator extends Scene {
     if (this.currentStep === 'pick-stage') {
       this.overlay = new TutorialCatOverlay(this);
       // Push the bubble down so more of the picked venue bg is visible
-      // up top per Tim's feedback.
-      this.overlay.show(line, { bubbleY: 170 });
+      // up top per Tim's feedback. tweenFromHero animates Butters from
+      // the intro's centered-large pose into the corner so the move
+      // reads as motion, not a snap (Image 30 feedback).
+      const fromIntro = this.previousStep === 'intro';
+      this.overlay.show(line, { bubbleY: 170, tweenFromHero: fromIntro });
       this.picker = new Picker(this, {
         items: STARTER_STAGES.map((id) => {
           const entry = BACKGROUND_CATALOG[id as BackgroundId];
@@ -1173,6 +1180,7 @@ export class TutorialOrchestrator extends Scene {
     }
 
     await this.persistStep(next);
+    this.previousStep = this.currentStep;
     this.currentStep = next;
     this.dialogueIndex = 0;
 
