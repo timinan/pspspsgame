@@ -209,51 +209,77 @@ export class TutorialCatOverlay {
     // height. Floor 50 so a one-line beat still has a sensible shape.
     const bubbleH = Math.max(50, text.height + bubblePadding * 2);
 
-    // -- Tail target: where the tip should point. Per Tim feedback
-    // (Image 30): "after adding butter's nametag the arrow should point
-    // right under him for the speech bubble." So in normal layout the
-    // tip lands just below the nametag (catY + 35), wrapping around
-    // Butters' silhouette instead of piercing his face. Hero keeps the
-    // above-head target — bubble is at the top so the tail must point
-    // down at Butters' head, not at his feet (which would be below
-    // the bubble already). Stage mode uses the caller-supplied anchor.
+    // -- Tail target: where the tip should point. Tim Image 31 clarified:
+    // tail points at Butters' FACE on every layout (not under him), but
+    // stopShort ensures it never overlaps his head. Stage mode uses the
+    // caller-supplied anchor.
     const rawTipX = stageMode ? opts.stageTailAt!.x : (hero ? catX : catX + 16);
-    const rawTipY = stageMode ? opts.stageTailAt!.y : (hero ? catY - 200 : catY + 35);
+    const rawTipY = stageMode ? opts.stageTailAt!.y : (hero ? catY - 200 : catY - 60);
 
-    // -- Tail emerges from the MIDDLE of the bubble edge nearest the
-    // tip (Image 30 feedback: "this speech bubble can come from the
-    // middle for the arrow"). The two base vertices are spread ±10px
-    // along that edge so the tail reads as a slim taper, not a wide
-    // triangle eating the bubble. Drawn UNDER the bubble so the two
-    // shapes read as one silhouette.
+    // -- Tail anchor: hero ONLY uses the middle of the bubble edge
+    // nearest the tip; every other layout uses the bubble CORNER
+    // nearest Butters. Tim Image 31: "only the very first one should
+    // have the arrow coming out from the middle for all others it
+    // should still be to the nearest corner to butters pointing
+    // towards his face but NOT OVERLAPPING."
     const bubbleCx = bubbleX + bubbleW / 2;
     const bubbleCy = bubbleY + bubbleH / 2;
-    const halfBase = 10;
     let baseX1: number, baseY1: number, baseX2: number, baseY2: number;
     let anchorX: number, anchorY: number;
-    const dxToTip = rawTipX - bubbleCx;
-    const dyToTip = rawTipY - bubbleCy;
-    if (Math.abs(dxToTip) * bubbleH > Math.abs(dyToTip) * bubbleW) {
-      // Horizontal-dominant — tail comes from left or right edge middle.
-      const edgeX = dxToTip > 0 ? bubbleX + bubbleW : bubbleX;
-      anchorX = edgeX;
-      anchorY = bubbleCy;
-      baseX1 = edgeX; baseY1 = bubbleCy - halfBase;
-      baseX2 = edgeX; baseY2 = bubbleCy + halfBase;
+    if (hero) {
+      const halfBase = 10;
+      const dxToTip = rawTipX - bubbleCx;
+      const dyToTip = rawTipY - bubbleCy;
+      if (Math.abs(dxToTip) * bubbleH > Math.abs(dyToTip) * bubbleW) {
+        const edgeX = dxToTip > 0 ? bubbleX + bubbleW : bubbleX;
+        anchorX = edgeX;
+        anchorY = bubbleCy;
+        baseX1 = edgeX; baseY1 = bubbleCy - halfBase;
+        baseX2 = edgeX; baseY2 = bubbleCy + halfBase;
+      } else {
+        const edgeY = dyToTip > 0 ? bubbleY + bubbleH : bubbleY;
+        anchorX = bubbleCx;
+        anchorY = edgeY;
+        baseX1 = bubbleCx - halfBase; baseY1 = edgeY;
+        baseX2 = bubbleCx + halfBase; baseY2 = edgeY;
+      }
     } else {
-      // Vertical-dominant — tail comes from top or bottom edge middle.
-      const edgeY = dyToTip > 0 ? bubbleY + bubbleH : bubbleY;
-      anchorX = bubbleCx;
-      anchorY = edgeY;
-      baseX1 = bubbleCx - halfBase; baseY1 = edgeY;
-      baseX2 = bubbleCx + halfBase; baseY2 = edgeY;
+      // Pick the corner of the bubble nearest the tip; the two base
+      // vertices live on the two adjacent edges, offset past the rounded-
+      // corner radius so the tail fuses cleanly with the bubble fill.
+      const tailOffset = bubbleRadius + 6;
+      const corners = [
+        { x: bubbleX, y: bubbleY,
+          b1: { x: bubbleX + tailOffset, y: bubbleY },
+          b2: { x: bubbleX, y: bubbleY + tailOffset } },
+        { x: bubbleX + bubbleW, y: bubbleY,
+          b1: { x: bubbleX + bubbleW - tailOffset, y: bubbleY },
+          b2: { x: bubbleX + bubbleW, y: bubbleY + tailOffset } },
+        { x: bubbleX, y: bubbleY + bubbleH,
+          b1: { x: bubbleX + tailOffset, y: bubbleY + bubbleH },
+          b2: { x: bubbleX, y: bubbleY + bubbleH - tailOffset } },
+        { x: bubbleX + bubbleW, y: bubbleY + bubbleH,
+          b1: { x: bubbleX + bubbleW - tailOffset, y: bubbleY + bubbleH },
+          b2: { x: bubbleX + bubbleW, y: bubbleY + bubbleH - tailOffset } },
+      ];
+      let best = corners[0]!;
+      let bestDist = Infinity;
+      for (const c of corners) {
+        const d = Math.hypot(c.x - rawTipX, c.y - rawTipY);
+        if (d < bestDist) { bestDist = d; best = c; }
+      }
+      anchorX = best.x;
+      anchorY = best.y;
+      baseX1 = best.b1.x; baseY1 = best.b1.y;
+      baseX2 = best.b2.x; baseY2 = best.b2.y;
     }
 
-    // Pull the tip back along the line from the bubble edge so it
-    // stops ~30px short of Butters' face (Image 27: "start a little
-    // bit off to the side of the head not overlayed on"). Clamp so
-    // the tip can't end up behind the base on a very short run.
-    const stopShort = 30;
+    // Pull the tip back along the line from the bubble anchor so it
+    // never overlaps Butters' face — stopShort 40 in non-hero layouts
+    // gives a clear gap between the rounded tip and his head per Tim
+    // Image 31 ("NOT OVERLAPPING"). Hero uses 30 since the bubble is
+    // far above and a smaller gap reads cleanly.
+    const stopShort = hero ? 30 : 40;
     const dx = rawTipX - anchorX;
     const dy = rawTipY - anchorY;
     const fullDist = Math.hypot(dx, dy);
@@ -262,14 +288,15 @@ export class TutorialCatOverlay {
     const tipX = anchorX + dx * ratio;
     const tipY = anchorY + dy * ratio;
 
-    // Clean slim triangle — no rounded blob at the tip. Image 30:
-    // "when i mean rounded i dont mean literally a round circle i
-    //  mean make the arrow less jagged and pointy rather than
-    //  having a circle." Slimmer base + no blob reads as a tapered
-    // cartoon tail instead of a pointy dart with a wart on it.
+    // Triangle for the body of the tail + a SMALL fillCircle (radius 4)
+    // at the tip to round the sharp point. Tim Image 31: "round out
+    // the end of the arrow don't have it look like it can stab
+    // someone." Radius 4 is small enough that it reads as a blunted
+    // taper, not a "round circle" blob (his earlier complaint at r=9).
     const tailGfx = this.scene.add.graphics();
     tailGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
     tailGfx.fillTriangle(baseX1, baseY1, baseX2, baseY2, tipX, tipY);
+    tailGfx.fillCircle(tipX, tipY, 4);
     this.container.add(tailGfx);
 
     const bubbleGfx = this.scene.add.graphics();
