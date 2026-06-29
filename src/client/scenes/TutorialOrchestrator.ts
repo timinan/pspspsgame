@@ -1410,10 +1410,12 @@ export class TutorialOrchestrator extends Scene {
     }
   }
 
-  /** Drop a single tap note at the given hitAt (game-time). The note
-   *  is a tinted circle that tweens from lane top to past the bottom.
-   *  Tap detection: pointerdown on the lane within the perfect+great
-   *  window of hitAt counts as a hit. Auto-recycles 800ms after passing. */
+  /** Drop a single note. `hitAt` is the game-time when the note crosses
+   *  the hit line (NOT when it spawns). The note appears at `startY` at
+   *  `hitAt - FALL_TO_HIT_MS` so it traverses startY → hitY in the
+   *  player-perceived "fall window." Continues falling to endY off-screen.
+   *  Tap detection: pointerdown on the lane within ±HIT_WINDOW_MS of
+   *  hitAt counts as a hit. */
   private spawnTutorialNote(laneId: 0 | 1 | 2, hitAt: number, opts?: {
     type?: 'tap' | 'hold' | 'slide' | 'slide-return';
     holdEndAt?: number;
@@ -1428,12 +1430,18 @@ export class TutorialOrchestrator extends Scene {
     const color = this.resolveTutorialLaneColor(laneId);
     const type = opts?.type ?? 'tap';
 
+    // Match Balance.noteFallMs (2400ms) so the tutorial feels like the
+    // real game's reaction time. Total fall is scaled up so y=endY at
+    // a proportionally later time.
+    const FALL_TO_HIT_MS = 2400;
+    const totalFallMs = FALL_TO_HIT_MS * (endY - startY) / (hitY - startY);
+    const fallSpeedPxPerMs = (hitY - startY) / FALL_TO_HIT_MS;
+
     const sprite = this.add.container(cx, startY).setDepth(-100);
     const ball = this.add.circle(0, 0, 22, color, 1).setStrokeStyle(3, 0xffffff, 0.9);
     sprite.add(ball);
     if (type === 'hold' && opts?.holdEndAt) {
-      const fallSpeed = (hitY - startY) / 1800;  // matches Balance.noteFallMs=2400 scaled
-      const tailH = Math.max(0, (opts.holdEndAt - hitAt) * fallSpeed);
+      const tailH = Math.max(0, (opts.holdEndAt - hitAt) * fallSpeedPxPerMs);
       const tail = this.add.rectangle(0, -tailH / 2 - 12, 30, tailH, color, 0.75);
       sprite.add(tail);
     } else if (type === 'slide' && opts?.slideTargetLane !== undefined) {
@@ -1451,8 +1459,12 @@ export class TutorialOrchestrator extends Scene {
     }
 
     const now = this.time.now;
-    const fallMs = 1800;
-    const delayMs = Math.max(0, hitAt - now);
+    // Spawn at startY at (hitAt - FALL_TO_HIT_MS) so the note CROSSES
+    // hitY exactly at hitAt. Clamped to delayMs >= 0; if the caller
+    // scheduled a note in the past, it appears immediately + tween
+    // starts mid-fall (visible from where it should currently be).
+    const spawnTime = hitAt - FALL_TO_HIT_MS;
+    const delayMs = Math.max(0, spawnTime - now);
     const recordEntry: typeof this.playTutorialNotes[number] = {
       sprite, laneId, hitAtMs: hitAt, hit: false, type,
       ...(opts?.holdEndAt !== undefined ? { holdEndAtMs: opts.holdEndAt } : {}),
@@ -1467,7 +1479,7 @@ export class TutorialOrchestrator extends Scene {
       this.tweens.add({
         targets: sprite,
         y: endY,
-        duration: fallMs,
+        duration: totalFallMs,
         ease: 'Linear',
         onComplete: () => {
           if (sprite.active) sprite.destroy();
@@ -1497,7 +1509,7 @@ export class TutorialOrchestrator extends Scene {
    *  center lane, count hits. Advance after `targetHits`. */
   private startTapsPhase(targetHits: number, onComplete: () => void): void {
     this.tearDownTutorialNotes();
-    const startAt = this.time.now + 1200;
+    const startAt = this.time.now + 3000;  // first note crosses hit line ~3s from now (real game uses 2.4s fall time)
     // Schedule 8 notes on the player's center lane, 900ms apart. More
     // than enough to hit the target; whatever's left mid-fall on exit
     // is cleaned up by tearDownTutorialNotes.
@@ -1509,7 +1521,7 @@ export class TutorialOrchestrator extends Scene {
 
   private startChordsPhase(targetHits: number, onComplete: () => void): void {
     this.tearDownTutorialNotes();
-    const startAt = this.time.now + 1200;
+    const startAt = this.time.now + 3000;  // first note crosses hit line ~3s from now (real game uses 2.4s fall time)
     // 8 chords across all 3 lanes simultaneously. Each chord counts as 1
     // hit when ANY note in the chord is tapped (kept simple).
     for (let i = 0; i < 8; i++) {
@@ -1523,7 +1535,7 @@ export class TutorialOrchestrator extends Scene {
 
   private startHoldsPhase(targetHits: number, onComplete: () => void): void {
     this.tearDownTutorialNotes();
-    const startAt = this.time.now + 1200;
+    const startAt = this.time.now + 3000;  // first note crosses hit line ~3s from now (real game uses 2.4s fall time)
     for (let i = 0; i < 6; i++) {
       const t = startAt + i * 1600;
       this.spawnTutorialNote(1, t, { type: 'hold', holdEndAt: t + 700 });
@@ -1533,7 +1545,7 @@ export class TutorialOrchestrator extends Scene {
 
   private startSlidesPhase(laneSpan: 1 | 2, targetHits: number, onComplete: () => void): void {
     this.tearDownTutorialNotes();
-    const startAt = this.time.now + 1200;
+    const startAt = this.time.now + 3000;  // first note crosses hit line ~3s from now (real game uses 2.4s fall time)
     // Alternate source/target so the player sees both directions.
     for (let i = 0; i < 6; i++) {
       const t = startAt + i * 1400;
@@ -1548,7 +1560,7 @@ export class TutorialOrchestrator extends Scene {
 
   private startDoubleSlidesPhase(targetHits: number, onComplete: () => void): void {
     this.tearDownTutorialNotes();
-    const startAt = this.time.now + 1200;
+    const startAt = this.time.now + 3000;  // first note crosses hit line ~3s from now (real game uses 2.4s fall time)
     for (let i = 0; i < 6; i++) {
       const t = startAt + i * 1500;
       const src: 0 | 1 | 2 = i % 2 === 0 ? 0 : 2;
