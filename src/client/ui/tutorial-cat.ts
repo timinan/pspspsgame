@@ -251,47 +251,30 @@ export class TutorialCatOverlay {
     // nearest the tip; every other layout uses the bubble CORNER
     // nearest Butters. Tim Image 31: "only the very first one should
     // have the arrow coming out from the middle for all others it
-    // should still be to the nearest corner to butters pointing
-    // towards his face but NOT OVERLAPPING."
+    // should still be to the nearest corner."
     const bubbleCx = bubbleX + bubbleW / 2;
     const bubbleCy = bubbleY + bubbleH / 2;
-    let baseX1: number, baseY1: number, baseX2: number, baseY2: number;
     let anchorX: number, anchorY: number;
     if (hero) {
-      const halfBase = 10;
       const dxToTip = rawTipX - bubbleCx;
       const dyToTip = rawTipY - bubbleCy;
       if (Math.abs(dxToTip) * bubbleH > Math.abs(dyToTip) * bubbleW) {
-        const edgeX = dxToTip > 0 ? bubbleX + bubbleW : bubbleX;
-        anchorX = edgeX;
+        anchorX = dxToTip > 0 ? bubbleX + bubbleW : bubbleX;
         anchorY = bubbleCy;
-        baseX1 = edgeX; baseY1 = bubbleCy - halfBase;
-        baseX2 = edgeX; baseY2 = bubbleCy + halfBase;
       } else {
-        const edgeY = dyToTip > 0 ? bubbleY + bubbleH : bubbleY;
         anchorX = bubbleCx;
-        anchorY = edgeY;
-        baseX1 = bubbleCx - halfBase; baseY1 = edgeY;
-        baseX2 = bubbleCx + halfBase; baseY2 = edgeY;
+        anchorY = dyToTip > 0 ? bubbleY + bubbleH : bubbleY;
       }
     } else {
-      // Pick the corner of the bubble nearest the tip; the two base
-      // vertices live on the two adjacent edges, offset past the rounded-
-      // corner radius so the tail fuses cleanly with the bubble fill.
-      const tailOffset = bubbleRadius + 6;
+      // Pick the corner of the bubble nearest the tip; pulled inward
+      // past the rounded-corner radius so the tail base attaches to
+      // straight edge, not the curved corner pixels.
+      const tailOffset = bubbleRadius + 4;
       const corners = [
-        { x: bubbleX, y: bubbleY,
-          b1: { x: bubbleX + tailOffset, y: bubbleY },
-          b2: { x: bubbleX, y: bubbleY + tailOffset } },
-        { x: bubbleX + bubbleW, y: bubbleY,
-          b1: { x: bubbleX + bubbleW - tailOffset, y: bubbleY },
-          b2: { x: bubbleX + bubbleW, y: bubbleY + tailOffset } },
-        { x: bubbleX, y: bubbleY + bubbleH,
-          b1: { x: bubbleX + tailOffset, y: bubbleY + bubbleH },
-          b2: { x: bubbleX, y: bubbleY + bubbleH - tailOffset } },
-        { x: bubbleX + bubbleW, y: bubbleY + bubbleH,
-          b1: { x: bubbleX + bubbleW - tailOffset, y: bubbleY + bubbleH },
-          b2: { x: bubbleX + bubbleW, y: bubbleY + bubbleH - tailOffset } },
+        { x: bubbleX + tailOffset,           y: bubbleY + tailOffset },
+        { x: bubbleX + bubbleW - tailOffset, y: bubbleY + tailOffset },
+        { x: bubbleX + tailOffset,           y: bubbleY + bubbleH - tailOffset },
+        { x: bubbleX + bubbleW - tailOffset, y: bubbleY + bubbleH - tailOffset },
       ];
       let best = corners[0]!;
       let bestDist = Infinity;
@@ -301,33 +284,49 @@ export class TutorialCatOverlay {
       }
       anchorX = best.x;
       anchorY = best.y;
-      baseX1 = best.b1.x; baseY1 = best.b1.y;
-      baseX2 = best.b2.x; baseY2 = best.b2.y;
     }
 
-    // Pull the tip back along the line from the bubble anchor so it
+    // Pull the cap CENTER back along the line so the cap's outer edge
     // never overlaps Butters' face — stopShort 40 in non-hero layouts
-    // gives a clear gap between the rounded tip and his head per Tim
-    // Image 31 ("NOT OVERLAPPING"). Hero uses 30 since the bubble is
-    // far above and a smaller gap reads cleanly.
+    // gives a clear gap. Hero uses 30 since the bubble is far above.
     const stopShort = hero ? 30 : 40;
     const dx = rawTipX - anchorX;
     const dy = rawTipY - anchorY;
     const fullDist = Math.hypot(dx, dy);
-    const targetDist = Math.max(36, fullDist - stopShort);
+    const targetDist = Math.max(20, fullDist - stopShort);
     const ratio = fullDist > 0 ? targetDist / fullDist : 0;
     const tipX = anchorX + dx * ratio;
     const tipY = anchorY + dy * ratio;
 
-    // Triangle for the body of the tail + a SMALL fillCircle (radius 4)
-    // at the tip to round the sharp point. Tim Image 31: "round out
-    // the end of the arrow don't have it look like it can stab
-    // someone." Radius 4 is small enough that it reads as a blunted
-    // taper, not a "round circle" blob (his earlier complaint at r=9).
+    // -- Capsule-shaped tail: two parallel sides ending in a smooth
+    // half-circle cap (Tim Image 32 drew this exact U shape). NOT a
+    // triangle, NOT a triangle + blob — a stadium silhouette where
+    // the tail has consistent width along its length and the tip
+    // curves smoothly. Constructed as a rectangle (anchor edge → cap
+    // base) plus a fillCircle at the cap center.
+    const tailHalfW = 4;
+    const ux = fullDist > 0 ? dx / fullDist : 0;
+    const uy = fullDist > 0 ? dy / fullDist : 0;
+    // Perpendicular to the tail axis.
+    const px = -uy;
+    const py = ux;
+    const baseLeftX  = anchorX + px * tailHalfW;
+    const baseLeftY  = anchorY + py * tailHalfW;
+    const baseRightX = anchorX - px * tailHalfW;
+    const baseRightY = anchorY - py * tailHalfW;
+    const tipLeftX  = tipX + px * tailHalfW;
+    const tipLeftY  = tipY + py * tailHalfW;
+    const tipRightX = tipX - px * tailHalfW;
+    const tipRightY = tipY - py * tailHalfW;
     const tailGfx = this.scene.add.graphics();
     tailGfx.fillStyle(SPEECH_BUBBLE_COLOR, 1);
-    tailGfx.fillTriangle(baseX1, baseY1, baseX2, baseY2, tipX, tipY);
-    tailGfx.fillCircle(tipX, tipY, 4);
+    tailGfx.fillPoints([
+      { x: baseLeftX,  y: baseLeftY  },
+      { x: tipLeftX,   y: tipLeftY   },
+      { x: tipRightX,  y: tipRightY  },
+      { x: baseRightX, y: baseRightY },
+    ], true);
+    tailGfx.fillCircle(tipX, tipY, tailHalfW);
     this.container.add(tailGfx);
 
     const bubbleGfx = this.scene.add.graphics();
