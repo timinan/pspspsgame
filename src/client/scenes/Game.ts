@@ -460,6 +460,22 @@ export class Game extends Scene {
     // loops early would never end the round before the 30s cap.
     if (this.time.now - this.startTimeMs >= Balance.maxRoundMs) {
       this.endRound();
+      return;
+    }
+    // Tutorial-mode early exit: hits-to-advance for most phases,
+    // wall-clock for insane. Phase config drives which trigger fires.
+    if (this.tutorialPhase !== null) {
+      const cfg = this.getTutorialPhaseConfig();
+      if (cfg) {
+        if (cfg.durationMs && this.time.now - this.startTimeMs >= cfg.durationMs) {
+          this.endRound();
+          return;
+        }
+        if (cfg.hitsToAdvance && this.score.getLanded() >= cfg.hitsToAdvance) {
+          this.endRound();
+          return;
+        }
+      }
     }
   }
 
@@ -2019,6 +2035,14 @@ export class Game extends Scene {
       const n = this.notes[i]!;
       if (n.active) n.recycle();
     }
+    // Tutorial mode: skip the entire show-end ceremony (cat reactions,
+    // 💕 combo line, summary modal, leaderboard submit) and route back
+    // to the orchestrator at the NEXT phase. Real-game endRound continues
+    // below for non-tutorial calls.
+    if (this.tutorialPhase !== null) {
+      this.returnToTutorialOrchestrator();
+      return;
+    }
     // Backing track keeps playing through the summary — Phaser's scene
     // shutdown will tear it down via `cleanup` when the player closes
     // the scene. Round-end isn't a hard "cut off the music" moment;
@@ -2669,6 +2693,30 @@ export class Game extends Scene {
    * Priority: registry.hostChart → playerState.chart → loadChart(host) →
    * fetchState → empty stub.
    */
+  /** Return to TutorialOrchestrator after a tutorial-mode round.
+   *  - phase -1 (intro)  → resume at 'play-tutorial' phase 0
+   *  - phase 0-6         → resume at 'play-tutorial' phase N+1
+   *  - phase 7           → orchestrator advances OUT of play-tutorial
+   *                        (shouldn't actually call Game; outro is
+   *                        orchestrator-only — guard anyway)
+   *  Orchestrator's resumeAt + playTutorialPhase init props pick up
+   *  the next beat exactly. */
+  private returnToTutorialOrchestrator(): void {
+    let resumeAt: 'play-tutorial' | 'play-tutorial-intro' = 'play-tutorial';
+    let playTutorialPhase: number;
+    if (this.tutorialPhase === -1) {
+      // intro just finished → first sub-phase of play-tutorial
+      playTutorialPhase = 0;
+    } else {
+      playTutorialPhase = (this.tutorialPhase ?? 0) + 1;
+    }
+    this.scene.start(SceneKeys.TutorialOrchestrator, {
+      playerState: this.playerState,
+      resumeAt,
+      playTutorialPhase,
+    });
+  }
+
   /** Lookup the tutorial config for the current phase. -1 = intro;
    *  0-7 = play-tutorial sub-phase per TUTORIAL_PHASE_CONFIGS. Returns
    *  null when tutorial mode is off OR the phase has no Game-mode
