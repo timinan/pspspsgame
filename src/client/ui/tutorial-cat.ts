@@ -139,6 +139,27 @@ export class TutorialCatOverlay {
         .setScale(startScale);
       if (accessoryAnimKey) accessorySprite.play(accessoryAnimKey, true);
       this.container.add(accessorySprite);
+
+      // BUTTERS nametag — mirrors the seated-band-member nametag style
+      // from Game.seatCats (Courier New 10px, white with black stroke).
+      // Tim's feedback (Image 30): "let's also give Butters a nametag
+      // through the tutorial." The tail target below uses this to land
+      // 'right under him' instead of crossing his face.
+      const nameSprite = this.scene.add
+        .text(startX, startY + 4, 'BUTTERS', {
+          fontFamily: '"Courier New", monospace',
+          fontStyle: 'bold',
+          fontSize: '10px',
+          color: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5, 0);
+      this.container.add(nameSprite);
+      // Stash on the cat sprite so the tween below can drag the label
+      // along with the cat in tweenFromHero mode without an extra
+      // closure-captured reference.
+      (catSprite as unknown as { __nameSprite?: GameObjects.Text }).__nameSprite = nameSprite;
     }
 
     // -- Dialogue text + auto-sized speech bubble ---------------------
@@ -185,11 +206,15 @@ export class TutorialCatOverlay {
     const bubbleH = Math.max(50, text.height + bubblePadding * 2);
 
     // -- Tail target: where the tip should point. Per Tim feedback
-    // (Image 27): the tip should land just OFF Butters' head, not
-    // pierce into it. After we compute the candidate target we pull
-    // the tip back along the line from the bubble so it stops short.
+    // (Image 30): "after adding butter's nametag the arrow should point
+    // right under him for the speech bubble." So in normal layout the
+    // tip lands just below the nametag (catY + 35), wrapping around
+    // Butters' silhouette instead of piercing his face. Hero keeps the
+    // above-head target — bubble is at the top so the tail must point
+    // down at Butters' head, not at his feet (which would be below
+    // the bubble already). Stage mode uses the caller-supplied anchor.
     const rawTipX = stageMode ? opts.stageTailAt!.x : (hero ? catX : catX + 16);
-    const rawTipY = stageMode ? opts.stageTailAt!.y : (hero ? catY - 200 : catY - 60);
+    const rawTipY = stageMode ? opts.stageTailAt!.y : (hero ? catY - 200 : catY + 35);
 
     // -- Tail emerges from the MIDDLE of the bubble edge nearest the
     // tip (Image 30 feedback: "this speech bubble can come from the
@@ -300,8 +325,21 @@ export class TutorialCatOverlay {
         (obj as unknown as { setAlpha: (a: number) => unknown }).setAlpha(0);
       }
       const destScale = 1.7;
+      const moveTargets: GameObjects.GameObject[] = [catSprite, accessorySprite];
+      // Drag the BUTTERS nametag along with the cat — the nametag sits
+      // 4px below the cat's bottom edge, so tween its y to catY + 4.
+      const nameSprite = (catSprite as unknown as { __nameSprite?: GameObjects.Text }).__nameSprite;
+      if (nameSprite) {
+        this.scene.tweens.add({
+          targets: nameSprite,
+          x: catX,
+          y: catY + 4,
+          duration: 420,
+          ease: 'Cubic.Out',
+        });
+      }
       this.scene.tweens.add({
-        targets: [catSprite, accessorySprite],
+        targets: moveTargets,
         x: catX,
         y: catY,
         scale: destScale,
