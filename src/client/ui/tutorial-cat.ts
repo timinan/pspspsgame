@@ -77,8 +77,22 @@ interface ShowOptions {
   tweenFromHero?: boolean;
 }
 
+/** Depth layers for the tutorial overlay. Butters' sprite sits BELOW
+ *  any in-scene mock (e.g. the hamburger-menu drawer at 1000-1002) so
+ *  things like a drawer overlay cover his body cleanly; the bubble +
+ *  Continue button live ABOVE that so the dialogue is always readable.
+ *  Tim Image 31: "you can have the menu overlap butters here instead
+ *  of butters over the menu." */
+const BUTTERS_DEPTH = 500;
+const BUBBLE_DEPTH = 2050;
+const BUTTON_DEPTH = 2100;
+
 export class TutorialCatOverlay {
   private container: GameObjects.Container | undefined;
+  /** Butters' sprites — kept OUTSIDE the bubble container so they can
+   *  sit at a lower depth than scene-level mocks (hamburger drawer).
+   *  Cleaned up explicitly in hide(). */
+  private buttersSprites: GameObjects.GameObject[] = [];
   private scene: Scene;
 
   constructor(scene: Scene) {
@@ -92,7 +106,7 @@ export class TutorialCatOverlay {
 
     const { width, height } = this.scene.scale;
     this.container = this.scene.add.container(0, 0);
-    this.container.setDepth(2000);
+    this.container.setDepth(BUBBLE_DEPTH);
 
     // -- Host cat sprite ----------------------------------------------
     // Two layouts:
@@ -120,12 +134,15 @@ export class TutorialCatOverlay {
       catSprite = this.scene.add
         .sprite(startX, startY, AssetKeys.Atlas.Cats, HOST_BREED_FRAME)
         .setOrigin(0.5, 1)
-        .setScale(startScale);
+        .setScale(startScale)
+        .setDepth(BUTTERS_DEPTH);
       // Play the idle anim so Butters' tail wags instead of standing
       // as a still frame. Preloader pre-registered every breed_idle
       // key, so this just kicks off the loop.
       catSprite.play('cat13_idle', true);
-      this.container.add(catSprite);
+      // Kept at scene level (NOT in container) so its low depth can be
+      // honored — children of a container share the container's depth.
+      this.buttersSprites.push(catSprite);
 
       // Grey glasses accessory — Butters' tutorial-host signature.
       // Cosmetic anims aren't pre-registered (Cat entity does it
@@ -136,9 +153,10 @@ export class TutorialCatOverlay {
       accessorySprite = this.scene.add
         .sprite(startX, startY, AssetKeys.Atlas.Cosmetics, HOST_ACCESSORY_FRAME)
         .setOrigin(0.5, 1)
-        .setScale(startScale);
+        .setScale(startScale)
+        .setDepth(BUTTERS_DEPTH + 1);
       if (accessoryAnimKey) accessorySprite.play(accessoryAnimKey, true);
-      this.container.add(accessorySprite);
+      this.buttersSprites.push(accessorySprite);
 
       // BUTTERS nametag — Game.seatCats style (Courier New, white with
       // black stroke). Font size scales proportionally with the cat's
@@ -156,8 +174,12 @@ export class TutorialCatOverlay {
           stroke: '#000000',
           strokeThickness: 3,
         })
-        .setOrigin(0.5, 0);
-      this.container.add(nameSprite);
+        .setOrigin(0.5, 0)
+        .setDepth(BUTTERS_DEPTH + 2);
+      // Sits at the Butters depth (below scene mocks) instead of in the
+      // bubble container so the menu drawer covers the nametag along
+      // with the cat body.
+      this.buttersSprites.push(nameSprite);
       // Stash on the cat sprite so the tween below can drag the label
       // along with the cat in tweenFromHero mode without an extra
       // closure-captured reference.
@@ -317,7 +339,8 @@ export class TutorialCatOverlay {
       const btnH = 52;
       btnBg = this.scene.add
         .rectangle(width / 2, btnY, btnW, btnH, CONTINUE_FILL, 1)
-        .setInteractive({ useHandCursor: true });
+        .setInteractive({ useHandCursor: true })
+        .setDepth(BUTTON_DEPTH);
       btnBg.setStrokeStyle(2, 0x1a0a2e, 1);
       btnText = this.scene.add
         .text(width / 2, btnY, label, {
@@ -326,7 +349,10 @@ export class TutorialCatOverlay {
           fontSize: '16px',
           color: CONTINUE_TEXT,
         })
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setDepth(BUTTON_DEPTH + 1);
+      // Continue lives ABOVE the bubble container so a tall multi-line
+      // bubble can't visually clip the tap target.
       this.container.add([btnBg, btnText]);
       const localBtnBg = btnBg;
       const localBtnText = btnText;
@@ -390,14 +416,20 @@ export class TutorialCatOverlay {
     }
   }
 
-  /** Tear down the overlay container. Idempotent — calling on an
-   *  already-hidden overlay is a no-op. */
+  /** Tear down the overlay container AND the scene-level Butters
+   *  sprites. Idempotent — calling on an already-hidden overlay is a
+   *  no-op. */
   hide(): void {
     if (this.container) {
       this.scene.tweens.killTweensOf(this.container);
       this.container.destroy(true);
       this.container = undefined;
     }
+    for (const obj of this.buttersSprites) {
+      this.scene.tweens.killTweensOf(obj);
+      obj.destroy();
+    }
+    this.buttersSprites = [];
   }
 
   destroy(): void {
