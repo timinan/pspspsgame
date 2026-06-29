@@ -22,6 +22,7 @@ import {
   TUTORIAL_PHASE_CONFIGS,
   type TutorialPhaseConfig,
 } from '@/../shared/tutorial-chart';
+import { getTutorialDialogue } from '@/../shared/tutorial-script';
 import { GenerateModal } from '@/ui/generate-modal';
 import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
 import { DifficultyPickerModal } from '@/ui/difficulty-picker-modal';
@@ -412,7 +413,15 @@ export class Game extends Scene {
     const hasRegistryChart = registryChart?.steps?.some((s) => s.lanes.length > 0);
     const hasStateChart = this.playerState?.chart?.steps?.some((s) => s.lanes.length > 0);
 
-    if (this.testMode) {
+    if (this.tutorialPhase !== null) {
+      // Tutorial mode: skip every chart-source branch (registry,
+      // playerState, SongPicker). initChartPlayer short-circuits to
+      // the per-phase mini-chart; beginRound starts immediately; the
+      // dialogue overlay pins to the top of the screen for the round.
+      await this.initChartPlayer();
+      void this.beginRound();
+      this.setupTutorialOverlay();
+    } else if (this.testMode) {
       // Editor → REHEARSE path: chart is already authored. Tim's rule:
       // hitting REHEARSE in the editor starts the round immediately —
       // no Ready modal. We wire the chart + music + kick beginRound the
@@ -2693,6 +2702,44 @@ export class Game extends Scene {
    * Priority: registry.hostChart → playerState.chart → loadChart(host) →
    * fetchState → empty stub.
    */
+  /** Tutorial-mode dialogue bubble container — Butters' speech for the
+   *  current phase, rendered at the top of the screen while the round
+   *  plays. Built in setupTutorialOverlay(); destroyed by doCleanup(). */
+  private tutorialDialogueGfx: Phaser.GameObjects.GameObject[] = [];
+
+  /** Show the dialogue bubble for the current tutorial phase. Reads the
+   *  matching line from tutorial-script. Pinned at the top of the canvas
+   *  so the playfield + cats + lanes stay fully visible underneath. */
+  private setupTutorialOverlay(): void {
+    if (this.tutorialPhase === null) return;
+    // Lazy import to avoid bloating the non-tutorial bundle path.
+    const dialogue = this.tutorialPhase === -1
+      ? (getTutorialDialogue('play-tutorial-intro')[0] ?? '')
+      : (getTutorialDialogue('play-tutorial')[this.tutorialPhase] ?? '');
+    if (!dialogue) return;
+    const { width } = this.scale;
+    const margin = 16;
+    const padding = 14;
+    const bubbleW = width - margin * 2;
+    const bubbleX = margin;
+    const bubbleY = 20;
+    const text = this.add
+      .text(bubbleX + padding, bubbleY + padding, dialogue, {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontSize: '11px',
+        color: '#1a0a2e',
+        wordWrap: { width: bubbleW - padding * 2 },
+        lineSpacing: 2,
+      })
+      .setOrigin(0, 0)
+      .setDepth(1500);
+    const bubbleH = Math.max(50, text.height + padding * 2);
+    const bubbleGfx = this.add.graphics().setDepth(1499);
+    bubbleGfx.fillStyle(0xfff8e7, 1);
+    bubbleGfx.fillRoundedRect(bubbleX, bubbleY, bubbleW, bubbleH, 16);
+    this.tutorialDialogueGfx.push(bubbleGfx, text);
+  }
+
   /** Return to TutorialOrchestrator after a tutorial-mode round.
    *  - phase -1 (intro)  → resume at 'play-tutorial' phase 0
    *  - phase 0-6         → resume at 'play-tutorial' phase N+1
@@ -3535,6 +3582,10 @@ export class Game extends Scene {
       }
     };
 
+    tearDown('tutorial-dialogue', () => {
+      for (const obj of this.tutorialDialogueGfx) obj.destroy();
+      this.tutorialDialogueGfx = [];
+    });
     tearDown('hud', () => this.hud?.destroy());
     tearDown('summary', () => {
       // Unmount the page-2 HTML textarea BEFORE destroying the Phaser
