@@ -74,6 +74,13 @@ export class Cat {
    * via POST_UPDATE keeps working without an extra parent.
    */
   private cosmeticSprites: Record<string, GameObjects.Sprite> = {};
+  /** Per-slot anchor: the canvas-space center of the cosmetic's idle_00
+   *  art. Cached at setCosmetic time so syncOneCosmetic can position the
+   *  sprite without re-querying the atlas every frame. The calibrator's
+   *  offsetX/offsetY describe where the art CENTER should land relative
+   *  to a fixed reference; we use this cached value to compute the shift
+   *  between actual and target. See syncOneCosmetic for the math. */
+  private cosmeticAnchors: Record<string, { artCenterX: number; artCenterY: number }> = {};
   /** Last frame-offset successfully applied per slot. Falls back to this
    *  when the cat's current animation has no entry in the offsets
    *  table — keeps static cosmetics from snapping to cat-center on
@@ -197,6 +204,18 @@ export class Cat {
     } else {
       sprite.setTexture(AssetKeys.Atlas.Cosmetics, idleFrame);
     }
+    // Cache where the cosmetic's idle_00 art is centered in its canvas.
+    // syncOneCosmetic uses this every frame to compute the screen
+    // position so the art CENTER lands at the catalog-specified target.
+    const idleTextureFrame = this.scene.textures.get(AssetKeys.Atlas.Cosmetics).get(idleFrame);
+    const ssX = idleTextureFrame.data?.spriteSourceSize?.x ?? 0;
+    const ssY = idleTextureFrame.data?.spriteSourceSize?.y ?? 0;
+    const ssW = idleTextureFrame.data?.spriteSourceSize?.w ?? idleTextureFrame.width;
+    const ssH = idleTextureFrame.data?.spriteSourceSize?.h ?? idleTextureFrame.height;
+    this.cosmeticAnchors[slot] = {
+      artCenterX: ssX + ssW / 2,
+      artCenterY: ssY + ssH / 2,
+    };
     if (entry?.tint) {
       const colorInt = parseInt(entry.tint.replace('#', ''), 16);
       sprite.setTint(colorInt);
@@ -551,26 +570,32 @@ export class Cat {
   }
 
   private syncOneCosmetic(slot: string, sprite: GameObjects.Sprite, depthOffset = 1): void {
-    sprite.setScale(this.sprite.scaleX);
     sprite.setDepth(this.sprite.depth + depthOffset);
 
-    let dx = 0;
-    let dy = 0;
-
-    // The cat's per-frame translation offset is applied to cosmetics that
-    // EITHER (a) are flagged `isStatic` in the catalog — single-frame
-    // uploads from Cosmetic Quick Add that have no per-frame art at all —
-    // OR (b) lack their own anim frames for the cat's current anim. Case
-    // (b) catches hand-animated cosmetics with partial coverage (e.g.
-    // c42/c43 necklaces have idle/happy/hiss frames but no lick/meow):
-    // without offsets they'd freeze on the last idle frame while the cat
-    // moves underneath, visually appearing to drift. With offsets they
-    // ride the cat's per-frame motion instead.
     const cosId = this.cosmeticIdForSlot(slot);
     const catalogEntry = cosId
       ? COSMETIC_CATALOG.find((c) => c.id === cosId)
       : undefined;
+
+    // Catalog drives base placement. offsetX/offsetY/scale come from
+    // the cosmetics calibrator and now describe REAL screen positioning,
+    // not just a preview hint. See scripts/migrate-cosmetic-offsets.ts
+    // for the migration script that filled these values in (computed
+    // from each cosmetic's idle_00 atlas trim bounds so the runtime
+    // baseline matches pre-migration rendering).
+    const catalogOffsetX = catalogEntry?.offsetX ?? 0;
+    const catalogOffsetY = catalogEntry?.offsetY ?? 0;
+    const catalogScale = catalogEntry?.scale ?? 1;
+
     const catAnimKey = this.sprite.anims.currentAnim?.key;
+
+    // Per-frame head tracking: applies to cosmetics that either (a) are
+    // flagged `isStatic` (single-frame Quick Add uploads) or (b) lack
+    // their own anim frames for the cat's current anim (so the runtime
+    // would otherwise freeze them on the last idle frame while the cat
+    // moves underneath — visually that reads as drift). Head/face slots
+    // ride 1:1, neck/body slots ride a fraction (chest doesn't move 12px
+    // when the head lifts during lick).
     let lacksOwnAnimFrames = false;
     if (cosId && catAnimKey) {
       const sepIdx = catAnimKey.indexOf('_');
@@ -581,21 +606,16 @@ export class Cat {
         lacksOwnAnimFrames = !this.scene.anims.exists(cosKey);
       }
     }
+    let frameDx = 0;
+    let frameDy = 0;
     if (catalogEntry?.isStatic || lacksOwnAnimFrames) {
       const frameIdx = this.sprite.anims.currentFrame?.index;
       let resolved: [number, number] | null = null;
       if (catAnimKey && typeof frameIdx === 'number') {
-        // Animation key shape: "<breed>_<anim>". Use renderBreed so rainbow
-        // (which uses cat6's frames) resolves to cat6 in the offsets table.
         const sepIdx = catAnimKey.indexOf('_');
         if (sepIdx > 0) {
           const breed = Cat.renderBreed(catAnimKey.slice(0, sepIdx));
           const anim = catAnimKey.slice(sepIdx + 1);
-          // Compensate for the meow's leading-frame trim — the offsets
-          // table still has all 11 entries indexed from the original
-          // meow_00, but the Phaser anim now starts at meow_02. Without
-          // this, static cosmetics drift by MEOW_FRAME_SHIFT frames
-          // every time a cat meows.
           const offsetIdx = anim === 'meow'
             ? frameIdx - 1 + MEOW_FRAME_SHIFT
             : frameIdx - 1;
@@ -606,25 +626,52 @@ export class Cat {
           }
         }
       }
-      // No offset entry for this frame/anim (the celebration's `happy`
-      // step has no row in cat-frame-offsets.json, for one) — reuse
-      // the most recent valid offset so the cosmetic doesn't visibly
-      // snap to cat-center every time we hit one of those anims.
       const fallback = resolved ?? this.lastCosmeticOffset[slot];
       if (fallback) {
-        dx = fallback[0];
-        dy = fallback[1];
+        frameDx = fallback[0];
+        frameDy = fallback[1];
       }
       if (resolved) this.lastCosmeticOffset[slot] = resolved;
     }
 
-    // Offsets are in SOURCE pixels (91×64 canvas). Scale to display pixels
-    // via the cat's render scale.
+    // The math:
+    //   target = where the catalog says the cosmetic art CENTER should
+    //            land (in source pixels, relative to the cat sprite's
+    //            top-left corner before scaling).
+    //   anchor = where the cosmetic's idle_00 art CENTER actually sits
+    //            in its 91×64 canvas (cached at setCosmetic time).
+    //   shift  = target − anchor, scaled to screen pixels.
+    //
+    //   Apply shift to the sprite's bottom-center anchor (origin 0.5, 1)
+    //   so the art moves from `anchor` to `target` in screen space.
+    //   For migrated catalogs (where offsetX/Y were computed FROM the
+    //   anchor), shift = 0 and the cosmetic renders exactly where the
+    //   art landed pre-migration. As the artist drags the cosmetic in
+    //   the calibrator, offsetX/Y change → shift becomes non-zero →
+    //   sprite moves to match.
+    const anchor = this.cosmeticAnchors[slot] ?? { artCenterX: 45, artCenterY: 32 };
+    const targetX = Cat.CANVAS_HORIZONTAL_CENTER + catalogOffsetX;
+    const targetY = Cat.CAT_HEAD_TOP_REF + catalogOffsetY;
+    const shiftX = (targetX - anchor.artCenterX) + frameDx;
+    const shiftY = (targetY - anchor.artCenterY) + frameDy;
+
+    const renderScale = catalogScale * this.sprite.scaleX;
+    sprite.setScale(renderScale);
     sprite.setPosition(
-      this.sprite.x + dx * this.sprite.scaleX,
-      this.sprite.y + dy * this.sprite.scaleX,
+      this.sprite.x + shiftX * this.sprite.scaleX,
+      this.sprite.y + shiftY * this.sprite.scaleX,
     );
   }
+
+  /** Reference cat head-top-Y in canvas coordinates. Calibrator + runtime
+   *  + migration script all measure cosmetic offsetY against this value.
+   *  Cat head tops vary 12-14px across breeds; using 12 as the anchor
+   *  means cosmetics on cats with deeper head tops sit 0-2px low.
+   *  Must match scripts/migrate-cosmetic-offsets.ts CAT_HEAD_TOP_REF. */
+  private static readonly CAT_HEAD_TOP_REF = 12;
+  /** Canvas horizontal centerline for the 91-wide cosmetic/cat sprite.
+   *  Match migration script's CANVAS_HORIZONTAL_CENTER. */
+  private static readonly CANVAS_HORIZONTAL_CENTER = 45;
 
   /** Get the cosmetic id equipped in the given slot, accounting for the
    *  equippedCosmetics map's slot keying. Returns null if nothing is

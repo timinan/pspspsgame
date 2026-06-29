@@ -117,14 +117,36 @@ for ci, cat_id in enumerate(cat_ids):
                 cos_seq = [idle0] * N
         strength = MOTION_STRENGTH.get(cos['slot'], 0.6)
         strip = Image.new('RGBA', (91 * N, 64), (0, 0, 0, 0))
+        # Mirror runtime cat.ts syncOneCosmetic math:
+        #   shift = (catalog_target - art_anchor) + per_frame_head_offset
+        # where art_anchor is where the cosmetic's idle_00 art CENTER
+        # actually sits in its canvas, and catalog_target is where the
+        # calibrator says it should land. Migration was computed so they
+        # match → shift = 0 for unmodified cosmetics. As the calibrator
+        # is edited, target diverges from anchor → cosmetic moves.
+        CAT_HEAD_TOP_REF = 12
+        CANVAS_HCENTER = 45
+        idle0_name = f'cosmetic_{cos["id"]}_idle_00'
+        if idle0_name in cos_frames:
+            idle_sss = cos_frames[idle0_name].get('spriteSourceSize', {'x':0,'y':0,'w':0,'h':0})
+            anchor_x = idle_sss['x'] + idle_sss['w']/2
+            anchor_y = idle_sss['y'] + idle_sss['h']/2
+        else:
+            anchor_x = CANVAS_HCENTER
+            anchor_y = CAT_HEAD_TOP_REF
+        target_x = CANVAS_HCENTER + cos.get('offsetX', 0)
+        target_y = CAT_HEAD_TOP_REF + cos.get('offsetY', 0)
+        base_shift_x = round(target_x - anchor_x)
+        base_shift_y = round(target_y - anchor_y)
         for i, fr_name in enumerate(af):
             cat_canvas = extract_canvas(CATS_PNG, cat_frames[fr_name])
             cos_canvas = extract_canvas(COS_PNG, cos_frames[cos_seq[i]])
-            dx = dy = 0
+            dx = base_shift_x
+            dy = base_shift_y
             if rides_offsets and i < len(cat_offs):
                 ox, oy = cat_offs[i]
-                dx = round(ox * strength)
-                dy = round(oy * strength)
+                dx += round(ox * strength)
+                dy += round(oy * strength)
             cat_canvas.alpha_composite(cos_canvas, (dx, dy))
             strip.paste(cat_canvas, (91 * i, 0))
         strip.save(OUT_DIR / f'{cat_id}_{cos["id"]}.png')

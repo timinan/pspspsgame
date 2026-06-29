@@ -4,8 +4,8 @@
     "name": "Red Sunglasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
-    "offsetY": 17,
+    "offsetX": 0,
+    "offsetY": 18,
     "scale": 1
   },
   {
@@ -13,8 +13,8 @@
     "name": "Grey Glasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
-    "offsetY": 17,
+    "offsetX": 0,
+    "offsetY": 18,
     "scale": 1
   },
   {
@@ -22,8 +22,8 @@
     "name": "Cool Sunglasses",
     "slot": "face",
     "rarity": "uncommon",
-    "offsetX": -5,
-    "offsetY": 17,
+    "offsetX": 0,
+    "offsetY": 18,
     "scale": 1
   },
   {
@@ -31,8 +31,8 @@
     "name": "Grey Round Glasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
-    "offsetY": 17,
+    "offsetX": 0,
+    "offsetY": 18,
     "scale": 1
   },
   {
@@ -40,26 +40,26 @@
     "name": "White  Round Glasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9
+    "scale": 1
   },
   {
     "id": "c6",
     "name": "Monocle ",
     "slot": "face",
     "rarity": "common",
-    "offsetX": 1,
-    "offsetY": 20,
-    "scale": 0.9
+    "offsetX": 7,
+    "offsetY": 21,
+    "scale": 1
   },
   {
     "id": "c7",
     "name": "Eye Patch",
     "slot": "face",
     "rarity": "common",
-    "offsetX": 1,
-    "offsetY": 14,
+    "offsetX": 6,
+    "offsetY": 15,
     "scale": 1
   },
   {
@@ -67,17 +67,17 @@
     "name": "Yellow Sunglasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9
+    "scale": 1
   },
   {
     "id": "c9",
     "name": "Red Bowtie",
     "slot": "neck",
     "rarity": "uncommon",
-    "offsetX": -5,
-    "offsetY": 32,
+    "offsetX": 0,
+    "offsetY": 34,
     "scale": 1
   },
   {
@@ -85,8 +85,8 @@
     "name": "Pink Round Bowtie",
     "slot": "neck",
     "rarity": "uncommon",
-    "offsetX": -5,
-    "offsetY": 33,
+    "offsetX": 0,
+    "offsetY": 32,
     "scale": 1
   },
   {
@@ -94,26 +94,26 @@
     "name": "Black Tie",
     "slot": "neck",
     "rarity": "uncommon",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 38,
-    "scale": 1.1
+    "scale": 1
   },
   {
     "id": "c12",
     "name": "Sweater with Red Tie",
     "slot": "neck",
     "rarity": "uncommon",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 38,
-    "scale": 1.1
+    "scale": 1
   },
   {
     "id": "c13",
     "name": "Silver Chain",
     "slot": "neck",
     "rarity": "uncommon",
-    "offsetX": -5,
-    "offsetY": 34,
+    "offsetX": 0,
+    "offsetY": 35,
     "scale": 1
   },
   {
@@ -121,7 +121,7 @@
     "name": "Silver Necklace",
     "slot": "neck",
     "rarity": "rare",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 37,
     "scale": 1
   },
@@ -130,8 +130,8 @@
     "name": "Silver Crown Necklace",
     "slot": "neck",
     "rarity": "rare",
-    "offsetX": -5,
-    "offsetY": 35,
+    "offsetX": 0,
+    "offsetY": 36,
     "scale": 1
   },
   {
@@ -139,8 +139,8 @@
     "name": "Gold Chain",
     "slot": "neck",
     "rarity": "rare",
-    "offsetX": -5,
-    "offsetY": 34,
+    "offsetX": 0,
+    "offsetY": 35,
     "scale": 1
   },
   {
@@ -148,7 +148,7 @@
     "name": "Gold Necklace",
     "slot": "neck",
     "rarity": "legendary",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 36,
     "scale": 1
   },
@@ -157,8 +157,8 @@
     "name": "Santa Hat",
     "slot": "head",
     "rarity": "uncommon",
-    "offsetX": -15,
-    "offsetY": 3,
+    "offsetX": -9,
+    "offsetY": 2,
     "scale": 1
   },
   {
@@ -166,7 +166,7 @@
     "name": "Sailor Hat",
     "slot": "head",
     "rarity": "rare",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 6,
     "scale": 1
   },
@@ -175,17 +175,17 @@
     "name": "Black Hat",
     "slot": "head",
     "rarity": "common",
-    "offsetX": -4,
+    "offsetX": 1,
     "offsetY": 6,
-    "scale": 1.1
+    "scale": 1
   },
   {
     "id": "c21",
     "name": "Black Tophat",
     "slot": "head",
     "rarity": "common",
-    "offsetX": -4,
-    "offsetY": 4,
+    "offsetX": 1,
+    "offsetY": 3,
     "scale": 1
   },
   {
@@ -193,8 +193,8 @@
     "name": "Tiny Santa Hat",
     "slot": "head",
     "rarity": "uncommon",
-    "offsetX": -5,
-    "offsetY": 3,
+    "offsetX": 0,
+    "offsetY": 2,
     "scale": 1
   },
   {
@@ -202,8 +202,8 @@
     "name": "Party Hat",
     "slot": "head",
     "rarity": "uncommon",
-    "offsetX": -5,
-    "offsetY": 2,
+    "offsetX": 0,
+    "offsetY": 0,
     "scale": 1
   },
   {
@@ -211,8 +211,8 @@
     "name": "Tiny Crown",
     "slot": "head",
     "rarity": "rare",
-    "offsetX": -5,
-    "offsetY": 7,
+    "offsetX": 0,
+    "offsetY": 3,
     "scale": 1
   },
   {
@@ -220,17 +220,17 @@
     "name": "Tan Beret",
     "slot": "head",
     "rarity": "common",
-    "offsetX": -9,
-    "offsetY": 4,
-    "scale": 1.2
+    "offsetX": -2,
+    "offsetY": 2,
+    "scale": 1
   },
   {
     "id": "c27",
     "name": "Tan Cowboy Hat",
     "slot": "head",
     "rarity": "common",
-    "offsetX": -5,
-    "offsetY": 3,
+    "offsetX": 0,
+    "offsetY": 2,
     "scale": 1
   },
   {
@@ -238,8 +238,8 @@
     "name": "Black Witch Hat",
     "slot": "head",
     "rarity": "rare",
-    "offsetX": -2,
-    "offsetY": 1,
+    "offsetX": 3,
+    "offsetY": 2,
     "scale": 1
   },
   {
@@ -247,17 +247,17 @@
     "name": "Red Baseball Cap",
     "slot": "head",
     "rarity": "common",
-    "offsetX": 4,
-    "offsetY": 7,
-    "scale": 1.2
+    "offsetX": 8,
+    "offsetY": 5,
+    "scale": 1
   },
   {
     "id": "c30",
     "name": "Brown Beret with Bow",
     "slot": "head",
     "rarity": "common",
-    "offsetX": 2,
-    "offsetY": 7,
+    "offsetX": 7,
+    "offsetY": 8,
     "scale": 1
   },
   {
@@ -265,8 +265,8 @@
     "name": "Clown Hat",
     "slot": "head",
     "rarity": "rare",
-    "offsetX": -4,
-    "offsetY": 7,
+    "offsetX": 1,
+    "offsetY": 9,
     "scale": 1
   },
   {
@@ -274,8 +274,8 @@
     "name": "Black Pilgrim Hat",
     "slot": "head",
     "rarity": "uncommon",
-    "offsetX": 4,
-    "offsetY": 3,
+    "offsetX": 11,
+    "offsetY": 4,
     "scale": 1
   },
   {
@@ -283,7 +283,7 @@
     "name": "Tan Beret With String",
     "slot": "head",
     "rarity": "uncommon",
-    "offsetX": -14,
+    "offsetX": -9,
     "offsetY": 11,
     "scale": 1
   },
@@ -292,8 +292,8 @@
     "name": "Blue Crystal Necklace",
     "slot": "neck",
     "rarity": "rare",
-    "offsetX": -5,
-    "offsetY": 37,
+    "offsetX": 0,
+    "offsetY": 39,
     "scale": 1
   },
   {
@@ -301,7 +301,7 @@
     "name": "Orange Head",
     "slot": "head",
     "rarity": "legendary",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 11,
     "scale": 1
   },
@@ -310,8 +310,8 @@
     "name": "Strawberry Head",
     "slot": "head",
     "rarity": "legendary",
-    "offsetX": -5,
-    "offsetY": 14,
+    "offsetX": -1,
+    "offsetY": 15,
     "scale": 1
   },
   {
@@ -319,8 +319,8 @@
     "name": "Bread Head",
     "slot": "head",
     "rarity": "legendary",
-    "offsetX": -5,
-    "offsetY": 11,
+    "offsetX": -1,
+    "offsetY": 12,
     "scale": 1
   },
   {
@@ -328,7 +328,7 @@
     "name": "Frog Head",
     "slot": "head",
     "rarity": "legendary",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 14,
     "scale": 1
   },
@@ -337,8 +337,8 @@
     "name": "Chef's Hat",
     "slot": "head",
     "rarity": "uncommon",
-    "offsetX": -5,
-    "offsetY": 0,
+    "offsetX": 0,
+    "offsetY": 1,
     "scale": 1
   },
   {
@@ -346,7 +346,7 @@
     "name": "White Sunglasses",
     "slot": "head",
     "rarity": "rare",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 17,
     "scale": 1
   },
@@ -355,17 +355,17 @@
     "name": "Yellow Tint Sunglasses",
     "slot": "head",
     "rarity": "uncommon",
-    "offsetX": -5,
-    "offsetY": 17,
-    "scale": 0.9
+    "offsetX": 0,
+    "offsetY": 18,
+    "scale": 1
   },
   {
     "id": "c42",
     "name": "Fancy Silver Necklace",
     "slot": "neck",
     "rarity": "rare",
-    "offsetX": -5,
-    "offsetY": 38,
+    "offsetX": 0,
+    "offsetY": 39,
     "scale": 1
   },
   {
@@ -373,7 +373,7 @@
     "name": "Silver Gem Necklace",
     "slot": "neck",
     "rarity": "rare",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 39,
     "scale": 1
   },
@@ -382,9 +382,9 @@
     "name": "Brown Red Sunglasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c1_idle_00",
     "tint": "#ff5555"
   },
@@ -393,9 +393,9 @@
     "name": "Purple Red Sunglasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c1_idle_00",
     "tint": "#c678ff"
   },
@@ -404,9 +404,9 @@
     "name": "Red Cool Sunglasses",
     "slot": "face",
     "rarity": "uncommon",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c3_idle_00",
     "tint": "#ff5555"
   },
@@ -415,9 +415,9 @@
     "name": "Blue Cool Sunglasses",
     "slot": "face",
     "rarity": "uncommon",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c3_idle_00",
     "tint": "#5588ff"
   },
@@ -426,9 +426,9 @@
     "name": "Green Cool Sunglasses",
     "slot": "face",
     "rarity": "uncommon",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c3_idle_00",
     "tint": "#55cc55"
   },
@@ -437,9 +437,9 @@
     "name": "Gold Cool Sunglasses",
     "slot": "face",
     "rarity": "uncommon",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c3_idle_00",
     "tint": "#ffd34d"
   },
@@ -448,9 +448,9 @@
     "name": "Purple Cool Sunglasses",
     "slot": "face",
     "rarity": "uncommon",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c3_idle_00",
     "tint": "#c678ff"
   },
@@ -459,9 +459,9 @@
     "name": "Red Round Glasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c5_idle_00",
     "tint": "#ff5555"
   },
@@ -470,9 +470,9 @@
     "name": "Green Round Glasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c5_idle_00",
     "tint": "#55cc55"
   },
@@ -481,9 +481,9 @@
     "name": "Yellow Round Glasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c5_idle_00",
     "tint": "#ffd34d"
   },
@@ -492,9 +492,9 @@
     "name": "Purple Round Glasses",
     "slot": "face",
     "rarity": "common",
-    "offsetX": -5,
+    "offsetX": 0,
     "offsetY": 18,
-    "scale": 0.9,
+    "scale": 1,
     "sourceFrame": "cosmetic_c5_idle_00",
     "tint": "#c678ff"
   },
@@ -503,18 +503,18 @@
     "name": "Fire Emoji Head",
     "slot": "head",
     "rarity": "legendary",
-    "offsetX": -5,
-    "offsetY": 9,
-    "scale": 1.1
+    "offsetX": 0,
+    "offsetY": 8,
+    "scale": 1
   },
   {
     "id": "c60",
     "name": "Blue Flamehead",
     "slot": "head",
     "rarity": "legendary",
-    "offsetX": -5,
-    "offsetY": 9,
-    "scale": 1.2,
+    "offsetX": 0,
+    "offsetY": 8,
+    "scale": 1,
     "sourceFrame": "cosmetic_c57_idle_00",
     "tint": "#5789ff",
     "tintMode": "color"
@@ -524,9 +524,9 @@
     "name": "Green Flamehead",
     "slot": "head",
     "rarity": "legendary",
-    "offsetX": -5,
-    "offsetY": 9,
-    "scale": 1.1,
+    "offsetX": 0,
+    "offsetY": 8,
+    "scale": 1,
     "sourceFrame": "cosmetic_c57_idle_00",
     "tint": "#56cd56",
     "tintMode": "color"
@@ -536,9 +536,9 @@
     "name": "Purple Flamehead",
     "slot": "head",
     "rarity": "legendary",
-    "offsetX": -5,
-    "offsetY": 9,
-    "scale": 1.1,
+    "offsetX": 0,
+    "offsetY": 8,
+    "scale": 1,
     "sourceFrame": "cosmetic_c57_idle_00",
     "tint": "#c87aff",
     "tintMode": "color"
