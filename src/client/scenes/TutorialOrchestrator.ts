@@ -95,6 +95,12 @@ export class TutorialOrchestrator extends Scene {
    *  elements (stage bg, seated cat, equipped cosmetics) live OUTSIDE
    *  this container so they persist across step transitions. */
   private stepUI: Phaser.GameObjects.Container | undefined;
+  /** Hamburger drawer mock objects (drawer bg, header, cells, footer,
+   *  icon). Kept SCENE-LEVEL (not in stepUI container) so their
+   *  individual setDepth calls win — children of a Phaser Container
+   *  render at the container's depth and ignore their own. Cleaned up
+   *  at the start of each renderStep. */
+  private hamburgerObjects: Phaser.GameObjects.GameObject[] = [];
   /** Persistent backdrop fallback — shows under everything when no
    *  stage has been picked yet. */
   private backdropFallback: Phaser.GameObjects.Rectangle | undefined;
@@ -179,6 +185,8 @@ export class TutorialOrchestrator extends Scene {
     // seated cat + cosmetics) persists across steps.
     this.stepUI?.destroy(true);
     this.stepUI = this.add.container(0, 0);
+    for (const obj of this.hamburgerObjects) obj.destroy();
+    this.hamburgerObjects = [];
     this.overlay?.destroy();
     this.overlay = undefined;
     this.picker?.destroy();
@@ -882,7 +890,7 @@ export class TutorialOrchestrator extends Scene {
       .rectangle(drawerX, drawerY, drawerW, drawerH, 0x261540, 1)
       .setStrokeStyle(2, 0xc678ff, 1)
       .setDepth(1000);
-    this.stepUI?.add(drawerBg);
+    this.hamburgerObjects.push(drawerBg);
 
     // Header — "MENU" + a close-X on the right (decorative — clicking
     // it just advances since Continue does the same).
@@ -904,7 +912,7 @@ export class TutorialOrchestrator extends Scene {
       })
       .setOrigin(1, 0.5)
       .setDepth(1001);
-    this.stepUI?.add([header, closeIcon]);
+    this.hamburgerObjects.push(header, closeIcon);
 
     // Menu items — same shape as Decorate.ts buildHud.
     const items: Array<{ label: string; description: string; icon: string }> = [
@@ -954,7 +962,7 @@ export class TutorialOrchestrator extends Scene {
         })
         .setOrigin(0, 0)
         .setDepth(1002);
-      this.stepUI?.add([cellBg, iconText, labelText, descText]);
+      this.hamburgerObjects.push(cellBg, iconText, labelText, descText);
     });
 
     // Footer hint.
@@ -967,7 +975,7 @@ export class TutorialOrchestrator extends Scene {
       })
       .setOrigin(0.5)
       .setDepth(1001);
-    this.stepUI?.add(footer);
+    this.hamburgerObjects.push(footer);
 
     // Hamburger icon top-right — visual hint that this menu lives
     // behind the ☰ button in the real game. Depth above the tutorial-
@@ -987,7 +995,7 @@ export class TutorialOrchestrator extends Scene {
       })
       .setOrigin(0.5)
       .setDepth(2501);
-    this.stepUI?.add([iconBg, iconLabel]);
+    this.hamburgerObjects.push(iconBg, iconLabel);
   }
 
   /** Transition the orchestrator's live preview from the merch layout
