@@ -38,10 +38,14 @@ export class CatNamingModal {
     ].join(';');
 
     const panel = document.createElement('div');
+    // Pixel-style sharp corners + 2c1856 purple match every other
+    // in-game modal (ConfirmModal, PublishedModal etc.) per Image 30
+    // feedback: "shouldn't have rounded edges and buttons please fix
+    // and make it like others."
     panel.style.cssText = [
-      'background:#1a0a2e',
+      'background:#2c1856',
       'border:2px solid #ffd34d',
-      'border-radius:10px',
+      'border-radius:0',
       'padding:28px 24px 20px',
       'display:flex',
       'flex-direction:column',
@@ -74,7 +78,7 @@ export class CatNamingModal {
       'box-sizing:border-box',
       'background:#0b041a',
       'border:2px solid #c0a0e6',
-      'border-radius:6px',
+      'border-radius:0',
       'color:#ffffff',
       'font-family:"Pixeloid Sans",monospace',
       'font-size:15px',
@@ -110,8 +114,8 @@ export class CatNamingModal {
     btn.style.cssText = [
       'background:#ffd34d',
       'color:#1a0a2e',
-      'border:none',
-      'border-radius:6px',
+      'border:2px solid #1a0a2e',
+      'border-radius:0',
       'padding:10px 28px',
       'font-family:"Pixeloid Sans",monospace',
       'font-weight:bold',
