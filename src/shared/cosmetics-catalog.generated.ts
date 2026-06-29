@@ -352,18 +352,6 @@ export const GENERATED_COSMETIC_CATALOG: readonly CosmeticEntry[] = [
     slot: "head",
   },
   {
-    id: "c58",
-    name: "Shark Head",
-    rarity: "legendary",
-    slot: "head",
-  },
-  {
-    id: "c59",
-    name: "Shark Head v2",
-    rarity: "legendary",
-    slot: "head",
-  },
-  {
     id: "c60",
     name: "Blue Flamehead",
     rarity: "legendary",
