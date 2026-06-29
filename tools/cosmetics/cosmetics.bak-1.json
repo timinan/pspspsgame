@@ -503,7 +503,7 @@
     "name": "Fire Emoji Head",
     "slot": "head",
     "rarity": "legendary",
-    "offsetX": -5,
+    "offsetX": -4,
     "offsetY": 9,
     "scale": 1.1
   },

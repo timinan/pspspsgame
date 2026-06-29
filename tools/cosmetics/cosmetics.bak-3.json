@@ -508,31 +508,13 @@
     "scale": 1.1
   },
   {
-    "id": "c58",
-    "name": "Shark Head",
-    "slot": "head",
-    "rarity": "legendary",
-    "offsetX": -5,
-    "offsetY": 11,
-    "scale": 1.2
-  },
-  {
-    "id": "c59",
-    "name": "Shark Head v2",
-    "slot": "head",
-    "rarity": "legendary",
-    "offsetX": -5,
-    "offsetY": 9,
-    "scale": 0.5
-  },
-  {
     "id": "c60",
     "name": "Blue Flamehead",
     "slot": "head",
     "rarity": "legendary",
     "offsetX": -5,
     "offsetY": 9,
-    "scale": 1,
+    "scale": 1.2,
     "sourceFrame": "cosmetic_c57_idle_00",
     "tint": "#5789ff",
     "tintMode": "color"
