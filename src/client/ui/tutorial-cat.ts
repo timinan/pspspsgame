@@ -207,7 +207,9 @@ export class TutorialCatOverlay {
       bubbleW = Math.min(width - sideMargin * 2, 210);
       const cx = opts.stageBubbleCenterX ?? width / 2;
       bubbleX = Math.max(sideMargin, Math.min(cx - bubbleW / 2, width - sideMargin - bubbleW));
-      bubbleY = opts.bubbleY ?? 220;
+      // Image 32: "text box should be slightly higher" — 220 → 195
+      // shifts the bubble further into the cat-stage dead zone.
+      bubbleY = opts.bubbleY ?? 195;
     } else if (hero) {
       bubbleX = sideMargin;
       bubbleY = opts.bubbleY ?? 28;
