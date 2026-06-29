@@ -178,7 +178,11 @@ export class TutorialCatOverlay {
       const cx = opts.stageBubbleCenterX ?? width / 2;
       bubbleW = Math.min(width - sideMargin * 2, 240);
       bubbleX = Math.max(sideMargin, Math.min(cx - bubbleW / 2, width - sideMargin - bubbleW));
-      bubbleY = opts.bubbleY ?? 250;
+      // Bubble pushed down from 250 → 295 per Tim Image 30 feedback:
+      // "should have whitespace between top of speech bubble and top
+      // of game" — adds breathing room above the bubble between the
+      // cat-stage band and the bubble's top edge.
+      bubbleY = opts.bubbleY ?? 295;
     } else if (hero) {
       bubbleX = sideMargin;
       bubbleY = opts.bubbleY ?? 28;
