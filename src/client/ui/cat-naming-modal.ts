@@ -38,12 +38,13 @@ export class CatNamingModal {
     ].join(';');
 
     const panel = document.createElement('div');
-    // Pixel-style sharp corners + 2c1856 purple match every other
-    // in-game modal (ConfirmModal, PublishedModal etc.) per Image 30
-    // feedback: "shouldn't have rounded edges and buttons please fix
-    // and make it like others."
+    // Pixel-style sharp corners (Image 30) + deep #1a0a2e panel
+    // matching TemplateOrScratchModal / SongPickerModal outer panels.
+    // Image 31 follow-up: "color is off for this one" — #2c1856 was
+    // too light against the rest of the UI; #1a0a2e is the common
+    // outer-panel color in this codebase.
     panel.style.cssText = [
-      'background:#2c1856',
+      'background:#1a0a2e',
       'border:2px solid #ffd34d',
       'border-radius:0',
       'padding:28px 24px 20px',
