@@ -213,7 +213,13 @@ export class TutorialCatOverlay {
       bubbleY = opts.bubbleY ?? 28;
       bubbleW = width - sideMargin * 2;
     } else {
-      bubbleX = catX + 50;
+      // catX + 90 clears Butters' visible silhouette — sprite frame is
+      // 91×64 (per the cosmetic spec), so at scale 1.7 his body extends
+      // to ~x=catX+77. catX+50 (previous) put the bubble's rounded
+      // left corner ON his ear/cheek; catX+90 leaves a clean ~13px
+      // gap. Image 32 root cause: bubbleX has never been moved across
+      // any prior tail tweak.
+      bubbleX = catX + 90;
       bubbleY = opts.bubbleY ?? 28;
       bubbleW = Math.min(width - bubbleX - sideMargin, 220);
     }
