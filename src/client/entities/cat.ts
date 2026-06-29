@@ -674,19 +674,20 @@ export class Cat {
    *  + migration script all measure cosmetic offsetY against this value.
    *  Cat head tops vary 12-14px across breeds; using 12 as the anchor
    *  means cosmetics on cats with deeper head tops sit 0-2px low.
-   *  Must match scripts/migrate-cosmetic-offsets.ts CAT_HEAD_TOP_REF. */
-  private static readonly CAT_HEAD_TOP_REF = 12;
+   *  Must match scripts/migrate-cosmetic-offsets.ts CAT_HEAD_TOP_REF.
+   *  Public so DressingRoom can mirror the same math for its hero preview. */
+  public static readonly CAT_HEAD_TOP_REF = 12;
   /** Canvas horizontal centerline for the 91-wide cosmetic/cat sprite.
    *  Match migration script's CANVAS_HORIZONTAL_CENTER. */
-  private static readonly CANVAS_HORIZONTAL_CENTER = 45;
+  public static readonly CANVAS_HORIZONTAL_CENTER = 45;
   /** Half-width of the 91×64 source canvas — used by syncOneCosmetic to
    *  resolve sprite positions relative to the bottom-center anchor that
    *  origin (0.5, 1) sets. 45.5 (not 45) is the actual midpoint of a
    *  91-wide canvas; CANVAS_HORIZONTAL_CENTER above is the integer
    *  catalog reference and stays 45 to keep migration values stable. */
-  private static readonly SOURCE_CANVAS_HALF_W = 45.5;
+  public static readonly SOURCE_CANVAS_HALF_W = 45.5;
   /** Source canvas height; cosmetic + cat sprites both use 91×64. */
-  private static readonly SOURCE_CANVAS_H = 64;
+  public static readonly SOURCE_CANVAS_H = 64;
 
   /** Get the cosmetic id equipped in the given slot, accounting for the
    *  equippedCosmetics map's slot keying. Returns null if nothing is

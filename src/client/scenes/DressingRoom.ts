@@ -3,7 +3,7 @@ import { SceneKeys } from '@/constants/scenes';
 import { CAT_CATALOG, COSMETIC_CATALOG } from '@/../shared/state';
 import { AssetKeys } from '@/constants/assets';
 import { equipCosmetic } from '@/services/state-client';
-import { parentIdFor } from '@/entities/cat';
+import { Cat, parentIdFor } from '@/entities/cat';
 import { CAT_EFFECT_BY_ID, type EffectHandle } from '@/effects/cat-effects';
 import type { PlayerState, OwnedCosmetic } from '@/../shared/state';
 
@@ -256,6 +256,15 @@ export class DressingRoom extends Scene {
     const slots = this.playerState.equippedCosmetics[this.catInstanceId];
     if (!slots) return;
 
+    // Hero is `add.image()` with default origin (0.5, 0.5) — center
+    // anchored on a 91×64 source canvas. Cat.syncOneCosmetic's math is
+    // written against origin (0.5, 1); for center origin the canvas-Y
+    // reference is the midpoint (32) instead of the bottom (64).
+    const heroCanvasRefY = Cat.SOURCE_CANVAS_H / 2;
+    const heroX = this.heroSprite.x;
+    const heroY = this.heroSprite.y;
+    const heroScale = this.heroSprite.scaleX;
+
     const equippedTypes = this.playerState.equippedCosmeticTypes ?? {};
     let i = 1;
     for (const [slotKey, cosInstanceId] of Object.entries(slots)) {
@@ -278,9 +287,39 @@ export class DressingRoom extends Scene {
       if (!cos) continue;
       const renderId = parentIdFor(cos) ?? cos.id;
       const frame = `cosmetic_${renderId}_idle_00`;
+
+      // Apply the catalog's calibrator-driven offsetX/offsetY/scale so
+      // the hero preview matches the in-game render and the calibrator
+      // preview. Before this: DressingRoom stacked the cosmetic at the
+      // hero's raw position and ignored catalog placement, so any
+      // calibrator drag (e.g. c62 Purple Flamehead's offsetY=9, scale=1.1)
+      // showed up everywhere EXCEPT the modal — the flame floated a few
+      // pixels above the hero's head while the game + calibrator agreed.
+      // Math mirrors Cat.syncOneCosmetic, with the hero's center origin
+      // (0.5, 0.5) substituting heroCanvasRefY=32 for the cat's 64.
+      const catalogOffsetX = cos.offsetX ?? 0;
+      const catalogOffsetY = cos.offsetY ?? 0;
+      const catalogScale = cos.scale ?? 1;
+      const targetX = Cat.CANVAS_HORIZONTAL_CENTER + catalogOffsetX;
+      const targetY = Cat.CAT_HEAD_TOP_REF + catalogOffsetY;
+      const cosScale = catalogScale * heroScale;
+
+      const textureFrame = this.textures
+        .get(AssetKeys.Atlas.Cosmetics)
+        .get(frame);
+      const anchorX = textureFrame.x + textureFrame.width / 2;
+      const anchorY = textureFrame.y + textureFrame.height / 2;
+
+      const cosX = heroX
+        + (targetX - Cat.SOURCE_CANVAS_HALF_W) * heroScale
+        - (anchorX - Cat.SOURCE_CANVAS_HALF_W) * cosScale;
+      const cosY = heroY
+        + (targetY - heroCanvasRefY) * heroScale
+        - (anchorY - heroCanvasRefY) * cosScale;
+
       const sprite = this.add
-        .sprite(this.heroSprite.x, this.heroSprite.y, AssetKeys.Atlas.Cosmetics, frame)
-        .setScale(this.heroSprite.scaleX, this.heroSprite.scaleY)
+        .sprite(cosX, cosY, AssetKeys.Atlas.Cosmetics, frame)
+        .setScale(cosScale)
         .setOrigin(this.heroSprite.originX, this.heroSprite.originY)
         .setDepth(this.heroSprite.depth + i++);
       if (cos.tint) {
