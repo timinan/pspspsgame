@@ -37,8 +37,13 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
     "your stage is set! this is what you'll see when you practice or when you put on a show for others. you can always come back here with this tab on the menu.",
   'rehearsal-intro':
     "now let's get to practicing. you'll find REHEARSE in here whenever you want to head to the stage for some practice.",
-  'play-tutorial-intro':
-    "for each show you attend or when you're practicing with your band, we'll be pspspsing the performers — they prefer being cheered on that way over loud claps. you'll see fuzzy balls fall down — that's the optimal time for a lil ps for the kitties. tap them as they get inside the circle.",
+  'play-tutorial-intro': [
+    // Split per Tim's Image 36 feedback — single bubble was too tall.
+    // First line: the framing. Next button advances.
+    "for each show you attend or when you're practicing with your band, we'll be pspspsing the performers — they prefer being cheered on that way over loud claps.",
+    // Second line: the how-to + drops notes. Advances when 3 hits land.
+    "you'll see fuzzy balls fall down — that's the optimal time for a lil ps for the kitties. tap them as they get inside the circle.",
+  ],
   'play-tutorial': [
     // 0 — taps + chord intro (drops chord notes after first tap-only round)
     "nice! those are taps — the basic note. two or three lanes at once? both work, it's just a chord.",

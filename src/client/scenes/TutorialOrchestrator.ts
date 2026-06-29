@@ -359,17 +359,32 @@ export class TutorialOrchestrator extends Scene {
       return;
     }
 
-    // play-tutorial-intro: the FIRST gameplay beat. Drop tap notes on
-    // the player's center lane, advance to play-tutorial when the
-    // player hits 3 (per Tim's spec).
+    // play-tutorial-intro: 2-line dialogue per Tim Image 36 (split so
+    // the bubble isn't a wall of text). Line 0 is just framing + Next.
+    // Line 1 drops tap notes; advances to play-tutorial after 3 hits.
     if (this.currentStep === 'play-tutorial-intro') {
+      const stageTailAt = this.getStageButtersFacePos();
+      const overlayOpts = stageTailAt
+        ? { stageTailAt, stageBubbleCenterX: width / 2 }
+        : {};
+      const isLastLine = this.dialogueIndex >= lines.length - 1;
       this.overlay = new TutorialCatOverlay(this);
-      this.overlay.show(line, {
-        ...(this.getStageButtersFacePos()
-          ? { stageTailAt: this.getStageButtersFacePos()!, stageBubbleCenterX: width / 2 }
-          : {}),
-      });
-      this.startTapsPhase(3, () => { void this.advance(); });
+      if (isLastLine) {
+        // Final line — show dialogue, run tap gameplay, advance on hits.
+        this.overlay.show(line, overlayOpts);
+        this.startTapsPhase(3, () => { void this.advance(); });
+      } else {
+        // Mid-dialogue line — Next button advances the index, no gameplay.
+        this.overlay.show(line, {
+          ...overlayOpts,
+          continueLabel: 'Next →',
+          onContinue: () => {
+            if (this.busy) return;
+            this.dialogueIndex += 1;
+            this.renderStep();
+          },
+        });
+      }
       this.renderSkipLinkIfUnlocked();
       return;
     }
