@@ -220,8 +220,8 @@
     "name": "Tan Beret",
     "slot": "head",
     "rarity": "common",
-    "offsetX": -8,
-    "offsetY": 3,
+    "offsetX": -9,
+    "offsetY": 4,
     "scale": 1.2
   },
   {
@@ -247,9 +247,9 @@
     "name": "Red Baseball Cap",
     "slot": "head",
     "rarity": "common",
-    "offsetX": 3,
+    "offsetX": 4,
     "offsetY": 7,
-    "scale": 1.1
+    "scale": 1.2
   },
   {
     "id": "c30",
@@ -506,5 +506,59 @@
     "offsetX": -5,
     "offsetY": 9,
     "scale": 1.1
+  },
+  {
+    "id": "c58",
+    "name": "Shark Head",
+    "slot": "head",
+    "rarity": "legendary",
+    "offsetX": -5,
+    "offsetY": 11,
+    "scale": 1.2
+  },
+  {
+    "id": "c59",
+    "name": "Shark Head v2",
+    "slot": "head",
+    "rarity": "legendary",
+    "offsetX": -5,
+    "offsetY": 9,
+    "scale": 0.5
+  },
+  {
+    "id": "c60",
+    "name": "Blue Flamehead",
+    "slot": "head",
+    "rarity": "legendary",
+    "offsetX": -5,
+    "offsetY": 9,
+    "scale": 1.1,
+    "sourceFrame": "cosmetic_c57_idle_00",
+    "tint": "#5789ff",
+    "tintMode": "color"
+  },
+  {
+    "id": "c61",
+    "name": "Green Flamehead",
+    "slot": "head",
+    "rarity": "legendary",
+    "offsetX": -5,
+    "offsetY": 9,
+    "scale": 1.1,
+    "sourceFrame": "cosmetic_c57_idle_00",
+    "tint": "#56cd56",
+    "tintMode": "color"
+  },
+  {
+    "id": "c62",
+    "name": "Purple Flamehead",
+    "slot": "head",
+    "rarity": "legendary",
+    "offsetX": -5,
+    "offsetY": 9,
+    "scale": 1.1,
+    "sourceFrame": "cosmetic_c57_idle_00",
+    "tint": "#c87aff",
+    "tintMode": "color"
   }
 ]

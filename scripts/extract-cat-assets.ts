@@ -387,6 +387,7 @@ async function packAtlas(frames: ExtractedFrame[], atlasName: string): Promise<v
       let minY = h;
       let maxX = -1;
       let maxY = -1;
+      const rowPixelCount = new Array<number>(h).fill(0);
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
           if (data[(y * w + x) * 4 + 3]! > 0) {
@@ -394,11 +395,26 @@ async function packAtlas(frames: ExtractedFrame[], atlasName: string): Promise<v
             if (x > maxX) maxX = x;
             if (y < minY) minY = y;
             if (y > maxY) maxY = y;
+            rowPixelCount[y]!++;
           }
         }
       }
       // Fully-transparent frame: skip (no visible pixels = nothing to pack)
       if (maxX < minX || maxY < minY) return null;
+      // "Thick top" — first row with enough painted pixels to be real
+      // structure, not a stray brush mark or sparkle artifact. Used by
+      // the offset pass below to anchor the head crown stably; the regular
+      // minY (which the atlas frame stores) can be hijacked by a single
+      // stray pixel and cause a 10+ px head jump in just one frame.
+      // 3 pixels = empirical threshold (smallest legitimate ear/whisker
+      // detail is ~3-5 wide). Falls back to minY if no thick row found.
+      let thickTopY = minY;
+      for (let y = minY; y <= maxY; y++) {
+        if (rowPixelCount[y]! >= 3) {
+          thickTopY = y;
+          break;
+        }
+      }
       return {
         ...f,
         origW: w,
@@ -407,6 +423,7 @@ async function packAtlas(frames: ExtractedFrame[], atlasName: string): Promise<v
         trimY: minY,
         trimW: maxX - minX + 1,
         trimH: maxY - minY + 1,
+        thickTopY,
       };
     }),
   );
@@ -445,6 +462,10 @@ async function packAtlas(frames: ExtractedFrame[], atlasName: string): Promise<v
       trimmed: true,
       spriteSourceSize: { x: f.trimX, y: f.trimY, w: f.trimW, h: f.trimH },
       sourceSize: { w: f.origW, h: f.origH },
+      // Custom field — only consumed by the per-frame offset pass below.
+      // Phaser ignores unknown fields when loading the atlas, so this is
+      // safe. See the rowPixelCount comment for why we carry this.
+      _thickTopY: f.thickTopY,
     });
     // Crop the source image to its painted bounds for the composite.
     const cropped = await sharp(f.srcPath)
@@ -676,8 +697,16 @@ async function writeCatFrameOffsets(): Promise<void> {
     // (paw lifts, body stretches DOWN during lick/meow) with head motion.
     // Top-Y tracks the topmost painted row directly = where the head's
     // crown is = the true vertical landmark for hats / faces.
+    //
+    // Why thickTopY and not spriteSourceSize.y: a single stray pixel
+    // from a brush mark or sparkle artifact above the head will hijack
+    // spriteSourceSize.y (which is min-Y across all painted pixels) and
+    // report the head at Y=0, causing a 10+ px cosmetic jump on that
+    // frame. _thickTopY skips rows with <3 pixels so isolated artifacts
+    // don't move the head landmark. Falls back to spriteSourceSize.y
+    // for older atlas builds that didn't emit the field.
     const cx = f.sourceSize.w / 2;
-    const cy = f.spriteSourceSize.y;
+    const cy = (f as AtlasFrame & { _thickTopY?: number })._thickTopY ?? f.spriteSourceSize.y;
     let perAnim = byCatAnim.get(breed!);
     if (!perAnim) {
       perAnim = new Map();
