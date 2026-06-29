@@ -305,8 +305,8 @@ export class TutorialCatOverlay {
     // the bubble edge (16px) tapers to a narrow tip (6px) with a small
     // half-circle cap. NOT a constant-width capsule — the previous
     // shape read as phallic; this one reads as a comma / teardrop.
-    const baseHalfW = 8;  // 16px wide where it joins the bubble
-    const tipHalfW  = 3;  // 6px wide just before the rounded cap
+    const baseHalfW = 14;  // 28px wide where it joins the bubble (Image 34)
+    const tipHalfW  = 3;   // 6px wide just before the rounded cap
     const ux = fullDist > 0 ? dx / fullDist : 0;
     const uy = fullDist > 0 ? dy / fullDist : 0;
     const px = -uy;
