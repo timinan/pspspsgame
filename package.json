@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --build",
-    "smoke-test": "for a in idle hiss lick meow; do python3 scripts/smoke-anim.py --anim=$a; done"
+    "smoke-test": "for a in idle hiss lick meow; do python3 scripts/smoke-anim.py --anim=$a; done",
+    "cosmetics:refresh": "npm run extract:assets && npm run smoke-test"
   },
   "engines": {
     "node": ">=22.2.0"
