@@ -133,6 +133,27 @@ export class TutorialOrchestrator extends Scene {
   /** BUTTERS nametag below the small stage Butters — same scaled style
    *  as the player cat's nametag. Added per Tim Image 31. */
   private stageButtersNameLabel: Phaser.GameObjects.Text | undefined;
+  /** Active tutorial-mode notes (simplified — colored ball + optional
+   *  tail/arrow per type). Each entry has its own scheduled spawn time
+   *  and a tween moving it down its lane. Cleared between phases. */
+  private playTutorialNotes: Array<{
+    sprite: Phaser.GameObjects.GameObject;
+    laneId: 0 | 1 | 2;
+    hitAtMs: number;
+    hit: boolean;
+    type: 'tap' | 'hold' | 'slide' | 'slide-return';
+    holdEndAtMs?: number;
+    slideTargetLane?: 0 | 1 | 2;
+  }> = [];
+  /** Pointer hit-zones, one per lane. Built lazily when a play-tutorial
+   *  phase needs to listen for taps; torn down between phases. */
+  private playTutorialLaneZones: Phaser.GameObjects.Zone[] = [];
+  /** Hit count for the current gameplay phase. Drives advance threshold. */
+  private playTutorialHits = 0;
+  /** Scheduled spawn timers — destroyed if the phase exits early. */
+  private playTutorialSpawnTimers: Phaser.Time.TimerEvent[] = [];
+  /** Auto-end timer for the insane phase (advances after 5s). */
+  private playTutorialEndTimer: Phaser.Time.TimerEvent | undefined;
 
   constructor() {
     super(SceneKeys.TutorialOrchestrator);
@@ -187,6 +208,11 @@ export class TutorialOrchestrator extends Scene {
     this.stepUI = this.add.container(0, 0);
     for (const obj of this.hamburgerObjects) obj.destroy();
     this.hamburgerObjects = [];
+    // Tear down play-tutorial notes/timers if any are alive — safe to
+    // call when nothing is rendered; phase-internal advance calls
+    // already do this, but skipTutorial and other off-path transitions
+    // need this catch-all.
+    this.tearDownTutorialNotes();
     this.overlay?.destroy();
     this.overlay = undefined;
     this.picker?.destroy();
@@ -330,6 +356,29 @@ export class TutorialOrchestrator extends Scene {
         },
       });
       this.renderSkipLinkIfUnlocked();
+      return;
+    }
+
+    // play-tutorial-intro: the FIRST gameplay beat. Drop tap notes on
+    // the player's center lane, advance to play-tutorial when the
+    // player hits 3 (per Tim's spec).
+    if (this.currentStep === 'play-tutorial-intro') {
+      this.overlay = new TutorialCatOverlay(this);
+      this.overlay.show(line, {
+        ...(this.getStageButtersFacePos()
+          ? { stageTailAt: this.getStageButtersFacePos()!, stageBubbleCenterX: width / 2 }
+          : {}),
+      });
+      this.startTapsPhase(3, () => { void this.advance(); });
+      this.renderSkipLinkIfUnlocked();
+      return;
+    }
+
+    // play-tutorial: 8-phase state machine. dialogueIndex is the phase.
+    // Phases drop different note types or render explainer beats. Each
+    // phase advances dialogueIndex; the last phase (7) advances() out.
+    if (this.currentStep === 'play-tutorial') {
+      this.runPlayTutorialPhase(this.dialogueIndex);
       return;
     }
 
@@ -903,7 +952,7 @@ export class TutorialOrchestrator extends Scene {
    *  miniature version of the real in-game drawer (icon + label +
    *  description per row) styled to match exactly. `highlight` picks
    *  which row gets the yellow border + 'you are here' subtitle. */
-  private renderHamburgerMock(highlight: 'SET STAGE' | 'REHEARSE'): void {
+  private renderHamburgerMock(highlight: 'SET STAGE' | 'REHEARSE' | 'PUT ON A SHOW'): void {
     const { width, height } = this.scale;
 
     // Drawer dimensions sized to fit the canvas with margin — Tim:
@@ -1211,6 +1260,364 @@ export class TutorialOrchestrator extends Scene {
       target.setTint(color);
       target.setDepth(-110);
       this.stageLaneGfx.push(target);
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // play-tutorial — phase state machine + simplified rhythm runner
+  // ---------------------------------------------------------------------
+
+  /** Dispatch the play-tutorial step to its current phase (dialogueIndex
+   *  0-7). Each phase renders dialogue + sets up either gameplay (note
+   *  drops + hit detection) or an explainer with a Next button. */
+  private runPlayTutorialPhase(phase: number): void {
+    const { width, height } = this.scale;
+    void height;
+    const lines = getTutorialDialogue('play-tutorial');
+    const rawLine = lines[phase] ?? '';
+    const seatedCatName = (this.seatedCatBreed
+      ? this.playerState?.ownedCats.find((c) => c.breed === this.seatedCatBreed)?.name
+      : undefined) ?? this.seatedCatBreed;
+    const line = personalize(rawLine, this.posterUsername, seatedCatName);
+
+    const stageTailAt = this.getStageButtersFacePos();
+    const overlayOpts = stageTailAt
+      ? { stageTailAt, stageBubbleCenterX: width / 2 }
+      : {};
+
+    // Helper: render dialogue with an immediate-Next button (explainer
+    // beats only — gameplay beats use overlay without onContinue).
+    const showWithNext = (onNext: () => void): void => {
+      this.overlay = new TutorialCatOverlay(this);
+      this.overlay.show(line, {
+        ...overlayOpts,
+        continueLabel: 'Next →',
+        onContinue: onNext,
+      });
+      this.renderSkipLinkIfUnlocked();
+    };
+
+    // Helper: render dialogue without a button — gameplay drives advance.
+    const showDialogueOnly = (): void => {
+      this.overlay = new TutorialCatOverlay(this);
+      this.overlay.show(line, overlayOpts);
+      this.renderSkipLinkIfUnlocked();
+    };
+
+    const advancePhase = (): void => {
+      this.tearDownTutorialNotes();
+      if (phase >= lines.length - 1) {
+        void this.advance();
+        return;
+      }
+      this.dialogueIndex = phase + 1;
+      this.renderStep();
+    };
+
+    switch (phase) {
+      case 0: // taps + chord intro — drop chord notes, advance after 3 hits
+        showDialogueOnly();
+        this.startChordsPhase(3, advancePhase);
+        return;
+      case 1: // lane styling explainer — flash lanes, Next button
+        showWithNext(() => advancePhase());
+        this.flashStageLanes();
+        return;
+      case 2: // holds
+        showDialogueOnly();
+        this.startHoldsPhase(3, advancePhase);
+        return;
+      case 3: // slides — 1 lane
+        showDialogueOnly();
+        this.startSlidesPhase(1, 3, advancePhase);
+        return;
+      case 4: // slides — 2 lanes
+        showDialogueOnly();
+        this.startSlidesPhase(2, 3, advancePhase);
+        return;
+      case 5: // double slides (slide-and-return)
+        showDialogueOnly();
+        this.startDoubleSlidesPhase(3, advancePhase);
+        return;
+      case 6: // insane — mixed notes for 5s
+        showDialogueOnly();
+        this.startInsanePhase(5000, advancePhase);
+        return;
+      case 7: // outro — menu mock w/ PUT ON A SHOW, Next button
+        this.renderHamburgerMock('PUT ON A SHOW');
+        showWithNext(() => advancePhase());
+        return;
+      default:
+        showWithNext(() => advancePhase());
+        return;
+    }
+  }
+
+  /** Tear down any active tutorial-mode notes, hit zones, and timers.
+   *  Called between phases + when leaving the play-tutorial step. */
+  private tearDownTutorialNotes(): void {
+    for (const t of this.playTutorialSpawnTimers) t.remove(false);
+    this.playTutorialSpawnTimers = [];
+    this.playTutorialEndTimer?.remove(false);
+    this.playTutorialEndTimer = undefined;
+    for (const n of this.playTutorialNotes) {
+      this.tweens.killTweensOf(n.sprite);
+      n.sprite.destroy();
+    }
+    this.playTutorialNotes = [];
+    for (const z of this.playTutorialLaneZones) z.destroy();
+    this.playTutorialLaneZones = [];
+    this.playTutorialHits = 0;
+  }
+
+  /** Brief pulse animation on all 3 lane bars + hit targets, played
+   *  twice. Used by phase 1 of play-tutorial as the visual hook for
+   *  the lane-styling explainer ("flash the lanes like when they
+   *  pulse... make the fuzzball shoot out effects"). */
+  private flashStageLanes(): void {
+    for (const obj of this.stageLaneGfx) {
+      this.tweens.add({
+        targets: obj,
+        scale: 1.18,
+        duration: 220,
+        yoyo: true,
+        repeat: 1,
+        ease: 'Sine.InOut',
+      });
+    }
+  }
+
+  /** Build pointer-hit zones on each lane that count taps for hit
+   *  detection. Stored in playTutorialLaneZones for teardown. */
+  private ensureLaneTapZones(onTap: (lane: 0 | 1 | 2) => void): void {
+    if (this.playTutorialLaneZones.length > 0) return;
+    const { width, height } = this.scale;
+    const scaleY = height / L.DESIGN_H;
+    const laneTopY = L.LANE_TOP_Y * scaleY;
+    const laneBottomY = L.LANE_BOTTOM_Y * scaleY;
+    const inner = width - L.LANE_GUTTER_PX * 2;
+    const colW = (inner - L.LANE_GAP_PX * (L.LANE_COUNT - 1)) / L.LANE_COUNT;
+    for (let i = 0; i < 3; i++) {
+      const lane = i as 0 | 1 | 2;
+      const cx = L.laneCenterX(lane, width);
+      const zone = this.add
+        .zone(cx, (laneTopY + laneBottomY) / 2, colW + L.LANE_GAP_PX, laneBottomY - laneTopY)
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: false });
+      zone.setDepth(50);
+      zone.on('pointerdown', () => onTap(lane));
+      this.playTutorialLaneZones.push(zone);
+    }
+  }
+
+  /** Drop a single tap note at the given hitAt (game-time). The note
+   *  is a tinted circle that tweens from lane top to past the bottom.
+   *  Tap detection: pointerdown on the lane within the perfect+great
+   *  window of hitAt counts as a hit. Auto-recycles 800ms after passing. */
+  private spawnTutorialNote(laneId: 0 | 1 | 2, hitAt: number, opts?: {
+    type?: 'tap' | 'hold' | 'slide' | 'slide-return';
+    holdEndAt?: number;
+    slideTargetLane?: 0 | 1 | 2;
+  }): void {
+    const { width, height } = this.scale;
+    const scaleY = height / L.DESIGN_H;
+    const startY = L.LANE_TOP_Y * scaleY;
+    const hitY = L.HIT_LINE_Y * scaleY;
+    const endY = height + 80;
+    const cx = L.laneCenterX(laneId, width);
+    const color = this.resolveTutorialLaneColor(laneId);
+    const type = opts?.type ?? 'tap';
+
+    const sprite = this.add.container(cx, startY).setDepth(-100);
+    const ball = this.add.circle(0, 0, 22, color, 1).setStrokeStyle(3, 0xffffff, 0.9);
+    sprite.add(ball);
+    if (type === 'hold' && opts?.holdEndAt) {
+      const fallSpeed = (hitY - startY) / 1800;  // matches Balance.noteFallMs=2400 scaled
+      const tailH = Math.max(0, (opts.holdEndAt - hitAt) * fallSpeed);
+      const tail = this.add.rectangle(0, -tailH / 2 - 12, 30, tailH, color, 0.75);
+      sprite.add(tail);
+    } else if (type === 'slide' && opts?.slideTargetLane !== undefined) {
+      const targetX = L.laneCenterX(opts.slideTargetLane, width);
+      const deltaX = targetX - cx;
+      const arrow = this.add.rectangle(deltaX / 2, 0, Math.abs(deltaX), 16, color, 0.55);
+      sprite.add(arrow);
+    } else if (type === 'slide-return' && opts?.slideTargetLane !== undefined) {
+      const targetX = L.laneCenterX(opts.slideTargetLane, width);
+      const deltaX = targetX - cx;
+      const arrow = this.add.rectangle(deltaX / 2, 0, Math.abs(deltaX), 16, color, 0.45);
+      const ret = this.add.rectangle(deltaX / 2, 8, Math.abs(deltaX), 8, 0xffffff, 0.7);
+      sprite.add(arrow);
+      sprite.add(ret);
+    }
+
+    const now = this.time.now;
+    const fallMs = 1800;
+    const delayMs = Math.max(0, hitAt - now);
+    const recordEntry: typeof this.playTutorialNotes[number] = {
+      sprite, laneId, hitAtMs: hitAt, hit: false, type,
+      ...(opts?.holdEndAt !== undefined ? { holdEndAtMs: opts.holdEndAt } : {}),
+      ...(opts?.slideTargetLane !== undefined ? { slideTargetLane: opts.slideTargetLane } : {}),
+    };
+    this.playTutorialNotes.push(recordEntry);
+
+    if (delayMs > 0) sprite.setVisible(false);
+    this.time.delayedCall(delayMs, () => {
+      if (!sprite.active) return;
+      sprite.setVisible(true);
+      this.tweens.add({
+        targets: sprite,
+        y: endY,
+        duration: fallMs,
+        ease: 'Linear',
+        onComplete: () => {
+          if (sprite.active) sprite.destroy();
+        },
+      });
+    });
+  }
+
+  private resolveTutorialLaneColor(laneId: 0 | 1 | 2): number {
+    const colors: (number | null)[] = [
+      CAT_COLOR_BY_BREED['cat13'] ?? null,
+      this.seatedCatBreed ? (CAT_COLOR_BY_BREED[this.seatedCatBreed] ?? null) : null,
+      null,
+    ];
+    for (let i = 0; i < 3; i++) {
+      if (colors[i] !== null) continue;
+      for (let d = 1; d < 3; d++) {
+        const r = i + d, l = i - d;
+        if (r < 3 && colors[r] !== null) { colors[i] = colors[r]; break; }
+        if (l >= 0 && colors[l] !== null) { colors[i] = colors[l]; break; }
+      }
+    }
+    return colors[laneId] ?? L.LANE_COLORS[laneId]!;
+  }
+
+  /** Phase 9 / play-tutorial-intro — drop tap notes on the player's
+   *  center lane, count hits. Advance after `targetHits`. */
+  private startTapsPhase(targetHits: number, onComplete: () => void): void {
+    this.tearDownTutorialNotes();
+    const startAt = this.time.now + 1200;
+    // Schedule 8 notes on the player's center lane, 900ms apart. More
+    // than enough to hit the target; whatever's left mid-fall on exit
+    // is cleaned up by tearDownTutorialNotes.
+    for (let i = 0; i < 8; i++) {
+      this.spawnTutorialNote(1, startAt + i * 900);
+    }
+    this.ensureLaneTapZones((lane) => this.checkTapHit(lane, targetHits, onComplete));
+  }
+
+  private startChordsPhase(targetHits: number, onComplete: () => void): void {
+    this.tearDownTutorialNotes();
+    const startAt = this.time.now + 1200;
+    // 8 chords across all 3 lanes simultaneously. Each chord counts as 1
+    // hit when ANY note in the chord is tapped (kept simple).
+    for (let i = 0; i < 8; i++) {
+      const t = startAt + i * 1100;
+      this.spawnTutorialNote(0, t);
+      this.spawnTutorialNote(1, t);
+      this.spawnTutorialNote(2, t);
+    }
+    this.ensureLaneTapZones((lane) => this.checkTapHit(lane, targetHits, onComplete));
+  }
+
+  private startHoldsPhase(targetHits: number, onComplete: () => void): void {
+    this.tearDownTutorialNotes();
+    const startAt = this.time.now + 1200;
+    for (let i = 0; i < 6; i++) {
+      const t = startAt + i * 1600;
+      this.spawnTutorialNote(1, t, { type: 'hold', holdEndAt: t + 700 });
+    }
+    this.ensureLaneTapZones((lane) => this.checkTapHit(lane, targetHits, onComplete));
+  }
+
+  private startSlidesPhase(laneSpan: 1 | 2, targetHits: number, onComplete: () => void): void {
+    this.tearDownTutorialNotes();
+    const startAt = this.time.now + 1200;
+    // Alternate source/target so the player sees both directions.
+    for (let i = 0; i < 6; i++) {
+      const t = startAt + i * 1400;
+      const src: 0 | 1 | 2 = laneSpan === 1 ? (i % 2 === 0 ? 0 : 2) : 0;
+      const tgt: 0 | 1 | 2 = laneSpan === 1
+        ? (i % 2 === 0 ? 1 : 1)
+        : 2;
+      this.spawnTutorialNote(src, t, { type: 'slide', slideTargetLane: tgt });
+    }
+    this.ensureLaneTapZones((lane) => this.checkTapHit(lane, targetHits, onComplete));
+  }
+
+  private startDoubleSlidesPhase(targetHits: number, onComplete: () => void): void {
+    this.tearDownTutorialNotes();
+    const startAt = this.time.now + 1200;
+    for (let i = 0; i < 6; i++) {
+      const t = startAt + i * 1500;
+      const src: 0 | 1 | 2 = i % 2 === 0 ? 0 : 2;
+      const tgt: 0 | 1 | 2 = 1;
+      this.spawnTutorialNote(src, t, { type: 'slide-return', slideTargetLane: tgt });
+    }
+    this.ensureLaneTapZones((lane) => this.checkTapHit(lane, targetHits, onComplete));
+  }
+
+  /** Insane chart — drop a dense mix of every note type for the given
+   *  duration, then auto-advance. Player can't fail; this is the joke
+   *  setup for the "...just kidding" beat. */
+  private startInsanePhase(durationMs: number, onComplete: () => void): void {
+    this.tearDownTutorialNotes();
+    const startAt = this.time.now + 600;
+    const types: Array<'tap' | 'hold' | 'slide' | 'slide-return'> = [
+      'tap', 'tap', 'slide', 'hold', 'slide-return', 'tap', 'slide', 'hold',
+    ];
+    for (let i = 0; i < 14; i++) {
+      const t = startAt + i * 320;
+      const lane = (i % 3) as 0 | 1 | 2;
+      const type = types[i % types.length]!;
+      if (type === 'tap') {
+        this.spawnTutorialNote(lane, t);
+      } else if (type === 'hold') {
+        this.spawnTutorialNote(lane, t, { type: 'hold', holdEndAt: t + 400 });
+      } else if (type === 'slide') {
+        const tgt: 0 | 1 | 2 = lane === 0 ? 1 : lane === 1 ? 2 : 0;
+        this.spawnTutorialNote(lane, t, { type: 'slide', slideTargetLane: tgt });
+      } else {
+        const tgt: 0 | 1 | 2 = lane === 0 ? 1 : lane === 2 ? 1 : 0;
+        this.spawnTutorialNote(lane, t, { type: 'slide-return', slideTargetLane: tgt });
+      }
+    }
+    this.ensureLaneTapZones(() => { /* clicks counted but phase auto-advances on timer */ });
+    this.playTutorialEndTimer = this.time.delayedCall(durationMs, () => onComplete());
+  }
+
+  /** Hit-detection: on a lane tap, find the closest unhit note on that
+   *  lane whose hitAt is within ±240ms of NOW. If found, count as hit
+   *  and destroy the note's sprite. Advance when targetHits reached. */
+  private checkTapHit(lane: 0 | 1 | 2, targetHits: number, onComplete: () => void): void {
+    const nowMs = this.time.now;
+    const window = 240;
+    let bestIdx = -1;
+    let bestDelta = Infinity;
+    for (let i = 0; i < this.playTutorialNotes.length; i++) {
+      const n = this.playTutorialNotes[i]!;
+      if (n.hit || n.laneId !== lane) continue;
+      const delta = Math.abs(n.hitAtMs - nowMs);
+      if (delta < bestDelta && delta <= window) {
+        bestDelta = delta;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx < 0) return;
+    const note = this.playTutorialNotes[bestIdx]!;
+    note.hit = true;
+    this.tweens.add({
+      targets: note.sprite,
+      scale: 1.4,
+      alpha: 0,
+      duration: 180,
+      ease: 'Cubic.Out',
+      onComplete: () => { if (note.sprite.active) note.sprite.destroy(); },
+    });
+    this.playTutorialHits += 1;
+    if (this.playTutorialHits >= targetHits) {
+      onComplete();
     }
   }
 
