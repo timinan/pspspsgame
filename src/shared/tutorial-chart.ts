@@ -1,62 +1,175 @@
 /**
- * Handcrafted tutorial chart — used by Game scene in tutorial mode
- * (when `init.tutorialStep === 'play-tutorial'`).
+ * Handcrafted tutorial mini-charts — one per `playTutorialPhase`.
+ * Loaded by Game scene when `init.tutorialPhase` is set; played through
+ * the real ChartPlayer pipeline so the player experiences the same
+ * note rendering, hit-target flash, perfect/great grading, lane mask
+ * clipping, and cat reactions they'll meet in actual shows.
  *
- * SKELETON ONLY for Phase 2. Real content lands in Phase 8 per spec §7.
+ * Tutorial mode tweaks (vs the real game):
+ *   - Slower noteFallMs (passed via init.noteFallMs override) so the
+ *     player has time to learn the gesture.
+ *   - Game scene suppresses leaderboard / score-saving / summary modal
+ *     / pass-fail gate when tutorialPhase is set.
+ *   - Early exit fires after `hitsTarget` lands; `insane` phase exits
+ *     on a wall-clock timer instead of hits.
  *
- * Sequence (filled in Phase 8):
- *   1-4   intro    — 4 single taps middle lane
- *   5-8   outer    — taps on lanes 0 and 2 (teach spatial mapping)
- *   9-12  chord    — 2/3-lane simultaneous taps
- *   13-16 hold     — hold middle lane, hold lane 0
- *   17-20 slide1   — 1-lane slides (0→1, 2→1)
- *   21-24 slide2   — 2-lane jumps (0→2, 2→0)
- *   25-28 sndr     — slide-and-return (◀▶)
- *   29-44 insane   — real chart fragment at insane density (~3s)
- *
- * Pacing: BPM 70, beatsPerStep 1 — slow, plenty of read time.
- *
- * TUTORIAL_CHART_BEATS maps each handcrafted section (start..end step
- * index) to the corresponding dialogue index in
- * TUTORIAL_DIALOGUE['play-tutorial']. The Game scene's guided mode
- * pauses ChartPlayer between sections, shows the dialogue line, and
- * resumes on Continue.
+ * Sequence (mirrors TUTORIAL_DIALOGUE['play-tutorial']):
+ *   intro (play-tutorial-intro)  — taps on lane 1
+ *   0 chords                      — 2- AND 3-note chords
+ *   1 lane-styling                — no chart (orchestrator handles)
+ *   2 holds                       — hold lane 1
+ *   3 slides-1                    — 0→1, 2→1 (adjacent)
+ *   4 slides-2                    — 0→2, 2→0 (cross)
+ *   5 double-slides               — slide-returns adjacent
+ *   6 insane                      — dense mixed, exits on 5s timer
+ *   7 outro                       — no chart (orchestrator handles)
  */
 
-import type { Chart } from './state';
+import type { Chart, ChartStep, LaneId } from './state';
 
-const CHART_STEP_COUNT_PLACEHOLDER = 8;
-// Phase 8 will bump this to 48 (≈ 41s at 70 BPM × 1 beat/step) so the
-// chart covers all 7 handcrafted sections + the insane fragment +
-// breathing room. CHART_PAGE_SIZE = 8 so the count needs to stay a
-// positive multiple of 8.
+const BPM = 70;        // slow tempo for learning
+const STEPS = 8;       // one CHART_PAGE_SIZE — required positive multiple of 8
 
-export const TUTORIAL_CHART: Chart = {
+const emptyStep = (): ChartStep => ({ lanes: [] });
+const tap = (lane: LaneId): ChartStep => ({ lanes: [lane] });
+const chord = (...lanes: LaneId[]): ChartStep => ({ lanes });
+
+const base = (title: string, stepCount = STEPS, bpm = BPM): Pick<
+  Chart,
+  'authorId' | 'title' | 'stepCount' | 'bpm' | 'updatedAt'
+> => ({
   authorId: '_tutorial',
-  title: 'Tutorial — Whiskers shows you the ropes',
-  stepCount: CHART_STEP_COUNT_PLACEHOLDER,
-  bpm: 70,
-  steps: Array.from({ length: CHART_STEP_COUNT_PLACEHOLDER }, () => ({ lanes: [] })),
-  holds: [],
-  slides: [],
-  slideReturns: [],
+  title,
+  stepCount,
+  bpm,
   updatedAt: 0,
+});
+
+/** play-tutorial-intro — 4 taps on the center lane (player cat). */
+export const TUTORIAL_CHART_INTRO: Chart = {
+  ...base('Tutorial — Taps'),
+  steps: [
+    tap(1), emptyStep(),
+    tap(1), emptyStep(),
+    tap(1), emptyStep(),
+    tap(1), emptyStep(),
+  ],
+  holds: [], slides: [], slideReturns: [],
 };
 
-/** Maps a chart-section step-range to the dialogue index in
- *  TUTORIAL_DIALOGUE['play-tutorial']. The Game scene's guided mode
- *  pauses the ChartPlayer when the current beat enters one of these
- *  ranges, displays the corresponding dialogue line, and resumes on
- *  Continue.
+/** play-tutorial phase 0 — taps + 2-note AND 3-note chords (Tim's spec). */
+export const TUTORIAL_CHART_CHORDS: Chart = {
+  ...base('Tutorial — Chords'),
+  steps: [
+    chord(0, 1), emptyStep(),       // 2-note chord
+    chord(0, 1, 2), emptyStep(),    // 3-note chord
+    chord(1, 2), emptyStep(),       // 2-note chord
+    chord(0, 2), emptyStep(),       // 2-note chord (outer)
+  ],
+  holds: [], slides: [], slideReturns: [],
+};
+
+/** play-tutorial phase 2 — holds on the center lane. */
+export const TUTORIAL_CHART_HOLDS: Chart = {
+  ...base('Tutorial — Holds'),
+  steps: Array.from({ length: STEPS }, emptyStep),
+  holds: [
+    { lane: 1, startStep: 0, endStep: 2 },
+    { lane: 1, startStep: 4, endStep: 6 },
+  ],
+  slides: [], slideReturns: [],
+};
+
+/** play-tutorial phase 3 — adjacent 1-lane slides (0→1 and 2→1). */
+export const TUTORIAL_CHART_SLIDES_1: Chart = {
+  ...base('Tutorial — 1-Lane Slides'),
+  steps: Array.from({ length: STEPS }, emptyStep),
+  holds: [],
+  slides: [
+    { startStep: 0, sourceLane: 0, targetLane: 1 },
+    { startStep: 2, sourceLane: 2, targetLane: 1 },
+    { startStep: 4, sourceLane: 0, targetLane: 1 },
+    { startStep: 6, sourceLane: 2, targetLane: 1 },
+  ],
+  slideReturns: [],
+};
+
+/** play-tutorial phase 4 — cross 2-lane slides (0→2 and 2→0). */
+export const TUTORIAL_CHART_SLIDES_2: Chart = {
+  ...base('Tutorial — 2-Lane Slides'),
+  steps: Array.from({ length: STEPS }, emptyStep),
+  holds: [],
+  slides: [
+    { startStep: 0, sourceLane: 0, targetLane: 2 },
+    { startStep: 2, sourceLane: 2, targetLane: 0 },
+    { startStep: 4, sourceLane: 0, targetLane: 2 },
+    { startStep: 6, sourceLane: 2, targetLane: 0 },
+  ],
+  slideReturns: [],
+};
+
+/** play-tutorial phase 5 — slide-returns (adjacent ◀▶). */
+export const TUTORIAL_CHART_DOUBLES: Chart = {
+  ...base('Tutorial — Double Slides'),
+  steps: Array.from({ length: STEPS }, emptyStep),
+  holds: [], slides: [],
+  slideReturns: [
+    { startStep: 0, sourceLane: 0, targetLane: 1 },
+    { startStep: 2, sourceLane: 2, targetLane: 1 },
+    { startStep: 4, sourceLane: 0, targetLane: 1 },
+    { startStep: 6, sourceLane: 2, targetLane: 1 },
+  ],
+};
+
+/** play-tutorial phase 6 — insane density (5s timer in Game scene). */
+export const TUTORIAL_CHART_INSANE: Chart = {
+  ...base('Tutorial — Insane', STEPS, BPM * 2),  // 2x BPM = double density
+  steps: [
+    tap(0), chord(0, 1),
+    tap(1), emptyStep(),
+    tap(2), chord(0, 2),
+    chord(0, 1, 2), tap(1),
+  ],
+  holds: [{ lane: 1, startStep: 3, endStep: 4 }],
+  slides: [{ startStep: 1, sourceLane: 0, targetLane: 2 }],
+  slideReturns: [{ startStep: 5, sourceLane: 1, targetLane: 0 }],
+};
+
+/**
+ * Per-phase Game-mode config: which chart to load, hit threshold to
+ * exit, optional wall-clock duration override (insane phase only).
  *
- *  Empty for Phase 2 skeleton — populated in Phase 8 alongside the
- *  filled-in chart steps.
+ * Phase 1 (lane styling) + Phase 7 (outro) are NULL — they don't use
+ * Game scene at all; TutorialOrchestrator handles them with non-
+ * gameplay visuals (lane flash + menu mock).
  */
-export const TUTORIAL_CHART_BEATS: ReadonlyArray<{
-  /** Inclusive lower bound — when current step >= startStep, pause. */
-  startStep: number;
-  /** Inclusive upper bound for the section. */
-  endStep: number;
-  /** Index into TUTORIAL_DIALOGUE['play-tutorial'] (0..9). */
-  dialogueIndex: number;
-}> = [];
+export interface TutorialPhaseConfig {
+  chart: Chart;
+  /** Player must land this many hits before Game returns to orchestrator.
+   *  Ignored when `durationMs` is set (insane phase). */
+  hitsToAdvance?: number;
+  /** Hard wall-clock cap. When set, Game exits after this many ms
+   *  regardless of hit count (insane phase). */
+  durationMs?: number;
+}
+
+/** play-tutorial-intro is a separate TutorialStepId; it uses its own
+ *  phase index = -1 in the orchestrator's lookup to distinguish from
+ *  the play-tutorial array. */
+export const TUTORIAL_INTRO_PHASE_CONFIG: TutorialPhaseConfig = {
+  chart: TUTORIAL_CHART_INTRO,
+  hitsToAdvance: 3,
+};
+
+/** Maps `playTutorialPhase` (0-7) to its Game-mode config, or null
+ *  when the phase is handled entirely by TutorialOrchestrator. */
+export const TUTORIAL_PHASE_CONFIGS: ReadonlyArray<TutorialPhaseConfig | null> = [
+  { chart: TUTORIAL_CHART_CHORDS,   hitsToAdvance: 3 },  // 0 chords
+  null,                                                   // 1 lane-styling (orchestrator handles)
+  { chart: TUTORIAL_CHART_HOLDS,    hitsToAdvance: 3 },  // 2 holds
+  { chart: TUTORIAL_CHART_SLIDES_1, hitsToAdvance: 3 },  // 3 slides-1
+  { chart: TUTORIAL_CHART_SLIDES_2, hitsToAdvance: 3 },  // 4 slides-2
+  { chart: TUTORIAL_CHART_DOUBLES,  hitsToAdvance: 3 },  // 5 double-slides
+  { chart: TUTORIAL_CHART_INSANE,   durationMs: 5000 },  // 6 insane
+  null,                                                   // 7 outro (orchestrator handles)
+];
