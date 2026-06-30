@@ -72,18 +72,18 @@ export function buildMenuItems(scene: Scene, getPlayerState: () => PlayerState |
       onTap: () => scene.scene.start(SceneKeys.ChartEditor, { playerState: getPlayerState() }),
     },
     {
-      label: 'MERCH',
-      description: 'Fresh drops at the merch table',
-      icon: '🛒',
-      key: SceneKeys.Purchase,
-      onTap: () => scene.scene.start(SceneKeys.Purchase, { playerState: getPlayerState() }),
-    },
-    {
       label: 'CATCH A SHOW',
       description: 'Front row for fellow artists',
       icon: '🎪',
       key: SceneKeys.VisitShows,
       onTap: () => scene.scene.start(SceneKeys.VisitShows, { playerState: getPlayerState() }),
+    },
+    {
+      label: 'MERCH',
+      description: 'Fresh drops at the merch table',
+      icon: '🛒',
+      key: SceneKeys.Purchase,
+      onTap: () => scene.scene.start(SceneKeys.Purchase, { playerState: getPlayerState() }),
     },
     {
       label: 'REWARDS',

@@ -1116,8 +1116,8 @@ export class TutorialOrchestrator extends Scene {
       { label: 'SET STAGE',     description: 'Dress the band, light the room', icon: '😺' },
       { label: 'REHEARSE',      description: 'Pawractice makes purrfect',      icon: '🎵' },
       { label: 'PUT ON A SHOW', description: 'Cook up your next hit',          icon: '🎼' },
-      { label: 'MERCH',         description: 'Fresh drops at the merch table', icon: '🛒' },
       { label: 'CATCH A SHOW',  description: 'Front row for fellow artists',   icon: '🎪' },
+      { label: 'MERCH',         description: 'Fresh drops at the merch table', icon: '🛒' },
       { label: 'REWARDS',       description: 'Goodies on the way',             icon: '🎁' },
       { label: 'SETTINGS',      description: 'Tune effects + audio to taste',  icon: '⚙️' },
     ];
