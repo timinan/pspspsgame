@@ -145,15 +145,26 @@ cos_canvas.save(OUT_DIR / 'cosmetics-catalog.png')
 print(f'cosmetics-catalog.png  {cos_canvas.size}  {len(cos_items)} cosmetics')
 
 # ---- Cats catalog ----
+# Enumerate every cat breed that has an idle_00 frame in the atlas, not
+# just the ones registered in cats.json. The catalog file is sparse (14
+# entries) but the atlas has 77+ breeds from the other agent's cat-gen
+# pipeline. Catalog provides names where available; fall back to the
+# breed id for un-named breeds so they still show up.
 cat_atlas, cat_frames = load_atlas(CAT_ATLAS_PNG, CAT_ATLAS_JSON)
 cat_catalog = json.load(open(CAT_CATALOG))
-cat_catalog.sort(key=lambda c: int(c['id'][3:]) if c['id'].startswith('cat') and c['id'][3:].isdigit() else 99999)
+cat_name_by_id = {c['id']: c.get('name', c['id']) for c in cat_catalog}
+
+# All breeds with an idle_00 frame
+atlas_breeds = sorted(
+    {f['filename'].split('_idle_00')[0] for f in cat_frames.values() if f['filename'].endswith('_idle_00')},
+    key=lambda s: (0, int(s[3:])) if s.startswith('cat') and s[3:].isdigit() else (1, 9999, s),
+)
 
 cat_items = []
-for c in cat_catalog:
-    cid = c['id']
+for cid in atlas_breeds:
     img = extract_frame(cat_atlas, cat_frames, f'{cid}_idle_00')
-    cat_items.append((cid, c.get('name', cid), img))
+    name = cat_name_by_id.get(cid, '—')
+    cat_items.append((cid, name, img))
 
 cat_canvas = build_grid(
     cat_items,
