@@ -1,0 +1,224 @@
+<!doctype html>
+<html><head><meta charset="utf-8"/>
+<title>meowcert · user management</title>
+<style>
+  body { margin: 0; background: #1a0a2e; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; padding-top: 50px; }
+  .hdr { padding: 14px 20px 10px; border-bottom: 1px solid #341c5a;
+    position: sticky; top: 40px; background: #1a0a2e; z-index: 50; }
+  .hdr h1 { margin: 0 0 4px; font-size: 18px; color: #ffd34d; }
+  .hdr .sub { color: #c0a0e6; font-size: 12px; max-width: 900px; line-height: 1.5; }
+  .save-pill { display: inline-block; margin-left: 10px; padding: 2px 8px; border-radius: 3px;
+    font-size: 11px; vertical-align: middle; }
+  .save-pill.idle  { background: #341c5a; color: #c0a0e6; }
+  .save-pill.dirty { background: #ffd34d; color: #1a0a2e; }
+  .save-pill.saving{ background: #4a7c3a; color: #fff; }
+  .save-pill.ok    { background: #2e6b3a; color: #fff; }
+  .save-pill.err   { background: #8b3030; color: #fff; }
+  section { padding: 20px; border-bottom: 1px solid #341c5a; }
+  section h2 { margin: 0 0 10px; font-size: 14px; color: #ffd34d;
+    text-transform: uppercase; letter-spacing: 0.05em; }
+  .add-row { display: flex; gap: 8px; align-items: stretch; max-width: 480px; }
+  .add-row input { flex: 1; background: #261540; border: 1px solid #4a2e7a; color: #fff;
+    padding: 8px 12px; border-radius: 6px; font-size: 14px; font-family: inherit; }
+  .add-row input:focus { outline: none; border-color: #ffd34d; }
+  .add-row button { background: #ffd34d; color: #1a0a2e; border: 0; padding: 8px 16px;
+    border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .add-row button:hover { background: #fff8e7; }
+  .add-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .add-hint { color: #c0a0e6; font-size: 11px; margin-top: 6px; }
+  table.users { width: 100%; max-width: 900px; border-collapse: collapse; margin-top: 6px; }
+  table.users th, table.users td { text-align: left; padding: 10px 12px;
+    border-bottom: 1px solid #341c5a; font-size: 13px; }
+  table.users th { color: #c0a0e6; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 600; background: #20103a; }
+  table.users td.username { color: #ffd34d; font-weight: 600; font-family: ui-monospace, Menlo, monospace; }
+  table.users td.center { text-align: center; }
+  table.users tr:hover td { background: #261540; }
+  .toggle { position: relative; display: inline-block; width: 44px; height: 24px; vertical-align: middle; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle .slider { position: absolute; cursor: pointer; inset: 0; background: #4a2e7a;
+    border-radius: 24px; transition: 0.15s; }
+  .toggle .slider:before { position: absolute; content: ""; height: 18px; width: 18px;
+    left: 3px; top: 3px; background: #c0a0e6; border-radius: 50%; transition: 0.15s; }
+  .toggle input:checked + .slider { background: #ffd34d; }
+  .toggle input:checked + .slider:before { background: #1a0a2e; transform: translateX(20px); }
+  .rm-btn { background: transparent; color: #c0a0e6; border: 1px solid #4a2e7a;
+    border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer;
+    font-family: inherit; }
+  .rm-btn:hover { background: #8b3030; color: #fff; border-color: #8b3030; }
+  .empty { color: #c0a0e6; font-size: 13px; font-style: italic; padding: 20px 0; }
+</style></head>
+<body>
+  <div class="hdr">
+    <h1>user management <span id="save-pill" class="save-pill idle">idle</span></h1>
+    <div class="sub">
+      Per-user dev overrides for testing. Add a Reddit username then flip the toggles to
+      force them into a specific state on next game load. <b>Tutorial Check</b> = next game-open
+      will force them through the tutorial again (auto-flips back to off when they finish it).
+      <b>Godmode</b> = unlocks everything for them on load (cats, cosmetics, currency, etc).
+      Temp tooling — talk to Claude before relying on this in shipped builds.
+      <br/>Output: <code>tools/user-management/users.json</code> (autosaves).
+    </div>
+  </div>
+
+  <section>
+    <h2>Add User</h2>
+    <div class="add-row">
+      <input id="add-username" type="text" placeholder="Reddit username (case-insensitive)" autocomplete="off"/>
+      <button id="add-btn" onclick="addUser()">Add</button>
+    </div>
+    <div class="add-hint">Stored lowercase. Whitespace trimmed. Duplicates ignored.</div>
+  </section>
+
+  <section>
+    <h2>Users</h2>
+    <table class="users">
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th class="center">Tutorial Check</th>
+          <th class="center">Godmode</th>
+          <th class="center"></th>
+        </tr>
+      </thead>
+      <tbody id="users-tbody"></tbody>
+    </table>
+    <div id="empty-state" class="empty" style="display:none;">No users yet. Add one above.</div>
+  </section>
+
+  <script>
+    let users = {};   // { username: { tutorialCheck: bool, godmode: bool } }
+    let saveTimer = null;
+
+    const tbody = document.getElementById('users-tbody');
+    const emptyEl = document.getElementById('empty-state');
+    const pillEl = document.getElementById('save-pill');
+    const addInput = document.getElementById('add-username');
+    const addBtn = document.getElementById('add-btn');
+
+    function setPill(state, text) {
+      pillEl.className = 'save-pill ' + state;
+      pillEl.textContent = text;
+    }
+
+    function render() {
+      const keys = Object.keys(users).sort();
+      tbody.innerHTML = '';
+      emptyEl.style.display = keys.length ? 'none' : 'block';
+      for (const u of keys) {
+        const cfg = users[u] || {};
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="username">${escapeHtml(u)}</td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" data-u="${escapeAttr(u)}" data-k="tutorialCheck" ${cfg.tutorialCheck ? 'checked' : ''}/>
+              <span class="slider"></span>
+            </label>
+          </td>
+          <td class="center">
+            <label class="toggle">
+              <input type="checkbox" data-u="${escapeAttr(u)}" data-k="godmode" ${cfg.godmode ? 'checked' : ''}/>
+              <span class="slider"></span>
+            </label>
+          </td>
+          <td class="center">
+            <button class="rm-btn" data-rm="${escapeAttr(u)}">Remove</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+      tbody.querySelectorAll('input[type=checkbox]').forEach((el) => {
+        el.addEventListener('change', onToggle);
+      });
+      tbody.querySelectorAll('button[data-rm]').forEach((el) => {
+        el.addEventListener('click', () => removeUser(el.getAttribute('data-rm')));
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+      })[c]);
+    }
+    function escapeAttr(s) { return escapeHtml(s); }
+
+    function normalize(name) {
+      return String(name || '').trim().toLowerCase();
+    }
+
+    function addUser() {
+      const u = normalize(addInput.value);
+      if (!u) return;
+      if (!users[u]) {
+        users[u] = { tutorialCheck: false, godmode: false };
+        scheduleSave();
+        render();
+      }
+      addInput.value = '';
+      addInput.focus();
+    }
+
+    function removeUser(u) {
+      if (!users[u]) return;
+      if (!confirm(`Remove ${u}?`)) return;
+      delete users[u];
+      scheduleSave();
+      render();
+    }
+
+    function onToggle(e) {
+      const u = e.target.getAttribute('data-u');
+      const k = e.target.getAttribute('data-k');
+      if (!users[u]) return;
+      users[u][k] = e.target.checked;
+      scheduleSave();
+    }
+
+    function scheduleSave() {
+      setPill('dirty', 'unsaved');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(save, 350);
+    }
+
+    async function save() {
+      setPill('saving', 'saving…');
+      try {
+        const r = await fetch('/save/user-management', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(users, null, 2),
+        });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error || 'save failed');
+        setPill('ok', `saved · ${j.bytes}B`);
+        setTimeout(() => setPill('idle', 'idle'), 1200);
+      } catch (e) {
+        setPill('err', 'save failed');
+        console.error(e);
+      }
+    }
+
+    async function load() {
+      try {
+        const r = await fetch('/tools/user-management/users.json', { cache: 'no-store' });
+        if (!r.ok) throw new Error('load failed: ' + r.status);
+        const raw = await r.text();
+        users = raw.trim() ? JSON.parse(raw) : {};
+      } catch (e) {
+        console.warn('initial load:', e.message);
+        users = {};
+      }
+      render();
+    }
+
+    addInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') addUser();
+    });
+
+    load();
+  </script>
+  <script src="/tools-nav.js"></script>
+</body>
+</html>

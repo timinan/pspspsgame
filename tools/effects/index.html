@@ -23,9 +23,11 @@
     font-family: 'Pixeloid Sans', 'JetBrains Mono', monospace;
     font-size: 13px;
   }
+  /* tools-nav.js injects a fixed top bar at z-index 9999 across all tool
+     pages — this header sits BELOW it so both stay sticky. */
   header {
     position: sticky;
-    top: 0;
+    top: 40px;
     z-index: 10;
     background: linear-gradient(180deg, #1a0f2e, #15082a 80%);
     border-bottom: 1px solid #3a2566;
@@ -35,6 +37,7 @@
     align-items: center;
     flex-wrap: wrap;
   }
+  body { padding-top: 40px; }
   header h1 {
     font-size: 16px;
     margin: 0;
@@ -234,6 +237,7 @@
 </header>
 <main id="grid"></main>
 <div id="toast" class="toast">saved</div>
+<script src="/tools-nav.js"></script>
 <script>
 // ============================================================================
 // Effects Smoke — meowcert tools tab
@@ -594,47 +598,7 @@ FX.halo_ring_of_fire = (cat) => ({
   },
 });
 
-// --- BEAMS & SPOTLIGHTS ----------------------------------------------------
-FX.beam_spotlight = (cat) => ({
-  render: (ctx, t) => {
-    drawCat(ctx, cat);
-    const cx = cat.footX, cy = cat.y - 4;
-    const ang = -Math.PI / 2 + Math.sin(t / 1800) * 0.6;
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(ang);
-    const grad = ctx.createLinearGradient(0, 0, 0, -120);
-    grad.addColorStop(0, 'rgba(255,231,140,0.45)');
-    grad.addColorStop(1, 'rgba(255,231,140,0)');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-40, -120);
-    ctx.lineTo(40, -120);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  },
-});
-FX.beam_lightsaber = (cat) => ({
-  render: (ctx, t) => {
-    drawCat(ctx, cat);
-    const x = cat.footX;
-    const baseY = cat.footY;
-    const topY = cat.y - 30;
-    const flicker = 1 + 0.1 * Math.sin(t / 80);
-    const colors = [0x66ccff, 0x88e0ff];
-    const grad = ctx.createLinearGradient(0, baseY, 0, topY);
-    grad.addColorStop(0, rgbStr(colors[0], 0.5 * flicker));
-    grad.addColorStop(1, rgbStr(colors[1], 0.0));
-    ctx.fillStyle = grad;
-    ctx.fillRect(x - 4, topY, 8, baseY - topY);
-    // core
-    ctx.fillStyle = rgbStr(0xffffff, 0.8 * flicker);
-    ctx.fillRect(x - 1, topY, 2, baseY - topY);
-  },
-});
-// Tim 06-30 round 2: shifted further down to the body midline.
+// --- BEAMS & SPOTLIGHTS ----------------------------------------------------/ Tim 06-30 round 2: shifted further down to the body midline.
 FX.beam_sun_rays = (cat) => ({
   render: (ctx, t) => {
     const cx = cat.footX, cy = cat.y + cat.h * 0.5;  // body center
@@ -824,9 +788,7 @@ function mkPulse(opts) {
       },
     };
   };
-}
-FX.pulse_shockwave  = mkPulse({ color: 0x66ccff, maxR: 60, intervalMs: 1200, lifeMs: 1100, thickness: 3 });
-// Tim 06-30 round 3: even more rings (interval 500→320 ms, 4+ alive at once).
+}// Tim 06-30 round 3: even more rings (interval 500→320 ms, 4+ alive at once).
 FX.pulse_heart      = mkPulse({ color: 0xff66cc, maxR: 72, intervalMs: 320, lifeMs: 1500, shape: 'heart', thickness: 5, pos: 'mid' });
 // Tim 06-30: sonar multi-rings.
 FX.pulse_sonar      = mkPulse({ color: 0x33ffd4, maxR: 70, intervalMs: 600, lifeMs: 1800, thickness: 2 });
@@ -992,10 +954,10 @@ FX.tint_holographic = mkTint('flash', [0xff66cc, 0x66ccff, 0xffd34d], 3600, 1.2)
 FX.tint_neon      = mkTint('flash', [0xff33aa, 0x33ffe6], 800);
 
 // --- FLOOR / GROUND FX -----------------------------------------------------
+// Tim 06-30 round 3: center on body mid (was at feet).
 FX.floor_magic_circle = (cat) => ({
   render: (ctx, t) => {
-    drawCat(ctx, cat);
-    const cx = cat.footX, cy = cat.footY;
+    const cx = cat.footX, cy = cat.y + cat.h * 0.5;
     const r = 38 * cat.scale;
     ctx.save();
     ctx.translate(cx, cy);
@@ -1050,33 +1012,7 @@ FX.floor_pentagram = (cat) => ({
     ctx.stroke();
     ctx.restore();
   },
-});
-FX.floor_crack_glow = (cat) => ({
-  render: (ctx, t) => {
-    drawCat(ctx, cat);
-    const cx = cat.footX, cy = cat.footY;
-    const pulse = 0.6 + 0.4 * Math.sin(t / 400);
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(1, 0.4);
-    ctx.strokeStyle = rgbStr(0xff5533, pulse * 0.85);
-    ctx.lineWidth = 2;
-    for (const arm of [[20, -8], [-18, -5], [12, 12], [-8, 14]]) {
-      let x = 0, y = 0;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      const tx = arm[0] * cat.scale, ty = arm[1] * cat.scale;
-      for (let s = 0; s < 6; s++) {
-        x = tx * (s / 6) + (Math.random() - 0.5) * 3;
-        y = ty * (s / 6) + (Math.random() - 0.5) * 3;
-        ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-    ctx.restore();
-  },
-});
-// Tim 06-30 round 2: match the ice reference texture — 3-tone palette
+});// Tim 06-30 round 2: match the ice reference texture — 3-tone palette
 // (mid cyan / light cyan / pure white sparkle blocks), bigger blocky
 // tiles (4 px so the chunkiness reads at smoketest scale), pre-baked
 // per-tile pattern that drifts slowly instead of per-frame flicker.
@@ -1119,9 +1055,10 @@ FX.floor_ice_patch = (cat) => ({
     }
   },
 });
-// Tim 06-30 round 2: match the lava reference — brighter orange base
-// with yellow flowing highlight streaks (sin-wave bands), bright yellow
-// spark dots above the surface. Palette tightened to 4 hot tones.
+// Tim 06-30 round 3: lava flow too fast + too uniform. Slow the flow
+// substantially (t/280 → t/900) and replace the single sin band with
+// THREE summed sin waves at different frequencies + cell-noise jitter so
+// the yellow crests form irregular blobs rather than parallel stripes.
 FX.floor_lava_puddle = (cat) => ({
   render: (ctx, t) => {
     const cx = cat.footX, cy = cat.footY;
@@ -1134,53 +1071,41 @@ FX.floor_lava_puddle = (cat) => ({
         const ey = py / halfH;
         const dist = Math.sqrt(ex * ex + ey * ey);
         if (dist > 1) continue;
-        // flow band: a slow horizontal sin determines where the yellow
-        // highlight stripes sit. Mid lava = orange, hot crest = yellow.
-        const flow = Math.sin(px * 0.18 + t / 280 + py * 0.05);
-        const dy = py / halfH;
-        const heat = (flow + 1) / 2 + (1 - Math.abs(dy)) * 0.3;
+        // Three summed sin waves at different frequencies + phases. The
+        // higher-freq band varies along Y too, so crests form blob-like
+        // patches that meander instead of straight horizontal stripes.
+        // Tiny hash jitter breaks remaining periodicity.
+        const w1 = Math.sin(px * 0.10 + py * 0.06 + t / 900);
+        const w2 = Math.sin(px * 0.22 - py * 0.15 + t / 1400 + 1.7);
+        const w3 = Math.sin(px * 0.06 + py * 0.20 + t / 1800 + 0.4);
+        const jitter = (((px * 374761393) ^ (py * 668265263)) >>> 0) % 100 / 100 - 0.5;
+        const flow = (w1 + w2 + w3) / 3 + jitter * 0.2;
+        const heat = (flow + 1) / 2 + (1 - dist) * 0.18;
         let r8, g8, b8;
-        if (heat > 1.05) { r8 = 255; g8 = 245; b8 = 110; }   // yellow crest
-        else if (heat > 0.75) { r8 = 255; g8 = 200; b8 = 60; } // bright orange
-        else if (heat > 0.4) { r8 = 240; g8 = 110; b8 = 30; }  // mid orange
+        if (heat > 1.05) { r8 = 255; g8 = 245; b8 = 110; }   // yellow crest blob
+        else if (heat > 0.78) { r8 = 255; g8 = 200; b8 = 60; } // bright orange
+        else if (heat > 0.45) { r8 = 240; g8 = 110; b8 = 30; } // mid orange
         else { r8 = 200; g8 = 60; b8 = 20; }                    // base red
-        const alpha = 0.8 + (1 - dist) * 0.2;
+        const alpha = 0.85 + (1 - dist) * 0.15;
         ctx.fillStyle = `rgba(${r8},${g8},${b8},${alpha})`;
         ctx.fillRect(cx + px, cy + py, TILE, TILE);
       }
     }
-    // Bright yellow sparks above the surface — mimics the small stars
-    // in the upper portion of Tim's reference image.
+    // Bright yellow sparks above the surface (slower cycle now too).
     for (let i = 0; i < 6; i++) {
-      const ph = ((t / 1200 + i * 0.18) % 1);
+      const ph = ((t / 1800 + i * 0.18) % 1);
       const ex = cx + (i - 2.5) * 14 * cat.scale + Math.sin(ph * Math.PI) * 3;
       const ey = cy - ph * 22;
       const a = (1 - ph) * 0.95;
       ctx.fillStyle = `rgba(255,${240 - ph * 30},${120 - ph * 80},${a})`;
       ctx.fillRect(Math.round(ex), Math.round(ey), TILE, TILE);
-      // little spark cross
       if (ph < 0.5) {
         ctx.fillRect(Math.round(ex - TILE), Math.round(ey), TILE, TILE);
         ctx.fillRect(Math.round(ex + TILE), Math.round(ey), TILE, TILE);
       }
     }
   },
-});
-FX.floor_shadow_boost = (cat) => ({
-  render: (ctx, t) => {
-    const cx = cat.footX, cy = cat.footY;
-    const w = 84 * cat.scale, h = 30 * cat.scale;
-    const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, w * 0.5);
-    grad.addColorStop(0, 'rgba(0,0,0,0.55)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + 2, w * 0.5, h * 0.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    drawCat(ctx, cat);
-  },
-});
-// Tim 06-30 round 2: teleport pad bigger again (62→100) + 5 squares.
+});// Tim 06-30 round 2: teleport pad bigger again (62→100) + 5 squares.
 FX.floor_teleport_pad = (cat) => ({
   render: (ctx, t) => {
     const cx = cat.footX, cy = cat.footY;
@@ -1270,9 +1195,7 @@ function mkWeather(kind, opts = {}) {
 // Round 2: wind streaks count up (24→44) and diagonal physics in mkWeather.
 FX.weather_snow_storm = mkWeather('snow', { count: 48, speed: 1.6, maxSz: 2.8 });
 FX.weather_rain       = mkWeather('rain', { count: 60, speed: 4 });
-FX.weather_wind       = mkWeather('wind', { count: 44, speed: 2 });
-FX.weather_fog        = mkWeather('fog',  { count: 10, speed: 0.4 });
-FX.weather_dust       = mkWeather('dust', { count: 130, speed: 0.5 });
+FX.weather_wind       = mkWeather('wind', { count: 44, speed: 2 });FX.weather_dust       = mkWeather('dust', { count: 130, speed: 0.5 });
 FX.weather_starfield  = mkWeather('stars',{ count: 120, speed: 0.2 });
 
 // --- DECORATIVE COMPANIONS -------------------------------------------------
@@ -1372,47 +1295,7 @@ FX.decor_tail_flame = (cat) => ({
       }
     }
   },
-});
-FX.decor_crown = (cat) => ({
-  render: (ctx, t) => {
-    drawCat(ctx, cat);
-    const cx = cat.footX;
-    const cy = cat.y - 6 + Math.sin(t / 500) * 1.5;
-    const w = 30 * cat.scale, h = 14 * cat.scale;
-    ctx.save();
-    ctx.fillStyle = rgbStr(0xffd34d, 1);
-    ctx.strokeStyle = rgbStr(0x665522, 1);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(cx - w / 2, cy + h / 2);
-    ctx.lineTo(cx - w / 2, cy - h / 2);
-    ctx.lineTo(cx - w / 4, cy);
-    ctx.lineTo(cx, cy - h);
-    ctx.lineTo(cx + w / 4, cy);
-    ctx.lineTo(cx + w / 2, cy - h / 2);
-    ctx.lineTo(cx + w / 2, cy + h / 2);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = rgbStr(0xff3366, 1);
-    for (const x of [-w / 4, 0, w / 4]) {
-      ctx.beginPath(); ctx.arc(cx + x, cy + h * 0.15, 1.6, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
-  },
-});
-// Tim 06-30: combo uses the new pixel wings + the body-mid halo.
-FX.decor_halo_wings_combo = (cat) => {
-  const wings = FX.decor_angel_wings(cat);
-  const halo = mkHalo({ color: 0xffd34d, radius: 26, thickness: 2.5, pos: 'mid', glow: true, rotateMs: 3200, tiltOscMs: 1800 })(cat);
-  return {
-    render: (ctx, t) => {
-      wings.render(ctx, t);
-      halo.render(ctx, t);
-    },
-  };
-};
-// Tim 06-30: ghost double more visible (alpha 0.4→0.65) + faster (600→260 ms).
+});// Tim 06-30: combo uses the new pixel wings + the body-mid halo.// Tim 06-30: ghost double more visible (alpha 0.4→0.65) + faster (600→260 ms).
 FX.decor_ghost_double = (cat) => ({
   render: (ctx, t) => {
     const off = Math.sin(t / 260) * 8;
@@ -1424,25 +1307,6 @@ FX.decor_ghost_double = (cat) => ({
     ctx.globalAlpha = 1;
   },
 });
-FX.decor_shadow_trio = (cat) => ({
-  render: (ctx, t) => {
-    drawCat(ctx, cat);
-    for (let i = 0; i < 3; i++) {
-      const a = t / 2400 * Math.PI * 2 + (i / 3) * Math.PI * 2;
-      const r = 38 * cat.scale;
-      const px = cat.footX + Math.cos(a) * r;
-      const py = cat.footY - 16 + Math.sin(a) * r * 0.35;
-      ctx.save();
-      ctx.globalAlpha = 0.45;
-      ctx.fillStyle = rgbStr(0x6633aa, 1);
-      ctx.beginPath();
-      ctx.ellipse(px, py, 8, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  },
-});
-
 // --- MISC / EXTRAS ---------------------------------------------------------
 // Tim 06-30 round 2: clarified — "multiple lines going UP behind butters"
 // (not floor tiles). Vertical disco-light beams rising from the floor;
@@ -1482,32 +1346,39 @@ FX.extra_sound_bars = (cat) => ({
     }
   },
 });
+// Tim 06-30 round 3: bigger + more visible — 12→16 lights, dot radius
+// 2→4, soft outer glow, brighter blink envelope.
 FX.extra_fairy_lights = (cat) => ({
   render: (ctx, t) => {
-    drawCat(ctx, cat);
     const cx = cat.footX, cy = cat.y + cat.h * 0.4;
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2 + t / 4000;
-      const blink = 0.4 + 0.6 * Math.sin(t / 240 + i * 1.7);
-      const r = 30 * cat.scale + Math.sin(t / 700 + i) * 4;
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2 + t / 4000;
+      const blink = 0.55 + 0.45 * Math.sin(t / 240 + i * 1.7);
+      const r = 36 * cat.scale + Math.sin(t / 700 + i) * 5;
       const px = cx + Math.cos(a) * r;
       const py = cy + Math.sin(a) * r * 0.5;
-      ctx.fillStyle = `hsla(${(i * 30) % 360},90%,65%,${blink})`;
+      const hue = (i * 22) % 360;
+      // outer glow
+      ctx.fillStyle = `hsla(${hue},95%,65%,${0.3 * blink})`;
       ctx.beginPath();
-      ctx.arc(px, py, 2, 0, Math.PI * 2);
+      ctx.arc(px, py, 8, 0, Math.PI * 2);
+      ctx.fill();
+      // core
+      ctx.fillStyle = `hsla(${hue},95%,72%,${blink})`;
+      ctx.beginPath();
+      ctx.arc(px, py, 4, 0, Math.PI * 2);
       ctx.fill();
     }
   },
 });
-// Tim 06-30 round 2: morphing constellation — dots fade in/out on their
-// own per-dot cycle, lines redraw every frame from the current visible
-// dots only. Old dots fade as new ones appear so the pattern keeps
-// reshaping ("adding and removing lines and dots").
+// Tim 06-30 round 3: keep the morphing constellation, bigger pattern radius
+// (60→90), bigger dots (2.5→3.5 px), brighter lines/dots.
 FX.extra_constellation = (cat) => {
-  const POOL = 10;
+  const POOL = 12;
+  const RANGE = 45;  // dot positions in [-RANGE, RANGE]
   const dots = Array.from({ length: POOL }, (_, i) => ({
-    dx: -30 + Math.random() * 60,
-    dy: -30 + Math.random() * 60,
+    dx: -RANGE + Math.random() * RANGE * 2,
+    dy: -RANGE + Math.random() * RANGE * 2,
     period: 2200 + Math.random() * 1800,
     phaseOffset: Math.random() * 1,
   }));
@@ -1526,8 +1397,8 @@ FX.extra_constellation = (cat) => {
         else alpha = 1 - (phase - 0.6) / 0.4;
         // when alpha hits zero re-roll the position so the constellation drifts.
         if (alpha < 0.02 && i % 3 === Math.floor(t / 600) % 3) {
-          d.dx = -30 + Math.random() * 60;
-          d.dy = -30 + Math.random() * 60;
+          d.dx = -RANGE + Math.random() * RANGE * 2;
+          d.dy = -RANGE + Math.random() * RANGE * 2;
         }
         const sx = d.dx * cosR - d.dy * sinR;
         const sy = d.dx * sinR + d.dy * cosR;
@@ -1535,8 +1406,8 @@ FX.extra_constellation = (cat) => {
       });
       // Connect each dot to its nearest VISIBLE neighbor (alpha > 0.3).
       const visible = live.filter(d => d.alpha > 0.3);
-      ctx.strokeStyle = `rgba(150,180,255,0.45)`;
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = `rgba(180,210,255,0.75)`;
+      ctx.lineWidth = 2;
       ctx.beginPath();
       for (let i = 0; i < visible.length; i++) {
         let bestJ = -1, bestD = Infinity;
@@ -1557,9 +1428,14 @@ FX.extra_constellation = (cat) => {
       ctx.globalAlpha = 1;
       for (const d of live) {
         if (d.alpha < 0.02) continue;
-        ctx.fillStyle = `rgba(255,255,255,${0.8 * d.alpha})`;
+        ctx.fillStyle = `rgba(255,255,255,${d.alpha})`;
         ctx.beginPath();
-        ctx.arc(d.x, d.y, 2.5, 0, Math.PI * 2);
+        ctx.arc(d.x, d.y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        // outer glow
+        ctx.fillStyle = `rgba(255,255,255,${0.25 * d.alpha})`;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, 6, 0, Math.PI * 2);
         ctx.fill();
       }
     },
@@ -1577,21 +1453,7 @@ FX.extra_glitch_noise = (cat) => ({
       ctx.fillRect(x, y, w, h);
     }
   },
-});
-FX.extra_tv_static = (cat) => ({
-  render: (ctx, t) => {
-    drawCat(ctx, cat);
-    const data = ctx.getImageData(0, 0, W, H);
-    for (let i = 0; i < data.data.length; i += 4) {
-      if (Math.random() > 0.93) {
-        const noise = Math.floor(Math.random() * 80);
-        data.data[i] += noise; data.data[i + 1] += noise; data.data[i + 2] += noise;
-      }
-    }
-    ctx.putImageData(data, 0, 0);
-  },
-});
-// Tim 06-30: cosmic swirl more visible — denser dot count, bigger dots,
+});// Tim 06-30: cosmic swirl more visible — denser dot count, bigger dots,
 // alpha bumped.
 FX.extra_cosmic_swirl = (cat) => ({
   render: (ctx, t) => {
@@ -1645,22 +1507,7 @@ FX.extra_bubble_shield = (cat) => ({
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
   },
-});
-FX.extra_mist_puff = (cat) => ({
-  render: (ctx, t) => {
-    drawCat(ctx, cat);
-    for (let i = 0; i < 6; i++) {
-      const phase = (t / 1800 + i * 0.18) % 1;
-      const x = cat.footX + (i - 2.5) * 18 * cat.scale + Math.sin(phase * Math.PI) * 4;
-      const y = cat.footY - phase * 40;
-      ctx.fillStyle = `rgba(255,255,255,${(1 - phase) * 0.45})`;
-      ctx.beginPath();
-      ctx.ellipse(x, y, 12, 5, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  },
-});
-// Tim 06-30: pixel rain — bigger particles (2px→4px) + more drops.
+});// Tim 06-30: pixel rain — bigger particles (2px→4px) + more drops.
 FX.extra_pixel_rain = (cat) => {
   const drops = Array.from({ length: 50 }, () => ({ x: Math.random() * W, y: Math.random() * H, c: Math.random() }));
   return {
@@ -1691,60 +1538,23 @@ FX.extra_chromatic = (cat) => ({
     ctx.globalAlpha = 1;
   },
 });
-// Tim 06-30 round 2: more bands (4→7) at the body midline.
+// Tim 06-30 round 3: 7 bands was too busy — back to 4 (round 1 baseline)
+// at the body midline.
 FX.extra_aurora_ribbon = (cat) => ({
   render: (ctx, t) => {
     const cy = cat.y + cat.h * 0.5;
     ctx.lineWidth = 6;
-    for (let layer = 0; layer < 7; layer++) {
+    for (let layer = 0; layer < 4; layer++) {
       ctx.beginPath();
-      ctx.strokeStyle = `hsla(${(120 + layer * 35 + t / 28) % 360},90%,60%,0.85)`;
+      ctx.strokeStyle = `hsla(${(120 + layer * 50 + t / 28) % 360},90%,60%,0.85)`;
       for (let x = 0; x <= W; x += 4) {
-        const y = cy + Math.sin(x / 22 + t / 500 + layer) * 16 - layer * 3;
+        const y = cy + Math.sin(x / 22 + t / 500 + layer) * 14 - layer * 4;
         if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.stroke();
     }
   },
 });
-FX.extra_smoke_rise = (cat) => {
-  const N = 12;
-  const puffs = Array.from({ length: N }, (_, i) => ({ p: i / N, x: (Math.random() - 0.5) * 30 }));
-  return {
-    render: (ctx, t) => {
-      drawCat(ctx, cat);
-      for (const pf of puffs) {
-        pf.p += 0.005;
-        if (pf.p > 1) pf.p -= 1;
-        const x = cat.footX + pf.x + Math.sin(t / 600 + pf.x) * 3;
-        const y = cat.footY - pf.p * 80;
-        ctx.fillStyle = `rgba(200,200,210,${(1 - pf.p) * 0.4})`;
-        ctx.beginPath();
-        ctx.arc(x, y, 4 + pf.p * 6, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    },
-  };
-};
-FX.extra_steam_puff = (cat) => {
-  const N = 8;
-  const puffs = Array.from({ length: N }, (_, i) => ({ p: i / N }));
-  return {
-    render: (ctx, t) => {
-      drawCat(ctx, cat);
-      for (const pf of puffs) {
-        pf.p += 0.012;
-        if (pf.p > 1) pf.p -= 1;
-        const x = cat.footX + Math.sin(t / 600 + pf.p * 5) * 6;
-        const y = cat.footY - pf.p * 60;
-        ctx.fillStyle = `rgba(255,255,255,${(1 - pf.p) * 0.6})`;
-        ctx.beginPath();
-        ctx.ellipse(x, y, 6, 3, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    },
-  };
-};
 // Tim 06-30 round 3: even bigger — rays 140→180, 20 rays.
 FX.extra_starburst_lines = (cat) => ({
   render: (ctx, t) => {
@@ -1790,15 +1600,12 @@ const CANDIDATES = [
   { id: 'effect-halo-ring-of-fire', name: 'Ring of Fire',       category: 'Halos & Rings', rarity: 'rare',      factory: 'halo_ring_of_fire' },
 
   // ----- Beams & spotlights -----
-  { id: 'effect-beam-spotlight',     name: 'Spotlight',           category: 'Beams', rarity: 'uncommon', factory: 'beam_spotlight' },
-  { id: 'effect-beam-lightsaber',    name: 'Lightsaber',          category: 'Beams', rarity: 'rare',     factory: 'beam_lightsaber' },
   { id: 'effect-beam-sun-rays',      name: 'Sun Rays',            category: 'Beams', rarity: 'rare',     factory: 'beam_sun_rays' },
   { id: 'effect-beam-god-rays',      name: 'God Rays',            category: 'Beams', rarity: 'legendary',factory: 'beam_god_rays' },
   { id: 'effect-beam-lightning',     name: 'Lightning Strike',    category: 'Beams', rarity: 'legendary', factory: 'beam_lightning' },
   { id: 'effect-beam-twin-pillars',  name: 'Twin Pillars',        category: 'Beams', rarity: 'uncommon', factory: 'beam_twin_pillars' },
 
   // ----- Pulse waves -----
-  { id: 'effect-pulse-shockwave',     name: 'Shockwave',          category: 'Pulse Waves', rarity: 'common',    factory: 'pulse_shockwave' },
   { id: 'effect-pulse-heart',         name: 'Heart Pulse',        category: 'Pulse Waves', rarity: 'rare',      factory: 'pulse_heart' },
   { id: 'effect-pulse-sonar',         name: 'Sonar Ping',         category: 'Pulse Waves', rarity: 'uncommon',  factory: 'pulse_sonar' },
   { id: 'effect-pulse-echo',          name: 'Echo Ripples',       category: 'Pulse Waves', rarity: 'common',    factory: 'pulse_echo' },
@@ -1817,24 +1624,20 @@ const CANDIDATES = [
   { id: 'effect-tint-rainbow',        name: 'Rainbow Tint',        category: 'Tint FX', rarity: 'rare',      factory: 'tint_rainbow' },
   { id: 'effect-tint-strobe',         name: 'Strobe Flash',        category: 'Tint FX', rarity: 'uncommon',  factory: 'tint_strobe' },
   { id: 'effect-tint-inverted',       name: 'Color Inverted',      category: 'Tint FX', rarity: 'rare',      factory: 'tint_inverted' },
-  { id: 'effect-tint-sepia',          name: 'Sepia',               category: 'Tint FX', rarity: 'common',    factory: 'tint_sepia' },
   { id: 'effect-tint-holographic',    name: 'Holographic Shimmer', category: 'Tint FX', rarity: 'legendary', factory: 'tint_holographic' },
   { id: 'effect-tint-neon',           name: 'Neon Flicker',        category: 'Tint FX', rarity: 'uncommon',  factory: 'tint_neon' },
 
   // ----- Floor / Ground -----
   { id: 'effect-floor-magic-circle',  name: 'Magic Circle',        category: 'Floor / Ground', rarity: 'rare',      factory: 'floor_magic_circle' },
   { id: 'effect-floor-pentagram',     name: 'Pentagram',           category: 'Floor / Ground', rarity: 'rare',      factory: 'floor_pentagram' },
-  { id: 'effect-floor-crack-glow',    name: 'Crack Glow',          category: 'Floor / Ground', rarity: 'uncommon',  factory: 'floor_crack_glow' },
   { id: 'effect-floor-ice-patch',     name: 'Ice Patch',           category: 'Floor / Ground', rarity: 'common',    factory: 'floor_ice_patch' },
   { id: 'effect-floor-lava-puddle',   name: 'Lava Puddle',         category: 'Floor / Ground', rarity: 'rare',      factory: 'floor_lava_puddle' },
-  { id: 'effect-floor-shadow-boost',  name: 'Shadow Boost',        category: 'Floor / Ground', rarity: 'common',    factory: 'floor_shadow_boost' },
   { id: 'effect-floor-teleport-pad',  name: 'Teleport Pad',        category: 'Floor / Ground', rarity: 'uncommon',  factory: 'floor_teleport_pad' },
 
   // ----- Weather / Ambient -----
   { id: 'effect-weather-snow-storm',  name: 'Snow Storm',          category: 'Weather', rarity: 'common',    factory: 'weather_snow_storm' },
   { id: 'effect-weather-rain',        name: 'Rain',                category: 'Weather', rarity: 'common',    factory: 'weather_rain' },
   { id: 'effect-weather-wind',        name: 'Wind Streaks',        category: 'Weather', rarity: 'common',    factory: 'weather_wind' },
-  { id: 'effect-weather-fog',         name: 'Fog',                 category: 'Weather', rarity: 'common',    factory: 'weather_fog' },
   { id: 'effect-weather-dust',        name: 'Cosmic Dust',         category: 'Weather', rarity: 'uncommon',  factory: 'weather_dust' },
   { id: 'effect-weather-starfield',   name: 'Starfield',           category: 'Weather', rarity: 'rare',      factory: 'weather_starfield' },
 
@@ -1842,10 +1645,7 @@ const CANDIDATES = [
   { id: 'effect-decor-angel-wings',   name: 'Angel Wings',         category: 'Decorative', rarity: 'legendary', factory: 'decor_angel_wings' },
   { id: 'effect-decor-devil-wings',   name: 'Devil Wings',         category: 'Decorative', rarity: 'rare',      factory: 'decor_devil_wings' },
   { id: 'effect-decor-tail-flame',    name: 'Tail Flame',          category: 'Decorative', rarity: 'rare',      factory: 'decor_tail_flame' },
-  { id: 'effect-decor-crown',         name: 'Crown',               category: 'Decorative', rarity: 'legendary', factory: 'decor_crown' },
-  { id: 'effect-decor-halo-wings',    name: 'Halo + Wings Combo',  category: 'Decorative', rarity: 'legendary', factory: 'decor_halo_wings_combo' },
   { id: 'effect-decor-ghost-double',  name: 'Ghost Double',        category: 'Decorative', rarity: 'rare',      factory: 'decor_ghost_double' },
-  { id: 'effect-decor-shadow-trio',   name: 'Shadow Trio',         category: 'Decorative', rarity: 'rare',      factory: 'decor_shadow_trio' },
 
   // ----- Extra / Misc -----
   { id: 'effect-extra-disco-floor',   name: 'Disco Floor',         category: 'Misc / Extras', rarity: 'rare',     factory: 'extra_disco_floor' },
@@ -1853,16 +1653,12 @@ const CANDIDATES = [
   { id: 'effect-extra-fairy-lights',  name: 'Fairy Lights',        category: 'Misc / Extras', rarity: 'rare',     factory: 'extra_fairy_lights' },
   { id: 'effect-extra-constellation', name: 'Constellation',       category: 'Misc / Extras', rarity: 'rare',     factory: 'extra_constellation' },
   { id: 'effect-extra-glitch-noise',  name: 'Glitch Noise',        category: 'Misc / Extras', rarity: 'uncommon', factory: 'extra_glitch_noise' },
-  { id: 'effect-extra-tv-static',     name: 'TV Static',           category: 'Misc / Extras', rarity: 'uncommon', factory: 'extra_tv_static' },
   { id: 'effect-extra-cosmic-swirl',  name: 'Cosmic Swirl',        category: 'Misc / Extras', rarity: 'legendary',factory: 'extra_cosmic_swirl' },
   { id: 'effect-extra-lens-flare',    name: 'Lens Flare',          category: 'Misc / Extras', rarity: 'rare',     factory: 'extra_lens_flare' },
   { id: 'effect-extra-bubble-shield', name: 'Bubble Shield',       category: 'Misc / Extras', rarity: 'rare',     factory: 'extra_bubble_shield' },
-  { id: 'effect-extra-mist-puff',     name: 'Mist Puff',           category: 'Misc / Extras', rarity: 'common',   factory: 'extra_mist_puff' },
   { id: 'effect-extra-pixel-rain',    name: 'Pixel Rain',          category: 'Misc / Extras', rarity: 'uncommon', factory: 'extra_pixel_rain' },
   { id: 'effect-extra-chromatic',     name: 'Chromatic Fringe',    category: 'Misc / Extras', rarity: 'rare',     factory: 'extra_chromatic' },
   { id: 'effect-extra-aurora-ribbon', name: 'Aurora Ribbon',       category: 'Misc / Extras', rarity: 'legendary',factory: 'extra_aurora_ribbon' },
-  { id: 'effect-extra-smoke-rise',    name: 'Smoke Rise',          category: 'Misc / Extras', rarity: 'common',   factory: 'extra_smoke_rise' },
-  { id: 'effect-extra-steam-puff',    name: 'Steam Puff',          category: 'Misc / Extras', rarity: 'common',   factory: 'extra_steam_puff' },
   { id: 'effect-extra-starburst',     name: 'Starburst Lines',     category: 'Misc / Extras', rarity: 'rare',     factory: 'extra_starburst_lines' },
 ];
 

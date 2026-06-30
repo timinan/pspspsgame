@@ -1,33 +1,6 @@
 {
-  "selected": [
-    "effect-beam-lightsaber",
-    "effect-beam-spotlight",
-    "effect-tint-sepia",
-    "effect-floor-shadow-boost",
-    "effect-weather-fog",
-    "effect-floor-crack-glow",
-    "effect-decor-halo-wings",
-    "effect-decor-crown",
-    "effect-decor-shadow-trio",
-    "effect-extra-tv-static",
-    "effect-extra-smoke-rise",
-    "effect-extra-mist-puff",
-    "effect-extra-steam-puff",
-    "effect-pulse-shockwave"
-  ],
-  "notes": {
-    "effect-pulse-heart": "even more heart rings",
-    "effect-tint-rainbow": "effect too strong now",
-    "effect-floor-pentagram": "make it bright by default and dim as the short animation",
-    "effect-extra-starburst": "bigger effect",
-    "effect-orbit-planets": "only have the planets not the wierd stuff you put the star?",
-    "effect-floor-lava-puddle": "better now but still work on a little more of the flow its too fast and not lavalike also not jusst striaght lines make them varied as lava does",
-    "effect-tint-holographic": "effect too strong now",
-    "effect-floor-magic-circle": "move to center of body",
-    "effect-extra-constellation": "make this a little bigger and more visable it looks great tho",
-    "effect-extra-fairy-lights": "make this a little bigger and more visable",
-    "effect-extra-aurora-ribbon": "ok too many now lets go back to what it was"
-  },
-  "timestamp": "2026-06-30T22:10:12.017Z",
-  "totalAvailable": 74
+  "selected": [],
+  "notes": {},
+  "timestamp": "",
+  "totalAvailable": 60
 }

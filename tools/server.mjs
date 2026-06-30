@@ -152,6 +152,18 @@ const TOOLS = {
     savePath: path.join(TOOL_DIR, 'effects', 'selections.json'),
     description: 'Candidate effects beyond floating-emoji particles. Tick the ones to ship; selections persist to tools/effects/selections.json. Cards lazy-render via IntersectionObserver so the grid scrolls smoothly.',
   },
+  'user-management': {
+    label: 'User Management',
+    href: '/tools/user-management/index.html',
+    // Per-user dev overrides — tutorialCheck (force tutorial replay on
+    // next game open; auto-clears on completion via /dev/clear-tutorial-
+    // check endpoint) + godmode (unlock everything on load). Temp tooling
+    // — talk before relying on it in shipped builds. The game runtime
+    // reads from src/shared/user-overrides.generated.ts which sync-catalog
+    // regenerates from users.json on every save.
+    savePath: path.join(TOOL_DIR, 'user-management', 'users.json'),
+    description: 'Per-user dev overrides — force tutorial replay + godmode unlocks.',
+  },
 };
 
 const MAX_BACKUPS = 5;

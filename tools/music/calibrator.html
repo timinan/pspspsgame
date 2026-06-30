@@ -1175,10 +1175,16 @@ document.getElementById('clip-editor-apply').addEventListener('click', async () 
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || 'reclip failed');
     statusEl.textContent = `✓ reclipped — startS=${j.startS.toFixed(2)} durS=${j.durS.toFixed(2)} · ${fmtBytes(j.bytes)}`;
-    // Update local catalog reflection so the saved file size + clipStartS sync
+    // Update local catalog with the SERVER's clamped values (j.startS / j.durS),
+    // not the requested ones. The server clamps startS to max(0, sourceDur - durS)
+    // when the user drags past the source end; if we wrote the raw requested value
+    // here, the next autosave to /save/music would overwrite the server's clamped
+    // catalog entry with an impossible startS — leaving the mp3 file truncated/
+    // unplayable until someone re-clipped it manually. Bug Tim hit on 2026-06-30
+    // with 5 songs (wonderwall, missing-me, storm-ii, favour, it-s-strange).
     if (catalog[slug]) {
-      catalog[slug].clipStartS = parseFloat(startS);
-      catalog[slug].loopDurationMs = Math.round(parseFloat(durS) * 1000);
+      catalog[slug].clipStartS = j.startS;
+      catalog[slug].loopDurationMs = Math.round(j.durS * 1000);
     }
     toast(`reclipped "${catalog[slug]?.displayName || slug}"`, 'ok');
     setTimeout(closeClipEditor, 700);
