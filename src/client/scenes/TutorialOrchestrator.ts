@@ -210,6 +210,7 @@ export class TutorialOrchestrator extends Scene {
     this.autoAdvanceTimer?.destroy();
     this.autoAdvanceTimer = undefined;
     this.tearDownEditorMock();
+    this.setStageRigVisible(true); // editor-tour will hide it again below
     this.stepUI?.destroy(true);
     this.stepUI = this.add.container(0, 0);
     for (const obj of this.hamburgerObjects) obj.destroy();
@@ -1283,6 +1284,20 @@ export class TutorialOrchestrator extends Scene {
     this.editorMockObjects = [];
   }
 
+  /** Toggle the persistent stage rig's visibility — used to hide the
+   *  seated cat + lanes during editor-tour so the venue bg shows clean
+   *  through the editor mock's lane washes (the real ChartEditor has no
+   *  cats above the grid). Restored on every other step's renderStep. */
+  private setStageRigVisible(visible: boolean): void {
+    this.seatedCat?.setVisible(visible);
+    this.seatedCatNameLabel?.setVisible(visible);
+    for (const sprite of this.equippedCosmeticSprites) sprite.setVisible(visible);
+    for (const gfx of this.stageLaneGfx) {
+      const node = gfx as Phaser.GameObjects.GameObject & { setVisible?: (v: boolean) => void };
+      node.setVisible?.(visible);
+    }
+  }
+
   /** Render a chart-editor mock behind Butters during the editor-tour
    *  beats. Mirrors the actual ChartEditor visuals at smaller scale —
    *  yellow PUT ON A SHOW title strip up top, lane washes tinted by
@@ -1297,191 +1312,240 @@ export class TutorialOrchestrator extends Scene {
    *  "when you're ready, press rehearse" beat. */
   private renderEditorMock(demoCount: number, highlightRehearse = false): void {
     this.tearDownEditorMock();
+    this.setStageRigVisible(false);
     const { width, height } = this.scale;
 
-    // Layout — scaled-down version of ChartEditor's full-screen layout.
-    // Real values: TopHud 44, HEADER_BANNER_H 42, PAGE_NAV_ROW_H 36,
-    // BOTTOM_STRIP_H 78. We skip the TopHud since Butters covers that
-    // area in the mock, then keep header / grid / page-nav / bottom
-    // strip in their real proportions, scaled to fit y >= 196.
-    const startY = 196;
-    const titleBandH = 24;
-    const pageNavH = 18;
-    const bottomStripH = 50;
-    const gridTop = startY + titleBandH + 2;
-    const gridBottom = height - bottomStripH - pageNavH - 2;
+    // Full-canvas layout per Tim image 7 (red box covers ~y=50 to bottom).
+    // Proportions mirror ChartEditor: HEADER_BANNER_H 42, PAGE_NAV_ROW_H
+    // 36, BOTTOM_STRIP_H 78. No dark backdrop — the venue bg from
+    // applyLiveStageBg shows clean through the lane washes' 0.55 alpha,
+    // same as the real editor.
+    const startY = 50;
+    const headerH = 36;
+    const pageNavH = 26;
+    const bottomStripH = 62;
+    const gridTop = startY + headerH;
+    const gridBottom = height - bottomStripH - pageNavH;
     const gridH = gridBottom - gridTop;
     const cols = 3;
     const cellW = width / cols;
 
-    // Panel backdrop
-    const panel = this.add
-      .rectangle(width / 2, (startY + height) / 2, width, height - startY, 0x0b041a, 0.96)
-      .setStrokeStyle(2, 0xc678ff, 0.6)
+    // ── HEADER BANNER (dark purple, yellow song title) ───────────
+    const banner = this.add
+      .rectangle(0, startY, width, headerH, 0x1a0a2e, 1)
+      .setOrigin(0, 0)
       .setDepth(50);
-    this.editorMockObjects.push(panel);
-
-    // Title strip — matches the yellow "PUT ON A SHOW" label in TopHud.
-    const titleBand = this.add
-      .rectangle(width / 2, startY + titleBandH / 2, width - 4, titleBandH, 0x1a0a2e, 0.95)
-      .setStrokeStyle(1, 0xc678ff, 0.4)
+    const seam = this.add
+      .rectangle(0, startY + headerH - 1, width, 1, 0xc0a0e6, 0.4)
+      .setOrigin(0, 0)
       .setDepth(51);
-    const title = this.add
-      .text(width / 2, startY + titleBandH / 2, 'PUT ON A SHOW', {
-        fontFamily: '"Courier New", monospace',
+    const backChipBg = this.add
+      .rectangle(24, startY + headerH / 2, 36, 22, 0x2c1856, 1)
+      .setStrokeStyle(1, 0xc0a0e6, 0.6)
+      .setDepth(51);
+    const backChipTxt = this.add
+      .text(24, startY + headerH / 2, '◀', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '11px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5)
+      .setDepth(52);
+    const songTitle = this.add
+      .text(width / 2, startY + headerH / 2, 'THE QUIET BETWEEN NOTES', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
         color: '#ffd34d',
         stroke: '#0b041a',
         strokeThickness: 3,
       })
       .setOrigin(0.5)
       .setDepth(52);
-    this.editorMockObjects.push(titleBand, title);
+    this.editorMockObjects.push(banner, seam, backChipBg, backChipTxt, songTitle);
 
-    // Resolve real lane tints from the player's seated cats. The middle
-    // lane carries the picked starter cat's color; the outer lanes mirror
-    // it (resolveLaneTintsFromSeatedCats fills missing seats from the
-    // nearest neighbour). Falls back to the global LANE_COLORS if no
-    // cats are seated yet for some reason.
+    // ── LANE WASHES (real tints, no backdrop — bg shows through) ──
     const resolvedTints = resolveLaneTintsFromSeatedCats(this.playerState);
     const tints: readonly [number, number, number] = resolvedTints
       ?? [LANE_COLORS[0]!, LANE_COLORS[1]!, LANE_COLORS[2]!];
-
-    // Lane washes — same liftTowardWhite + LANE_BRIGHTNESS_LIFT formula
-    // ChartEditor uses (drawColumnWashes), at 0.55 alpha.
     for (let c = 0; c < cols; c++) {
       const cx = (c + 0.5) * cellW;
       const wash = this.add
         .rectangle(cx, gridTop + gridH / 2, cellW - 2, gridH, liftTowardWhite(tints[c]!, LANE_BRIGHTNESS_LIFT), 0.55)
-        .setDepth(51);
+        .setDepth(50);
       this.editorMockObjects.push(wash);
     }
 
-    // Grid lines — 8 row dividers, 2 column dividers.
-    const rows = 8;
+    // ── GRID LINES (16 rows = 2 pages of 8) + column separators ──
+    const rows = 16;
     const rowH = gridH / rows;
     for (let r = 1; r < rows; r++) {
       const y = gridTop + r * rowH;
       const line = this.add
-        .line(0, 0, 0, y, width, y, 0x0b041a, 0.35)
+        .line(0, 0, 0, y, width, y, 0x0b041a, 0.3)
         .setOrigin(0, 0)
-        .setDepth(52);
+        .setDepth(51);
       this.editorMockObjects.push(line);
     }
     for (let c = 1; c < cols; c++) {
       const x = c * cellW;
       const line = this.add
-        .line(0, 0, x, gridTop, x, gridBottom, 0x0b041a, 0.35)
+        .line(0, 0, x, gridTop, x, gridBottom, 0x0b041a, 0.3)
         .setOrigin(0, 0)
-        .setDepth(52);
+        .setDepth(51);
       this.editorMockObjects.push(line);
     }
+
+    // ── PAGE BREAK MARKERS (PAGE 1 at top, PAGE 2 mid-grid) ─────
+    const midY = gridTop + (rows / 2) * rowH;
+    const pageChipStyle = {
+      fontFamily: 'Pixeloid Sans, sans-serif',
+      fontStyle: 'bold',
+      fontSize: '11px',
+      color: '#1a0a2e',
+      backgroundColor: '#ffd34d',
+      padding: { x: 6, y: 1 },
+    } as const;
+    const pageTopLine = this.add
+      .rectangle(width / 2, gridTop, width - 12, 2, 0xffd34d, 0.9)
+      .setDepth(52);
+    const pageMidLine = this.add
+      .rectangle(width / 2, midY, width - 12, 2, 0xffd34d, 0.9)
+      .setDepth(52);
+    const pageTopChip = this.add
+      .text(width / 2, gridTop, 'PAGE 1', pageChipStyle)
+      .setOrigin(0.5)
+      .setDepth(53);
+    const pageMidChip = this.add
+      .text(width / 2, midY, 'PAGE 2', pageChipStyle)
+      .setOrigin(0.5)
+      .setDepth(53);
+    this.editorMockObjects.push(pageTopLine, pageMidLine, pageTopChip, pageMidChip);
 
     const colCenterX = (col: number) => (col + 0.5) * cellW;
     const rowCenterY = (row: number) => gridTop + (row + 0.5) * rowH;
 
-    // Demo: tap using the real MeowcertElementBallWhite + Letters atlas
-    // frames (same texture Note.configure uses for in-game taps),
-    // tinted with the lane's actual color so it matches the wash.
+    // ── DEMO NOTES (real atlas frames, lane-tinted) ──────────────
+    // Tap on lane 1 row 2.
     if (demoCount >= 1) {
       const cx = colCenterX(1);
-      const cy = rowCenterY(1);
-      const noteScale = 0.6;
+      const cy = rowCenterY(2);
       const tapBall = this.add
         .image(cx, cy, AssetKeys.Image.MeowcertElementBallWhite)
         .setTint(tints[1]!)
-        .setScale(noteScale)
-        .setDepth(53);
+        .setScale(0.7)
+        .setDepth(54);
       const tapLetters = this.add
         .image(cx, cy, AssetKeys.Image.MeowcertElementLetters)
-        .setScale(noteScale)
-        .setDepth(54);
+        .setScale(0.7)
+        .setDepth(55);
       this.editorMockObjects.push(tapBall, tapLetters);
     }
 
-    // Demo: hold — real MeowcertTubeWhite tinted on the lane color,
-    // with a head ball at the top end.
+    // Hold on lane 1 rows 5 → 7.
     if (demoCount >= 2) {
       const xLane = colCenterX(1);
-      const yTop = rowCenterY(3);
-      const yBot = rowCenterY(4);
+      const yTop = rowCenterY(5);
+      const yBot = rowCenterY(7);
       const yMid = (yTop + yBot) / 2;
-      const tubeH = yBot - yTop + 20;
+      const tubeH = yBot - yTop + 24;
       const tube = this.add
         .image(xLane, yMid, AssetKeys.Image.MeowcertTubeWhite)
         .setTint(tints[1]!)
-        .setDisplaySize(14, tubeH)
-        .setDepth(53);
+        .setDisplaySize(18, tubeH)
+        .setDepth(54);
       const head = this.add
         .image(xLane, yTop, AssetKeys.Image.MeowcertElementBallWhite)
         .setTint(tints[1]!)
-        .setScale(0.55)
-        .setDepth(54);
+        .setScale(0.65)
+        .setDepth(55);
       this.editorMockObjects.push(tube, head);
     }
 
-    // Demo: slide — head ball on lane 0, tube spanning to lane 2, head
-    // ball on lane 2. Mirrors how Note.configure paints a 2-lane slide.
+    // Slide on row 11, lane 0 → lane 2.
     if (demoCount >= 3) {
-      const yMid = rowCenterY(6);
+      const yMid = rowCenterY(11);
       const xStart = colCenterX(0);
       const xEnd = colCenterX(2);
       const tubeLen = xEnd - xStart;
       const slideTube = this.add
         .image((xStart + xEnd) / 2, yMid, AssetKeys.Image.MeowcertTubeWhite)
         .setTint(tints[0]!)
-        .setDisplaySize(tubeLen, 12)
+        .setDisplaySize(tubeLen, 14)
         .setRotation(Math.PI / 2)
-        .setDepth(53);
+        .setDepth(54);
       const headStart = this.add
         .image(xStart, yMid, AssetKeys.Image.MeowcertElementBallWhite)
         .setTint(tints[0]!)
-        .setScale(0.55)
-        .setDepth(54);
+        .setScale(0.65)
+        .setDepth(55);
       const headEnd = this.add
         .image(xEnd, yMid, AssetKeys.Image.MeowcertElementBallWhite)
         .setTint(tints[2]!)
-        .setScale(0.55)
-        .setDepth(54);
+        .setScale(0.65)
+        .setDepth(55);
       this.editorMockObjects.push(slideTube, headStart, headEnd);
     }
 
-    // Page-nav row — slim purple band with ◀ / ▶ markers (decorative).
-    const pageNavY = gridBottom + pageNavH / 2 + 2;
-    const pageNavStrip = this.add
-      .rectangle(width / 2, pageNavY, width - 8, pageNavH, 0x1a0a2e, 0.85)
-      .setStrokeStyle(1, 0xc678ff, 0.4)
-      .setDepth(53);
-    const pageLabel = this.add
-      .text(width / 2, pageNavY, '◀  Page 1 / 8  ▶', {
+    // ── PAGE NAV ROW (◀ chip + label + ▶ chip) ──────────────────
+    const pageNavY = gridBottom + pageNavH / 2;
+    const arrowW = 32;
+    const arrowH = 22;
+    const arrowGap = 60;
+    const arrowL = this.add
+      .rectangle(width / 2 - arrowGap, pageNavY, arrowW, arrowH, 0x2c1856, 1)
+      .setStrokeStyle(1, 0xc0a0e6, 0.7)
+      .setDepth(52);
+    const arrowLTxt = this.add
+      .text(width / 2 - arrowGap, pageNavY, '◀', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '9px',
-        color: '#c0a0e6',
+        fontSize: '12px',
+        color: '#ffd34d',
       })
       .setOrigin(0.5)
-      .setDepth(54);
-    this.editorMockObjects.push(pageNavStrip, pageLabel);
+      .setDepth(53);
+    const pageNavLabel = this.add
+      .text(width / 2, pageNavY, '1 / 8', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '13px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5)
+      .setDepth(53);
+    const arrowR = this.add
+      .rectangle(width / 2 + arrowGap, pageNavY, arrowW, arrowH, 0x2c1856, 1)
+      .setStrokeStyle(1, 0xc0a0e6, 0.7)
+      .setDepth(52);
+    const arrowRTxt = this.add
+      .text(width / 2 + arrowGap, pageNavY, '▶', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5)
+      .setDepth(53);
+    this.editorMockObjects.push(arrowL, arrowLTxt, pageNavLabel, arrowR, arrowRTxt);
 
-    // Bottom strip — 2×2 button grid, same layout as ChartEditor's
-    // buildBottomBar: top row CLEAR | BACK TO TOP, bottom row
-    // PAGES | REHEARSE (REHEARSE in yellow primary).
-    const stripY = gridBottom + pageNavH + 2;
+    // ── BOTTOM STRIP (2×2 button grid) ──────────────────────────
+    const stripY = gridBottom + pageNavH;
     const strip = this.add
-      .rectangle(0, stripY, width, bottomStripH, 0x0b041a, 0.92)
+      .rectangle(0, stripY, width, bottomStripH, 0x0b041a, 0.95)
       .setOrigin(0, 0)
       .setDepth(53);
     this.editorMockObjects.push(strip);
 
-    const sideMargin = 8;
+    const sideMargin = 10;
     const colGap = 6;
     const rowGap = 4;
-    const btnH = 20;
+    const btnH = 26;
     const btnW = (width - sideMargin * 2 - colGap) / 2;
     const leftX = sideMargin + btnW / 2;
     const rightX = sideMargin + btnW + colGap + btnW / 2;
-    const topRowY = stripY + 4 + btnH / 2;
+    const topRowY = stripY + 5 + btnH / 2;
     const botRowY = topRowY + btnH + rowGap;
 
     const drawSecondary = (x: number, y: number, label: string) => {
@@ -1493,7 +1557,7 @@ export class TutorialOrchestrator extends Scene {
         .text(x, y, label, {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '9px',
+          fontSize: '11px',
           color: '#c0a0e6',
         })
         .setOrigin(0.5)
@@ -1503,9 +1567,8 @@ export class TutorialOrchestrator extends Scene {
 
     drawSecondary(leftX, topRowY, 'CLEAR');
     drawSecondary(rightX, topRowY, 'BACK TO TOP');
-    drawSecondary(leftX, botRowY, 'PAGES');
+    drawSecondary(leftX, botRowY, 'PAGES: ON');
 
-    // REHEARSE — yellow primary. Highlight gets a red stroke + pulse.
     const rehearseStroke = highlightRehearse ? 0xff5050 : 0x0b041a;
     const rehearseStrokeW = highlightRehearse ? 3 : 1;
     const rehearseBg = this.add
@@ -1516,7 +1579,7 @@ export class TutorialOrchestrator extends Scene {
       .text(rightX, botRowY, 'REHEARSE', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '10px',
+        fontSize: '12px',
         color: '#1a0a2e',
       })
       .setOrigin(0.5)
