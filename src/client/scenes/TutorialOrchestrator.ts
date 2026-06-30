@@ -1422,12 +1422,13 @@ export class TutorialOrchestrator extends Scene {
     this.stageRigBuilt = true;
   }
 
-  /** Toggle the persistent stage rig's visibility — used to hide the
-   *  seated cat + lanes during editor-tour so the venue bg shows clean
-   *  through the editor mock's lane washes (the real ChartEditor has no
-   *  cats above the grid). Restored on every other step's renderStep.
-   *  Also resets depth back to the default behind-everything position;
-   *  renderHamburgerMock lifts it above the drawer on menu-mock beats. */
+  /** Toggle the persistent stage rig's visibility. Called as
+   *  setStageRigVisible(true) at the top of every renderStep to
+   *  restore lanes that renderEditorMock hid for the chart-grid
+   *  takeover. Also resets cat/cosmetic depth back to behind-stage
+   *  (-100); renderHamburgerMock and renderEditorMock both re-bump
+   *  the cat above their overlays so it stays visible per Tim spec
+   *  "he should never disappear" through the post-charts tutorial. */
   private setStageRigVisible(visible: boolean): void {
     this.seatedCat?.setVisible(visible);
     this.seatedCat?.setDepth(-100);
@@ -1457,7 +1458,23 @@ export class TutorialOrchestrator extends Scene {
    *  "when you're ready, press rehearse" beat. */
   private renderEditorMock(demoCount: number, highlightRehearse = false): void {
     this.tearDownEditorMock();
-    this.setStageRigVisible(false);
+    // Hide the persistent stage lanes (rhythm bars beneath the cat) but
+    // KEEP the seated cat onscreen — Tim spec: "he should remain in his
+    // position on the stage basically from when we are in the charts for
+    // the tutorial until the end of the tutorial, he can be overlayed
+    // on top for menus and graphics but he should never disappear."
+    // Cat depth lifts above the editor mock objects (max depth ~55) so
+    // the cat sits in front of the chart grid like a stage-bound cameo.
+    for (const gfx of this.stageLaneGfx) {
+      const node = gfx as Phaser.GameObjects.GameObject & { setVisible?: (v: boolean) => void };
+      node.setVisible?.(false);
+    }
+    const CAT_ABOVE_MOCK_DEPTH = 1100;
+    this.seatedCat?.setDepth(CAT_ABOVE_MOCK_DEPTH);
+    this.seatedCatNameLabel?.setDepth(CAT_ABOVE_MOCK_DEPTH + 1);
+    for (const sprite of this.equippedCosmeticSprites) {
+      sprite.setDepth(CAT_ABOVE_MOCK_DEPTH);
+    }
     const { width, height } = this.scale;
 
     // Full-canvas layout per Tim image 7. Dimensions match ChartEditor
