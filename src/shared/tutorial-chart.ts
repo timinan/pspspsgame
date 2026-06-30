@@ -44,17 +44,19 @@ const base = (title: string, stepCount = STEPS, bpm = BPM): Pick<
   updatedAt: 0,
 });
 
-/** play-tutorial-intro — 5 sparse taps on the center lane (player cat).
- *  3-step spacing between taps so beginners have breathing room. */
+/** play-tutorial-intro — 5 sparse taps spread across all 3 lanes per Tim
+ *  image 5: "make it drop on other lanes too not just down the center
+ *  and add a little bit more spacing between one falling note and the
+ *  next on the same lane." 24 steps, ~5-step gap between consecutive
+ *  notes (was 3), 15-step gap between revisits of the same lane. */
 export const TUTORIAL_CHART_INTRO: Chart = {
-  ...base('Tutorial — Taps', 16),
+  ...base('Tutorial — Taps', 24),
   steps: [
-    tap(1), emptyStep(), emptyStep(),
-    tap(1), emptyStep(), emptyStep(),
-    tap(1), emptyStep(), emptyStep(),
-    tap(1), emptyStep(), emptyStep(),
-    tap(1), emptyStep(), emptyStep(),
-    emptyStep(),
+    tap(0), emptyStep(), emptyStep(), emptyStep(), emptyStep(), // 0 → lane 0
+    tap(2), emptyStep(), emptyStep(), emptyStep(), emptyStep(), // 5 → lane 2
+    tap(1), emptyStep(), emptyStep(), emptyStep(), emptyStep(), // 10 → lane 1
+    tap(0), emptyStep(), emptyStep(), emptyStep(), emptyStep(), // 15 → lane 0 (15-step gap)
+    tap(2), emptyStep(), emptyStep(), emptyStep(),              // 20 → lane 2 (15-step gap)
   ],
   holds: [], slides: [], slideReturns: [],
 };
