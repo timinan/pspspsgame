@@ -37,8 +37,13 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
     "Your stage is set! Now let's get to practicing.",
   'rehearsal-intro':
     "You can come REHEARSE anytime with your band by coming to this tab.",
-  'play-tutorial-intro':
-    "ready? you'll start seeing some fuzzy balls fall down — that's the optimal time for a lil ps for the kitties. tap them as they get inside the circle.",
+  'play-tutorial-intro': [
+    // 0 — pspsps explainer. Shown in Game scene before the chart starts;
+    //   Continue tap clears it and the next line takes over.
+    "When you attend a show or even just practicing, you'll want to give the kitties on stage some pspsps — they prefer this over loud claps. Try not to time it wrong or you'll make them mad.",
+    // 1 — chart kicks off as this line appears.
+    "Ready for the show? You'll start seeing some fuzzy balls fall down — that's the optimal time for a lil ps for the kitties. Tap them as they get inside the circle.",
+  ],
   'play-tutorial': [
     // 0 — taps + chord intro (drops chord notes after first tap-only round)
     "nice! those are taps — the basic note. two or three lanes at once? both work, it's just a chord.",

@@ -422,7 +422,22 @@ export class Game extends Scene {
     const hasRegistryChart = registryChart?.steps?.some((s) => s.lanes.length > 0);
     const hasStateChart = this.playerState?.chart?.steps?.some((s) => s.lanes.length > 0);
 
-    if (this.tutorialPhase !== null) {
+    if (this.tutorialPhase === -1) {
+      // play-tutorial-intro is a 2-beat pre-roll in Game scene per
+      // Tim's script edit: line[0] explains pspsps with a Continue
+      // button (no chart yet), then on tap line[1] takes over and the
+      // chart drops. Same gate plumbing as the insane preRollGate but
+      // we swap the bubble copy when the gate fires.
+      this.seatTutorialButters();
+      const introLines = getTutorialDialogue('play-tutorial-intro');
+      this.setupTutorialOverlay(introLines[0]);
+      await this.initChartPlayer();
+      this.showTutorialPreRollGate(() => {
+        this.clearTutorialDialogue();
+        this.setupTutorialOverlay(introLines[1]);
+        void this.beginRound();
+      }, 'Continue →');
+    } else if (this.tutorialPhase !== null) {
       // Tutorial mode: skip every chart-source branch (registry,
       // playerState, SongPicker). Seat Butters + dialogue FIRST so
       // they're on screen during the chart-load wait — otherwise the
@@ -2738,12 +2753,12 @@ export class Game extends Scene {
   /** Show the dialogue bubble for the current tutorial phase. Reads the
    *  matching line from tutorial-script. Pinned at the top of the canvas
    *  so the playfield + cats + lanes stay fully visible underneath. */
-  private setupTutorialOverlay(): void {
+  private setupTutorialOverlay(overrideText?: string): void {
     if (this.tutorialPhase === null) return;
     // Lazy import to avoid bloating the non-tutorial bundle path.
-    const dialogue = this.tutorialPhase === -1
+    const dialogue = overrideText ?? (this.tutorialPhase === -1
       ? (getTutorialDialogue('play-tutorial-intro')[0] ?? '')
-      : (getTutorialDialogue('play-tutorial')[this.tutorialPhase] ?? '');
+      : (getTutorialDialogue('play-tutorial')[this.tutorialPhase] ?? ''));
     if (!dialogue) return;
     const { width, height } = this.scale;
     const margin = 16;
@@ -2782,11 +2797,13 @@ export class Game extends Scene {
     this.tutorialDialogueGfx = [];
   }
 
-  /** Render a Yes button at the bottom of the lane view during the
+  /** Render a button at the bottom of the lane view during a tutorial
    *  pre-roll gate. The lane view + dialogue bubble are already up;
    *  this just adds the gate. On tap the bubble clears, the round
-   *  begins, the gate self-destroys. */
-  private showTutorialPreRollGate(onYes: () => void): void {
+   *  begins (or the caller's onProceed runs), the gate self-destroys.
+   *  Label defaults to 'Yes →' for the insane pre-roll; the
+   *  play-tutorial-intro pre-roll passes 'Continue →' instead. */
+  private showTutorialPreRollGate(onProceed: () => void, label = 'Yes →'): void {
     const { width, height } = this.scale;
     const btnW = 180;
     const btnH = 40;
@@ -2798,7 +2815,7 @@ export class Game extends Scene {
       .setDepth(1600)
       .setInteractive({ useHandCursor: true });
     const txt = this.add
-      .text(btnX, btnY, 'Yes →', {
+      .text(btnX, btnY, label, {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
         fontSize: '15px',
@@ -2808,7 +2825,7 @@ export class Game extends Scene {
       .setDepth(1601);
     this.tutorialDialogueGfx.push(bg, txt);
     bg.on('pointerdown', () => {
-      onYes();
+      onProceed();
     });
   }
 
