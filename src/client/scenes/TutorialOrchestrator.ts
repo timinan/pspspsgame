@@ -140,6 +140,9 @@ export class TutorialOrchestrator extends Scene {
   private stageLaneGfx: Phaser.GameObjects.GameObject[] = [];
   private stageButters: Phaser.GameObjects.Sprite | undefined;
   private stageButtersGlasses: Phaser.GameObjects.Sprite | undefined;
+  /** Latches once the rehearsal stage has been built so the tween +
+   *  rig set-up only happens once even if a step re-renders. */
+  private stageRigBuilt = false;
   /** BUTTERS nametag below the small stage Butters — same scaled style
    *  as the player cat's nametag. Added per Tim Image 31. */
   private stageButtersNameLabel: Phaser.GameObjects.Text | undefined;
@@ -329,15 +332,15 @@ export class TutorialOrchestrator extends Scene {
     // stage (full bg + cat in center seat, other 2 lanes empty). The
     // next step (play-tutorial-intro) renders on top of that view.
     if (this.currentStep === 'rehearsal-intro') {
+      // Stage rig is already built at stage-set-confirm — no need to
+      // re-tween here. Latched guard inside the stage-set-confirm branch
+      // covers the re-entry case.
       this.renderHamburgerMock('REHEARSE');
       this.overlay = new TutorialCatOverlay(this);
       this.overlay.show(line, {
         continueLabel: 'Continue →',
         onContinue: () => {
           if (this.busy) return;
-          this.busy = true;
-          this.switchToRehearsalStage();
-          this.busy = false;
           void this.advance();
         },
       });
@@ -370,6 +373,16 @@ export class TutorialOrchestrator extends Scene {
     // but PUT ON A SHOW highlighted — that's the gateway Butters is
     // saying you can come back to any time.
     if (this.currentStep === 'stage-set-confirm') {
+      // Tween the player cat from the merch floor up to her stage seat
+      // (and seat small Butters at the left lane) so the "your stage is
+      // set!" line actually matches what the player sees. Tim image 4
+      // feedback: "when we transition to this page have their cat also
+      // move to their position on the stage". Latched so the tween only
+      // runs once even on re-render.
+      if (!this.stageRigBuilt) {
+        this.switchToRehearsalStage();
+        this.stageRigBuilt = true;
+      }
       this.renderHamburgerMock('SET STAGE');
       this.overlay = new TutorialCatOverlay(this);
       this.overlay.show(line, {
@@ -1067,8 +1080,11 @@ export class TutorialOrchestrator extends Scene {
         })
         .setOrigin(0, 0)
         .setDepth(1002);
+      // Per Tim image 4: highlighted row keeps its real subtitle ("Dress
+      // the band, light the room" etc.) — the old "you are here" override
+      // hid the description and made the mock feel under-informed.
       const descText = this.add
-        .text(drawerX - drawerW / 2 + 44, itemY + 16, isHi ? 'you are here' : item.description, {
+        .text(drawerX - drawerW / 2 + 44, itemY + 16, item.description, {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontSize: '7px',
           color: isHi ? '#ffd34d' : '#c0a0e6',
