@@ -30,9 +30,9 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
   'merch-intro':
     "welcome to the band, <catname>! let's check the merch table to spice up your new bandmember.",
   'box-cosmetic':
-    "first, let's open up a cosmetic box — that's where you'll find hats, bows, and other accessories for your cats.",
+    "first up, let's open a cosmetic box. here's where you'll get hats, bows, and other accessories for your cats.",
   'box-effect':
-    "next, let's open up an effects box — that's where you'll find sparkles, flames, and particle flair that make your cats stand out.",
+    "effect boxes are where you'll find sparkles, flames, and particle flair that make your cats stand out.",
   'stage-set-confirm':
     "your stage is set! this is what you'll see when you practice or when you put on a show for others. you can always come back here with this tab on the menu.",
   'rehearsal-intro':
