@@ -3,6 +3,7 @@ import { SceneKeys } from '@/constants/scenes';
 import { BackgroundManager } from '@/entities/background-manager';
 import { Cat } from '@/entities/cat';
 import { TopHud } from '@/ui/top-hud';
+import { buildMenuItems } from '@/ui/menu-items';
 import * as L from '@/constants/scene-layout';
 import { BACKING_CATALOG, CAT_CATALOG } from '@/../shared/state';
 import { MusicSystem } from '@/systems/music-system';
@@ -255,35 +256,12 @@ export class VisitPost extends Scene {
   // ─── Visual builders ─────────────────────────────────────────────────
 
   private buildHud(): void {
-    // Minimal TopHud — no stats, no drawer items beyond the global nav.
-    // The visitor's hamburger keeps the cross-scene escape hatch so they
-    // can leave the post and check their own house.
+    // Same 7-item drawer as every other scene — Tim's rule: full menu,
+    // every page, no scene-specific omissions.
     this.hud = new TopHud(this, {
       showStats: false,
       currentKey: SceneKeys.VisitPost,
-      items: [
-        {
-          label: 'SET STAGE',
-          description: 'Dress your own band',
-          icon: '😺',
-          key: SceneKeys.Decorate,
-          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
-        },
-        {
-          label: 'REHEARSE',
-          description: 'Practice on your own time',
-          icon: '🎵',
-          key: SceneKeys.Game,
-          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState, forcePicker: true }),
-        },
-        {
-          label: 'PUT ON A SHOW',
-          description: 'Cook up your own hit',
-          icon: '🎼',
-          key: SceneKeys.ChartEditor,
-          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
-        },
-      ],
+      items: buildMenuItems(this, () => this.playerState),
     });
 
     // "X PLAYS" centered in the TopHud strip. Same depth/stroke pattern

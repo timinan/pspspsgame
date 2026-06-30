@@ -6,8 +6,7 @@ import { Cat } from '@/entities/cat';
 import { RemoveBadge } from '@/entities/remove-badge';
 import { TopHud } from '@/ui/top-hud';
 import { ContextMenu, buildCatMenu } from '@/ui/context-menu';
-import { SettingsModal } from '@/ui/settings-modal';
-import { InboxModal } from '@/ui/inbox-modal';
+import { buildMenuItems } from '@/ui/menu-items';
 import * as L from '@/constants/scene-layout';
 import { CAT_CATALOG, COSMETIC_CATALOG, BACKGROUND_CATALOG } from '@/../shared/state';
 import { CAT_EFFECT_BY_ID } from '@/effects/cat-effects';
@@ -66,8 +65,6 @@ export class Decorate extends Scene {
 
   // Tap-menu + placement state
   private contextMenu!: ContextMenu;
-  private settingsModal: SettingsModal | null = null;
-  private inboxModal: InboxModal | null = null;
   /** Cat instance id being placed, or null. */
   private placingCatInstanceId: string | null = null;
   private placementZones: GameObjects.Container | null = null;
@@ -495,56 +492,7 @@ export class Decorate extends Scene {
     this.hud = new TopHud(this, {
       showStats: false,
       currentKey: SceneKeys.Decorate,
-      items: [
-        {
-          label: 'SET STAGE',
-          description: 'Dress the band, light the room',
-          icon: '😺',
-          key: SceneKeys.Decorate,
-          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
-        },
-        {
-          label: 'REHEARSE',
-          description: 'Pawractice makes purrfect',
-          icon: '🎵',
-          key: SceneKeys.Game,
-          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState, forcePicker: true }),
-        },
-        {
-          label: 'PUT ON A SHOW',
-          description: 'Cook up your next hit',
-          icon: '🎼',
-          key: SceneKeys.ChartEditor,
-          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
-        },
-        {
-          label: 'MERCH',
-          description: 'Fresh drops at the merch table',
-          icon: '🛒',
-          key: SceneKeys.Purchase,
-          onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
-        },
-        {
-          label: 'CATCH A SHOW',
-          description: 'Front row for fellow artists',
-          icon: '🎪',
-          key: SceneKeys.VisitShows,
-          onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
-        },
-        {
-          label: 'INBOX',
-          description: 'Who played your shows?',
-          icon: '📬',
-          onTap: () => this.openInbox(),
-        },
-        {
-          label: 'SETTINGS',
-          description: 'Tune effects + audio to taste',
-          icon: '⚙️',
-          // No scene to navigate to — modal opens in place.
-          onTap: () => this.openSettings(),
-        },
-      ],
+      items: buildMenuItems(this, () => this.playerState),
     });
 
     const { width } = this.scale;
@@ -1099,27 +1047,8 @@ export class Decorate extends Scene {
     this.removeBadges = [];
     for (const l of this.seatedNameLabels) l.destroy();
     this.seatedNameLabels = [];
-    this.settingsModal?.destroy();
-    this.settingsModal = null;
-    this.inboxModal?.destroy();
-    this.inboxModal = null;
     this.root?.destroy(true);
     this.hud?.destroy();
-  }
-
-  /** Open the settings modal from the drawer. Lazy-instantiated so the
-   *  modal's preview timer only spins up when the player actually opens
-   *  it. Scene tear-down kills it via the SHUTDOWN handler above. */
-  private openSettings(): void {
-    if (!this.settingsModal) this.settingsModal = new SettingsModal(this);
-    this.settingsModal.open();
-  }
-
-  /** Open the inbox modal — owner-side view of recent activity on
-   *  their posts. Async because it fetches the inbox stream on open. */
-  private openInbox(): void {
-    if (!this.inboxModal) this.inboxModal = new InboxModal(this);
-    void this.inboxModal.open();
   }
 }
 

@@ -1024,7 +1024,7 @@ export class TutorialOrchestrator extends Scene {
       { label: 'PUT ON A SHOW', description: 'Cook up your next hit',          icon: '🎼' },
       { label: 'MERCH',         description: 'Fresh drops at the merch table', icon: '🛒' },
       { label: 'CATCH A SHOW',  description: 'Front row for fellow artists',   icon: '🎪' },
-      { label: 'INBOX',         description: 'Who played your shows?',         icon: '📬' },
+      { label: 'REWARDS',       description: 'Goodies on the way',             icon: '🎁' },
       { label: 'SETTINGS',      description: 'Tune effects + audio to taste',  icon: '⚙️' },
     ];
 

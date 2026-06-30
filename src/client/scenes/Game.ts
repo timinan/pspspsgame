@@ -8,6 +8,7 @@ import { ChartPlayer } from '@/systems/chart-player';
 import { ScoreSystem } from '@/systems/score-system';
 import { MusicSystem } from '@/systems/music-system';
 import { TopHud } from '@/ui/top-hud';
+import { buildMenuItems } from '@/ui/menu-items';
 import * as L from '@/constants/scene-layout';
 import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
@@ -26,7 +27,6 @@ import { getTutorialDialogue } from '@/../shared/tutorial-script';
 import { GenerateModal } from '@/ui/generate-modal';
 import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
 import { DifficultyPickerModal } from '@/ui/difficulty-picker-modal';
-import { SettingsModal } from '@/ui/settings-modal';
 import { CommentComposeModal } from '@/ui/comment-compose-modal';
 import { PublishedModal } from '@/ui/published-modal';
 import { publishChart } from '@/services/publish-client';
@@ -144,7 +144,6 @@ export class Game extends Scene {
    *  started. */
   private pendingStart = true;
   private generateModal: GenerateModal | null = null;
-  private settingsModal: SettingsModal | null = null;
   private commentModal: CommentComposeModal | null = null;
   private publishedModal: PublishedModal | null = null;
   /** Locks the PUT ON A SHOW button while a publish request is in flight
@@ -1339,49 +1338,7 @@ export class Game extends Scene {
       // so the drawer's "you are here" marker stays on PUT ON A SHOW
       // (= ChartEditor). Normal-mode rehearse marks REHEARSE.
       currentKey: this.testMode ? SceneKeys.ChartEditor : SceneKeys.Game,
-      items: [
-        {
-          label: 'SET STAGE',
-          description: 'Dress the band, light the room',
-          icon: '😺',
-          key: SceneKeys.Decorate,
-          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
-        },
-        {
-          label: 'REHEARSE',
-          description: 'Pawractice makes purrfect',
-          icon: '🎵',
-          key: SceneKeys.Game,
-          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState, forcePicker: true }),
-        },
-        {
-          label: 'PUT ON A SHOW',
-          description: 'Cook up your next hit',
-          icon: '🎼',
-          key: SceneKeys.ChartEditor,
-          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
-        },
-        {
-          label: 'MERCH',
-          description: 'Fresh drops at the merch table',
-          icon: '🛒',
-          key: SceneKeys.Purchase,
-          onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
-        },
-        {
-          label: 'CATCH A SHOW',
-          description: 'Front row for fellow artists',
-          icon: '🎪',
-          key: SceneKeys.VisitShows,
-          onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
-        },
-        {
-          label: 'SETTINGS',
-          description: 'Tune effects + audio to taste',
-          icon: '⚙️',
-          onTap: () => this.openSettings(),
-        },
-      ],
+      items: buildMenuItems(this, () => this.playerState),
     });
 
     // Test-mode escape hatch: a visible chip in the top-right (just left
@@ -3673,10 +3630,6 @@ export class Game extends Scene {
       this.generateModal?.destroy();
       this.generateModal = null;
     });
-    tearDown('settings-modal', () => {
-      this.settingsModal?.destroy();
-      this.settingsModal = null;
-    });
     tearDown('comment-modal', () => {
       this.commentModal?.destroy();
       this.commentModal = null;
@@ -3747,14 +3700,6 @@ export class Game extends Scene {
     tearDown('scale-resize', () => this.scale.off('resize'));
   }
 
-  /** Open the SETTINGS modal from the hamburger drawer. Lazy-instantiated
-   *  so the modal + its preview timer only spin up when the player opens
-   *  it. Scene cleanup tears it down via the tearDown('settings-modal')
-   *  block above. */
-  private openSettings(): void {
-    if (!this.settingsModal) this.settingsModal = new SettingsModal(this);
-    this.settingsModal.open();
-  }
 }
 
 

@@ -1,6 +1,7 @@
 import { Scene, Scenes, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { TopHud } from '@/ui/top-hud';
+import { buildMenuItems } from '@/ui/menu-items';
 import { BackgroundManager } from '@/entities/background-manager';
 import { liftTowardWhite, darkenTowardBlack, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
 import * as L from '@/constants/scene-layout';
@@ -457,43 +458,7 @@ export class ChartEditor extends Scene {
     this.hud = new TopHud(this, {
       showStats: false,
       currentKey: SceneKeys.ChartEditor,
-      items: [
-        {
-          label: 'SET STAGE',
-          description: 'Dress the band, light the room',
-          icon: '😺',
-          key: SceneKeys.Decorate,
-          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
-        },
-        {
-          label: 'REHEARSE',
-          description: 'Pawractice makes purrfect',
-          icon: '🎵',
-          key: SceneKeys.Game,
-          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState, forcePicker: true }),
-        },
-        {
-          label: 'PUT ON A SHOW',
-          description: 'Cook up your next hit',
-          icon: '🎼',
-          key: SceneKeys.ChartEditor,
-          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
-        },
-        {
-          label: 'MERCH',
-          description: 'Fresh drops at the merch table',
-          icon: '🛒',
-          key: SceneKeys.Purchase,
-          onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
-        },
-        {
-          label: 'CATCH A SHOW',
-          description: 'Front row for fellow artists',
-          icon: '🎪',
-          key: SceneKeys.VisitShows,
-          onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
-        },
-      ],
+      items: buildMenuItems(this, () => this.playerState),
     });
 
     // "Put on a Show" title in the TopHud area — mirrors Decorate's

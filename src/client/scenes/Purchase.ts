@@ -3,6 +3,7 @@ import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
 import { TopHud } from '@/ui/top-hud';
+import { buildMenuItems } from '@/ui/menu-items';
 import { openBox, fetchState, renameCat } from '@/services/state-client';
 import { CatNamingModal } from '@/ui/cat-naming-modal';
 import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
@@ -56,43 +57,7 @@ export class Purchase extends Scene {
     this.topHud = new TopHud(this, {
       showStats: true,
       currentKey: SceneKeys.Purchase,
-      items: [
-        {
-          label: 'SET STAGE',
-          description: 'Dress the band, light the room',
-          icon: '😺',
-          key: SceneKeys.Decorate,
-          onTap: () => this.scene.start(SceneKeys.Decorate, { playerState: this.playerState }),
-        },
-        {
-          label: 'REHEARSE',
-          description: 'Pawractice makes purrfect',
-          icon: '🎵',
-          key: SceneKeys.Game,
-          onTap: () => this.scene.start(SceneKeys.Game, { playerState: this.playerState, forcePicker: true }),
-        },
-        {
-          label: 'PUT ON A SHOW',
-          description: 'Cook up your next hit',
-          icon: '🎼',
-          key: SceneKeys.ChartEditor,
-          onTap: () => this.scene.start(SceneKeys.ChartEditor, { playerState: this.playerState }),
-        },
-        {
-          label: 'MERCH',
-          description: 'Fresh drops at the merch table',
-          icon: '🛒',
-          key: SceneKeys.Purchase,
-          onTap: () => this.scene.start(SceneKeys.Purchase, { playerState: this.playerState }),
-        },
-        {
-          label: 'CATCH A SHOW',
-          description: 'Front row for fellow artists',
-          icon: '🎪',
-          key: SceneKeys.VisitShows,
-          onTap: () => this.scene.start(SceneKeys.VisitShows, { playerState: this.playerState }),
-        },
-      ],
+      items: buildMenuItems(this, () => this.playerState),
     });
 
     // Pre-test gate: the box pulls + cosmetic economy aren't ready for
