@@ -81,7 +81,7 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
     "and the settings tab lets you adjust things to match your gameplay style.",
   ],
   'route-a-outro':
-    "you're all set! go run wild — your show, your rules.",
+    "and that's all! i think you're ready to attend and host meowcert shows now!",
   'route-b-outro':
     "now that you know the lay of the land, let's get you back to <poster>'s show!",
 };
