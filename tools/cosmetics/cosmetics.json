@@ -405,33 +405,6 @@
     "scale": 0.5
   },
   {
-    "id": "c60",
-    "name": "Light Santa Hat",
-    "slot": "head",
-    "rarity": "uncommon",
-    "offsetX": -17,
-    "offsetY": 4,
-    "scale": 1.1
-  },
-  {
-    "id": "c61",
-    "name": "Dark Santa Hat",
-    "slot": "head",
-    "rarity": "uncommon",
-    "offsetX": -17,
-    "offsetY": 4,
-    "scale": 1.1
-  },
-  {
-    "id": "c62",
-    "name": "Magenta Santa Hat",
-    "slot": "head",
-    "rarity": "uncommon",
-    "offsetX": -17,
-    "offsetY": 4,
-    "scale": 1.1
-  },
-  {
     "id": "c63",
     "name": "Blue Santa Hat",
     "slot": "head",
@@ -1870,5 +1843,356 @@
     "offsetX": -5,
     "offsetY": 39,
     "scale": 1
+  },
+  {
+    "id": "c223",
+    "name": "Red Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c224",
+    "name": "Orange Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c225",
+    "name": "Yellow Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c226",
+    "name": "Lime Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c227",
+    "name": "Green Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c228",
+    "name": "Teal Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c229",
+    "name": "Blue Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c230",
+    "name": "Purple Cool Sunglasses",
+    "slot": "face",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c231",
+    "name": "Red Grey Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c232",
+    "name": "Orange Grey Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c233",
+    "name": "Yellow Grey Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c234",
+    "name": "Lime Grey Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c235",
+    "name": "Green Grey Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c236",
+    "name": "Pink Grey Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c237",
+    "name": "Purple Grey Round Glasses",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c238",
+    "name": "Red Eye Patch",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 1,
+    "offsetY": 14,
+    "scale": 1
+  },
+  {
+    "id": "c239",
+    "name": "Orange Eye Patch",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 1,
+    "offsetY": 14,
+    "scale": 1
+  },
+  {
+    "id": "c240",
+    "name": "Yellow Eye Patch",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 1,
+    "offsetY": 14,
+    "scale": 1
+  },
+  {
+    "id": "c241",
+    "name": "Lime Eye Patch",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 1,
+    "offsetY": 14,
+    "scale": 1
+  },
+  {
+    "id": "c242",
+    "name": "Green Eye Patch",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 1,
+    "offsetY": 14,
+    "scale": 1
+  },
+  {
+    "id": "c243",
+    "name": "Teal Eye Patch",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 1,
+    "offsetY": 14,
+    "scale": 1
+  },
+  {
+    "id": "c244",
+    "name": "Blue Eye Patch",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 1,
+    "offsetY": 14,
+    "scale": 1
+  },
+  {
+    "id": "c245",
+    "name": "Purple Eye Patch",
+    "slot": "face",
+    "rarity": "common",
+    "offsetX": 1,
+    "offsetY": 14,
+    "scale": 1
+  },
+  {
+    "id": "c246",
+    "name": "Red White Sunglasses",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c247",
+    "name": "Orange White Sunglasses",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c248",
+    "name": "Yellow White Sunglasses",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c249",
+    "name": "Lime White Sunglasses",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c250",
+    "name": "Teal White Sunglasses",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c251",
+    "name": "Blue White Sunglasses",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c252",
+    "name": "Purple White Sunglasses",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c253",
+    "name": "Magenta White Sunglasses",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c254",
+    "name": "Pink White Sunglasses",
+    "slot": "head",
+    "rarity": "rare",
+    "offsetX": -5,
+    "offsetY": 17,
+    "scale": 1
+  },
+  {
+    "id": "c255",
+    "name": "Purple Red Bowtie",
+    "slot": "neck",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 32,
+    "scale": 1
+  },
+  {
+    "id": "c256",
+    "name": "Green Black Tie",
+    "slot": "neck",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 38,
+    "scale": 1.1
+  },
+  {
+    "id": "c257",
+    "name": "Teal Black Tie",
+    "slot": "neck",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 38,
+    "scale": 1.1
+  },
+  {
+    "id": "c258",
+    "name": "Blue Black Tie",
+    "slot": "neck",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 38,
+    "scale": 1.1
+  },
+  {
+    "id": "c259",
+    "name": "Lime Black Tie",
+    "slot": "neck",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 38,
+    "scale": 1.1
+  },
+  {
+    "id": "c260",
+    "name": "Yellow Black Tie",
+    "slot": "neck",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 38,
+    "scale": 1.1
+  },
+  {
+    "id": "c261",
+    "name": "Red Black Tie",
+    "slot": "neck",
+    "rarity": "uncommon",
+    "offsetX": -5,
+    "offsetY": 38,
+    "scale": 1.1
   }
 ]

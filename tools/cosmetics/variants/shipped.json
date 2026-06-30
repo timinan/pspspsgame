@@ -627,6 +627,46 @@
       "new_id": "c177",
       "frames": 98,
       "name": "Dark Cool Sunglasses"
+    },
+    "all_red": {
+      "new_id": "c223",
+      "frames": 98,
+      "name": "Red Cool Sunglasses"
+    },
+    "all_orange": {
+      "new_id": "c224",
+      "frames": 98,
+      "name": "Orange Cool Sunglasses"
+    },
+    "all_yellow": {
+      "new_id": "c225",
+      "frames": 98,
+      "name": "Yellow Cool Sunglasses"
+    },
+    "all_lime": {
+      "new_id": "c226",
+      "frames": 98,
+      "name": "Lime Cool Sunglasses"
+    },
+    "all_green": {
+      "new_id": "c227",
+      "frames": 98,
+      "name": "Green Cool Sunglasses"
+    },
+    "all_teal": {
+      "new_id": "c228",
+      "frames": 98,
+      "name": "Teal Cool Sunglasses"
+    },
+    "all_blue": {
+      "new_id": "c229",
+      "frames": 98,
+      "name": "Blue Cool Sunglasses"
+    },
+    "all_purple": {
+      "new_id": "c230",
+      "frames": 98,
+      "name": "Purple Cool Sunglasses"
     }
   },
   "c4": {
@@ -634,6 +674,41 @@
       "new_id": "c178",
       "frames": 98,
       "name": "Teal Grey Round Glasses"
+    },
+    "all_red": {
+      "new_id": "c231",
+      "frames": 98,
+      "name": "Red Grey Round Glasses"
+    },
+    "all_orange": {
+      "new_id": "c232",
+      "frames": 98,
+      "name": "Orange Grey Round Glasses"
+    },
+    "all_yellow": {
+      "new_id": "c233",
+      "frames": 98,
+      "name": "Yellow Grey Round Glasses"
+    },
+    "all_lime": {
+      "new_id": "c234",
+      "frames": 98,
+      "name": "Lime Grey Round Glasses"
+    },
+    "all_green": {
+      "new_id": "c235",
+      "frames": 98,
+      "name": "Green Grey Round Glasses"
+    },
+    "all_pink": {
+      "new_id": "c236",
+      "frames": 98,
+      "name": "Pink Grey Round Glasses"
+    },
+    "all_purple": {
+      "new_id": "c237",
+      "frames": 98,
+      "name": "Purple Grey Round Glasses"
     }
   },
   "c6": {
@@ -653,6 +728,46 @@
       "new_id": "c181",
       "frames": 98,
       "name": "Pink Eye Patch"
+    },
+    "all_red": {
+      "new_id": "c238",
+      "frames": 98,
+      "name": "Red Eye Patch"
+    },
+    "all_orange": {
+      "new_id": "c239",
+      "frames": 98,
+      "name": "Orange Eye Patch"
+    },
+    "all_yellow": {
+      "new_id": "c240",
+      "frames": 98,
+      "name": "Yellow Eye Patch"
+    },
+    "all_lime": {
+      "new_id": "c241",
+      "frames": 98,
+      "name": "Lime Eye Patch"
+    },
+    "all_green": {
+      "new_id": "c242",
+      "frames": 98,
+      "name": "Green Eye Patch"
+    },
+    "all_teal": {
+      "new_id": "c243",
+      "frames": 98,
+      "name": "Teal Eye Patch"
+    },
+    "all_blue": {
+      "new_id": "c244",
+      "frames": 98,
+      "name": "Blue Eye Patch"
+    },
+    "all_purple": {
+      "new_id": "c245",
+      "frames": 98,
+      "name": "Purple Eye Patch"
     }
   },
   "c10": {
@@ -732,6 +847,11 @@
       "new_id": "c196",
       "frames": 90,
       "name": "Magenta Red Bowtie"
+    },
+    "all_purple": {
+      "new_id": "c255",
+      "frames": 90,
+      "name": "Purple Red Bowtie"
     }
   },
   "c16": {
@@ -870,6 +990,85 @@
       "new_id": "c222",
       "frames": 90,
       "name": "Green Silver Gem Necklace"
+    }
+  },
+  "c40": {
+    "all_red": {
+      "new_id": "c246",
+      "frames": 109,
+      "name": "Red White Sunglasses"
+    },
+    "all_orange": {
+      "new_id": "c247",
+      "frames": 109,
+      "name": "Orange White Sunglasses"
+    },
+    "all_yellow": {
+      "new_id": "c248",
+      "frames": 109,
+      "name": "Yellow White Sunglasses"
+    },
+    "all_lime": {
+      "new_id": "c249",
+      "frames": 109,
+      "name": "Lime White Sunglasses"
+    },
+    "all_teal": {
+      "new_id": "c250",
+      "frames": 109,
+      "name": "Teal White Sunglasses"
+    },
+    "all_blue": {
+      "new_id": "c251",
+      "frames": 109,
+      "name": "Blue White Sunglasses"
+    },
+    "all_purple": {
+      "new_id": "c252",
+      "frames": 109,
+      "name": "Purple White Sunglasses"
+    },
+    "all_magenta": {
+      "new_id": "c253",
+      "frames": 109,
+      "name": "Magenta White Sunglasses"
+    },
+    "all_pink": {
+      "new_id": "c254",
+      "frames": 109,
+      "name": "Pink White Sunglasses"
+    }
+  },
+  "c11": {
+    "all_green": {
+      "new_id": "c256",
+      "frames": 100,
+      "name": "Green Black Tie"
+    },
+    "all_teal": {
+      "new_id": "c257",
+      "frames": 100,
+      "name": "Teal Black Tie"
+    },
+    "all_blue": {
+      "new_id": "c258",
+      "frames": 100,
+      "name": "Blue Black Tie"
+    },
+    "all_lime": {
+      "new_id": "c259",
+      "frames": 100,
+      "name": "Lime Black Tie"
+    },
+    "all_yellow": {
+      "new_id": "c260",
+      "frames": 100,
+      "name": "Yellow Black Tie"
+    },
+    "all_red": {
+      "new_id": "c261",
+      "frames": 100,
+      "name": "Red Black Tie"
     }
   }
 }

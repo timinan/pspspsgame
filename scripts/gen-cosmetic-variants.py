@@ -54,6 +54,45 @@ HUE_TARGETS = [
     ('pink',    330),
 ]
 
+# Universal "force" recolors that apply to every cosmetic regardless of
+# cluster shape — the (hue, sat, lightness_mid) target for each
+FORCE_TARGETS = [
+    ('black',  0,   0.0,  0.15),  # near-black with a hint of original shadow contrast
+    ('white',  0,   0.0,  0.92),  # soft white
+    ('gold',   45,  0.85, 0.55),  # warm metallic gold
+    ('silver', 0,   0.0,  0.75),  # light grey silver
+]
+
+# Pre-curated dual-cluster combos for items with main + accent regions
+# (crowns, witch hats, party hats, baseball caps, fancy necklaces).
+# Each entry: (label, main_recipe, accent_recipe) where each recipe is
+# either ('hue', deg) for hue rotation or ('force', force_target_name)
+# for one of the FORCE_TARGETS (black/white/gold/silver).
+DUAL_COMBOS = [
+    ('xmas',         ('hue', 0),    ('hue', 45)),     # red body + gold accent
+    ('royal',        ('hue', 270),  ('hue', 45)),     # purple + gold
+    ('festive',      ('hue', 135),  ('hue', 0)),      # green + red
+    ('aqua-pop',     ('hue', 175),  ('hue', 330)),    # teal + pink
+    ('sunset',       ('hue', 30),   ('hue', 305)),    # orange + magenta
+    ('black-gold',   ('force', 'black'),  ('hue', 45)),    # black body + gold accent
+    ('black-red',    ('force', 'black'),  ('hue', 0)),     # black + red
+    ('black-blue',   ('force', 'black'),  ('hue', 220)),   # black + blue
+    ('black-green',  ('force', 'black'),  ('hue', 135)),   # black + green
+    ('black-purple', ('force', 'black'),  ('hue', 270)),   # black + purple
+    ('white-pink',   ('force', 'white'),  ('hue', 330)),   # white + pink
+    ('white-blue',   ('force', 'white'),  ('hue', 220)),   # white + blue
+    ('white-red',    ('force', 'white'),  ('hue', 0)),     # white + red
+    ('white-gold',   ('force', 'white'),  ('hue', 45)),    # white + gold
+    ('gold-red',     ('force', 'gold'),   ('hue', 0)),     # gold body + red accent
+    ('gold-blue',    ('force', 'gold'),   ('hue', 220)),   # gold + blue gem
+    ('gold-green',   ('force', 'gold'),   ('hue', 135)),   # gold + green gem
+    ('gold-purple',  ('force', 'gold'),   ('hue', 270)),   # gold + purple gem
+    ('silver-blue',  ('force', 'silver'), ('hue', 220)),   # silver + blue gem
+    ('silver-red',   ('force', 'silver'), ('hue', 0)),     # silver + ruby gem
+    ('silver-green', ('force', 'silver'), ('hue', 135)),   # silver + emerald
+    ('silver-pink',  ('force', 'silver'), ('hue', 330)),   # silver + pink gem
+]
+
 # Saturation below this counts as "near-gray" — never recolored
 GRAY_SAT = 0.08
 # Two hue peaks need to be at least this far apart to count as separate clusters.
@@ -69,6 +108,23 @@ CLUSTER_MIN_WEIGHT = 0.05
 atlas = Image.open(ATL_PNG).convert('RGBA')
 atl_json = json.load(open(ATL_JSON))
 frames = {f['filename']: f for f in atl_json['frames']}
+
+
+def extract_atlas_thumb(name):
+    """Extract + crop an atlas frame for use as a small reference thumbnail."""
+    fr = frames.get(name)
+    if not fr:
+        return None
+    src = fr['frame']
+    spr = fr['spriteSourceSize']
+    sz = fr['sourceSize']
+    canvas = Image.new('RGBA', (sz['w'], sz['h']), (0, 0, 0, 0))
+    canvas.paste(
+        atlas.crop((src['x'], src['y'], src['x'] + src['w'], src['y'] + src['h'])),
+        (spr['x'], spr['y']),
+    )
+    bbox = canvas.getbbox()
+    return canvas.crop(bbox) if bbox else canvas
 cat = json.load(open(CAT_JSON))
 
 
@@ -262,6 +318,106 @@ def shift_hue(img, target_h_deg, source_h_deg, mask_cluster_deg=None, mask_radiu
     return out
 
 
+def apply_recipe(img, recipe, source_h_deg, mask_cluster_deg=None, mask_radius=45):
+    """Apply ('hue', deg) or ('force', target_name) recipe to one cluster of
+    the image. mask_cluster_deg confines the change to that cluster's pixels."""
+    kind, val = recipe
+    if kind == 'hue':
+        return shift_hue(img, val, source_h_deg, mask_cluster_deg=mask_cluster_deg, mask_radius=mask_radius)
+    if kind == 'force':
+        target = next(t for t in FORCE_TARGETS if t[0] == val)
+        _, h, s, l = target
+        return force_recolor(img, h, s, l, preserve_contrast=0.35, mask_cluster_deg=mask_cluster_deg, mask_radius=mask_radius)
+    raise ValueError(f'unknown recipe kind: {kind}')
+
+
+def dual_recolor(img, main_recipe, accent_recipe, main_deg, accent_deg):
+    """Recolor an image's two hue clusters independently in a SINGLE PASS.
+    Per pixel: decide which cluster it belongs to BEFORE any rotation,
+    then apply that cluster's recipe. This avoids the sequential bug
+    where step-1's rotated pixels fall into step-2's mask and get
+    rotated again."""
+    def _circ_dist(a, b):
+        d = abs(a - b) % 360
+        return min(d, 360 - d)
+
+    def _apply_one_pixel(r, g, b, a, recipe, source_deg, dark_boost_enabled):
+        kind, val = recipe
+        hh, ll, ss = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        if kind == 'hue':
+            rotation = (val - source_deg) / 360.0
+            new_h = (hh + rotation) % 1.0
+            new_l = ll
+            new_s = ss
+            if dark_boost_enabled and ll < DARK_BASE_THRESHOLD:
+                new_l = min(1.0, ll + (DARK_BASE_TARGET_L - ll) * 0.8)
+                new_s = max(ss, 0.75)
+            nr, ng, nb = colorsys.hls_to_rgb(new_h, new_l, new_s)
+            return (int(nr * 255), int(ng * 255), int(nb * 255), a)
+        if kind == 'force':
+            target = next(t for t in FORCE_TARGETS if t[0] == val)
+            _, h, s, l_mid = target
+            new_l = max(0.0, min(1.0, l_mid + (ll - 0.5) * 0.35))
+            nr, ng, nb = colorsys.hls_to_rgb(h / 360, new_l, s)
+            return (int(nr * 255), int(ng * 255), int(nb * 255), a)
+
+    out = Image.new('RGBA', img.size, (0, 0, 0, 0))
+    src_px = img.load()
+    dst_px = out.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = src_px[x, y]
+            if a == 0:
+                continue
+            hh, _, ss = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            if ss < GRAY_SAT:
+                dst_px[x, y] = (r, g, b, a)
+                continue
+            pixel_h_deg = int(hh * 360)
+            # Assign to closest cluster
+            d_main = _circ_dist(pixel_h_deg, main_deg)
+            d_accent = _circ_dist(pixel_h_deg, accent_deg)
+            if d_main <= d_accent:
+                dst_px[x, y] = _apply_one_pixel(r, g, b, a, main_recipe, main_deg, True)
+            else:
+                dst_px[x, y] = _apply_one_pixel(r, g, b, a, accent_recipe, accent_deg, True)
+    return out
+
+
+def force_recolor(img, target_h_deg, target_s, target_l_mid, preserve_contrast=0.35,
+                  mask_cluster_deg=None, mask_radius=45):
+    """Stamp every colored pixel toward (target_h, target_s, target_l_mid),
+    keeping a small amount of the original lightness variation so shadows
+    and highlights still read. Used for black/white/gold/silver "force"
+    variants where the whole cosmetic becomes one color identity.
+
+    preserve_contrast = how much of the original (L - 0.5) range survives.
+    0.0 = perfectly flat single tone; 0.5 = full original lightness span."""
+    out = Image.new('RGBA', img.size, (0, 0, 0, 0))
+    src_px = img.load()
+    dst_px = out.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = src_px[x, y]
+            if a == 0:
+                continue
+            hh, ll, ss = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            # If a mask is set, only convert pixels that fall in the mask
+            # cluster — others pass through untouched (so dual recolors only
+            # affect one cluster, not the whole image)
+            if mask_cluster_deg is not None and ss >= GRAY_SAT:
+                if not pixel_in_cluster(int(hh * 360), mask_cluster_deg, mask_radius):
+                    dst_px[x, y] = (r, g, b, a)
+                    continue
+            # For unmasked or in-mask pixels: stamp the target identity
+            new_l = max(0.0, min(1.0, target_l_mid + (ll - 0.5) * preserve_contrast))
+            nr, ng, nb = colorsys.hls_to_rgb(target_h_deg / 360, new_l, target_s)
+            dst_px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
+    return out
+
+
 def shift_lightness(img, delta):
     """Per-pixel lightness shift. delta in [-1, 1]. Saturation + hue preserved."""
     out = Image.new('RGBA', img.size, (0, 0, 0, 0))
@@ -325,7 +481,7 @@ for c in bases:
 
     already_shipped_gs = shipped_map.get(cid, {})
     if not clusters:
-        # Grayscale source — only lightness variants make sense
+        # Grayscale source — lightness + force variants are the useful ones
         if 'darker' not in already_shipped_gs:
             d_img = shift_lightness(img, -0.2)
             d_path = IMG_DIR / f'{cid}__darker.png'
@@ -336,6 +492,16 @@ for c in bases:
             l_path = IMG_DIR / f'{cid}__lighter.png'
             l_img.save(l_path)
             variants.append({'id': 'lighter', 'label': 'lighter', 'file': l_path.name, 'kind': 'lightness'})
+        # Force variants on grayscale bases give a clean "this in gold" /
+        # "this in black" identity — useful for chains/jewelry
+        for fname, fh, fs, fl in FORCE_TARGETS:
+            vid = f'force_{fname}'
+            if vid in already_shipped_gs:
+                continue
+            v_img = force_recolor(img, fh, fs, fl)
+            v_path = IMG_DIR / f'{cid}__{vid}.png'
+            v_img.save(v_path)
+            variants.append({'id': vid, 'label': fname, 'file': v_path.name, 'kind': 'force'})
 
     else:
         # 1. Standard whole-image hue rotation (all clusters move together).
@@ -390,6 +556,36 @@ for c in bases:
             l_img.save(l_path)
             variants.append({'id': 'lighter', 'label': 'lighter', 'file': l_path.name, 'kind': 'lightness'})
 
+        # 4. Universal "force" recolors (black / white / gold / silver) —
+        # stamp every pixel toward the target identity. Skip the one
+        # closest to the base's own primary identity to avoid duplicates.
+        for fname, fh, fs, fl in FORCE_TARGETS:
+            vid = f'force_{fname}'
+            if vid in already_shipped:
+                continue
+            v_img = force_recolor(img, fh, fs, fl)
+            v_path = IMG_DIR / f'{cid}__{vid}.png'
+            v_img.save(v_path)
+            variants.append({'id': vid, 'label': fname, 'file': v_path.name, 'kind': 'force'})
+
+        # 5. Dual-cluster combos (main + accent recolored independently).
+        # Only fires for items with 2 strong clusters — those are crowns,
+        # witch hats, party hats, baseball caps, fancy necklaces etc.
+        # Single-pass per-pixel cluster assignment avoids the double-rotation
+        # bug that sequential apply_recipe had (where step1's rotated pixels
+        # could fall into step2's mask and get rotated again).
+        if len(clusters) >= 2 and all(w >= CLUSTER_MIN_WEIGHT for _, w in clusters[:2]):
+            main_deg = clusters[0][0]
+            accent_deg = clusters[1][0]
+            for cname, main_recipe, accent_recipe in DUAL_COMBOS:
+                vid = f'dual_{cname}'
+                if vid in already_shipped:
+                    continue
+                v_img = dual_recolor(img, main_recipe, accent_recipe, main_deg, accent_deg)
+                v_path = IMG_DIR / f'{cid}__{vid}.png'
+                v_img.save(v_path)
+                variants.append({'id': vid, 'label': cname, 'file': v_path.name, 'kind': 'dual'})
+
     cluster_summary = ', '.join(f'{int(d)}°({int(w*100)}%)' for d, w in clusters) if clusters else 'grayscale'
     manifest.append(
         {
@@ -429,8 +625,39 @@ def kind_color(kind):
         'cluster0': '#7bc4ff',
         'cluster1': '#ffd34d',
         'lightness': '#c0a0e6',
+        'force': '#6ba85a',  # force black/white/gold/silver — green border
+        'dual': '#ff8855',   # dual-cluster combos — orange border
     }.get(kind, '#341c5a')
 
+
+# Pre-generate shipped-reference thumbnails for each parent that has shipped
+# children. Pulled directly from the atlas so they show the EXACT in-game
+# render (catalog ID + name).
+SHIPPED_REF_DIR = OUT_DIR / 'shipped-refs'
+SHIPPED_REF_DIR.mkdir(exist_ok=True)
+for f in SHIPPED_REF_DIR.glob('*.png'):
+    f.unlink()
+shipped_thumbs = {}  # parent_id -> [{new_id, name, thumb_file}, ...]
+for parent_id, vmap in shipped_map.items():
+    refs = []
+    for vid, info in vmap.items():
+        new_id = info.get('new_id')
+        if not new_id:
+            continue
+        thumb = extract_atlas_thumb(f'cosmetic_{new_id}_idle_00')
+        if thumb is None:
+            continue
+        thumb_file = f'{parent_id}__{new_id}.png'
+        thumb.save(SHIPPED_REF_DIR / thumb_file)
+        refs.append({
+            'new_id': new_id,
+            'name': info.get('name', new_id),
+            'thumb_file': thumb_file,
+        })
+    if refs:
+        # Sort by numeric id for stable order
+        refs.sort(key=lambda r: int(r['new_id'][1:]) if r['new_id'][1:].isdigit() else 9999)
+        shipped_thumbs[parent_id] = refs
 
 sections_html = []
 for slot in slot_order:
@@ -453,6 +680,26 @@ for slot in slot_order:
                 f'<input type="checkbox" class="vcheck" {checked}/>'
                 f'</label>'
             )
+
+        # Shipped reference panel — small thumbs of already-shipped children
+        # so Tim can see what's already in the catalog and avoid duplicates
+        refs = shipped_thumbs.get(cid, [])
+        if refs:
+            ref_cells = ''.join(
+                f'<div class="rcell" title="{r["new_id"]} · {r["name"]}">'
+                f'<img src="shipped-refs/{r["thumb_file"]}" alt="{r["new_id"]}"/>'
+                f'<div class="rlbl">{r["new_id"]}</div></div>'
+                for r in refs
+            )
+            ref_panel = (
+                f'<div class="refs">'
+                f'<div class="refs-hdr">{len(refs)} shipped</div>'
+                f'<div class="refs-grid">{ref_cells}</div>'
+                f'</div>'
+            )
+        else:
+            ref_panel = '<div class="refs empty">no shipped yet</div>'
+
         sections_html.append(
             f'''
         <div class="row" data-cid="{cid}">
@@ -463,6 +710,7 @@ for slot in slot_order:
             <div class="bclusters">{c['clusters']}</div>
             <div class="bcount"><span class="sel-count">{len(sel_set)}</span> / {len(c['variants'])} selected</div>
           </div>
+          {ref_panel}
           <div class="variants">{''.join(var_cells)}</div>
         </div>'''
         )
@@ -515,6 +763,19 @@ html = f'''<!doctype html>
   .row:nth-child(even) {{ background: #14082599; }}
   .base {{ flex: 0 0 140px; text-align: center; padding: 10px; background: var(--bg2);
     border-radius: 8px; border: 2px solid var(--accent); }}
+  .refs {{ flex: 0 0 180px; background: #0c0420; border-radius: 8px; padding: 8px;
+    border: 1.5px dashed #6ba85a; align-self: stretch; }}
+  .refs.empty {{ color: var(--muted); font-style: italic; font-size: 10px;
+    display: flex; align-items: center; justify-content: center; }}
+  .refs-hdr {{ color: #6ba85a; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 6px; text-align: center; font-weight: 700; }}
+  .refs-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    gap: 4px; }}
+  .rcell {{ background: var(--bg2); border-radius: 4px; padding: 4px 2px;
+    text-align: center; }}
+  .rcell img {{ display: block; margin: 0 auto 2px; width: 36px; height: auto;
+    image-rendering: pixelated; }}
+  .rlbl {{ color: #b0e0a0; font-size: 8px; font-weight: 700; }}
   .base img {{ display: block; margin: 0 auto 6px; width: 80px; height: auto;
     image-rendering: pixelated; }}
   .base .bid {{ color: var(--accent); font-weight: 700; font-size: 13px; }}
@@ -546,7 +807,9 @@ html = f'''<!doctype html>
       <span class="legend"><span style="background:#341c5a"></span>whole-image hue
         <span style="background:#7bc4ff"></span>main-color only
         <span style="background:#ffd34d"></span>accent-color only
-        <span style="background:#c0a0e6"></span>lightness</span>
+        <span style="background:#c0a0e6"></span>lightness
+        <span style="background:#6ba85a"></span>force (black/white/gold/silver)
+        <span style="background:#ff8855"></span>dual combo</span>
     </div>
     <div class="palette">
       {hdr_swatches}
