@@ -2806,16 +2806,19 @@ export class Game extends Scene {
     this.tutorialDialogueGfx.push(bubbleGfx, text);
 
     // Tapered teardrop tail pointing from the bubble's top-left up to
-    // Butters' head (lane 0 seated position). Matches TutorialCatOverlay
-    // tail pattern (tutorial-cat.ts:339) — wide 16px base, narrow 6px
-    // tip, rounded cap so it reads as a comma/teardrop, not a phallus.
+    // just under Butters' feet (Tim Image 3 feedback — head-targeting
+    // ran a long thin spike through her face). Anchoring under her
+    // feet reads as a speech tether from where she stands down to the
+    // lane-view bubble. Matches TutorialCatOverlay tail pattern
+    // (tutorial-cat.ts:339) — wide 16px base, narrow 6px tip, rounded
+    // cap so it reads as a comma/teardrop, not a phallus.
     const buttersCx = L.laneCenterX(0, width);
     const buttersCatY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.78) * scaleY;
-    const buttersHeadY = buttersCatY - 90;
+    const buttersFeetY = buttersCatY + 6;
     const tailAnchorX = bubbleX + 36;
     const tailAnchorY = bubbleY;
     const dxT = buttersCx - tailAnchorX;
-    const dyT = buttersHeadY - tailAnchorY;
+    const dyT = buttersFeetY - tailAnchorY;
     const distT = Math.hypot(dxT, dyT);
     if (distT > 8) {
       const stopShort = 18;
