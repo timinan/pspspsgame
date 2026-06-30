@@ -9,6 +9,7 @@ import {
   nextTutorialStep,
   STARTER_CATS,
   STARTER_STAGES,
+  TUTORIAL_STEP_ORDER,
   type TutorialStepId,
 } from '@/../shared/tutorial-types';
 import { getTutorialDialogue, personalize } from '@/../shared/tutorial-script';
@@ -182,17 +183,26 @@ export class TutorialOrchestrator extends Scene {
       .setOrigin(0, 0)
       .setDepth(-200);
 
-    // Show the first venue (the first card in the upcoming pick-stage
-    // picker) as the intro bg so Butters never appears on an empty
-    // purple backdrop AND the bg matches what the player is about to
-    // see in the picker — NOT whatever activeBackground is on the
-    // playerState (which can be a stale dev seed). Tim's feedback:
-    // "it should be selecting the first background that is in the
-    //  next sections picker not the first background we have".
-    const initialBg = STARTER_STAGES[0];
+    // BG selection — at the cold-start intro use the first venue card.
+    // Once the player has picked a stage, use their actual activeBackground
+    // so the post-pick beats (stage-set-confirm onward) sit on their
+    // chosen venue, not the intro card.
+    const currentIdx = TUTORIAL_STEP_ORDER.indexOf(this.currentStep);
+    const pickStageIdx = TUTORIAL_STEP_ORDER.indexOf('pick-stage');
+    const useActiveBg = currentIdx > pickStageIdx && !!this.playerState?.activeBackground;
+    const initialBg = useActiveBg
+      ? (this.playerState!.activeBackground as BackgroundId)
+      : STARTER_STAGES[0];
     if (initialBg) {
       this.applyLiveStageBg(initialBg);
     }
+
+    // Re-seat Mochi + draw the lanes if the player is past stage-set-
+    // confirm — orchestrator boots fresh after every Game-scene return,
+    // so the seatedCat sprite is gone even though the player conceptually
+    // still has her on the stage. Without this, the play-tutorial[6]
+    // outro and route-a-outro both show an empty stage.
+    this.ensureStageRigForCurrentStep();
 
     this.renderStep();
     // Persist the entry step so a refresh during the very first beat
@@ -1290,6 +1300,45 @@ export class TutorialOrchestrator extends Scene {
   private tearDownEditorMock(): void {
     for (const obj of this.editorMockObjects) obj.destroy();
     this.editorMockObjects = [];
+  }
+
+  /** Replant Mochi at her stage seat + draw the lanes when orchestrator
+   *  boots into a step past stage-set-confirm. No tween — the tween
+   *  already played the first time the player saw stage-set-confirm;
+   *  this is a "she's already there" presence guarantee for outro
+   *  beats where the orchestrator was just re-started by scene.start
+   *  returning from Game scene. */
+  private ensureStageRigForCurrentStep(): void {
+    if (!this.playerState) return;
+    if (this.seatedCat) return;
+    const currentIdx = TUTORIAL_STEP_ORDER.indexOf(this.currentStep);
+    const stageSetIdx = TUTORIAL_STEP_ORDER.indexOf('stage-set-confirm');
+    if (currentIdx < stageSetIdx) return;
+
+    // Resolve the seated center cat's breed from playerState.
+    const centerInstanceId = this.playerState.seatedCats?.['seat-center'];
+    if (!centerInstanceId) return;
+    const ownedCat = this.playerState.ownedCats.find((c) => c.id === centerInstanceId);
+    if (!ownedCat) return;
+
+    this.seatedCatBreed = ownedCat.breed;
+    const { width, height } = this.scale;
+    const scaleY = height / L.DESIGN_H;
+    const stageY = (L.TOP_HUD_H + L.CAT_STAGE_H * 0.78) * scaleY;
+    const stageScale = 1.4;
+    const centerX = L.laneCenterX(1, width);
+
+    this.seatedCat = this.add
+      .sprite(centerX, stageY, AssetKeys.Atlas.Cats, `${ownedCat.breed}_idle_00`)
+      .setOrigin(0.5, 1)
+      .setScale(stageScale)
+      .setDepth(-100);
+    this.seatedCat.play(`${ownedCat.breed}_idle`, true);
+    this.renderSeatedCatNameLabel();
+
+    this.tearDownStageLanes();
+    this.drawStageLanes();
+    this.stageRigBuilt = true;
   }
 
   /** Toggle the persistent stage rig's visibility — used to hide the
