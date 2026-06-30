@@ -455,12 +455,11 @@ export class TutorialOrchestrator extends Scene {
       const highlightRehearse = this.currentStep === 'editor-tour' && this.dialogueIndex === 2;
       this.renderEditorMock(demoCount, highlightRehearse);
       // Lift Continue so its bottom edge sits just above the editor
-      // mock's page-nav row (gridBottom = height - 62 - 26 = 492). The
-      // overlay's Continue button is 52px tall, so center it at
-      // gridBottom - 26 = 466. Keeps the REHEARSE row at the canvas
-      // bottom fully visible per Tim's complaint that Next was covering
-      // it.
-      const editorGridBottom = height - 62 - 26;
+      // mock's page-nav row. gridBottom = height - BOTTOM_STRIP_H 78 -
+      // PAGE_NAV_H 36 = 466. The overlay's Continue button is 52px
+      // tall, so center it at gridBottom - 26 = 440. Keeps the REHEARSE
+      // row at the canvas bottom fully visible.
+      const editorGridBottom = height - 78 - 36;
       const editorContinueY = editorGridBottom - 26;
       this.overlay = new TutorialCatOverlay(this);
       this.overlay.show(line, {
@@ -1324,48 +1323,56 @@ export class TutorialOrchestrator extends Scene {
     this.setStageRigVisible(false);
     const { width, height } = this.scale;
 
-    // Full-canvas layout per Tim image 7 (red box covers ~y=50 to bottom).
-    // Proportions mirror ChartEditor: HEADER_BANNER_H 42, PAGE_NAV_ROW_H
-    // 36, BOTTOM_STRIP_H 78. No dark backdrop — the venue bg from
-    // applyLiveStageBg shows clean through the lane washes' 0.55 alpha,
-    // same as the real editor.
+    // Full-canvas layout per Tim image 7. Dimensions match ChartEditor
+    // CANONICALLY: HEADER_BANNER_H 42, PAGE_NAV_ROW_H 36, BOTTOM_STRIP_H
+    // 78. Note constants from Note.configure used directly (ball 54×54,
+    // TAIL_WIDTH 44, SLIDE_TUBE_THICKNESS 64, TAIL_CAP_HEIGHT 32) so the
+    // mock's ball-to-tube and ball-to-tail ratios are identical to in-
+    // game — slide is wider than the ball, tail is slightly narrower
+    // than the ball, exactly as players see in real charts.
     const startY = 50;
-    const headerH = 36;
-    const pageNavH = 26;
-    const bottomStripH = 62;
-    const gridTop = startY + headerH;
-    const gridBottom = height - bottomStripH - pageNavH;
+    const HEADER_BANNER_H = 42;
+    const PAGE_NAV_H = 36;
+    const BOTTOM_STRIP_H = 78;
+    const gridTop = startY + HEADER_BANNER_H;
+    const gridBottom = height - BOTTOM_STRIP_H - PAGE_NAV_H;
     const gridH = gridBottom - gridTop;
     const cols = 3;
     const cellW = width / cols;
 
-    // ── HEADER BANNER (dark purple, yellow song title) ───────────
+    // Note constants — canonical from Note.configure.
+    const BALL_SIZE = 54;
+    const TAIL_WIDTH = 44;
+    const SLIDE_TUBE_THICKNESS = 64;
+    const TAIL_CAP_HEIGHT = 32;
+
+    // ── HEADER BANNER (canonical dims: HEADER_BANNER_H 42, font 13px) ─
     const banner = this.add
-      .rectangle(0, startY, width, headerH, 0x1a0a2e, 1)
+      .rectangle(0, startY, width, HEADER_BANNER_H, 0x1a0a2e, 1)
       .setOrigin(0, 0)
       .setDepth(50);
     const seam = this.add
-      .rectangle(0, startY + headerH - 1, width, 1, 0xc0a0e6, 0.4)
+      .rectangle(0, startY + HEADER_BANNER_H - 1, width, 1, 0xc0a0e6, 0.4)
       .setOrigin(0, 0)
       .setDepth(51);
     const backChipBg = this.add
-      .rectangle(24, startY + headerH / 2, 36, 22, 0x2c1856, 1)
+      .rectangle(24, startY + HEADER_BANNER_H / 2, 36, 24, 0x2c1856, 1)
       .setStrokeStyle(1, 0xc0a0e6, 0.6)
       .setDepth(51);
     const backChipTxt = this.add
-      .text(24, startY + headerH / 2, '◀', {
+      .text(24, startY + HEADER_BANNER_H / 2, '◀', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '11px',
+        fontSize: '12px',
         color: '#ffd34d',
       })
       .setOrigin(0.5)
       .setDepth(52);
     const songTitle = this.add
-      .text(width / 2, startY + headerH / 2, 'THE QUIET BETWEEN NOTES', {
+      .text(width / 2, startY + HEADER_BANNER_H / 2, 'THE QUIET BETWEEN NOTES', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '12px',
+        fontSize: '13px',
         color: '#ffd34d',
         stroke: '#0b041a',
         strokeThickness: 3,
@@ -1406,7 +1413,7 @@ export class TutorialOrchestrator extends Scene {
       this.editorMockObjects.push(line);
     }
 
-    // ── PAGE BREAK MARKERS (PAGE 1 at top, PAGE 2 mid-grid) ─────
+    // ── PAGE BREAK MARKERS (canonical alpha 0.85) ────────────────
     const midY = gridTop + (rows / 2) * rowH;
     const pageChipStyle = {
       fontFamily: 'Pixeloid Sans, sans-serif',
@@ -1417,10 +1424,10 @@ export class TutorialOrchestrator extends Scene {
       padding: { x: 6, y: 1 },
     } as const;
     const pageTopLine = this.add
-      .rectangle(width / 2, gridTop, width - 12, 2, 0xffd34d, 0.9)
+      .rectangle(width / 2, gridTop, width - 12, 2, 0xffd34d, 0.85)
       .setDepth(52);
     const pageMidLine = this.add
-      .rectangle(width / 2, midY, width - 12, 2, 0xffd34d, 0.9)
+      .rectangle(width / 2, midY, width - 12, 2, 0xffd34d, 0.85)
       .setDepth(52);
     const pageTopChip = this.add
       .text(width / 2, gridTop, 'PAGE 1', pageChipStyle)
@@ -1435,34 +1442,30 @@ export class TutorialOrchestrator extends Scene {
     const colCenterX = (col: number) => (col + 0.5) * cellW;
     const rowCenterY = (row: number) => gridTop + (row + 0.5) * rowH;
 
-    // ── DEMO NOTES (real atlas frames, lane-tinted) ──────────────
-    // Tap on lane 1 row 2.
+    // ── DEMO NOTES — canonical dimensions exactly ──────────────
+    // Tap: ball + letters at BALL_SIZE (54×54), same as Note.configure.
     if (demoCount >= 1) {
       const cx = colCenterX(1);
       const cy = rowCenterY(2);
       const tapBall = this.add
         .image(cx, cy, AssetKeys.Image.MeowcertElementBallWhite)
         .setTint(tints[1]!)
-        .setScale(0.7)
+        .setDisplaySize(BALL_SIZE, BALL_SIZE)
         .setDepth(54);
       const tapLetters = this.add
         .image(cx, cy, AssetKeys.Image.MeowcertElementLetters)
-        .setScale(0.7)
+        .setDisplaySize(BALL_SIZE, BALL_SIZE)
         .setDepth(55);
       this.editorMockObjects.push(tapBall, tapLetters);
     }
 
-    // Hold on lane 1 rows 5 → 8. Matches Note.configure's structure:
-    // head ball + letters at the top, TailBody TileSprite for the body
-    // (no rounded caps, tiles cleanly), TailCap for the rounded bottom.
-    // Previous mock used MeowcertTubeWhite stretched, which has rounded
-    // ends on both top AND bottom — that read as two stacked balls.
+    // Hold: head ball + letters at the start, TailBody TileSprite for
+    // the body (TAIL_WIDTH 44, no caps), TailCap (32 tall) at the
+    // bottom. Same structure as Note.configure's hold branch.
     if (demoCount >= 2) {
       const xLane = colCenterX(1);
       const yTop = rowCenterY(5);
-      const yBot = rowCenterY(8);
-      const TAIL_WIDTH = 22;
-      const TAIL_CAP_HEIGHT = 14;
+      const yBot = rowCenterY(9);
       const bodyHeight = Math.max(0, yBot - yTop - TAIL_CAP_HEIGHT);
       const bodyMidY = yTop + bodyHeight / 2;
       const tailBody = this.add
@@ -1478,28 +1481,23 @@ export class TutorialOrchestrator extends Scene {
       const head = this.add
         .image(xLane, yTop, AssetKeys.Image.MeowcertElementBallWhite)
         .setTint(tints[1]!)
-        .setScale(0.7)
+        .setDisplaySize(BALL_SIZE, BALL_SIZE)
         .setDepth(54);
       const headLetters = this.add
         .image(xLane, yTop, AssetKeys.Image.MeowcertElementLetters)
-        .setScale(0.7)
+        .setDisplaySize(BALL_SIZE, BALL_SIZE)
         .setDepth(55);
       this.editorMockObjects.push(tailBody, tailCap, head, headLetters);
     }
 
-    // Slide on row 12, lane 0 → lane 2. Mirrors Note.configure's slide
-    // tube setup EXACTLY: setDisplaySize(THICKNESS, tubeLen) BEFORE
-    // setRotation(PI/2) — Phaser applies displaySize in pre-rotation
-    // source space, so post-rotation the on-screen shape is
-    // tubeLen wide × thickness tall. (Previous mock had the args
-    // swapped which produced a vertical bar instead of a horizontal
-    // slide connector.)
+    // Slide: same setDisplaySize(THICKNESS, tubeLen) → setRotation(PI/2)
+    // order Note.configure uses, with SLIDE_TUBE_THICKNESS 64 (wider
+    // than BALL_SIZE 54 — slide reads as a fat connector, not a pencil).
     if (demoCount >= 3) {
-      const yMid = rowCenterY(12);
+      const yMid = rowCenterY(13);
       const xStart = colCenterX(0);
       const xEnd = colCenterX(2);
       const tubeLen = xEnd - xStart;
-      const SLIDE_TUBE_THICKNESS = 18;
       const slideTube = this.add
         .image((xStart + xEnd) / 2, yMid, AssetKeys.Image.MeowcertTubeWhite)
         .setDisplaySize(SLIDE_TUBE_THICKNESS, tubeLen)
@@ -1509,11 +1507,11 @@ export class TutorialOrchestrator extends Scene {
       const headStart = this.add
         .image(xStart, yMid, AssetKeys.Image.MeowcertElementBallWhite)
         .setTint(tints[0]!)
-        .setScale(0.7)
+        .setDisplaySize(BALL_SIZE, BALL_SIZE)
         .setDepth(54);
       const headStartLetters = this.add
         .image(xStart, yMid, AssetKeys.Image.MeowcertElementLetters)
-        .setScale(0.7)
+        .setDisplaySize(BALL_SIZE, BALL_SIZE)
         .setDepth(55);
       const slideArrow = this.add
         .text(xEnd, yMid, '▶', {
@@ -1529,10 +1527,10 @@ export class TutorialOrchestrator extends Scene {
       this.editorMockObjects.push(slideTube, headStart, headStartLetters, slideArrow);
     }
 
-    // ── PAGE NAV ROW (◀ chip + label + ▶ chip) ──────────────────
-    const pageNavY = gridBottom + pageNavH / 2;
-    const arrowW = 32;
-    const arrowH = 22;
+    // ── PAGE NAV ROW (canonical: arrow 36×28, font 14, label 12) ─
+    const pageNavY = gridBottom + PAGE_NAV_H / 2;
+    const arrowW = 36;
+    const arrowH = 28;
     const arrowGap = 60;
     const arrowL = this.add
       .rectangle(width / 2 - arrowGap, pageNavY, arrowW, arrowH, 0x2c1856, 1)
@@ -1542,7 +1540,7 @@ export class TutorialOrchestrator extends Scene {
       .text(width / 2 - arrowGap, pageNavY, '◀', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '12px',
+        fontSize: '14px',
         color: '#ffd34d',
       })
       .setOrigin(0.5)
@@ -1551,7 +1549,7 @@ export class TutorialOrchestrator extends Scene {
       .text(width / 2, pageNavY, '1 / 8', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '13px',
+        fontSize: '12px',
         color: '#ffffff',
       })
       .setOrigin(0.5)
@@ -1564,32 +1562,32 @@ export class TutorialOrchestrator extends Scene {
       .text(width / 2 + arrowGap, pageNavY, '▶', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '12px',
+        fontSize: '14px',
         color: '#ffd34d',
       })
       .setOrigin(0.5)
       .setDepth(53);
     this.editorMockObjects.push(arrowL, arrowLTxt, pageNavLabel, arrowR, arrowRTxt);
 
-    // ── BOTTOM STRIP (2×2 button grid) ──────────────────────────
-    const stripY = gridBottom + pageNavH;
+    // ── BOTTOM STRIP (canonical: btnH 30, rowGap 6) ─────────────
+    const stripY = gridBottom + PAGE_NAV_H;
     const strip = this.add
-      .rectangle(0, stripY, width, bottomStripH, 0x0b041a, 0.95)
+      .rectangle(0, stripY, width, BOTTOM_STRIP_H, 0x0b041a, 0.95)
       .setOrigin(0, 0)
       .setDepth(53);
     this.editorMockObjects.push(strip);
 
     const sideMargin = 10;
     const colGap = 6;
-    const rowGap = 4;
-    const btnH = 26;
+    const rowGap = 6;
+    const btnH = 30;
     const btnW = (width - sideMargin * 2 - colGap) / 2;
     const leftX = sideMargin + btnW / 2;
     const rightX = sideMargin + btnW + colGap + btnW / 2;
     const topRowY = stripY + 5 + btnH / 2;
     const botRowY = topRowY + btnH + rowGap;
 
-    const drawSecondary = (x: number, y: number, label: string) => {
+    const drawSecondary = (x: number, y: number, label: string, fontSize: string) => {
       const bg = this.add
         .rectangle(x, y, btnW, btnH, 0x2c1856, 1)
         .setStrokeStyle(1, 0xc678ff, 0.7)
@@ -1598,7 +1596,7 @@ export class TutorialOrchestrator extends Scene {
         .text(x, y, label, {
           fontFamily: 'Pixeloid Sans, sans-serif',
           fontStyle: 'bold',
-          fontSize: '11px',
+          fontSize,
           color: '#c0a0e6',
         })
         .setOrigin(0.5)
@@ -1606,9 +1604,9 @@ export class TutorialOrchestrator extends Scene {
       this.editorMockObjects.push(bg, txt);
     };
 
-    drawSecondary(leftX, topRowY, 'CLEAR');
-    drawSecondary(rightX, topRowY, 'BACK TO TOP');
-    drawSecondary(leftX, botRowY, 'PAGES: ON');
+    drawSecondary(leftX, topRowY, 'CLEAR', '12px');
+    drawSecondary(rightX, topRowY, 'BACK TO TOP', '11px');
+    drawSecondary(leftX, botRowY, 'PAGES: ON', '12px');
 
     const rehearseStroke = highlightRehearse ? 0xff5050 : 0x0b041a;
     const rehearseStrokeW = highlightRehearse ? 3 : 1;
@@ -1620,7 +1618,7 @@ export class TutorialOrchestrator extends Scene {
       .text(rightX, botRowY, 'REHEARSE', {
         fontFamily: 'Pixeloid Sans, sans-serif',
         fontStyle: 'bold',
-        fontSize: '12px',
+        fontSize: '13px',
         color: '#1a0a2e',
       })
       .setOrigin(0.5)
