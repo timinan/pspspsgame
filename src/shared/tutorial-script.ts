@@ -72,11 +72,12 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
     "Tap and drag up or down for a hold note.",
     // 2 — slide note demo
     "Tap and drag left or right for a slide note.",
-    // 3 — double-slide demo (slide-and-return)
-    "Drag out and back for a double slide ◀▶.",
-    // 4 — REHEARSE pointer
-    "Press the Rehearse button.",
-    // 5 — required-to-rehearse-pass gate
+    // 3 — double-slide demo + REHEARSE pointer folded in (per Tim:
+    //   'why is there just a textbox for Press the rehearse button
+    //   add that to the previous text bubble and make it make sense
+    //   in that fit'). REHEARSE pulse highlights at this beat too.
+    "Drag out and back for a double slide ◀▶. Now press the Rehearse button to test your chart.",
+    // 4 — required-to-rehearse-pass gate
     "You must rehearse your chart from the top without failing, then you'll be able to create a post for all to see.",
   ],
   'visit-pointer': [

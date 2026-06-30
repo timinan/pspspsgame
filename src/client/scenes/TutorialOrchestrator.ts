@@ -490,8 +490,11 @@ export class TutorialOrchestrator extends Scene {
       } else {
         demoCount = Math.min(4, 1 + this.dialogueIndex);
       }
-      // REHEARSE pulse on editor-tour[4] ('Press the Rehearse button.').
-      const highlightRehearse = this.currentStep === 'editor-tour' && this.dialogueIndex === 4;
+      // REHEARSE pulse on editor-tour[3] — that beat is now the
+      // combined "Drag out and back for a double slide ◀▶. Now press
+      // the Rehearse button to test your chart." line (separate
+      // "Press the Rehearse button" beat folded in per Tim image 18).
+      const highlightRehearse = this.currentStep === 'editor-tour' && this.dialogueIndex === 3;
       this.renderEditorMock(demoCount, highlightRehearse);
       // Lift Continue so its bottom edge sits just above the editor
       // mock's page-nav row. gridBottom = height - BOTTOM_STRIP_H 78 -
@@ -1597,7 +1600,7 @@ export class TutorialOrchestrator extends Scene {
     // order Note.configure uses, with SLIDE_TUBE_THICKNESS 64 (wider
     // than BALL_SIZE 54 — slide reads as a fat connector, not a pencil).
     if (demoCount >= 3) {
-      const yMid = rowCenterY(12);
+      const yMid = rowCenterY(13);
       const xStart = colCenterX(0);
       const xEnd = colCenterX(2);
       const tubeLen = xEnd - xStart;
@@ -1630,11 +1633,13 @@ export class TutorialOrchestrator extends Scene {
       this.editorMockObjects.push(slideTube, headStart, headStartLetters, slideArrow);
     }
 
-    // Double slide (slide-and-return) — ◀▶ arrows on both sides + the
-    // same fat tube horizontal. Sits one row below the single slide so
-    // both are visible simultaneously when demoCount >= 4.
+    // Double slide (slide-and-return) — sits BETWEEN the hold and the
+    // single slide per Tim image 18 ('make double slide note here' —
+    // he circled the empty band at row ~10-11). Distinguished from the
+    // single slide by ◀ on the LEFT and ▶ on the RIGHT (both ends
+    // marked), large 26px text so the gesture reads at a glance.
     if (demoCount >= 4) {
-      const yMid = rowCenterY(14);
+      const yMid = rowCenterY(10);
       const xStart = colCenterX(0);
       const xEnd = colCenterX(2);
       const tubeLen = xEnd - xStart;
@@ -1653,18 +1658,23 @@ export class TutorialOrchestrator extends Scene {
         .image(xStart, yMid, AssetKeys.Image.MeowcertElementLetters)
         .setDisplaySize(BALL_SIZE, BALL_SIZE)
         .setDepth(55);
-      const doubleArrow = this.add
-        .text(xEnd, yMid, '◀▶', {
-          fontFamily: 'Pixeloid Sans, sans-serif',
-          fontStyle: 'bold',
-          fontSize: '20px',
-          color: '#ffffff',
-          stroke: '#1a0a2e',
-          strokeThickness: 3,
-        })
+      const arrowStyle = {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '26px',
+        color: '#ffffff',
+        stroke: '#1a0a2e',
+        strokeThickness: 4,
+      } as const;
+      const leftArrow = this.add
+        .text(xStart - BALL_SIZE / 2 - 6, yMid, '◀', arrowStyle)
+        .setOrigin(1, 0.5)
+        .setDepth(55);
+      const rightArrow = this.add
+        .text(xEnd, yMid, '▶', arrowStyle)
         .setOrigin(0.5)
         .setDepth(55);
-      this.editorMockObjects.push(slideTube, headStart, headStartLetters, doubleArrow);
+      this.editorMockObjects.push(slideTube, headStart, headStartLetters, leftArrow, rightArrow);
     }
 
     // ── PAGE NAV ROW (canonical: arrow 36×28, font 14, label 12) ─
