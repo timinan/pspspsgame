@@ -147,42 +147,54 @@ export const TUTORIAL_CHART_DOUBLES: Chart = {
   ],
 };
 
-/** play-tutorial phase 5 — insane chart: 'hard but playable' per Tim:
- *  'make them also hit 20 notes... when you do an insane one dont
- *  make it have like 0 space from one note to the other in same lane
- *  just make it difficult in terms of there are lots of holds and
- *  slides.' 32 steps at 2× BPM, 20 hit opportunities, density comes
- *  from chords + holds + slides + slide-returns. Min 2-step gap on
- *  same lane (most 3+) so it's tight but never literally back-to-back. */
+/** play-tutorial phase 5 — insane chart: 'hard but playable' per Tim
+ *  (2026-06-30 lock): denser, more 2-lane slides going opposite
+ *  directions, some double slides. 32 steps at 2× BPM, 16 active
+ *  event slots (vs the old 14 — but each is heavier: chords + slides
+ *  + slide-returns + a hold). 26 hit opportunities. Min 2-step gap
+ *  on same lane is preserved (the editor would reject any closer).
+ *
+ *  Slide variety:
+ *   - 3 cross 2-lane slides: step 6 (0→2), step 12 (2→0), step 20 (0→2)
+ *   - 2 double slides (slide-returns): step 14 (0↔1), step 24 (2↔1)
+ *   - 1 hold on lane 0 (steps 22-24) overlapping the slide-return at 24
+ *     so the player's other hand handles the slide while lane 0 is held.
+ */
 export const TUTORIAL_CHART_INSANE: Chart = {
   ...base('Tutorial — Insane', 32, BPM * 2),
   steps: [
-    chord(0, 2),  emptyStep(),
-    tap(1),       emptyStep(),
-    tap(0),       emptyStep(),
-    tap(2),       emptyStep(),
-    chord(0, 1),  emptyStep(),
-    emptyStep(),  emptyStep(),
-    tap(0),       emptyStep(),
-    tap(1),       emptyStep(),
-    emptyStep(),  emptyStep(),
-    chord(0, 1),  emptyStep(),
-    tap(2),       emptyStep(),
-    tap(1),       emptyStep(),
-    emptyStep(),  emptyStep(),
-    emptyStep(),  emptyStep(),
-    tap(0),       emptyStep(),
-    chord(0, 1),  emptyStep(),
+    chord(0, 2),  emptyStep(),  // 0-1
+    chord(0, 1),  emptyStep(),  // 2-3
+    chord(1, 2),  emptyStep(),  // 4-5 (slide 0→2 lands at 6)
+    emptyStep(),  emptyStep(),  // 6-7  slide at 6
+    chord(0, 2),  emptyStep(),  // 8-9
+    tap(1),       emptyStep(),  // 10-11 (slide 2→0 at 12)
+    emptyStep(),  emptyStep(),  // 12-13 slide at 12
+    emptyStep(),  emptyStep(),  // 14-15 slide-return 0↔1 at 14
+    tap(2),       emptyStep(),  // 16-17
+    chord(0, 1, 2), emptyStep(), // 18-19 (3-note chord)
+    emptyStep(),  emptyStep(),  // 20-21 slide 0→2 at 20
+    tap(1),       emptyStep(),  // 22-23 (hold lane 0 starts at 22)
+    emptyStep(),  emptyStep(),  // 24-25 slide-return 2↔1 at 24 + hold lane 0 ends
+    chord(0, 2),  emptyStep(),  // 26-27
+    tap(1),       emptyStep(),  // 28-29
+    chord(0, 1, 2), emptyStep(), // 30-31 (final 3-note chord)
   ],
   holds: [
-    { lane: 2, startStep: 10, endStep: 13 },
-    { lane: 2, startStep: 26, endStep: 29 },
+    // Lane 0 hold runs while the slide-return at step 24 occupies the
+    // OTHER hand on lanes 1+2 — forces two-handed play. Hold-end at 24
+    // grades as a hit; chord at 26 then re-engages lane 0 with the
+    // canonical 2-step gap.
+    { lane: 0, startStep: 22, endStep: 24 },
   ],
   slides: [
-    { startStep: 16, sourceLane: 0, targetLane: 2 },
+    { startStep: 6,  sourceLane: 0, targetLane: 2 },
+    { startStep: 12, sourceLane: 2, targetLane: 0 },
+    { startStep: 20, sourceLane: 0, targetLane: 2 },
   ],
   slideReturns: [
-    { startStep: 24, sourceLane: 1, targetLane: 0 },
+    { startStep: 14, sourceLane: 0, targetLane: 1 },
+    { startStep: 24, sourceLane: 2, targetLane: 1 },
   ],
 };
 
@@ -238,8 +250,10 @@ export const TUTORIAL_PHASE_CONFIGS: ReadonlyArray<TutorialPhaseConfig | null> =
   { chart: TUTORIAL_CHART_SLIDES_1, slideCompletionsToAdvance: 3 }, // 2 slides-1
   { chart: TUTORIAL_CHART_SLIDES_2, slideCompletionsToAdvance: 3 }, // 3 slides-2
   { chart: TUTORIAL_CHART_DOUBLES,  slideCompletionsToAdvance: 3 }, // 4 double-slides
-  // 5 — insane. Pass on 20 hits OR 15s cap, whichever fires first.
-  // noteFallMsOverride = 2400 drops notes at canonical chart speed.
+  // 5 — insane. Denser chart now grades 26 hits — bump the gate to 20
+  // so the player has to nail most of it (was 20 of ~14, now 20 of 26).
+  // Wall-clock cap 15s remains, noteFallMsOverride = 2400 for canonical
+  // chart speed.
   { chart: TUTORIAL_CHART_INSANE, hitsToAdvance: 20, durationMs: 15000, preRollGate: true, noteFallMsOverride: 2400 },
   null,                                                                     // 6 outro (orchestrator handles)
 ];
