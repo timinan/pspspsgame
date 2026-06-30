@@ -193,7 +193,7 @@ export const TUTORIAL_INTRO_PHASE_CONFIG: TutorialPhaseConfig = {
   hitsToAdvance: 5,
 };
 
-/** Maps `playTutorialPhase` (0-6) to its Game-mode config, or null
+/** Maps `playTutorialPhase` (0-7) to its Game-mode config, or null
  *  when the phase is handled entirely by TutorialOrchestrator. */
 export const TUTORIAL_PHASE_CONFIGS: ReadonlyArray<TutorialPhaseConfig | null> = [
   { chart: TUTORIAL_CHART_CHORDS,   hitsToAdvance: 10 }, // 0 chords (5 chord events, 12 notes)
@@ -201,6 +201,7 @@ export const TUTORIAL_PHASE_CONFIGS: ReadonlyArray<TutorialPhaseConfig | null> =
   { chart: TUTORIAL_CHART_SLIDES_1, slideCompletionsToAdvance: 3 }, // 2 slides-1
   { chart: TUTORIAL_CHART_SLIDES_2, slideCompletionsToAdvance: 3 }, // 3 slides-2
   { chart: TUTORIAL_CHART_DOUBLES,  slideCompletionsToAdvance: 3 }, // 4 double-slides
-  { chart: TUTORIAL_CHART_INSANE,   durationMs: 5000 },  // 5 insane
-  null,                                                   // 6 outro (orchestrator handles)
+  null,                                                   // 5 "ready for a real chart?" Yes-only beat (orchestrator)
+  { chart: TUTORIAL_CHART_INSANE,   durationMs: 5000 },  // 6 insane
+  null,                                                   // 7 outro (orchestrator handles)
 ];

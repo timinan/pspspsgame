@@ -984,7 +984,11 @@ export class TutorialOrchestrator extends Scene {
       });
       return;
     }
-    if (phase === 6) {
+    if (phase === 5) {
+      this.renderReadyForRealChartPhase();
+      return;
+    }
+    if (phase === 7) {
       this.renderOutroPhase();
       return;
     }
@@ -993,13 +997,34 @@ export class TutorialOrchestrator extends Scene {
     void this.advance();
   }
 
-  /** Phase 6 of play-tutorial — outro with PUT ON A SHOW highlighted in
+  /** Phase 5 of play-tutorial — pre-roll for the insane chart. Bubble
+   *  asks "ready for a real chart?" with a Yes-only button (no out).
+   *  On Yes, advance the dialogue index to phase 6 (the insane chart in
+   *  Game) — same dispatch as the Game-to-orchestrator return path. */
+  private renderReadyForRealChartPhase(): void {
+    const lines = getTutorialDialogue('play-tutorial');
+    const line = lines[5] ?? '';
+    this.overlay = new TutorialCatOverlay(this);
+    this.overlay.show(line, {
+      continueLabel: 'Yes →',
+      onContinue: () => {
+        if (this.busy) return;
+        this.busy = true;
+        this.dialogueIndex = 6;
+        this.busy = false;
+        this.renderStep();
+      },
+    });
+    this.renderSkipLinkIfUnlocked();
+  }
+
+  /** Phase 7 of play-tutorial — outro with PUT ON A SHOW highlighted in
    *  the menu mock so the player sees where to head next. Next button
    *  advances OUT of play-tutorial to editor-tour-intro. */
   private renderOutroPhase(): void {
     this.renderHamburgerMock('PUT ON A SHOW');
     const lines = getTutorialDialogue('play-tutorial');
-    const line = lines[6] ?? '';
+    const line = lines[7] ?? '';
     this.overlay = new TutorialCatOverlay(this);
     this.overlay.show(line, {
       continueLabel: 'Continue →',
