@@ -42,12 +42,11 @@ BLOB_MAX_SIZE = 90
 BLOB_MIN_W, BLOB_MAX_W = 3, 12
 BLOB_MIN_H, BLOB_MAX_H = 3, 10
 
-# Eye colors — pulled to match the kawaii vibe Tim signed off on
-SCLERA = (255, 255, 255, 255)          # bright white
-IRIS = (255, 152, 50, 255)              # warm orange (similar to cat2 Biscuit)
-IRIS_SHADE = (210, 110, 30, 255)        # darker orange rim under pupil
-PUPIL = (30, 18, 40, 255)               # near-black with a hint of warmth
-HIGHLIGHT = (255, 255, 255, 255)
+# Eye palette — Tim's correction: pattern reads color → black → white,
+# concentric ring style like cat3 Pebble.
+IRIS = (255, 152, 50, 255)              # warm orange (thin OUTER ring of interior)
+PUPIL = (10, 10, 16, 255)               # near-black — fills the bulk of the eye
+HIGHLIGHT = (255, 255, 255, 255)        # white sparkle, lives INSIDE the black
 
 
 def load_rgba(p: Path) -> np.ndarray:
@@ -99,15 +98,17 @@ def find_eye_blobs(a: np.ndarray):
 
 
 def fill_blob(a: np.ndarray, xs, ys):
-    """Replace the interior of a dark blob with sclera + iris + pupil.
-    Keep the outline (boundary pixels) as-is so the silhouette doesn't change.
+    """Replace the interior of a dark blob with the kawaii eye pattern
+    Tim signed off on: COLOR ring → BLACK fill → WHITE highlight inside black.
 
-    Layout (kawaii cat eye, big iris, small pupil, white highlight on top):
-      .##.
-      #WO#   ← top: white highlight + orange iris start
-      #OO#   ← orange iris with single-pixel dark pupil
-      #OB#
-      .##.
+    Layout (concentric, like cat3 Pebble):
+      ####       outline (existing dark, untouched)
+      #OOO#      orange iris ring (1 px around the inside)
+      #OBBO#     black pupil fills the bulk
+      #OBWO#     white sparkle sits inside the black
+      #OBBO#
+      #OOO#
+      ####
     """
     pix = set(zip(ys, xs))
     interior = []
@@ -119,6 +120,7 @@ def fill_blob(a: np.ndarray, xs, ys):
     if not interior:
         return
 
+    interior_set = set(interior)
     iys = [y for y, x in interior]
     ixs = [x for y, x in interior]
     by_min, by_max = min(iys), max(iys)
@@ -126,37 +128,46 @@ def fill_blob(a: np.ndarray, xs, ys):
     h_inner = by_max - by_min + 1
     w_inner = bx_max - bx_min + 1
 
-    interior_set = set(interior)
-
-    # Fill interior with orange iris by default (this becomes the dominant color)
+    # Step 1 — paint the entire interior orange (forms the outer ring + base).
     for (y, x) in interior:
         a[y, x] = IRIS
 
-    # White highlight — a 1-2 px square on the TOP-LEFT of the interior.
-    # This is the classic kawaii sparkle that reads as glossy eye.
-    hl_w = 1 if w_inner <= 3 else 2
-    hl_h = 1 if h_inner <= 3 else 2
-    hl_top = by_min
-    hl_left = bx_min
-    for y in range(hl_top, hl_top + hl_h):
-        for x in range(hl_left, hl_left + hl_w):
+    # Step 2 — black pupil fills the bulk. Inset by 1 px from each side so
+    # the orange ring remains visible on the perimeter.
+    pupil_y0 = by_min + 1
+    pupil_y1 = by_max - 1
+    pupil_x0 = bx_min + 1
+    pupil_x1 = bx_max - 1
+    # If the eye is too small for an inset, skip ring + just put pupil in middle.
+    if pupil_y0 > pupil_y1 or pupil_x0 > pupil_x1:
+        pupil_y0, pupil_y1 = by_min, by_max
+        pupil_x0, pupil_x1 = bx_min, bx_max
+    black_set = set()
+    for y in range(pupil_y0, pupil_y1 + 1):
+        for x in range(pupil_x0, pupil_x1 + 1):
             if (y, x) in interior_set:
-                a[y, x] = HIGHLIGHT
+                a[y, x] = PUPIL
+                black_set.add((y, x))
 
-    # Bottom row — darker iris shade for depth (drop-in shadow under iris)
-    for x in range(bx_min, bx_max + 1):
-        if (by_max, x) in interior_set:
-            a[by_max, x] = IRIS_SHADE
-
-    # Pupil — small dark spot in the lower-middle of the eye.
-    # Place it 1 row above the bottom shade so it sits on iris, not shadow.
-    pupil_y = by_max - 1 if h_inner >= 4 else by_max
-    pupil_x_center = (bx_min + bx_max) // 2
-    pupil_w = 1 if w_inner <= 3 else 2
-    pupil_left = pupil_x_center - pupil_w // 2 + (1 if w_inner % 2 == 0 else 0)
-    for x in range(pupil_left, pupil_left + pupil_w):
-        if (pupil_y, x) in interior_set:
-            a[pupil_y, x] = PUPIL
+    # Step 3 — white highlight inside the black pupil. Place near upper-left
+    # of the pupil for the classic anime-glint look. 1 px for small eyes,
+    # 2 px square if there's room.
+    if black_set:
+        bys = [y for y, x in black_set]
+        bxs = [x for y, x in black_set]
+        hl_y0 = min(bys)
+        hl_x0 = min(bxs)
+        hl_w = 1
+        hl_h = 1
+        # Only enlarge if the pupil is roomy enough that the highlight won't eat it
+        pupil_w = max(bxs) - min(bxs) + 1
+        pupil_h = max(bys) - min(bys) + 1
+        if pupil_w >= 3 and pupil_h >= 3:
+            hl_w = 2
+        for y in range(hl_y0, hl_y0 + hl_h):
+            for x in range(hl_x0, hl_x0 + hl_w):
+                if (y, x) in black_set:
+                    a[y, x] = HIGHLIGHT
 
 
 def fix_frame(a: np.ndarray) -> tuple[np.ndarray, int]:

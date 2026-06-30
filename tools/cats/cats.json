@@ -398,11 +398,6 @@
     "rarity": "common"
   },
   {
-    "id": "rainbow",
-    "name": "Rainbow Whiskers",
-    "rarity": "legendary"
-  },
-  {
     "id": "cat79",
     "name": "Goldie",
     "rarity": "common"
@@ -463,143 +458,138 @@
     "rarity": "common"
   },
   {
+    "id": "rainbow",
+    "name": "Rainbow Whiskers",
+    "rarity": "legendary"
+  },
+  {
     "id": "cat91",
-    "name": "Sunset",
+    "name": "Sherbet",
     "rarity": "common"
   },
   {
     "id": "cat92",
-    "name": "Ocean",
+    "name": "Macaron",
     "rarity": "common"
   },
   {
     "id": "cat93",
-    "name": "Forest",
+    "name": "Seaglass",
     "rarity": "common"
   },
   {
     "id": "cat94",
-    "name": "Royal",
+    "name": "Lullaby",
     "rarity": "common"
   },
   {
     "id": "cat95",
-    "name": "Watermelon",
+    "name": "Sunbeam",
     "rarity": "common"
   },
   {
     "id": "cat96",
-    "name": "Berry",
+    "name": "Cottoncandy",
     "rarity": "common"
   },
   {
     "id": "cat97",
-    "name": "Aurora",
+    "name": "Mintchip",
     "rarity": "common"
   },
   {
     "id": "cat98",
-    "name": "Sundae",
+    "name": "Petal",
     "rarity": "common"
   },
   {
     "id": "cat99",
-    "name": "Twix",
+    "name": "Lagoon",
     "rarity": "common"
   },
   {
     "id": "cat100",
-    "name": "Inkwell",
+    "name": "Daydream",
     "rarity": "common"
   },
   {
     "id": "cat101",
-    "name": "Tuxedo",
+    "name": "Custard",
     "rarity": "common"
   },
   {
     "id": "cat102",
-    "name": "Cookie",
+    "name": "Sky",
     "rarity": "common"
   },
   {
     "id": "cat103",
-    "name": "Cinnamon",
+    "name": "Tuxedo",
     "rarity": "common"
   },
   {
     "id": "cat104",
-    "name": "Russet",
+    "name": "Bandit",
     "rarity": "common"
   },
   {
     "id": "cat105",
-    "name": "Caramel",
+    "name": "Cinnamon",
     "rarity": "common"
   },
   {
     "id": "cat106",
-    "name": "Smoke",
+    "name": "Pumpkin",
     "rarity": "common"
   },
   {
     "id": "cat107",
-    "name": "Misty",
+    "name": "Domino",
     "rarity": "common"
   },
   {
     "id": "cat108",
-    "name": "Sand",
+    "name": "Spice",
     "rarity": "common"
   },
   {
     "id": "cat109",
-    "name": "Mocha",
+    "name": "Storm",
     "rarity": "common"
   },
   {
     "id": "cat110",
-    "name": "Pewter",
+    "name": "Mittens",
     "rarity": "common"
   },
   {
     "id": "cat111",
-    "name": "Dust",
+    "name": "Mocha",
     "rarity": "common"
   },
   {
     "id": "cat112",
-    "name": "Slate",
+    "name": "Cocoa",
     "rarity": "common"
   },
   {
     "id": "cat113",
-    "name": "Frost",
+    "name": "Coal",
     "rarity": "common"
   },
   {
     "id": "cat114",
-    "name": "Charcoal",
+    "name": "Snowdrop",
     "rarity": "common"
   },
   {
     "id": "cat115",
-    "name": "Pearl",
+    "name": "Caramel",
     "rarity": "common"
   },
   {
     "id": "cat116",
-    "name": "Bronze",
-    "rarity": "common"
-  },
-  {
-    "id": "cat117",
-    "name": "Lavender",
-    "rarity": "common"
-  },
-  {
-    "id": "cat118",
-    "name": "Peachy",
+    "name": "Toffee",
     "rarity": "common"
   }
 ]

@@ -47,13 +47,14 @@ def hls_to_rgb(h, l, s):
     return (int(round(r * 255)), int(round(g * 255)), int(round(b * 255)))
 
 
-def shift_palette(palette, target_h_deg, target_s):
+def shift_palette(palette, target_h_deg, target_s, light_bias=0.0):
     """Map each base shade to the new hue, preserving original lightness ordering.
-    Saturation is set to target_s for all shades (so all variants are consistent)."""
+    Saturation set to target_s. light_bias shifts lightness ± (clamped to [0,1])."""
     out = []
     for (r, g, b) in palette:
         h, l, s = rgb_to_hls(r, g, b)
-        out.append(hls_to_rgb(target_h_deg / 360.0, l, target_s))
+        nl = max(0.0, min(1.0, l + light_bias))
+        out.append(hls_to_rgb(target_h_deg / 360.0, nl, target_s))
     return out
 
 
@@ -72,56 +73,42 @@ def shift_palette_naturalistic(palette, target_h_deg, target_s_base):
 # Curated variant catalog.
 # Each entry: (name, kind, params)
 #   kind='solid'    params=(hue_deg, saturation)
-#   kind='split'    params=(head_hue, head_sat, body_hue, body_sat)
-#   kind='natural'  params=(hue_deg, saturation_cap)
+#   kind='split'    params=(head_hue, head_sat, head_light_bias, body_hue, body_sat, body_light_bias)
+#                   light_bias shifts lightness ±. 0 = unchanged. Used for
+#                   black (-large) vs white (+large) endpoints.
+# Note: cat79..cat90 are already shipped (Bright single-tone) — keep them.
+# This list is regenerated from cat91 onward.
 VARIANTS = [
-    # ---- Bright single-tone ----
-    ('Goldie',     'solid',   (45, 0.95)),    # pure gold
-    ('Ruby',       'solid',   (0, 0.85)),     # vivid red
-    ('Coral',      'solid',   (15, 0.8)),     # bright coral
-    ('Tangerine',  'solid',   (30, 0.95)),    # vivid orange
-    ('Lemon',      'solid',   (55, 0.95)),    # bright yellow
-    ('Neon',       'solid',   (90, 0.95)),    # neon lime
-    ('Mint',       'solid',   (160, 0.6)),    # mint
-    ('Cyan',       'solid',   (180, 0.85)),   # bright cyan
-    ('Sapphire',   'solid',   (220, 0.85)),   # royal blue
-    ('Violet',     'solid',   (270, 0.75)),   # vivid purple
-    ('Magenta',    'solid',   (320, 0.85)),   # bright magenta
-    ('Bubblegum',  'solid',   (335, 0.7)),    # bubblegum pink
+    # ---- Pastel two-tone splits (soft + harmonious, no clashing combos) ----
+    ('Sherbet',    'split',   (15, 0.55, 0.0, 335, 0.45, 0.0)),   # peach head, soft pink body
+    ('Macaron',    'split',   (335, 0.45, 0.0, 200, 0.35, 0.0)),  # pink head, sky-blue body
+    ('Seaglass',   'split',   (170, 0.45, 0.0, 280, 0.40, 0.0)),  # mint head, lavender body
+    ('Lullaby',    'split',   (280, 0.40, 0.0, 200, 0.35, 0.0)),  # lavender head, sky body
+    ('Sunbeam',    'split',   (55, 0.55, 0.0, 30, 0.55, 0.0)),    # lemon head, soft orange body
+    ('Cottoncandy','split',   (335, 0.50, 0.0, 200, 0.45, 0.0)),  # pink head, baby blue body
+    ('Mintchip',   'split',   (160, 0.45, 0.0, 30, 0.35, 0.0)),   # mint head, cream body
+    ('Petal',      'split',   (335, 0.45, 0.0, 15, 0.40, 0.0)),   # pink head, peach body
+    ('Lagoon',     'split',   (175, 0.55, 0.0, 220, 0.55, 0.0)),  # aqua head, soft blue body
+    ('Daydream',   'split',   (45, 0.50, 0.0, 280, 0.40, 0.0)),   # gold head, lavender body
+    ('Custard',    'split',   (45, 0.55, 0.0, 30, 0.40, 0.0)),    # gold head, cream body
+    ('Sky',        'split',   (200, 0.50, 0.0, 30, 0.35, 0.0)),   # blue head, cream body
 
-    # ---- Two-tone HEAD/BODY split ----
-    ('Sunset',     'split',   (30, 0.85, 320, 0.7)),    # orange head, magenta body
-    ('Ocean',      'split',   (180, 0.75, 220, 0.85)),  # cyan head, blue body
-    ('Forest',     'split',   (90, 0.55, 30, 0.6)),     # green head, brown body
-    ('Royal',      'split',   (270, 0.75, 45, 0.9)),    # purple head, gold body
-    ('Watermelon', 'split',   (0, 0.85, 120, 0.7)),     # red head, green body
-    ('Berry',      'split',   (320, 0.75, 270, 0.7)),   # pink head, purple body
-    ('Aurora',     'split',   (180, 0.75, 270, 0.7)),   # cyan head, purple body
-    ('Sundae',     'split',   (15, 0.7, 0, 0.0)),       # coral head, white body
-    ('Twix',       'split',   (30, 0.4, 30, 0.7)),      # cream head, caramel body
-    ('Inkwell',    'split',   (0, 0.0, 220, 0.85)),     # white head, blue body
-    ('Tuxedo',     'split',   (0, 0.0, 0, 0.0)),        # full white (override below)
-    ('Cookie',     'split',   (30, 0.4, 30, 0.0)),      # cream head, white body
-
-    # ---- Subtle natural cat colors ----
-    ('Cinnamon',   'natural', (25, 0.45)),    # warm brown
-    ('Russet',     'natural', (18, 0.5)),     # darker rusty brown
-    ('Caramel',    'natural', (30, 0.4)),     # soft caramel
-    ('Smoke',      'natural', (220, 0.18)),   # slightly blue-cast grey
-    ('Misty',      'natural', (200, 0.15)),   # very pale blue-grey
-    ('Sand',       'natural', (40, 0.35)),    # sandy beige
-    ('Mocha',      'natural', (20, 0.5)),     # mocha brown
-    ('Pewter',     'natural', (240, 0.12)),   # cool grey
-    ('Dust',       'natural', (35, 0.2)),     # dust grey-tan
-    ('Slate',      'natural', (210, 0.25)),   # darker blue-slate
-    ('Frost',      'natural', (0, 0.0)),      # near white
-    ('Charcoal',   'natural', (0, 0.0)),      # dark charcoal (lightness shift)
-
-    # ---- A few specials ----
-    ('Pearl',      'solid',   (210, 0.1)),    # nearly white with cool tint
-    ('Bronze',     'solid',   (25, 0.75)),    # warm bronze
-    ('Lavender',   'solid',   (280, 0.45)),   # soft lavender
-    ('Peachy',     'solid',   (20, 0.55)),    # soft peach
+    # ---- Common-cat-color two-tones (real cat colors, like image 16) ----
+    # Use light_bias to push toward true black (-) or true white (+).
+    ('Tuxedo',     'split',   (0, 0.0, -0.65, 0, 0.0, 0.55)),     # black head, white body
+    ('Bandit',     'split',   (0, 0.0, 0.55, 0, 0.0, -0.65)),     # white head, black body
+    ('Cinnamon',   'split',   (25, 0.55, 0.0, 0, 0.0, 0.50)),     # orange head, white body
+    ('Pumpkin',    'split',   (0, 0.0, 0.50, 25, 0.55, 0.0)),     # white head, orange body
+    ('Domino',     'split',   (0, 0.0, -0.55, 25, 0.55, 0.0)),    # black head, orange body
+    ('Spice',      'split',   (25, 0.55, 0.0, 0, 0.0, -0.55)),    # orange head, black body
+    ('Storm',      'split',   (0, 0.0, -0.20, 0, 0.0, 0.50)),     # grey head, white body
+    ('Mittens',    'split',   (0, 0.0, 0.50, 0, 0.0, -0.20)),     # white head, grey body
+    ('Mocha',      'split',   (20, 0.4, -0.10, 30, 0.30, 0.20)),  # brown head, cream body
+    ('Cocoa',      'split',   (30, 0.30, 0.20, 20, 0.4, -0.10)),  # cream head, brown body
+    ('Coal',       'split',   (0, 0.0, -0.60, 0, 0.0, -0.25)),    # full black + dark grey accent
+    ('Snowdrop',   'split',   (0, 0.0, 0.55, 200, 0.10, 0.0)),    # white head, pale grey body
+    ('Caramel',    'split',   (25, 0.45, 0.0, 30, 0.25, 0.25)),   # caramel head, light cream body
+    ('Toffee',     'split',   (30, 0.25, 0.25, 25, 0.45, 0.0)),   # cream head, caramel body
 ]
 
 
@@ -200,15 +187,16 @@ def make_one_variant(name: str, kind: str, params, new_id: int, dry: bool = Fals
             Image.fromarray(out, 'RGBA').save(dst_dir / out_name)
 
     elif kind == 'split':
-        h_hue, h_sat, b_hue, b_sat = params
-        h_tgt = shift_palette(BASE_FUR_PALETTE, h_hue, h_sat)
-        b_tgt = shift_palette(BASE_FUR_PALETTE, b_hue, b_sat)
+        h_hue, h_sat, h_bias, b_hue, b_sat, b_bias = params
+        h_tgt = shift_palette(BASE_FUR_PALETTE, h_hue, h_sat, h_bias)
+        b_tgt = shift_palette(BASE_FUR_PALETTE, b_hue, b_sat, b_bias)
         h_map = build_pixel_map(BASE_FUR_PALETTE, h_tgt)
         b_map = build_pixel_map(BASE_FUR_PALETTE, b_tgt)
-        # Split at y=36 — cat head/face above, body/legs below
+        # Split at y=42 — cat neck/shoulder transition. Whole head (ears,
+        # face, chin) gets head color; chest, belly, legs, tail get body.
         for fp in sorted(src_dir.glob(f'{BASE_CAT}_*.png')):
             a = np.array(Image.open(fp).convert('RGBA'))
-            out = recolor_frame_split(a, h_map, b_map, split_y=36)
+            out = recolor_frame_split(a, h_map, b_map, split_y=42)
             out_name = fp.name.replace(BASE_CAT, new_cat)
             Image.fromarray(out, 'RGBA').save(dst_dir / out_name)
 
