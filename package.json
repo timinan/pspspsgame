@@ -39,7 +39,7 @@
     "@types/jsdom": "^28.0.3",
     "@types/node": "^22.19.19",
     "canvas": "^3.2.3",
-    "eslint": "10.4.0",
+    "eslint": "10.6.0",
     "gif-frames": "^1.0.1",
     "glob": "^13.0.6",
     "globals": "17.6.0",
@@ -48,7 +48,7 @@
     "sharp": "^0.35.1",
     "tsx": "^4.22.4",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.59.4",
+    "typescript-eslint": "8.62.1",
     "vite": "8.0.13",
     "vitest": "^4.1.9"
   }
