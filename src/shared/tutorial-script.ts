@@ -64,7 +64,7 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
     "Just kidding — you've got a long way to go before that. Now we'll check out the Put on a Show tab and I'll guide you through the process.",
   ],
   'editor-tour-intro':
-    "Here is the editor for your chart. You can start with an empty chart or a pregenerated one.",
+    "Here is the editor for your chart. You can start with an empty chart or a pregenerated one — this is what others will play when they visit your show.",
   'editor-tour': [
     // 0 — tap demo
     "Tap a cell to place a note.",
@@ -72,13 +72,14 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
     "Tap and drag up or down for a hold note.",
     // 2 — slide note demo
     "Tap and drag left or right for a slide note.",
-    // 3 — double-slide demo + REHEARSE pointer folded in (per Tim:
-    //   'why is there just a textbox for Press the rehearse button
-    //   add that to the previous text bubble and make it make sense
-    //   in that fit'). REHEARSE pulse highlights at this beat too.
-    "Drag out and back for a double slide ◀▶. Now press the Rehearse button to test your chart.",
-    // 4 — required-to-rehearse-pass gate
-    "You must rehearse your chart from the top without failing, then you'll be able to create a post for all to see.",
+    // 3 — double-slide demo (no rehearse mention; that's its own beat)
+    "Drag out and back for a double slide ◀▶.",
+    // 4 — "when ready, press rehearse" — REHEARSE pulse highlights HERE
+    //   (split out from the double-slide beat per Tim: ready-to-practice
+    //   is a separate idea from the must-pass-to-post gate).
+    "When you're ready, press the Rehearse button to practice — you can come back to the editor anytime.",
+    // 5 — required-to-rehearse-pass-before-post gate
+    "But to post a show, you'll need to rehearse from the top without failing.",
   ],
   'visit-pointer': [
     // 0 — CATCH A SHOW highlighted

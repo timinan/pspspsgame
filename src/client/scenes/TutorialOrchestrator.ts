@@ -477,24 +477,22 @@ export class TutorialOrchestrator extends Scene {
     if (this.currentStep === 'editor-tour-intro' || this.currentStep === 'editor-tour') {
       const continueLabelE = hasMoreDialogue ? 'Next →' : 'Continue →';
       // Demo notes are cumulative across the editor-tour cycle:
-      //   intro       — 0 notes ("Here is the editor for your chart...")
-      //   editor-tour[0] tap         — 1 note (tap)
-      //   editor-tour[1] hold        — 2 notes (tap + hold)
-      //   editor-tour[2] slide       — 3 notes (+ slide)
-      //   editor-tour[3] double-slide — 4 notes (+ double-slide)
-      //   editor-tour[4] rehearse    — 4 notes, REHEARSE pulse highlighted
-      //   editor-tour[5] must-pass   — 4 notes
+      //   intro                       — 0 notes
+      //   editor-tour[0] tap          — 1 note
+      //   editor-tour[1] hold         — 2 notes
+      //   editor-tour[2] slide        — 3 notes
+      //   editor-tour[3] double-slide — 4 notes
+      //   editor-tour[4] rehearse     — 4 notes, REHEARSE pulse
+      //   editor-tour[5] must-pass    — 4 notes
       let demoCount: number;
       if (this.currentStep === 'editor-tour-intro') {
         demoCount = 0;
       } else {
         demoCount = Math.min(4, 1 + this.dialogueIndex);
       }
-      // REHEARSE pulse on editor-tour[3] — that beat is now the
-      // combined "Drag out and back for a double slide ◀▶. Now press
-      // the Rehearse button to test your chart." line (separate
-      // "Press the Rehearse button" beat folded in per Tim image 18).
-      const highlightRehearse = this.currentStep === 'editor-tour' && this.dialogueIndex === 3;
+      // REHEARSE pulse moves to beat 4 — the "when ready, press rehearse
+      // to practice" line. Beat 3 is now just the double-slide demo.
+      const highlightRehearse = this.currentStep === 'editor-tour' && this.dialogueIndex === 4;
       this.renderEditorMock(demoCount, highlightRehearse);
       // Lift Continue so its bottom edge sits just above the editor
       // mock's page-nav row. gridBottom = height - BOTTOM_STRIP_H 78 -
