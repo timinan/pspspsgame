@@ -705,15 +705,15 @@ export class TutorialOrchestrator extends Scene {
 
   private async runBoxOpen(boxId: BoxId): Promise<void> {
     this.busy = true;
-    // Tear down the bubble overlay BEFORE the reveal animation so the
+    // Tear down ONLY the bubble before the reveal animation so the
     // anim's dim doesn't half-cover a now-disabled bubble Continue
-    // button (Tim Image 20: "two buttons"). The bubble's Continue was
-    // what fired this box-open in the first place; once we're past
-    // that tap, the bubble is no longer the active input target. The
-    // post-anim showPostBoxOpenContinue rebuilds the bubble fresh with
-    // a NEW Continue button.
-    this.overlay?.destroy();
-    this.overlay = undefined;
+    // button (Tim Image 20: "two buttons"). Keep Butters' sprite on
+    // stage — destroying her left box-effect feeling abandoned (Tim
+    // Image 2: "why did butters disappear for this screen"). The
+    // post-anim path (showPostBoxOpenContinue for box-cosmetic,
+    // renderStep for box-effect's advance to merch-reveal) rebuilds
+    // the overlay fresh with a new bubble + new cat.
+    this.overlay?.hideBubbleOnly();
     try {
       const result = await openBox(boxId);
       if (!result.ok) {

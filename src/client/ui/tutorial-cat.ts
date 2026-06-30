@@ -456,6 +456,19 @@ export class TutorialCatOverlay {
     this.buttersSprites = [];
   }
 
+  /** Destroy ONLY the dialogue container (bubble + Continue button +
+   *  tail). Keeps the scene-level Butters sprite alive so the narrator
+   *  remains on-stage during overlays (e.g., box-open animation) that
+   *  would otherwise leave the screen feeling abandoned. The caller is
+   *  responsible for the final destroy() to clean up the cat sprite. */
+  hideBubbleOnly(): void {
+    if (this.container) {
+      this.scene.tweens.killTweensOf(this.container);
+      this.container.destroy(true);
+      this.container = undefined;
+    }
+  }
+
   destroy(): void {
     this.hide();
   }
