@@ -1016,16 +1016,16 @@ export class TutorialOrchestrator extends Scene {
     this.seatedCat?.destroy();
     const { width } = this.scale;
     const x = width / 2;
-    // Per Tim image 14: 'make him the size of butters but move him up
-    // more towards the center'. Scale drops 1.7 → 1.4 to match the
-    // narrator Butters' visual weight; y lifts 325 → 250 so the cat
-    // sits in the lower-center of the canvas instead of glued to the
-    // bottom edge.
-    const y = 250;
+    // Per Tim image 16: 'make him bigger here same size as when hes
+    // putting on cosmetics make his nametag the same size as butter's
+    // when hes big'. Scale back to 1.7 (matches narrator Butters); y
+    // lifts from original 325 to 275 so the cat sits higher but still
+    // reads as a proper merch-position visual.
+    const y = 275;
     this.seatedCat = this.add
       .sprite(x, y, AssetKeys.Atlas.Cats, `${breed}_idle_00`)
       .setOrigin(0.5, 1)
-      .setScale(1.4)
+      .setScale(1.7)
       .setDepth(-100);
     this.seatedCat.play(`${breed}_idle`, true);
     this.renderSeatedCatNameLabel();
