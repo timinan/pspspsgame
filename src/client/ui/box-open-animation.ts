@@ -287,38 +287,44 @@ export function playBoxOpenAnimation(
       delay: 180,
     });
 
-    const hint = scene.add
-      .text(cx, height - 50, 'Tap to continue', {
+    // Continue → button replaces the previous "Tap to continue" hint +
+    // tap-anywhere dismiss per Tim's followup. Same yellow primary
+    // style the bubble's Continue uses across the rest of the tutorial.
+    const btnW = 220;
+    const btnH = 52;
+    const btnY = height - 50;
+    const btnBg = scene.add
+      .rectangle(cx, btnY, btnW, btnH, 0xffd34d, 1)
+      .setStrokeStyle(2, 0x1a0a2e, 1)
+      .setAlpha(0)
+      .setDepth(TEXT_DEPTH)
+      .setInteractive({ useHandCursor: true });
+    const btnText = scene.add
+      .text(cx, btnY, 'Continue →', {
         fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
         fontSize: '16px',
-        color: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 3,
+        color: '#1a0a2e',
       })
       .setOrigin(0.5)
       .setAlpha(0)
-      .setDepth(TEXT_DEPTH);
+      .setDepth(TEXT_DEPTH + 1);
     scene.tweens.add({
-      targets: hint,
-      alpha: 0.9,
-      duration: 380,
-      delay: 900,
-      yoyo: true,
-      repeat: -1,
+      targets: [btnBg, btnText],
+      alpha: 1,
+      duration: 280,
+      delay: 600,
     });
 
     let resolved = false;
-    let canDismiss = false;
-    scene.time.delayedCall(700, () => {
-      canDismiss = true;
-    });
 
     const finish = (): void => {
       if (resolved) return;
       resolved = true;
 
       scene.tweens.killTweensOf(glow);
-      scene.tweens.killTweensOf(hint);
+      scene.tweens.killTweensOf(btnBg);
+      scene.tweens.killTweensOf(btnText);
       scene.tweens.killTweensOf(labels);
       rainbowTween?.stop();
       rainbowTween?.remove();
@@ -328,8 +334,10 @@ export function playBoxOpenAnimation(
       effectHandle?.destroy();
       effectHandle = null;
 
+      btnBg.disableInteractive();
+
       scene.tweens.add({
-        targets: [item, glow, ...nameTexts, ...(rarityText ? [rarityText] : []), hint, dim, ...(dupText ? [dupText] : [])],
+        targets: [item, glow, ...nameTexts, ...(rarityText ? [rarityText] : []), btnBg, btnText, dim, ...(dupText ? [dupText] : [])],
         alpha: 0,
         duration: 240,
         onComplete: () => {
@@ -337,7 +345,8 @@ export function playBoxOpenAnimation(
           glow.destroy();
           for (const t of nameTexts) t.destroy();
           if (rarityText) rarityText.destroy();
-          hint.destroy();
+          btnBg.destroy();
+          btnText.destroy();
           dim.destroy();
           if (dupText) dupText.destroy();
           if (emitter.active) emitter.destroy();
@@ -346,10 +355,7 @@ export function playBoxOpenAnimation(
       });
     };
 
-    dim.on('pointerdown', () => {
-      if (canDismiss) finish();
-    });
-    scene.time.delayedCall(3000, finish);
+    btnBg.on('pointerdown', () => finish());
   }
 }
 
