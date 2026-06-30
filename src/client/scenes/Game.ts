@@ -28,7 +28,12 @@ import { GenerateModal } from '@/ui/generate-modal';
 import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
 import { DifficultyPickerModal } from '@/ui/difficulty-picker-modal';
 import { CommentComposeModal } from '@/ui/comment-compose-modal';
-import { playCozyMusic, playInsaneMusic, stopHomeMusic } from '@/systems/home-music';
+import {
+  playCozyMusic,
+  playInsaneMusic,
+  preloadInsaneMusic,
+  stopHomeMusic,
+} from '@/systems/home-music';
 import { PublishedModal } from '@/ui/published-modal';
 import { publishChart } from '@/services/publish-client';
 import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
@@ -361,6 +366,12 @@ export class Game extends Scene {
     //     backing is about to take over.
     if (this.tutorialPhase !== null) {
       playCozyMusic(this);
+      // Preload Steel Phase Loop as soon as we enter ANY tutorial Game
+      // boot so the file is cached by the time the player taps Yes on
+      // the insane pre-roll (Tim: "the hard song should start playing
+      // right away when the player clicks it"). Cozy keeps playing
+      // under the download; the swap is instant on Yes.
+      preloadInsaneMusic(this);
     }
 
     // Kick off music preload BEFORE any other scene setup. The mp3

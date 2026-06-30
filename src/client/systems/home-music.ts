@@ -133,6 +133,25 @@ export function playInsaneMusic(scene: Scene): void {
   startHomeMusic(scene, AssetKeys.Audio.InsaneMusic);
 }
 
+/** Kick off the Steel Phase Loop download WITHOUT swapping tracks.
+ *  Called as early as the tutorial Game scene boots so the file is in
+ *  cache by the time the player taps Yes on the insane pre-roll gate
+ *  — without this, `playInsaneMusic` lazy-loads after the tap and the
+ *  swap audibly delays the joke beat. Idempotent — repeat calls after
+ *  the file is cached are no-ops. */
+export function preloadInsaneMusic(scene: Scene): void {
+  const key = AssetKeys.Audio.InsaneMusic;
+  if (scene.cache.audio.exists(key)) return;
+  const path = ASSET_PATHS[key];
+  if (!path) return;
+  const loader = scene.load;
+  loader.audio(key, path);
+  loader.once(`loaderror`, (file: { key: string }) => {
+    if (file.key === key) console.warn(`[home-music] preload failed for ${key}`);
+  });
+  loader.start();
+}
+
 /** Cozy theme — plays EVERYWHERE per Tim's spec: menus, ChartEditor,
  *  every tutorial beat. ThemeCozyMusic is preloaded in Preloader so
  *  every swap into Cozy is instant. */
