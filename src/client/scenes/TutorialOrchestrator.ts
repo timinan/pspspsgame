@@ -490,6 +490,25 @@ export class TutorialOrchestrator extends Scene {
       return;
     }
 
+    // Route-A outro: visual close mirrors stage-set-confirm — menu mock
+    // open with SET STAGE highlighted so the player sees one last time
+    // where they're about to land. Per Tim image 13: 'cat should remain
+    // and go back to showing set a stage'. Mochi is re-seated by
+    // ensureStageRigForCurrentStep() on boot.
+    if (this.currentStep === 'route-a-outro') {
+      this.renderHamburgerMock('SET STAGE');
+      this.overlay = new TutorialCatOverlay(this);
+      this.overlay.show(line, {
+        continueLabel: 'Continue →',
+        onContinue: () => {
+          if (this.busy) return;
+          void this.advance();
+        },
+      });
+      this.renderSkipLinkIfUnlocked();
+      return;
+    }
+
     // Default: dialogue + Continue. The intro step uses the 'hero'
     // layout — Butters big + centered to fill the screen on first
     // introduction; every subsequent step uses the normal top-left
