@@ -3,7 +3,7 @@ import { Scene } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { AssetKeys } from '@/constants/assets';
 import * as L from '@/constants/scene-layout';
-import { LANE_COLORS, liftTowardWhite, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
+import { LANE_COLORS, liftTowardWhite, darkenTowardBlack, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
 import { CAT_COLOR_BY_BREED, resolveLaneTintsFromSeatedCats } from '@/constants/cat-colors';
 import {
   nextTutorialStep,
@@ -1631,48 +1631,44 @@ export class TutorialOrchestrator extends Scene {
       this.editorMockObjects.push(slideTube, headStart, headStartLetters, slideArrow);
     }
 
-    // Double slide (slide-and-return) — sits BETWEEN the hold and the
-    // single slide per Tim image 18 ('make double slide note here' —
-    // he circled the empty band at row ~10-11). Distinguished from the
-    // single slide by ◀ on the LEFT and ▶ on the RIGHT (both ends
-    // marked), large 26px text so the gesture reads at a glance.
+    // Double slide (slide-return) — matches the canonical render in
+    // ChartEditor.refreshSlideReturns: MeowcertTargetWhite head (NOT
+    // ball+letters), tube thickness 40 (NOT 64), single '◀▶' yellow
+    // glyph at the TARGET end (NOT separate ◀/▶ at each end). Lanes
+    // are adjacent (0→1) per the established double-slide rule —
+    // slide-returns are always neighboring lanes, never crossing.
     if (demoCount >= 4) {
       const yMid = rowCenterY(10);
       const xStart = colCenterX(0);
-      const xEnd = colCenterX(2);
-      const tubeLen = xEnd - xStart;
+      const xEnd = colCenterX(1);
+      const tubeLen = Math.abs(xEnd - xStart);
+      const tubeThickness = 40;
+      const srcTint = darkenTowardBlack(tints[0]!, 0.18);
+      const tgtTint = darkenTowardBlack(tints[1]!, 0.18);
       const slideTube = this.add
         .image((xStart + xEnd) / 2, yMid, AssetKeys.Image.MeowcertTubeWhite)
-        .setDisplaySize(SLIDE_TUBE_THICKNESS, tubeLen)
+        .setDisplaySize(tubeThickness, tubeLen)
         .setRotation(Math.PI / 2)
-        .setTint(tints[1]!)
         .setDepth(53);
-      const headStart = this.add
-        .image(xStart, yMid, AssetKeys.Image.MeowcertElementBallWhite)
-        .setTint(tints[1]!)
-        .setDisplaySize(BALL_SIZE, BALL_SIZE)
+      slideTube.setTint(tgtTint, tgtTint, srcTint, srcTint);
+      const headSize = Math.min(cellW - 4, BALL_SIZE);
+      const head = this.add
+        .image(xStart, yMid, AssetKeys.Image.MeowcertTargetWhite)
+        .setTint(srcTint)
+        .setDisplaySize(headSize, headSize)
         .setDepth(54);
-      const headStartLetters = this.add
-        .image(xStart, yMid, AssetKeys.Image.MeowcertElementLetters)
-        .setDisplaySize(BALL_SIZE, BALL_SIZE)
-        .setDepth(55);
-      const arrowStyle = {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '26px',
-        color: '#ffffff',
-        stroke: '#1a0a2e',
-        strokeThickness: 4,
-      } as const;
-      const leftArrow = this.add
-        .text(xStart - BALL_SIZE / 2 - 6, yMid, '◀', arrowStyle)
-        .setOrigin(1, 0.5)
-        .setDepth(55);
-      const rightArrow = this.add
-        .text(xEnd, yMid, '▶', arrowStyle)
+      const arrow = this.add
+        .text(xEnd - 14, yMid, '◀▶', {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '14px',
+          color: '#ffd34d',
+          stroke: '#1a0a2e',
+          strokeThickness: 3,
+        })
         .setOrigin(0.5)
         .setDepth(55);
-      this.editorMockObjects.push(slideTube, headStart, headStartLetters, leftArrow, rightArrow);
+      this.editorMockObjects.push(slideTube, head, arrow);
     }
 
     // ── PAGE NAV ROW (canonical: arrow 36×28, font 14, label 12) ─
