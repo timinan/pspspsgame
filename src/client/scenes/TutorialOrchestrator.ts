@@ -1273,6 +1273,19 @@ export class TutorialOrchestrator extends Scene {
       .setOrigin(0.5)
       .setDepth(2501);
     this.hamburgerObjects.push(iconBg, iconLabel);
+
+    // Lift the seated cat above the drawer so the player sees their
+    // band-member on stage in front of the menu mock. Without this the
+    // cat sits at depth -100, the drawer at 1000 hides it, and the
+    // scene reads as if the cat is missing (Tim Image 22 feedback —
+    // "why is the player's cat missing from this scene"). Depth 1100
+    // sits above the drawer (1003) but below the Butters bubble (2050).
+    const CAT_ABOVE_DRAWER_DEPTH = 1100;
+    this.seatedCat?.setDepth(CAT_ABOVE_DRAWER_DEPTH);
+    this.seatedCatNameLabel?.setDepth(CAT_ABOVE_DRAWER_DEPTH + 1);
+    for (const sprite of this.equippedCosmeticSprites) {
+      sprite.setDepth(CAT_ABOVE_DRAWER_DEPTH);
+    }
   }
 
   /** Transition the orchestrator's live preview from the merch layout
@@ -1398,11 +1411,18 @@ export class TutorialOrchestrator extends Scene {
   /** Toggle the persistent stage rig's visibility — used to hide the
    *  seated cat + lanes during editor-tour so the venue bg shows clean
    *  through the editor mock's lane washes (the real ChartEditor has no
-   *  cats above the grid). Restored on every other step's renderStep. */
+   *  cats above the grid). Restored on every other step's renderStep.
+   *  Also resets depth back to the default behind-everything position;
+   *  renderHamburgerMock lifts it above the drawer on menu-mock beats. */
   private setStageRigVisible(visible: boolean): void {
     this.seatedCat?.setVisible(visible);
+    this.seatedCat?.setDepth(-100);
     this.seatedCatNameLabel?.setVisible(visible);
-    for (const sprite of this.equippedCosmeticSprites) sprite.setVisible(visible);
+    this.seatedCatNameLabel?.setDepth(-99);
+    for (const sprite of this.equippedCosmeticSprites) {
+      sprite.setVisible(visible);
+      sprite.setDepth(-100);
+    }
     for (const gfx of this.stageLaneGfx) {
       const node = gfx as Phaser.GameObjects.GameObject & { setVisible?: (v: boolean) => void };
       node.setVisible?.(visible);
