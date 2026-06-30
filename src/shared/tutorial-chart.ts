@@ -147,35 +147,35 @@ export const TUTORIAL_CHART_DOUBLES: Chart = {
   ],
 };
 
-/** play-tutorial phase 6 — insane density (5s timer in Game scene).
- *  Per Tim image 5 spec: 'slide taps, singles going opposite directions,
- *  double slide holds, and lots of taps'. 16 steps at 3× BPM packs the
- *  chaos into the 5-second window — player isn't expected to clear it,
- *  it's the bait for the just-kidding line right after. */
+/** play-tutorial phase 5 — insane chart at canonical fall speed.
+ *  Per Tim's followup: 'speed up the drops and dont have it as dense
+ *  maybe do a harder hard level instead of what we have because that
+ *  is literally unplayable.' 24 steps at 2× BPM (was 16 × 3×) — less
+ *  overlapping density, mostly taps with a handful of chords and one
+ *  slide. Player can pass on 10 hits, or fall back to the 15s cap. */
 export const TUTORIAL_CHART_INSANE: Chart = {
-  ...base('Tutorial — Insane', 16, BPM * 3),
+  ...base('Tutorial — Insane', 24, BPM * 2),
   steps: [
-    chord(0, 2),    tap(1),
-    tap(0),         chord(1, 2),
-    tap(2),         chord(0, 1),
-    chord(0, 1, 2), tap(1),
-    tap(0),         chord(0, 2),
-    tap(1),         chord(1, 2),
-    tap(2),         chord(0, 1, 2),
-    tap(0),         tap(2),
+    tap(1),       emptyStep(),
+    tap(0),       emptyStep(),
+    tap(2),       chord(0, 1),
+    emptyStep(),  tap(1),
+    chord(1, 2),  emptyStep(),
+    tap(0),       emptyStep(),
+    tap(2),       chord(0, 2),
+    emptyStep(),  tap(1),
+    tap(0),       chord(0, 1),
+    emptyStep(),  tap(2),
+    tap(1),       emptyStep(),
+    tap(0),       tap(2),
   ],
   holds: [
-    { lane: 1, startStep: 4,  endStep: 8 },
+    { lane: 1, startStep: 16, endStep: 19 },
   ],
   slides: [
-    { startStep: 1,  sourceLane: 0, targetLane: 2 },  // singles going opposite directions
-    { startStep: 5,  sourceLane: 2, targetLane: 0 },
-    { startStep: 11, sourceLane: 0, targetLane: 2 },
+    { startStep: 9, sourceLane: 0, targetLane: 2 },
   ],
-  slideReturns: [
-    { startStep: 9,  sourceLane: 1, targetLane: 0 },  // double-slide-holds
-    { startStep: 13, sourceLane: 1, targetLane: 2 },
-  ],
+  slideReturns: [],
 };
 
 /**
@@ -188,15 +188,17 @@ export const TUTORIAL_CHART_INSANE: Chart = {
 export interface TutorialPhaseConfig {
   chart: Chart;
   /** Player must land this many hits before Game returns to orchestrator.
-   *  Ignored when `durationMs` is set (insane phase). */
+   *  When BOTH hitsToAdvance and durationMs are set, the phase exits on
+   *  whichever fires FIRST — the player can pass early by hitting the
+   *  target, OR the wall-clock cap moves them on if they can't. */
   hitsToAdvance?: number;
   /** Slide-phase counter. Counts SLIDE COMPLETIONS specifically (not the
    *  engage tap, not any other hits) so the 3-slide gate doesn't trip
    *  after 1 slide + a stray tap. Use instead of hitsToAdvance on slide
    *  phases; takes precedence when set. */
   slideCompletionsToAdvance?: number;
-  /** Hard wall-clock cap. When set, Game exits after this many ms
-   *  regardless of hit count (insane phase). */
+  /** Wall-clock cap. The phase exits after this many ms (insane phase).
+   *  Pairs with hitsToAdvance — whichever fires first wins. */
   durationMs?: number;
   /** When true the Game scene shows the dialogue bubble + a Yes-only
    *  button BEFORE starting chart playback — used on the insane-run
@@ -204,6 +206,12 @@ export interface TutorialPhaseConfig {
    *  lane view instead of bouncing back to a separate orchestrator
    *  screen. Chart starts when the player taps Yes. */
   preRollGate?: boolean;
+  /** Override TUTORIAL_NOTE_FALL_MS for this phase. Used on the insane
+   *  phase to drop notes at canonical Balance.noteFallMs (2400) instead
+   *  of the slowed tutorial pace — Tim: "BPM should fall faster but on
+   *  a hard chart basically the normal speed we have for our regular
+   *  songs." */
+  noteFallMsOverride?: number;
 }
 
 /** play-tutorial-intro is a separate TutorialStepId; it uses its own
@@ -222,6 +230,8 @@ export const TUTORIAL_PHASE_CONFIGS: ReadonlyArray<TutorialPhaseConfig | null> =
   { chart: TUTORIAL_CHART_SLIDES_1, slideCompletionsToAdvance: 3 }, // 2 slides-1
   { chart: TUTORIAL_CHART_SLIDES_2, slideCompletionsToAdvance: 3 }, // 3 slides-2
   { chart: TUTORIAL_CHART_DOUBLES,  slideCompletionsToAdvance: 3 }, // 4 double-slides
-  { chart: TUTORIAL_CHART_INSANE,   durationMs: 5000, preRollGate: true }, // 5 insane w/ "ready?" pre-roll
+  // 5 — insane. Pass on 10 hits OR 15s cap, whichever fires first.
+  // noteFallMsOverride = 2400 drops notes at canonical chart speed.
+  { chart: TUTORIAL_CHART_INSANE, hitsToAdvance: 10, durationMs: 15000, preRollGate: true, noteFallMsOverride: 2400 },
   null,                                                                     // 6 outro (orchestrator handles)
 ];

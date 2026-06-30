@@ -1091,7 +1091,7 @@ export class TutorialOrchestrator extends Scene {
       this.scene.start(SceneKeys.Game, {
         playerState: this.playerState,
         tutorialPhase: phase,
-        noteFallMs: TUTORIAL_NOTE_FALL_MS,
+        noteFallMs: cfg.noteFallMsOverride ?? TUTORIAL_NOTE_FALL_MS,
       });
       return;
     }

@@ -2855,7 +2855,10 @@ export class Game extends Scene {
       this.scene.start(SceneKeys.Game, {
         playerState: this.playerState,
         tutorialPhase: playTutorialPhase,
-        noteFallMs: this.noteFallMsActual,
+        // Honor the next phase's noteFallMsOverride — the insane phase
+        // drops at canonical 2400ms while the learning phases stay at
+        // 4800ms, so the chain across phases needs to swap fall speeds.
+        noteFallMs: nextCfg.noteFallMsOverride ?? this.noteFallMsActual,
       });
       return;
     }
