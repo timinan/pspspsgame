@@ -610,6 +610,19 @@ export interface PlayerState {
    *  skipped it (post-pickers skip flow). When false, Preloader routes
    *  the player into TutorialOrchestrator. */
   onboardingDone: boolean;
+  /** Dev-tooling override: ms timestamp of the last time the player
+   *  consumed a forced-tutorial override from `USER_OVERRIDES`. Set
+   *  by /api/onboarding/complete to Date.now(). When the override's
+   *  `setAt > forcedTutorialClearedAt`, the override fires once and
+   *  then immediately gets "consumed" on completion. Undefined means
+   *  no forced-tutorial has ever been completed for this player —
+   *  any setAt > 0 override fires. See src/shared/user-overrides.generated.ts. */
+  forcedTutorialClearedAt?: number;
+  /** Dev-tooling override: ms timestamp of the last time the player
+   *  consumed a godmode override from `USER_OVERRIDES`. Set by
+   *  /api/dev/apply-godmode when the grant completes. Same firing
+   *  semantics as forcedTutorialClearedAt. */
+  forcedGodmodeAppliedAt?: number;
   /** Resume index for the tutorial — set on every step advance, cleared
    *  to null when the tutorial completes or is skipped. Lets the player
    *  close the tab mid-tutorial and pick up where they left off on

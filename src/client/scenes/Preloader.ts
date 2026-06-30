@@ -5,6 +5,7 @@ import { Balance } from '@/constants/balance';
 import { fetchState } from '@/services/state-client';
 import { BACKGROUND_CATALOG, MEOW_STEM_CATALOG } from '@/../shared/state';
 import type { PlayerState } from '@/../shared/state';
+import { getUserOverride } from '@/../shared/user-overrides.generated';
 
 // All logical cat breeds. 'rainbow' has no atlas frames of its own — it borrows
 // cat6's frames but registers them under its own animation keys so the Cat entity
@@ -231,6 +232,48 @@ export class Preloader extends Scene {
       }
     } catch (e) {
       console.warn('[preloader] visit detection failed; falling back to home flow', e);
+    }
+
+    // Dev-tooling user overrides (build-time bake from
+    // tools/user-management/users.json — empty map in prod when no one
+    // is listed). Two override types:
+    //   - godmode: POST /api/dev/apply-godmode to grant max coins + every
+    //     cat + every cosmetic + every background. Fires once per setAt
+    //     bump; player.forcedGodmodeAppliedAt acts as the "consumed" flag.
+    //   - tutorialCheck: force the player back through TutorialOrchestrator
+    //     regardless of onboardingDone. Fires once per setAt bump;
+    //     player.forcedTutorialClearedAt acts as the "consumed" flag (set
+    //     by /api/onboarding/complete on tutorial finish). Resets the
+    //     visitor-route flag so the standard cold-start route runs.
+    if (playerState) {
+      const override = getUserOverride(playerState.username);
+      if (override) {
+        if (override.godmode && override.setAt > (playerState.forcedGodmodeAppliedAt ?? 0)) {
+          try {
+            const r = await fetch('/api/dev/apply-godmode', { method: 'POST' });
+            if (r.ok) {
+              const j = await r.json() as { state: PlayerState };
+              playerState = j.state;
+              console.log('[preloader] godmode override applied for', playerState.username);
+            } else {
+              console.warn('[preloader] godmode apply failed:', r.status);
+            }
+          } catch (e) {
+            console.warn('[preloader] godmode apply errored:', e);
+          }
+        }
+        if (override.tutorialCheck && override.setAt > (playerState.forcedTutorialClearedAt ?? 0)) {
+          // Don't touch onboardingDone server-side — let the orchestrator's
+          // existing completion path flip it (and forcedTutorialClearedAt)
+          // when the player finishes. Locally mutate so the routing below
+          // picks the tutorial branch. tutorialStep cleared so the
+          // orchestrator restarts from intro rather than resuming a stale
+          // mid-run position.
+          playerState.onboardingDone = false;
+          playerState.tutorialStep = null;
+          console.log('[preloader] tutorial override forced for', playerState.username);
+        }
+      }
     }
 
     // Tutorial routing — first-timers run the orchestrator before any

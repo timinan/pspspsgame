@@ -152,7 +152,11 @@
       const u = normalize(addInput.value);
       if (!u) return;
       if (!users[u]) {
-        users[u] = { tutorialCheck: false, godmode: false };
+        // setAt=0 means "no override windows have ever fired" — flipping a toggle
+        // on later bumps it to Date.now(). The game compares this against the
+        // player's forced*ClearedAt/AppliedAt timestamps to decide whether the
+        // override fires for the current session.
+        users[u] = { tutorialCheck: false, godmode: false, setAt: 0 };
         scheduleSave();
         render();
       }
@@ -173,6 +177,11 @@
       const k = e.target.getAttribute('data-k');
       if (!users[u]) return;
       users[u][k] = e.target.checked;
+      // Any toggle change re-stamps setAt so the game treats this as a fresh
+      // override window. The player's per-override "consumed" timestamps must
+      // be < setAt for the override to fire on next boot. Toggling on then off
+      // and back on counts as a new window — useful for re-forcing tutorial.
+      users[u].setAt = Date.now();
       scheduleSave();
     }
 
@@ -210,6 +219,25 @@
         console.warn('initial load:', e.message);
         users = {};
       }
+      // Auto-migrate legacy entries (created before setAt was tracked) so
+      // any toggle that's currently ON gets a fresh fire-window — without
+      // this, setAt=0 compares as already-consumed and the override never
+      // fires. Migration triggers ONCE per page-load if any entry needs it.
+      let migrated = false;
+      for (const u of Object.keys(users)) {
+        const e = users[u];
+        if (typeof e?.setAt !== 'number' || e.setAt === 0) {
+          // Only stamp if at least one toggle is on — pure-off entries
+          // don't need a fire window, save the noise.
+          if (e?.tutorialCheck || e?.godmode) {
+            users[u].setAt = Date.now();
+            migrated = true;
+          } else if (typeof e?.setAt !== 'number') {
+            users[u].setAt = 0;
+          }
+        }
+      }
+      if (migrated) scheduleSave();
       render();
     }
 

@@ -166,6 +166,56 @@
   .note-status.saved { color: var(--ok); }
   .note-status.dirty { color: var(--accent); }
   .note-status.error { color: #ff6688; }
+  /* Per-category "generate more" prompt card. Appended after the last
+     effect card in each category. Tim writes describing what kind of new
+     effects to add to the family; payload persists via categoryPrompts. */
+  .card.prompt-card {
+    background: linear-gradient(135deg, #2a1a4a 0%, #3a2566 100%);
+    border: 2px dashed var(--accent-2);
+    display: flex;
+    flex-direction: column;
+  }
+  .card.prompt-card .prompt-header {
+    padding: 14px 14px 4px;
+    color: var(--accent);
+    font-weight: bold;
+    font-size: 13px;
+  }
+  .card.prompt-card .prompt-sub {
+    padding: 0 14px 8px;
+    color: var(--ink-dim);
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .card.prompt-card textarea.prompt {
+    margin: 6px 14px 10px;
+    background: #14082a;
+    border: 1px solid #5c3d8a;
+    border-radius: 6px;
+    color: var(--ink);
+    padding: 8px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    flex: 1;
+    min-height: 120px;
+    resize: vertical;
+    box-sizing: border-box;
+  }
+  .card.prompt-card textarea.prompt:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .card.prompt-card .prompt-status {
+    margin: 0 14px 10px;
+    color: var(--ink-dim);
+    font-size: 10px;
+    min-height: 11px;
+    text-align: right;
+  }
+  .card.prompt-card .prompt-status.saved { color: var(--ok); }
+  .card.prompt-card .prompt-status.dirty { color: var(--accent); }
+  .card.prompt-card .prompt-status.error { color: #ff6688; }
   .category-header {
     grid-column: 1 / -1;
     padding: 14px 4px 6px;
@@ -1667,13 +1717,14 @@ const CANDIDATES = [
 // ============================================================================
 const selected = new Set();
 const notes = new Map();   // effectId -> free-text feedback
+const categoryPrompts = new Map();  // categoryName -> "generate more like X"
 let cards = [];   // [{ el, canvas, ctx, factoryFn, instance, visible }]
 let visibleCards = new Set();
 
 async function init() {
   await catImgLoaded;
 
-  // Restore selections + notes if saved.
+  // Restore selections + notes + categoryPrompts if saved.
   try {
     const r = await fetch('./selections.json', { cache: 'no-store' });
     if (r.ok) {
@@ -1682,6 +1733,11 @@ async function init() {
       if (data?.notes && typeof data.notes === 'object') {
         for (const [id, text] of Object.entries(data.notes)) {
           if (typeof text === 'string' && text.trim()) notes.set(id, text);
+        }
+      }
+      if (data?.categoryPrompts && typeof data.categoryPrompts === 'object') {
+        for (const [cat, text] of Object.entries(data.categoryPrompts)) {
+          if (typeof text === 'string' && text.trim()) categoryPrompts.set(cat, text);
         }
       }
     }
@@ -1823,7 +1879,46 @@ function renderGrid() {
       cards.push({ el: card, canvas, ctx, instance });
       io.observe(card);
     }
+    // Append a "generate more" prompt card to the END of each category so
+    // Tim can describe new effects he wants added to this family. Saves to
+    // selections.json:categoryPrompts via the same autosave path.
+    main.appendChild(buildPromptCard(category));
   }
+}
+
+function buildPromptCard(category) {
+  const card = document.createElement('div');
+  card.className = 'card prompt-card';
+  const existing = categoryPrompts.get(category) || '';
+  const safe = existing
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+  card.innerHTML = `
+    <div class="prompt-header">+ Generate more</div>
+    <div class="prompt-sub">describe new ${category.toLowerCase()} effects you want added — i'll generate them next pass</div>
+    <textarea class="prompt" placeholder="e.g. fire-ring orbit using emojis, slower rotation, paired with sparks…">${safe}</textarea>
+    <div class="prompt-status">${existing ? 'saved' : ''}</div>`;
+  const ta = card.querySelector('textarea.prompt');
+  const status = card.querySelector('.prompt-status');
+  ta.addEventListener('input', () => {
+    status.textContent = 'unsaved';
+    status.className = 'prompt-status dirty';
+  });
+  ta.addEventListener('blur', async () => {
+    const txt = ta.value.trim();
+    if (txt) categoryPrompts.set(category, txt); else categoryPrompts.delete(category);
+    try {
+      await autosaveSelections();
+      status.textContent = txt ? 'saved' : '';
+      status.className = 'prompt-status saved';
+    } catch (e) {
+      status.textContent = 'save failed';
+      status.className = 'prompt-status error';
+    }
+  });
+  return card;
 }
 
 function updateCount() {
@@ -1855,9 +1950,12 @@ function loop(t) {
 function buildPayload() {
   const notesObj = {};
   for (const [id, text] of notes) notesObj[id] = text;
+  const promptsObj = {};
+  for (const [cat, text] of categoryPrompts) promptsObj[cat] = text;
   return {
     selected: Array.from(selected),
     notes: notesObj,
+    categoryPrompts: promptsObj,
     timestamp: new Date().toISOString(),
     totalAvailable: CANDIDATES.length,
   };

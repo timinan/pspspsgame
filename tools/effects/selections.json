@@ -1,6 +1,20 @@
 {
   "selected": [],
-  "notes": {},
-  "timestamp": "",
+  "notes": {
+    "effect-tint-rainbow": "make this change faster",
+    "effect-tint-holographic": "make this change faster",
+    "effect-weather-wind": "wind streaks should also cover top corner right now its not",
+    "effect-extra-constellation": "constalation now have too many dots appearing and disaapearing less dots and a tiny bit"
+  },
+  "categoryPrompts": {
+    "Stagelights (live)": "even more color combos make sure they dont duplicate tho maybe have ones where its like one color one side other another split and then also like 3 or 4 color splits",
+    "Halos & Rings": "other than ring of fire generate all others with different colors especially ground rings love that one",
+    "Beams": "more different colors for twin pillars god rays and sun rays sun rays should still be bigger extending out more thoug",
+    "Pulse Waves": "just more colors for these ones",
+    "Orbiters": "more different circling emojis but dont repeat all just do a section of the ones that amkes sense",
+    "Floor / Ground": "different color pentagram and other ground effects with different patterns like that to look cool such as a star on the ground or heart. are there other puddles you can think of maybe water? same texture rules as before.",
+    "Misc / Extras": "generate more different colors for disco sound glitch cosmic glitch aurora and pixexl rain."
+  },
+  "timestamp": "2026-06-30T22:41:41.621Z",
   "totalAvailable": 60
 }

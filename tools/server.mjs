@@ -1040,13 +1040,22 @@ async function handleSaveEffectSelections(req, res) {
           if (typeof v !== 'string') throw new Error(`notes.${k} must be a string`);
         }
       }
+      if (body.categoryPrompts != null) {
+        if (typeof body.categoryPrompts !== 'object' || Array.isArray(body.categoryPrompts)) {
+          throw new Error('categoryPrompts must be an object keyed by category name');
+        }
+        for (const [k, v] of Object.entries(body.categoryPrompts)) {
+          if (typeof v !== 'string') throw new Error(`categoryPrompts.${k} must be a string`);
+        }
+      }
       const target = path.join(TOOL_DIR, 'effects', 'selections.json');
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.writeFile(target, JSON.stringify(body, null, 2));
       res.writeHead(200, { 'content-type': 'application/json' });
       const noteCount = body.notes ? Object.keys(body.notes).length : 0;
-      res.end(JSON.stringify({ ok: true, count: body.selected.length, notes: noteCount }));
-      console.log(`[save-effect-selections] wrote ${body.selected.length} picks, ${noteCount} notes`);
+      const promptCount = body.categoryPrompts ? Object.keys(body.categoryPrompts).length : 0;
+      res.end(JSON.stringify({ ok: true, count: body.selected.length, notes: noteCount, prompts: promptCount }));
+      console.log(`[save-effect-selections] wrote ${body.selected.length} picks, ${noteCount} notes, ${promptCount} category prompts`);
     } catch (e) {
       console.warn(`[save-effect-selections] ${e.message}`);
       res.writeHead(400, { 'content-type': 'application/json' });

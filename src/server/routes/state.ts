@@ -155,8 +155,63 @@ state.post('/onboarding/complete', async (c) => {
   // Completing onboarding always clears any in-progress tutorial step
   // so re-entry after first complete doesn't resurrect a stale resume.
   player.tutorialStep = null;
+  // Stamp the dev-override "consumed" timestamp so the same forced-
+  // tutorial override doesn't fire again on next boot. The runtime
+  // compares this against USER_OVERRIDES[username].setAt — Tim has to
+  // re-flip the toggle (which bumps setAt) to force a replay.
+  player.forcedTutorialClearedAt = Date.now();
   await save(redis, player);
   return c.json({ state: player });
+});
+
+/** POST /api/dev/apply-godmode — grant max coins + one of every cat
+ *  breed, every cosmetic, every background. Idempotent at the catalog
+ *  level (re-running adds duplicate instances of cats/cosmetics; coins
+ *  and backgrounds are de-duped). Stamps player.forcedGodmodeAppliedAt
+ *  so the matching USER_OVERRIDES entry doesn't fire on next boot
+ *  unless Tim re-flips the toggle. Called by Preloader when the
+ *  override condition is met — NOT a public endpoint. */
+state.post('/dev/apply-godmode', async (c) => {
+  const username = await currentUsername();
+  const player = await loadOrInit(redis, username);
+
+  // Bottomless coins. Pick a number big enough that no purchase can
+  // dent it but not so big it overflows any UI display logic.
+  player.coins = 1_000_000;
+
+  // One of each cat breed not currently owned. CAT_CATALOG is a flat
+  // array of CatEntry (id + name + rarity) so we iterate it directly.
+  const ownedBreeds = new Set(player.ownedCats.map((c) => c.breed));
+  for (const entry of CAT_CATALOG) {
+    if (ownedBreeds.has(entry.id)) continue;
+    player.ownedCats.push({
+      id: makeInstanceId(),
+      breed: entry.id,
+      name: entry.name,
+    });
+  }
+
+  // One of every cosmetic. Lazy-imported to avoid front-loading the
+  // (large) catalog when the route module first loads.
+  const { COSMETIC_CATALOG } = await import('../../shared/state');
+  for (const cosmetic of COSMETIC_CATALOG) {
+    player.ownedCosmetics.push({
+      id: makeInstanceId(),
+      type: cosmetic.id,
+    });
+  }
+
+  // All backgrounds (set-based — duplicates skipped).
+  const ownedBg = new Set(player.ownedBackgrounds);
+  for (const bgId of Object.keys(BACKGROUND_CATALOG) as BackgroundId[]) {
+    if (!ownedBg.has(bgId)) {
+      player.ownedBackgrounds.push(bgId);
+    }
+  }
+
+  player.forcedGodmodeAppliedAt = Date.now();
+  await save(redis, player);
+  return c.json({ ok: true, state: player });
 });
 
 /** POST /api/state/tutorial-step — body: { step: TutorialStepId | null }.
