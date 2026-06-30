@@ -54,6 +54,17 @@ export interface BoxOpenAnimationOpts {
    * returns an effect cosmetic.
    */
   effectId?: string;
+  /**
+   * When true, the anim plays without a Continue button and auto-dismisses
+   * `holdAfterRevealMs` (default 1600 ms) after the reveal lands. Used by
+   * the tutorial where the bubble's Continue button is the only allowed
+   * advance target — Tim image-20 feedback ("the button should be removed
+   * and just use the continue button that is there"). Welcome + Purchase
+   * leave this unset and keep the tap-to-dismiss button.
+   */
+  autoDismiss?: boolean;
+  /** Optional override for autoDismiss hold duration. Default 1600 ms. */
+  holdAfterRevealMs?: number;
 }
 
 /**
@@ -287,34 +298,39 @@ export function playBoxOpenAnimation(
       delay: 180,
     });
 
-    // Continue → button replaces the previous "Tap to continue" hint +
-    // tap-anywhere dismiss per Tim's followup. Same yellow primary
-    // style the bubble's Continue uses across the rest of the tutorial.
-    const btnW = 220;
-    const btnH = 52;
-    const btnY = height - 50;
-    const btnBg = scene.add
-      .rectangle(cx, btnY, btnW, btnH, 0xffd34d, 1)
-      .setStrokeStyle(2, 0x1a0a2e, 1)
-      .setAlpha(0)
-      .setDepth(TEXT_DEPTH)
-      .setInteractive({ useHandCursor: true });
-    const btnText = scene.add
-      .text(cx, btnY, 'Continue →', {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '16px',
-        color: '#1a0a2e',
-      })
-      .setOrigin(0.5)
-      .setAlpha(0)
-      .setDepth(TEXT_DEPTH + 1);
-    scene.tweens.add({
-      targets: [btnBg, btnText],
-      alpha: 1,
-      duration: 280,
-      delay: 600,
-    });
+    // Continue → button — only when NOT in autoDismiss mode (tutorial
+    // sets autoDismiss=true and uses the bubble's Continue as the sole
+    // advance target). Welcome + Purchase keep this button as their
+    // tap-to-dismiss target.
+    let btnBg: GameObjects.Rectangle | undefined;
+    let btnText: GameObjects.Text | undefined;
+    if (!opts.autoDismiss) {
+      const btnW = 220;
+      const btnH = 52;
+      const btnY = height - 50;
+      btnBg = scene.add
+        .rectangle(cx, btnY, btnW, btnH, 0xffd34d, 1)
+        .setStrokeStyle(2, 0x1a0a2e, 1)
+        .setAlpha(0)
+        .setDepth(TEXT_DEPTH)
+        .setInteractive({ useHandCursor: true });
+      btnText = scene.add
+        .text(cx, btnY, 'Continue →', {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '16px',
+          color: '#1a0a2e',
+        })
+        .setOrigin(0.5)
+        .setAlpha(0)
+        .setDepth(TEXT_DEPTH + 1);
+      scene.tweens.add({
+        targets: [btnBg, btnText],
+        alpha: 1,
+        duration: 280,
+        delay: 600,
+      });
+    }
 
     let resolved = false;
 
@@ -323,8 +339,8 @@ export function playBoxOpenAnimation(
       resolved = true;
 
       scene.tweens.killTweensOf(glow);
-      scene.tweens.killTweensOf(btnBg);
-      scene.tweens.killTweensOf(btnText);
+      if (btnBg) scene.tweens.killTweensOf(btnBg);
+      if (btnText) scene.tweens.killTweensOf(btnText);
       scene.tweens.killTweensOf(labels);
       rainbowTween?.stop();
       rainbowTween?.remove();
@@ -334,10 +350,17 @@ export function playBoxOpenAnimation(
       effectHandle?.destroy();
       effectHandle = null;
 
-      btnBg.disableInteractive();
+      btnBg?.disableInteractive();
 
+      const fadeTargets: GameObjects.GameObject[] = [
+        item, glow, ...nameTexts, dim,
+        ...(rarityText ? [rarityText] : []),
+        ...(dupText ? [dupText] : []),
+        ...(btnBg ? [btnBg] : []),
+        ...(btnText ? [btnText] : []),
+      ];
       scene.tweens.add({
-        targets: [item, glow, ...nameTexts, ...(rarityText ? [rarityText] : []), btnBg, btnText, dim, ...(dupText ? [dupText] : [])],
+        targets: fadeTargets,
         alpha: 0,
         duration: 240,
         onComplete: () => {
@@ -345,8 +368,8 @@ export function playBoxOpenAnimation(
           glow.destroy();
           for (const t of nameTexts) t.destroy();
           if (rarityText) rarityText.destroy();
-          btnBg.destroy();
-          btnText.destroy();
+          if (btnBg) btnBg.destroy();
+          if (btnText) btnText.destroy();
           dim.destroy();
           if (dupText) dupText.destroy();
           if (emitter.active) emitter.destroy();
@@ -355,7 +378,11 @@ export function playBoxOpenAnimation(
       });
     };
 
-    btnBg.on('pointerdown', () => finish());
+    if (opts.autoDismiss) {
+      scene.time.delayedCall(opts.holdAfterRevealMs ?? 1600, finish);
+    } else {
+      btnBg!.on('pointerdown', () => finish());
+    }
   }
 }
 

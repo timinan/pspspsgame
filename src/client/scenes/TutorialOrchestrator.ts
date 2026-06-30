@@ -703,6 +703,15 @@ export class TutorialOrchestrator extends Scene {
 
   private async runBoxOpen(boxId: BoxId): Promise<void> {
     this.busy = true;
+    // Tear down the bubble overlay BEFORE the reveal animation so the
+    // anim's dim doesn't half-cover a now-disabled bubble Continue
+    // button (Tim Image 20: "two buttons"). The bubble's Continue was
+    // what fired this box-open in the first place; once we're past
+    // that tap, the bubble is no longer the active input target. The
+    // post-anim showPostBoxOpenContinue rebuilds the bubble fresh with
+    // a NEW Continue button.
+    this.overlay?.destroy();
+    this.overlay = undefined;
     try {
       const result = await openBox(boxId);
       if (!result.ok) {
@@ -753,6 +762,9 @@ export class TutorialOrchestrator extends Scene {
           ...(tint !== undefined ? { tint } : {}),
           duplicate: pull.duplicate,
           refundCoins: pull.refundCoins,
+          // Tutorial uses the bubble's Continue button as the sole
+          // advance target — no in-anim button (Tim image 20).
+          autoDismiss: true,
         },
         () => {
           // Animation finished — auto-equip the pull on the live cat
