@@ -4,6 +4,7 @@ import { BackgroundManager } from '@/entities/background-manager';
 import { Cat } from '@/entities/cat';
 import { TopHud } from '@/ui/top-hud';
 import { buildMenuItems } from '@/ui/menu-items';
+import { stopHomeMusic } from '@/systems/home-music';
 import * as L from '@/constants/scene-layout';
 import { BACKING_CATALOG, CAT_CATALOG } from '@/../shared/state';
 import { MusicSystem } from '@/systems/music-system';
@@ -109,6 +110,9 @@ export class VisitPost extends Scene {
   }
 
   create(): void {
+    // Visitor entering someone else's post — silence the home/tutorial
+    // music so the post's chart song can take the floor.
+    stopHomeMusic(this);
     this.bg = new BackgroundManager(this);
     this.bg.create();
     // Start with a default background; swap in owner's choice when the

@@ -28,6 +28,7 @@ import { GenerateModal } from '@/ui/generate-modal';
 import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
 import { DifficultyPickerModal } from '@/ui/difficulty-picker-modal';
 import { CommentComposeModal } from '@/ui/comment-compose-modal';
+import { playTutorialMusic, playInsaneMusic, stopHomeMusic } from '@/systems/home-music';
 import { PublishedModal } from '@/ui/published-modal';
 import { publishChart } from '@/services/publish-client';
 import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
@@ -349,6 +350,19 @@ export class Game extends Scene {
   }
 
   async create(): Promise<void> {
+    // Home-music routing per Tim's spec:
+    //   - tutorialPhase 5 (insane joke run): Steel Phase Loop
+    //   - other tutorial phases (-1..4, 6): Lantern Tutorial
+    //   - non-tutorial (regular play): stop home music; MusicSystem
+    //     will play the chart's backing track.
+    if (this.tutorialPhase === 5) {
+      playInsaneMusic(this);
+    } else if (this.tutorialPhase !== null) {
+      playTutorialMusic(this);
+    } else {
+      stopHomeMusic(this);
+    }
+
     // Kick off music preload BEFORE any other scene setup. The mp3
     // download is on the critical path of "tap PLAY → hear backing
     // track" — Tim measured ~10 s from PLAY tap to song start. By

@@ -26,6 +26,7 @@ import {
   openBox,
 } from '@/services/state-client';
 import { TutorialCatOverlay } from '@/ui/tutorial-cat';
+import { playTutorialMusic } from '@/systems/home-music';
 import { Picker } from '@/ui/picker';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
 import { CatNamingModal } from '@/ui/cat-naming-modal';
@@ -172,6 +173,9 @@ export class TutorialOrchestrator extends Scene {
   }
 
   create(): void {
+    // Lantern Tutorial loops under every tutorial beat (the insane
+    // phase swaps to Steel Phase Loop via Game scene).
+    playTutorialMusic(this);
     const { width, height } = this.scale;
 
     // Persistent backdrop — sits below everything and stays for the

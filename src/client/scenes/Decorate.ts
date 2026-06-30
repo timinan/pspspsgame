@@ -7,6 +7,7 @@ import { RemoveBadge } from '@/entities/remove-badge';
 import { TopHud } from '@/ui/top-hud';
 import { ContextMenu, buildCatMenu } from '@/ui/context-menu';
 import { buildMenuItems } from '@/ui/menu-items';
+import { playTutorialMusic } from '@/systems/home-music';
 import * as L from '@/constants/scene-layout';
 import { CAT_CATALOG, COSMETIC_CATALOG, BACKGROUND_CATALOG } from '@/../shared/state';
 import { CAT_EFFECT_BY_ID } from '@/effects/cat-effects';
@@ -106,6 +107,7 @@ export class Decorate extends Scene {
   }
 
   async create(): Promise<void> {
+    playTutorialMusic(this);
     // If no state was passed in, fetch fresh from server
     if (!this.playerState) {
       try {

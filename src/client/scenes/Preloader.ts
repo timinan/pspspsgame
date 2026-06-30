@@ -149,6 +149,11 @@ export class Preloader extends Scene {
     this.load.audio(AssetKeys.Audio.ThemeDefaultMusic, ['themes/default-music.mp3']);
     this.load.audio(AssetKeys.Audio.ThemeCozyMusic, ['themes/cozy-music.mp3']);
     this.load.audio(AssetKeys.Audio.ThemeSpookyMusic, ['themes/spooky-music.mp3']);
+    // Tutorial + menu music (Lantern Tutorial) + insane-phase music
+    // (Steel Phase Loop). Loaded as direct assets, NOT through the
+    // BACKING_CATALOG / song-picker pipeline.
+    this.load.audio(AssetKeys.Audio.TutorialMusic, ['audio/backings/lantern-tutorial.mp3']);
+    this.load.audio(AssetKeys.Audio.InsaneMusic, ['audio/backings/steel-phase-loop.mp3']);
 
     // Meow stems are tiny (~50KB each) so they all preload — the cost
     // of upfront-loading the whole pool is well under a single backing
