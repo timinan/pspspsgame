@@ -123,6 +123,14 @@ const TOOLS = {
     savePath: path.join(TOOL_DIR, 'cosmetics', 'variants', 'index.html'),
     description: 'Per-base 10-hue color exploration. Use to pick which hue-rotated variants to ship as catalog cosmetics; the page shows the same HSL rotation the runtime would apply if we move to per-pixel recoloring.',
   },
+  'catalog': {
+    label: 'Catalogs',
+    href: '/tools/catalog/index.html',
+    // Generated PNG grids of every cosmetic + every cat. Pulled from the
+    // atlas live so they always reflect current catalog state.
+    savePath: path.join(TOOL_DIR, 'catalog', 'index.html'),
+    description: 'Reference catalog images — every cosmetic in one grid, every cat in another. Live from the atlas, regenerable from the page.',
+  },
 };
 
 const MAX_BACKUPS = 5;
@@ -948,6 +956,28 @@ async function handleRunCosmeticVariants(res) {
 }
 
 /**
+ * POST /run-catalogs — regenerate the cosmetics + cats catalog PNGs.
+ * Spawns the gen-catalogs.py script; the page reloads on success so
+ * the new PNGs render with cache-busted img tags.
+ */
+async function handleRunCatalogs(res) {
+  try {
+    const { stdout } = await runScript('npm', ['run', 'catalogs']);
+    const summary = stdout
+      .split('\n')
+      .filter((l) => l.includes('-catalog.png') || l.startsWith('Wrote'))
+      .join(' | ');
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, summary }));
+    console.log(`[run-catalogs] ${summary}`);
+  } catch (e) {
+    console.warn(`[run-catalogs] failed: ${e.message}`);
+    res.writeHead(500, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: e.message }));
+  }
+}
+
+/**
  * POST /save-variant-selections — persist Tim's ticked cosmetic variants.
  * Body is the full selections object so this is idempotent (no diffing).
  * Writes to tools/cosmetics/variants/selections.json. A regen of the
@@ -1283,6 +1313,16 @@ const server = http.createServer(async (req, res) => {
     // don't leave orphans.
     if (req.method === 'POST' && req.url === '/run-cosmetic-variants') {
       await handleRunCosmeticVariants(res);
+      return;
+    }
+
+    // --- POST /run-catalogs ------------------------------------------
+    // Regenerates cosmetics-catalog.png + cats-catalog.png from the
+    // current atlas + catalog files. The Catalogs page's Generate
+    // button hits this so the snapshots stay in sync with whatever
+    // got shipped most recently.
+    if (req.method === 'POST' && req.url === '/run-catalogs') {
+      await handleRunCatalogs(res);
       return;
     }
 

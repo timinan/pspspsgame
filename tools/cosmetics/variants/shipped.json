@@ -44,6 +44,26 @@
       "new_id": "c68",
       "frames": 85,
       "name": "Green Santa Hat"
+    },
+    "force_gold": {
+      "new_id": "c262",
+      "frames": 85,
+      "name": "Gold Santa Hat"
+    },
+    "force_silver": {
+      "new_id": "c263",
+      "frames": 85,
+      "name": "Silver Santa Hat"
+    },
+    "force_black": {
+      "new_id": "c264",
+      "frames": 85,
+      "name": "Black Santa Hat"
+    },
+    "force_white": {
+      "new_id": "c265",
+      "frames": 85,
+      "name": "White Santa Hat"
     }
   },
   "c19": {
@@ -71,6 +91,26 @@
       "new_id": "c73",
       "frames": 85,
       "name": "Pink Sailor Hat"
+    },
+    "force_black": {
+      "new_id": "c266",
+      "frames": 85,
+      "name": "Black Sailor Hat"
+    },
+    "force_white": {
+      "new_id": "c267",
+      "frames": 85,
+      "name": "White Sailor Hat"
+    },
+    "force_gold": {
+      "new_id": "c268",
+      "frames": 85,
+      "name": "Gold Sailor Hat"
+    },
+    "force_silver": {
+      "new_id": "c269",
+      "frames": 85,
+      "name": "Silver Sailor Hat"
     }
   },
   "c22": {
@@ -128,6 +168,26 @@
       "new_id": "c84",
       "frames": 109,
       "name": "Light Tiny Santa Hat"
+    },
+    "force_white": {
+      "new_id": "c282",
+      "frames": 109,
+      "name": "White Tiny Santa Hat"
+    },
+    "force_gold": {
+      "new_id": "c283",
+      "frames": 109,
+      "name": "Gold Tiny Santa Hat"
+    },
+    "force_black": {
+      "new_id": "c284",
+      "frames": 109,
+      "name": "Black Tiny Santa Hat"
+    },
+    "force_silver": {
+      "new_id": "c285",
+      "frames": 109,
+      "name": "Silver Tiny Santa Hat"
     }
   },
   "c23": {
@@ -210,6 +270,71 @@
       "new_id": "c100",
       "frames": 109,
       "name": "Lime Party Hat"
+    },
+    "dual_black-gold": {
+      "new_id": "c286",
+      "frames": 109,
+      "name": "Black-Gold Party Hat"
+    },
+    "dual_black-red": {
+      "new_id": "c287",
+      "frames": 109,
+      "name": "Black-Red Party Hat"
+    },
+    "dual_black-blue": {
+      "new_id": "c288",
+      "frames": 109,
+      "name": "Black-Blue Party Hat"
+    },
+    "dual_black-green": {
+      "new_id": "c289",
+      "frames": 109,
+      "name": "Black-Green Party Hat"
+    },
+    "dual_black-purple": {
+      "new_id": "c290",
+      "frames": 109,
+      "name": "Black-Purple Party Hat"
+    },
+    "force_black": {
+      "new_id": "c291",
+      "frames": 109,
+      "name": "Black Party Hat"
+    },
+    "force_white": {
+      "new_id": "c292",
+      "frames": 109,
+      "name": "White Party Hat"
+    },
+    "force_gold": {
+      "new_id": "c293",
+      "frames": 109,
+      "name": "Gold Party Hat"
+    },
+    "force_silver": {
+      "new_id": "c294",
+      "frames": 109,
+      "name": "Silver Party Hat"
+    },
+    "dual_gold-red": {
+      "new_id": "c295",
+      "frames": 109,
+      "name": "Gold-Red Party Hat"
+    },
+    "dual_gold-blue": {
+      "new_id": "c296",
+      "frames": 109,
+      "name": "Gold-Blue Party Hat"
+    },
+    "dual_gold-green": {
+      "new_id": "c297",
+      "frames": 109,
+      "name": "Gold-Green Party Hat"
+    },
+    "dual_gold-purple": {
+      "new_id": "c298",
+      "frames": 109,
+      "name": "Gold-Purple Party Hat"
     }
   },
   "c24": {
@@ -227,6 +352,51 @@
       "new_id": "c103",
       "frames": 109,
       "name": "Pink Tiny Crown"
+    },
+    "dual_black-gold": {
+      "new_id": "c299",
+      "frames": 109,
+      "name": "Black-Gold Tiny Crown"
+    },
+    "dual_black-red": {
+      "new_id": "c300",
+      "frames": 109,
+      "name": "Black-Red Tiny Crown"
+    },
+    "dual_black-blue": {
+      "new_id": "c301",
+      "frames": 109,
+      "name": "Black-Blue Tiny Crown"
+    },
+    "dual_black-green": {
+      "new_id": "c302",
+      "frames": 109,
+      "name": "Black-Green Tiny Crown"
+    },
+    "dual_black-purple": {
+      "new_id": "c303",
+      "frames": 109,
+      "name": "Black-Purple Tiny Crown"
+    },
+    "force_black": {
+      "new_id": "c304",
+      "frames": 109,
+      "name": "Black Tiny Crown"
+    },
+    "force_white": {
+      "new_id": "c305",
+      "frames": 109,
+      "name": "White Tiny Crown"
+    },
+    "force_gold": {
+      "new_id": "c306",
+      "frames": 109,
+      "name": "Gold Tiny Crown"
+    },
+    "force_silver": {
+      "new_id": "c307",
+      "frames": 109,
+      "name": "Silver Tiny Crown"
     }
   },
   "c25": {
@@ -259,6 +429,26 @@
       "new_id": "c109",
       "frames": 109,
       "name": "Pink Tan Beret"
+    },
+    "force_silver": {
+      "new_id": "c308",
+      "frames": 109,
+      "name": "Silver Tan Beret"
+    },
+    "force_gold": {
+      "new_id": "c309",
+      "frames": 109,
+      "name": "Gold Tan Beret"
+    },
+    "force_white": {
+      "new_id": "c310",
+      "frames": 109,
+      "name": "White Tan Beret"
+    },
+    "force_black": {
+      "new_id": "c311",
+      "frames": 109,
+      "name": "Black Tan Beret"
     }
   },
   "c27": {
@@ -291,6 +481,26 @@
       "new_id": "c115",
       "frames": 1,
       "name": "Light Tan Cowboy Hat"
+    },
+    "force_black": {
+      "new_id": "c312",
+      "frames": 1,
+      "name": "Black Tan Cowboy Hat"
+    },
+    "force_white": {
+      "new_id": "c313",
+      "frames": 1,
+      "name": "White Tan Cowboy Hat"
+    },
+    "force_gold": {
+      "new_id": "c314",
+      "frames": 1,
+      "name": "Gold Tan Cowboy Hat"
+    },
+    "force_silver": {
+      "new_id": "c315",
+      "frames": 1,
+      "name": "Silver Tan Cowboy Hat"
     }
   },
   "c29": {
@@ -308,6 +518,51 @@
       "new_id": "c118",
       "frames": 109,
       "name": "Light Red Baseball Cap"
+    },
+    "force_white": {
+      "new_id": "c324",
+      "frames": 109,
+      "name": "White Red Baseball Cap"
+    },
+    "force_gold": {
+      "new_id": "c325",
+      "frames": 109,
+      "name": "Gold Red Baseball Cap"
+    },
+    "force_silver": {
+      "new_id": "c326",
+      "frames": 109,
+      "name": "Silver Red Baseball Cap"
+    },
+    "force_black": {
+      "new_id": "c327",
+      "frames": 109,
+      "name": "Black Red Baseball Cap"
+    },
+    "all_teal": {
+      "new_id": "c328",
+      "frames": 109,
+      "name": "Teal Red Baseball Cap"
+    },
+    "dual_black-blue": {
+      "new_id": "c329",
+      "frames": 109,
+      "name": "Black-Blue Red Baseball Cap"
+    },
+    "dual_black-purple": {
+      "new_id": "c330",
+      "frames": 109,
+      "name": "Black-Purple Red Baseball Cap"
+    },
+    "dual_white-pink": {
+      "new_id": "c331",
+      "frames": 109,
+      "name": "White-Pink Red Baseball Cap"
+    },
+    "dual_white-blue": {
+      "new_id": "c332",
+      "frames": 109,
+      "name": "White-Blue Red Baseball Cap"
     }
   },
   "c30": {
@@ -350,6 +605,26 @@
       "new_id": "c126",
       "frames": 109,
       "name": "Light Brown Beret with Bow"
+    },
+    "force_black": {
+      "new_id": "c333",
+      "frames": 109,
+      "name": "Black Brown Beret with Bow"
+    },
+    "force_white": {
+      "new_id": "c334",
+      "frames": 109,
+      "name": "White Brown Beret with Bow"
+    },
+    "force_gold": {
+      "new_id": "c335",
+      "frames": 109,
+      "name": "Gold Brown Beret with Bow"
+    },
+    "force_silver": {
+      "new_id": "c336",
+      "frames": 109,
+      "name": "Silver Brown Beret with Bow"
     }
   },
   "c31": {
@@ -377,6 +652,26 @@
       "new_id": "c131",
       "frames": 109,
       "name": "Teal Clown Hat"
+    },
+    "force_black": {
+      "new_id": "c337",
+      "frames": 109,
+      "name": "Black Clown Hat"
+    },
+    "force_white": {
+      "new_id": "c338",
+      "frames": 109,
+      "name": "White Clown Hat"
+    },
+    "force_gold": {
+      "new_id": "c339",
+      "frames": 109,
+      "name": "Gold Clown Hat"
+    },
+    "force_silver": {
+      "new_id": "c340",
+      "frames": 109,
+      "name": "Silver Clown Hat"
     }
   },
   "c33": {
@@ -414,6 +709,26 @@
       "new_id": "c138",
       "frames": 109,
       "name": "Light Tan Beret With String"
+    },
+    "force_silver": {
+      "new_id": "c350",
+      "frames": 109,
+      "name": "Silver Tan Beret With String"
+    },
+    "force_gold": {
+      "new_id": "c351",
+      "frames": 109,
+      "name": "Gold Tan Beret With String"
+    },
+    "force_white": {
+      "new_id": "c352",
+      "frames": 109,
+      "name": "White Tan Beret With String"
+    },
+    "force_black": {
+      "new_id": "c353",
+      "frames": 109,
+      "name": "Black Tan Beret With String"
     }
   },
   "c35": {
@@ -436,6 +751,26 @@
       "new_id": "c142",
       "frames": 109,
       "name": "Light Orange Head"
+    },
+    "force_black": {
+      "new_id": "c354",
+      "frames": 109,
+      "name": "Black Orange Head"
+    },
+    "force_white": {
+      "new_id": "c355",
+      "frames": 109,
+      "name": "White Orange Head"
+    },
+    "force_gold": {
+      "new_id": "c356",
+      "frames": 109,
+      "name": "Gold Orange Head"
+    },
+    "force_silver": {
+      "new_id": "c357",
+      "frames": 109,
+      "name": "Silver Orange Head"
     }
   },
   "c36": {
@@ -458,6 +793,61 @@
       "new_id": "c146",
       "frames": 109,
       "name": "Yellow-Accent Strawberry Head"
+    },
+    "force_black": {
+      "new_id": "c358",
+      "frames": 109,
+      "name": "Black Strawberry Head"
+    },
+    "force_white": {
+      "new_id": "c359",
+      "frames": 109,
+      "name": "White Strawberry Head"
+    },
+    "force_gold": {
+      "new_id": "c360",
+      "frames": 109,
+      "name": "Gold Strawberry Head"
+    },
+    "force_silver": {
+      "new_id": "c361",
+      "frames": 109,
+      "name": "Silver Strawberry Head"
+    },
+    "dual_black-gold": {
+      "new_id": "c362",
+      "frames": 109,
+      "name": "Black-Gold Strawberry Head"
+    },
+    "dual_black-red": {
+      "new_id": "c363",
+      "frames": 109,
+      "name": "Black-Red Strawberry Head"
+    },
+    "dual_white-pink": {
+      "new_id": "c364",
+      "frames": 109,
+      "name": "White-Pink Strawberry Head"
+    },
+    "dual_white-blue": {
+      "new_id": "c365",
+      "frames": 109,
+      "name": "White-Blue Strawberry Head"
+    },
+    "dual_white-red": {
+      "new_id": "c366",
+      "frames": 109,
+      "name": "White-Red Strawberry Head"
+    },
+    "cluster1_blue": {
+      "new_id": "c367",
+      "frames": 109,
+      "name": "Blue-Accent Strawberry Head"
+    },
+    "cluster1_magenta": {
+      "new_id": "c368",
+      "frames": 109,
+      "name": "Magenta-Accent Strawberry Head"
     }
   },
   "c37": {
@@ -485,6 +875,31 @@
       "new_id": "c151",
       "frames": 109,
       "name": "Pink Bread Head"
+    },
+    "all_teal": {
+      "new_id": "c369",
+      "frames": 109,
+      "name": "Teal Bread Head"
+    },
+    "force_black": {
+      "new_id": "c370",
+      "frames": 109,
+      "name": "Black Bread Head"
+    },
+    "force_white": {
+      "new_id": "c371",
+      "frames": 109,
+      "name": "White Bread Head"
+    },
+    "force_gold": {
+      "new_id": "c372",
+      "frames": 109,
+      "name": "Gold Bread Head"
+    },
+    "force_silver": {
+      "new_id": "c373",
+      "frames": 109,
+      "name": "Silver Bread Head"
     }
   },
   "c38": {
@@ -517,6 +932,56 @@
       "new_id": "c157",
       "frames": 109,
       "name": "Lime Frog Head"
+    },
+    "dual_sunset": {
+      "new_id": "c374",
+      "frames": 109,
+      "name": "Sunset Frog Head"
+    },
+    "force_black": {
+      "new_id": "c375",
+      "frames": 109,
+      "name": "Black Frog Head"
+    },
+    "force_white": {
+      "new_id": "c376",
+      "frames": 109,
+      "name": "White Frog Head"
+    },
+    "force_gold": {
+      "new_id": "c377",
+      "frames": 109,
+      "name": "Gold Frog Head"
+    },
+    "force_silver": {
+      "new_id": "c378",
+      "frames": 109,
+      "name": "Silver Frog Head"
+    },
+    "dual_white-pink": {
+      "new_id": "c379",
+      "frames": 109,
+      "name": "White-Pink Frog Head"
+    },
+    "dual_black-purple": {
+      "new_id": "c380",
+      "frames": 109,
+      "name": "Black-Purple Frog Head"
+    },
+    "dual_black-green": {
+      "new_id": "c381",
+      "frames": 109,
+      "name": "Black-Green Frog Head"
+    },
+    "dual_white-red": {
+      "new_id": "c382",
+      "frames": 109,
+      "name": "White-Red Frog Head"
+    },
+    "darker": {
+      "new_id": "c383",
+      "frames": 109,
+      "name": "Dark Frog Head"
     }
   },
   "c41": {
@@ -549,6 +1014,26 @@
       "new_id": "c163",
       "frames": 101,
       "name": "Magenta Yellow Tint Sunglasses"
+    },
+    "force_black": {
+      "new_id": "c393",
+      "frames": 101,
+      "name": "Black Yellow Tint Sunglasses"
+    },
+    "force_white": {
+      "new_id": "c394",
+      "frames": 101,
+      "name": "White Yellow Tint Sunglasses"
+    },
+    "force_gold": {
+      "new_id": "c395",
+      "frames": 101,
+      "name": "Gold Yellow Tint Sunglasses"
+    },
+    "force_silver": {
+      "new_id": "c396",
+      "frames": 101,
+      "name": "Silver Yellow Tint Sunglasses"
     }
   },
   "c57": {
@@ -581,6 +1066,86 @@
       "new_id": "c169",
       "frames": 1,
       "name": "Red-Accent Fire Emoji Head"
+    },
+    "force_black": {
+      "new_id": "c397",
+      "frames": 1,
+      "name": "Black Fire Emoji Head"
+    },
+    "force_white": {
+      "new_id": "c398",
+      "frames": 1,
+      "name": "White Fire Emoji Head"
+    },
+    "force_gold": {
+      "new_id": "c399",
+      "frames": 1,
+      "name": "Gold Fire Emoji Head"
+    },
+    "force_silver": {
+      "new_id": "c400",
+      "frames": 1,
+      "name": "Silver Fire Emoji Head"
+    },
+    "dual_white-pink": {
+      "new_id": "c401",
+      "frames": 1,
+      "name": "White-Pink Fire Emoji Head"
+    },
+    "dual_white-blue": {
+      "new_id": "c402",
+      "frames": 1,
+      "name": "White-Blue Fire Emoji Head"
+    },
+    "dual_white-red": {
+      "new_id": "c403",
+      "frames": 1,
+      "name": "White-Red Fire Emoji Head"
+    },
+    "dual_white-gold": {
+      "new_id": "c404",
+      "frames": 1,
+      "name": "White-Gold Fire Emoji Head"
+    },
+    "dual_black-purple": {
+      "new_id": "c405",
+      "frames": 1,
+      "name": "Black-Purple Fire Emoji Head"
+    },
+    "dual_black-green": {
+      "new_id": "c406",
+      "frames": 1,
+      "name": "Black-Green Fire Emoji Head"
+    },
+    "dual_black-blue": {
+      "new_id": "c407",
+      "frames": 1,
+      "name": "Black-Blue Fire Emoji Head"
+    },
+    "dual_black-red": {
+      "new_id": "c408",
+      "frames": 1,
+      "name": "Black-Red Fire Emoji Head"
+    },
+    "dual_black-gold": {
+      "new_id": "c409",
+      "frames": 1,
+      "name": "Black-Gold Fire Emoji Head"
+    },
+    "dual_sunset": {
+      "new_id": "c410",
+      "frames": 1,
+      "name": "Sunset Fire Emoji Head"
+    },
+    "dual_royal": {
+      "new_id": "c411",
+      "frames": 1,
+      "name": "Royal Fire Emoji Head"
+    },
+    "cluster0_yellow": {
+      "new_id": "c412",
+      "frames": 1,
+      "name": "Yellow Fire Emoji Head"
     }
   },
   "c1": {
@@ -608,6 +1173,26 @@
       "new_id": "c174",
       "frames": 98,
       "name": "Teal Red Sunglasses"
+    },
+    "force_silver": {
+      "new_id": "c413",
+      "frames": 98,
+      "name": "Silver Red Sunglasses"
+    },
+    "force_gold": {
+      "new_id": "c414",
+      "frames": 98,
+      "name": "Gold Red Sunglasses"
+    },
+    "force_white": {
+      "new_id": "c415",
+      "frames": 98,
+      "name": "White Red Sunglasses"
+    },
+    "force_black": {
+      "new_id": "c416",
+      "frames": 98,
+      "name": "Black Red Sunglasses"
     }
   },
   "c2": {
@@ -620,6 +1205,26 @@
       "new_id": "c176",
       "frames": 98,
       "name": "Light Grey Glasses"
+    },
+    "force_black": {
+      "new_id": "c417",
+      "frames": 98,
+      "name": "Black Grey Glasses"
+    },
+    "force_white": {
+      "new_id": "c418",
+      "frames": 98,
+      "name": "White Grey Glasses"
+    },
+    "force_gold": {
+      "new_id": "c419",
+      "frames": 98,
+      "name": "Gold Grey Glasses"
+    },
+    "force_silver": {
+      "new_id": "c420",
+      "frames": 98,
+      "name": "Silver Grey Glasses"
     }
   },
   "c3": {
@@ -667,6 +1272,26 @@
       "new_id": "c230",
       "frames": 98,
       "name": "Purple Cool Sunglasses"
+    },
+    "force_black": {
+      "new_id": "c421",
+      "frames": 98,
+      "name": "Black Cool Sunglasses"
+    },
+    "force_white": {
+      "new_id": "c422",
+      "frames": 98,
+      "name": "White Cool Sunglasses"
+    },
+    "force_gold": {
+      "new_id": "c423",
+      "frames": 98,
+      "name": "Gold Cool Sunglasses"
+    },
+    "force_silver": {
+      "new_id": "c424",
+      "frames": 98,
+      "name": "Silver Cool Sunglasses"
     }
   },
   "c4": {
@@ -709,6 +1334,26 @@
       "new_id": "c237",
       "frames": 98,
       "name": "Purple Grey Round Glasses"
+    },
+    "force_black": {
+      "new_id": "c425",
+      "frames": 98,
+      "name": "Black Grey Round Glasses"
+    },
+    "force_white": {
+      "new_id": "c426",
+      "frames": 98,
+      "name": "White Grey Round Glasses"
+    },
+    "force_gold": {
+      "new_id": "c427",
+      "frames": 98,
+      "name": "Gold Grey Round Glasses"
+    },
+    "force_silver": {
+      "new_id": "c428",
+      "frames": 98,
+      "name": "Silver Grey Round Glasses"
     }
   },
   "c6": {
@@ -721,6 +1366,26 @@
       "new_id": "c180",
       "frames": 98,
       "name": "Light Monocle "
+    },
+    "force_silver": {
+      "new_id": "c433",
+      "frames": 98,
+      "name": "Silver Monocle "
+    },
+    "force_gold": {
+      "new_id": "c434",
+      "frames": 98,
+      "name": "Gold Monocle "
+    },
+    "force_white": {
+      "new_id": "c435",
+      "frames": 98,
+      "name": "White Monocle "
+    },
+    "force_black": {
+      "new_id": "c436",
+      "frames": 98,
+      "name": "Black Monocle "
     }
   },
   "c7": {
@@ -768,6 +1433,26 @@
       "new_id": "c245",
       "frames": 98,
       "name": "Purple Eye Patch"
+    },
+    "force_silver": {
+      "new_id": "c437",
+      "frames": 98,
+      "name": "Silver Eye Patch"
+    },
+    "force_gold": {
+      "new_id": "c438",
+      "frames": 98,
+      "name": "Gold Eye Patch"
+    },
+    "force_white": {
+      "new_id": "c439",
+      "frames": 98,
+      "name": "White Eye Patch"
+    },
+    "force_black": {
+      "new_id": "c440",
+      "frames": 98,
+      "name": "Black Eye Patch"
     }
   },
   "c10": {
@@ -810,6 +1495,26 @@
       "new_id": "c189",
       "frames": 98,
       "name": "Teal Pink Round Bowtie"
+    },
+    "force_black": {
+      "new_id": "c449",
+      "frames": 98,
+      "name": "Black Pink Round Bowtie"
+    },
+    "force_white": {
+      "new_id": "c450",
+      "frames": 98,
+      "name": "White Pink Round Bowtie"
+    },
+    "force_gold": {
+      "new_id": "c451",
+      "frames": 98,
+      "name": "Gold Pink Round Bowtie"
+    },
+    "force_silver": {
+      "new_id": "c452",
+      "frames": 98,
+      "name": "Silver Pink Round Bowtie"
     }
   },
   "c9": {
@@ -852,6 +1557,26 @@
       "new_id": "c255",
       "frames": 90,
       "name": "Purple Red Bowtie"
+    },
+    "force_silver": {
+      "new_id": "c445",
+      "frames": 90,
+      "name": "Silver Red Bowtie"
+    },
+    "force_gold": {
+      "new_id": "c446",
+      "frames": 90,
+      "name": "Gold Red Bowtie"
+    },
+    "force_white": {
+      "new_id": "c447",
+      "frames": 90,
+      "name": "White Red Bowtie"
+    },
+    "force_black": {
+      "new_id": "c448",
+      "frames": 90,
+      "name": "Black Red Bowtie"
     }
   },
   "c16": {
@@ -899,6 +1624,16 @@
       "new_id": "c205",
       "frames": 98,
       "name": "Dark Gold Chain"
+    },
+    "force_black": {
+      "new_id": "c469",
+      "frames": 98,
+      "name": "Black Gold Chain"
+    },
+    "force_white": {
+      "new_id": "c470",
+      "frames": 98,
+      "name": "White Gold Chain"
     }
   },
   "c34": {
@@ -941,6 +1676,51 @@
       "new_id": "c213",
       "frames": 109,
       "name": "Orange Blue Crystal Necklace"
+    },
+    "force_silver": {
+      "new_id": "c499",
+      "frames": 109,
+      "name": "Silver Blue Crystal Necklace"
+    },
+    "force_gold": {
+      "new_id": "c500",
+      "frames": 109,
+      "name": "Gold Blue Crystal Necklace"
+    },
+    "force_white": {
+      "new_id": "c501",
+      "frames": 109,
+      "name": "White Blue Crystal Necklace"
+    },
+    "force_black": {
+      "new_id": "c502",
+      "frames": 109,
+      "name": "Black Blue Crystal Necklace"
+    },
+    "dual_silver-green": {
+      "new_id": "c503",
+      "frames": 109,
+      "name": "Silver-Green Blue Crystal Necklace"
+    },
+    "dual_white-blue": {
+      "new_id": "c504",
+      "frames": 109,
+      "name": "White-Blue Blue Crystal Necklace"
+    },
+    "dual_white-pink": {
+      "new_id": "c505",
+      "frames": 109,
+      "name": "White-Pink Blue Crystal Necklace"
+    },
+    "dual_black-purple": {
+      "new_id": "c506",
+      "frames": 109,
+      "name": "Black-Purple Blue Crystal Necklace"
+    },
+    "dual_black-blue": {
+      "new_id": "c507",
+      "frames": 109,
+      "name": "Black-Blue Blue Crystal Necklace"
     }
   },
   "c42": {
@@ -973,6 +1753,26 @@
       "new_id": "c219",
       "frames": 101,
       "name": "Blue Fancy Silver Necklace"
+    },
+    "force_silver": {
+      "new_id": "c508",
+      "frames": 101,
+      "name": "Silver Fancy Silver Necklace"
+    },
+    "force_gold": {
+      "new_id": "c509",
+      "frames": 101,
+      "name": "Gold Fancy Silver Necklace"
+    },
+    "force_white": {
+      "new_id": "c510",
+      "frames": 101,
+      "name": "White Fancy Silver Necklace"
+    },
+    "force_black": {
+      "new_id": "c511",
+      "frames": 101,
+      "name": "Black Fancy Silver Necklace"
     }
   },
   "c43": {
@@ -990,6 +1790,26 @@
       "new_id": "c222",
       "frames": 90,
       "name": "Green Silver Gem Necklace"
+    },
+    "force_black": {
+      "new_id": "c512",
+      "frames": 90,
+      "name": "Black Silver Gem Necklace"
+    },
+    "force_white": {
+      "new_id": "c513",
+      "frames": 90,
+      "name": "White Silver Gem Necklace"
+    },
+    "force_gold": {
+      "new_id": "c514",
+      "frames": 90,
+      "name": "Gold Silver Gem Necklace"
+    },
+    "force_silver": {
+      "new_id": "c515",
+      "frames": 90,
+      "name": "Silver Silver Gem Necklace"
     }
   },
   "c40": {
@@ -1037,6 +1857,26 @@
       "new_id": "c254",
       "frames": 109,
       "name": "Pink White Sunglasses"
+    },
+    "force_gold": {
+      "new_id": "c389",
+      "frames": 109,
+      "name": "Gold White Sunglasses"
+    },
+    "force_silver": {
+      "new_id": "c390",
+      "frames": 109,
+      "name": "Silver White Sunglasses"
+    },
+    "force_white": {
+      "new_id": "c391",
+      "frames": 109,
+      "name": "White White Sunglasses"
+    },
+    "force_black": {
+      "new_id": "c392",
+      "frames": 109,
+      "name": "Black White Sunglasses"
     }
   },
   "c11": {
@@ -1069,6 +1909,460 @@
       "new_id": "c261",
       "frames": 100,
       "name": "Red Black Tie"
+    },
+    "force_silver": {
+      "new_id": "c453",
+      "frames": 100,
+      "name": "Silver Black Tie"
+    },
+    "force_gold": {
+      "new_id": "c454",
+      "frames": 100,
+      "name": "Gold Black Tie"
+    },
+    "force_white": {
+      "new_id": "c455",
+      "frames": 100,
+      "name": "White Black Tie"
+    },
+    "force_black": {
+      "new_id": "c456",
+      "frames": 100,
+      "name": "Black Black Tie"
+    }
+  },
+  "c20": {
+    "force_black": {
+      "new_id": "c270",
+      "frames": 109,
+      "name": "Black Black Hat"
+    },
+    "force_white": {
+      "new_id": "c271",
+      "frames": 109,
+      "name": "White Black Hat"
+    },
+    "force_gold": {
+      "new_id": "c272",
+      "frames": 109,
+      "name": "Gold Black Hat"
+    },
+    "force_silver": {
+      "new_id": "c273",
+      "frames": 109,
+      "name": "Silver Black Hat"
+    }
+  },
+  "c21": {
+    "force_black": {
+      "new_id": "c274",
+      "frames": 109,
+      "name": "Black Black Tophat"
+    },
+    "force_white": {
+      "new_id": "c275",
+      "frames": 109,
+      "name": "White Black Tophat"
+    },
+    "force_gold": {
+      "new_id": "c276",
+      "frames": 109,
+      "name": "Gold Black Tophat"
+    },
+    "force_silver": {
+      "new_id": "c277",
+      "frames": 109,
+      "name": "Silver Black Tophat"
+    },
+    "dual_white-pink": {
+      "new_id": "c278",
+      "frames": 109,
+      "name": "White-Pink Black Tophat"
+    },
+    "dual_white-blue": {
+      "new_id": "c279",
+      "frames": 109,
+      "name": "White-Blue Black Tophat"
+    },
+    "dual_white-red": {
+      "new_id": "c280",
+      "frames": 109,
+      "name": "White-Red Black Tophat"
+    },
+    "dual_white-gold": {
+      "new_id": "c281",
+      "frames": 109,
+      "name": "White-Gold Black Tophat"
+    }
+  },
+  "c28": {
+    "force_black": {
+      "new_id": "c316",
+      "frames": 109,
+      "name": "Black Black Witch Hat"
+    },
+    "force_white": {
+      "new_id": "c317",
+      "frames": 109,
+      "name": "White Black Witch Hat"
+    },
+    "force_gold": {
+      "new_id": "c318",
+      "frames": 109,
+      "name": "Gold Black Witch Hat"
+    },
+    "dual_black-gold": {
+      "new_id": "c319",
+      "frames": 109,
+      "name": "Black-Gold Black Witch Hat"
+    },
+    "dual_black-red": {
+      "new_id": "c320",
+      "frames": 109,
+      "name": "Black-Red Black Witch Hat"
+    },
+    "dual_black-blue": {
+      "new_id": "c321",
+      "frames": 109,
+      "name": "Black-Blue Black Witch Hat"
+    },
+    "dual_black-green": {
+      "new_id": "c322",
+      "frames": 109,
+      "name": "Black-Green Black Witch Hat"
+    },
+    "dual_black-purple": {
+      "new_id": "c323",
+      "frames": 109,
+      "name": "Black-Purple Black Witch Hat"
+    }
+  },
+  "c32": {
+    "force_black": {
+      "new_id": "c341",
+      "frames": 109,
+      "name": "Black Black Pilgrim Hat"
+    },
+    "force_white": {
+      "new_id": "c342",
+      "frames": 109,
+      "name": "White Black Pilgrim Hat"
+    },
+    "force_gold": {
+      "new_id": "c343",
+      "frames": 109,
+      "name": "Gold Black Pilgrim Hat"
+    },
+    "force_silver": {
+      "new_id": "c344",
+      "frames": 109,
+      "name": "Silver Black Pilgrim Hat"
+    },
+    "dual_black-gold": {
+      "new_id": "c345",
+      "frames": 109,
+      "name": "Black-Gold Black Pilgrim Hat"
+    },
+    "dual_black-red": {
+      "new_id": "c346",
+      "frames": 109,
+      "name": "Black-Red Black Pilgrim Hat"
+    },
+    "dual_black-blue": {
+      "new_id": "c347",
+      "frames": 109,
+      "name": "Black-Blue Black Pilgrim Hat"
+    },
+    "dual_black-green": {
+      "new_id": "c348",
+      "frames": 109,
+      "name": "Black-Green Black Pilgrim Hat"
+    },
+    "dual_black-purple": {
+      "new_id": "c349",
+      "frames": 109,
+      "name": "Black-Purple Black Pilgrim Hat"
+    }
+  },
+  "c39": {
+    "force_silver": {
+      "new_id": "c384",
+      "frames": 109,
+      "name": "Silver Chef's Hat"
+    },
+    "force_gold": {
+      "new_id": "c385",
+      "frames": 109,
+      "name": "Gold Chef's Hat"
+    },
+    "force_white": {
+      "new_id": "c386",
+      "frames": 109,
+      "name": "White Chef's Hat"
+    },
+    "force_black": {
+      "new_id": "c387",
+      "frames": 109,
+      "name": "Black Chef's Hat"
+    },
+    "darker": {
+      "new_id": "c388",
+      "frames": 109,
+      "name": "Dark Chef's Hat"
+    }
+  },
+  "c5": {
+    "force_silver": {
+      "new_id": "c429",
+      "frames": 98,
+      "name": "Silver White  Round Glasses"
+    },
+    "force_gold": {
+      "new_id": "c430",
+      "frames": 98,
+      "name": "Gold White  Round Glasses"
+    },
+    "force_white": {
+      "new_id": "c431",
+      "frames": 98,
+      "name": "White White  Round Glasses"
+    },
+    "force_black": {
+      "new_id": "c432",
+      "frames": 98,
+      "name": "Black White  Round Glasses"
+    }
+  },
+  "c8": {
+    "force_black": {
+      "new_id": "c441",
+      "frames": 98,
+      "name": "Black Yellow Sunglasses"
+    },
+    "force_white": {
+      "new_id": "c442",
+      "frames": 98,
+      "name": "White Yellow Sunglasses"
+    },
+    "force_gold": {
+      "new_id": "c443",
+      "frames": 98,
+      "name": "Gold Yellow Sunglasses"
+    },
+    "force_silver": {
+      "new_id": "c444",
+      "frames": 98,
+      "name": "Silver Yellow Sunglasses"
+    }
+  },
+  "c12": {
+    "force_black": {
+      "new_id": "c457",
+      "frames": 98,
+      "name": "Black Sweater with Red Tie"
+    },
+    "force_white": {
+      "new_id": "c458",
+      "frames": 98,
+      "name": "White Sweater with Red Tie"
+    },
+    "force_gold": {
+      "new_id": "c459",
+      "frames": 98,
+      "name": "Gold Sweater with Red Tie"
+    },
+    "force_silver": {
+      "new_id": "c460",
+      "frames": 98,
+      "name": "Silver Sweater with Red Tie"
+    }
+  },
+  "c13": {
+    "force_black": {
+      "new_id": "c461",
+      "frames": 98,
+      "name": "Black Silver Chain"
+    },
+    "force_white": {
+      "new_id": "c462",
+      "frames": 98,
+      "name": "White Silver Chain"
+    },
+    "force_gold": {
+      "new_id": "c463",
+      "frames": 98,
+      "name": "Gold Silver Chain"
+    }
+  },
+  "c14": {
+    "force_black": {
+      "new_id": "c464",
+      "frames": 98,
+      "name": "Black Silver Necklace"
+    },
+    "force_white": {
+      "new_id": "c465",
+      "frames": 98,
+      "name": "White Silver Necklace"
+    },
+    "force_gold": {
+      "new_id": "c466",
+      "frames": 98,
+      "name": "Gold Silver Necklace"
+    }
+  },
+  "c15": {
+    "force_black": {
+      "new_id": "c467",
+      "frames": 98,
+      "name": "Black Silver Crown Necklace"
+    },
+    "force_gold": {
+      "new_id": "c468",
+      "frames": 98,
+      "name": "Gold Silver Crown Necklace"
+    }
+  },
+  "c17": {
+    "force_black": {
+      "new_id": "c471",
+      "frames": 98,
+      "name": "Black Gold Necklace"
+    },
+    "force_white": {
+      "new_id": "c472",
+      "frames": 98,
+      "name": "White Gold Necklace"
+    },
+    "force_gold": {
+      "new_id": "c473",
+      "frames": 98,
+      "name": "Gold Gold Necklace"
+    },
+    "force_silver": {
+      "new_id": "c474",
+      "frames": 98,
+      "name": "Silver Gold Necklace"
+    },
+    "dual_silver-blue": {
+      "new_id": "c475",
+      "frames": 98,
+      "name": "Silver-Blue Gold Necklace"
+    },
+    "dual_silver-red": {
+      "new_id": "c476",
+      "frames": 98,
+      "name": "Silver-Red Gold Necklace"
+    },
+    "dual_silver-green": {
+      "new_id": "c477",
+      "frames": 98,
+      "name": "Silver-Green Gold Necklace"
+    },
+    "dual_silver-pink": {
+      "new_id": "c478",
+      "frames": 98,
+      "name": "Silver-Pink Gold Necklace"
+    },
+    "dual_black-purple": {
+      "new_id": "c479",
+      "frames": 98,
+      "name": "Black-Purple Gold Necklace"
+    },
+    "dual_black-green": {
+      "new_id": "c480",
+      "frames": 98,
+      "name": "Black-Green Gold Necklace"
+    },
+    "dual_black-blue": {
+      "new_id": "c481",
+      "frames": 98,
+      "name": "Black-Blue Gold Necklace"
+    },
+    "dual_black-red": {
+      "new_id": "c482",
+      "frames": 98,
+      "name": "Black-Red Gold Necklace"
+    },
+    "dual_black-gold": {
+      "new_id": "c483",
+      "frames": 98,
+      "name": "Black-Gold Gold Necklace"
+    },
+    "all_red": {
+      "new_id": "c484",
+      "frames": 98,
+      "name": "Red Gold Necklace"
+    },
+    "cluster0_red": {
+      "new_id": "c485",
+      "frames": 98,
+      "name": "Red Gold Necklace"
+    },
+    "cluster0_orange": {
+      "new_id": "c486",
+      "frames": 98,
+      "name": "Orange Gold Necklace"
+    },
+    "dual_royal": {
+      "new_id": "c487",
+      "frames": 98,
+      "name": "Royal Gold Necklace"
+    },
+    "dual_festive": {
+      "new_id": "c488",
+      "frames": 98,
+      "name": "Festive Gold Necklace"
+    },
+    "dual_aqua-pop": {
+      "new_id": "c489",
+      "frames": 98,
+      "name": "Aqua-Pop Gold Necklace"
+    },
+    "cluster0_teal": {
+      "new_id": "c490",
+      "frames": 98,
+      "name": "Teal Gold Necklace"
+    },
+    "cluster0_blue": {
+      "new_id": "c491",
+      "frames": 98,
+      "name": "Blue Gold Necklace"
+    },
+    "cluster0_magenta": {
+      "new_id": "c492",
+      "frames": 98,
+      "name": "Magenta Gold Necklace"
+    },
+    "cluster1_red": {
+      "new_id": "c493",
+      "frames": 98,
+      "name": "Red-Accent Gold Necklace"
+    },
+    "cluster1_green": {
+      "new_id": "c494",
+      "frames": 98,
+      "name": "Green-Accent Gold Necklace"
+    },
+    "dual_gold-red": {
+      "new_id": "c495",
+      "frames": 98,
+      "name": "Gold-Red Gold Necklace"
+    },
+    "cluster1_teal": {
+      "new_id": "c496",
+      "frames": 98,
+      "name": "Teal-Accent Gold Necklace"
+    },
+    "cluster1_blue": {
+      "new_id": "c497",
+      "frames": 98,
+      "name": "Blue-Accent Gold Necklace"
+    },
+    "cluster1_purple": {
+      "new_id": "c498",
+      "frames": 98,
+      "name": "Purple-Accent Gold Necklace"
     }
   }
 }

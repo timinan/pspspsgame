@@ -316,8 +316,8 @@
     "backdropKey": "theme-dragon-s-sunset-shrine-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 32,
-    "bgScale": 1.12
+    "bgShiftUp": 27,
+    "bgScale": 1.1
   },
   "pegasus-cloud-kingdom": {
     "displayName": "Pegasus Cloud Kingdom",
@@ -517,7 +517,7 @@
     "musicKey": "theme-default-music",
     "rarity": "rare",
     "bgShiftUp": -37,
-    "bgScale": 1.29
+    "bgScale": 1.34
   },
   "petstore": {
     "displayName": "Petstore",
@@ -588,7 +588,7 @@
     "backdropKey": "theme-library-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 0,
-    "bgScale": 1
+    "bgShiftUp": 10,
+    "bgScale": 1.17
   }
 }

@@ -47,6 +47,38 @@ HUE_TARGETS_DICT = {
     'red': 0, 'orange': 30, 'yellow': 55, 'lime': 90, 'green': 135,
     'teal': 175, 'blue': 220, 'purple': 270, 'magenta': 305, 'pink': 330,
 }
+# Must match gen-cosmetic-variants.py FORCE_TARGETS
+FORCE_TARGETS = {
+    'black':  (0,   0.0,  0.15),
+    'white':  (0,   0.0,  0.92),
+    'gold':   (45,  0.85, 0.55),
+    'silver': (0,   0.0,  0.75),
+}
+# Must match gen-cosmetic-variants.py DUAL_COMBOS
+DUAL_COMBOS = {
+    'xmas':         (('hue', 0),    ('hue', 45)),
+    'royal':        (('hue', 270),  ('hue', 45)),
+    'festive':      (('hue', 135),  ('hue', 0)),
+    'aqua-pop':     (('hue', 175),  ('hue', 330)),
+    'sunset':       (('hue', 30),   ('hue', 305)),
+    'black-gold':   (('force', 'black'),  ('hue', 45)),
+    'black-red':    (('force', 'black'),  ('hue', 0)),
+    'black-blue':   (('force', 'black'),  ('hue', 220)),
+    'black-green':  (('force', 'black'),  ('hue', 135)),
+    'black-purple': (('force', 'black'),  ('hue', 270)),
+    'white-pink':   (('force', 'white'),  ('hue', 330)),
+    'white-blue':   (('force', 'white'),  ('hue', 220)),
+    'white-red':    (('force', 'white'),  ('hue', 0)),
+    'white-gold':   (('force', 'white'),  ('hue', 45)),
+    'gold-red':     (('force', 'gold'),   ('hue', 0)),
+    'gold-blue':    (('force', 'gold'),   ('hue', 220)),
+    'gold-green':   (('force', 'gold'),   ('hue', 135)),
+    'gold-purple':  (('force', 'gold'),   ('hue', 270)),
+    'silver-blue':  (('force', 'silver'), ('hue', 220)),
+    'silver-red':   (('force', 'silver'), ('hue', 0)),
+    'silver-green': (('force', 'silver'), ('hue', 135)),
+    'silver-pink':  (('force', 'silver'), ('hue', 330)),
+}
 
 
 def hue_histogram(img):
@@ -152,6 +184,72 @@ def shift_hue(img, target_h_deg, source_h_deg, mask_cluster_deg=None, mask_radiu
     return out
 
 
+def force_recolor(img, target_h_deg, target_s, target_l_mid, preserve_contrast=0.35):
+    """Stamp every pixel toward target HSL, keep partial original lightness
+    contrast. Mirrors gen-cosmetic-variants.py force_recolor (no mask)."""
+    out = Image.new('RGBA', img.size, (0, 0, 0, 0))
+    src_px = img.load()
+    dst_px = out.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = src_px[x, y]
+            if a == 0:
+                continue
+            _, ll, _ = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            new_l = max(0.0, min(1.0, target_l_mid + (ll - 0.5) * preserve_contrast))
+            nr, ng, nb = colorsys.hls_to_rgb(target_h_deg / 360, new_l, target_s)
+            dst_px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
+    return out
+
+
+def dual_recolor(img, main_recipe, accent_recipe, main_deg, accent_deg):
+    """Single-pass per-pixel cluster assignment + recipe application.
+    Mirrors gen-cosmetic-variants.py dual_recolor."""
+    def _circ_dist(a, b):
+        d = abs(a - b) % 360
+        return min(d, 360 - d)
+
+    def _apply_one_pixel(r, g, b, a, recipe, source_deg):
+        kind, val = recipe
+        hh, ll, ss = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        if kind == 'hue':
+            rotation = (val - source_deg) / 360.0
+            new_h = (hh + rotation) % 1.0
+            new_l = ll
+            new_s = ss
+            if ll < DARK_BASE_THRESHOLD:
+                new_l = min(1.0, ll + (DARK_BASE_TARGET_L - ll) * 0.8)
+                new_s = max(ss, 0.75)
+            nr, ng, nb = colorsys.hls_to_rgb(new_h, new_l, new_s)
+            return (int(nr * 255), int(ng * 255), int(nb * 255), a)
+        if kind == 'force':
+            h, s, l_mid = FORCE_TARGETS[val]
+            new_l = max(0.0, min(1.0, l_mid + (ll - 0.5) * 0.35))
+            nr, ng, nb = colorsys.hls_to_rgb(h / 360, new_l, s)
+            return (int(nr * 255), int(ng * 255), int(nb * 255), a)
+
+    out = Image.new('RGBA', img.size, (0, 0, 0, 0))
+    src_px = img.load()
+    dst_px = out.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = src_px[x, y]
+            if a == 0:
+                continue
+            hh, _, ss = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            if ss < GRAY_SAT:
+                dst_px[x, y] = (r, g, b, a)
+                continue
+            pixel_h_deg = int(hh * 360)
+            d_main = _circ_dist(pixel_h_deg, main_deg)
+            d_accent = _circ_dist(pixel_h_deg, accent_deg)
+            recipe, src = (main_recipe, main_deg) if d_main <= d_accent else (accent_recipe, accent_deg)
+            dst_px[x, y] = _apply_one_pixel(r, g, b, a, recipe, src)
+    return out
+
+
 def shift_lightness(img, delta):
     out = Image.new('RGBA', img.size, (0, 0, 0, 0))
     src_px = img.load()
@@ -234,29 +332,44 @@ def apply_variant(img, variant_id, primary_hue, clusters):
         return shift_lightness(img, -0.2)
     if variant_id == 'lighter':
         return shift_lightness(img, 0.2)
+    if variant_id.startswith('force_'):
+        name = variant_id[len('force_'):]
+        h, s, l = FORCE_TARGETS[name]
+        return force_recolor(img, h, s, l)
+    if variant_id.startswith('dual_'):
+        if len(clusters) < 2:
+            raise ValueError(f'{variant_id}: parent has fewer than 2 clusters')
+        name = variant_id[len('dual_'):]
+        main_recipe, accent_recipe = DUAL_COMBOS[name]
+        return dual_recolor(img, main_recipe, accent_recipe, clusters[0][0], clusters[1][0])
     raise ValueError(f'unknown variant id: {variant_id}')
 
 
 def variant_name(parent_name, variant_id):
     """Human-readable name for the new cosmetic. Tim can rename via the
     cosmetic calibrator if any of these read awkward."""
-    color_word = None
-    role = None
+    if variant_id == 'darker':
+        return f'Dark {parent_name}'
+    if variant_id == 'lighter':
+        return f'Light {parent_name}'
+    if variant_id.startswith('force_'):
+        name = variant_id[len('force_'):]
+        return f'{name.capitalize()} {parent_name}'
+    if variant_id.startswith('dual_'):
+        name = variant_id[len('dual_'):]
+        # 'black-gold' → 'Black-Gold'
+        cap = '-'.join(p.capitalize() for p in name.split('-'))
+        return f'{cap} {parent_name}'
     if variant_id.startswith('all_'):
         color_word = variant_id[4:]
     elif variant_id.startswith('cluster0_'):
         color_word = variant_id[len('cluster0_'):]
     elif variant_id.startswith('cluster1_'):
         color_word = variant_id[len('cluster1_'):]
-        role = 'Accent'
-    elif variant_id == 'darker':
-        return f'Dark {parent_name}'
-    elif variant_id == 'lighter':
-        return f'Light {parent_name}'
-    color = color_word.capitalize()
-    if role:
-        return f'{color}-Accent {parent_name}'
-    return f'{color} {parent_name}'
+        return f'{color_word.capitalize()}-Accent {parent_name}'
+    else:
+        return f'{variant_id} {parent_name}'
+    return f'{color_word.capitalize()} {parent_name}'
 
 
 # ----- Main -----

@@ -316,8 +316,8 @@
     "backdropKey": "theme-dragon-s-sunset-shrine-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 32,
-    "bgScale": 1.12
+    "bgShiftUp": 27,
+    "bgScale": 1.1
   },
   "pegasus-cloud-kingdom": {
     "displayName": "Pegasus Cloud Kingdom",
@@ -580,15 +580,15 @@
     "backdropKey": "theme-witchlab-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 24,
-    "bgScale": 1.17
+    "bgShiftUp": 6,
+    "bgScale": 1.16
   },
   "library": {
     "displayName": "Library",
     "backdropKey": "theme-library-bg",
     "musicKey": "theme-default-music",
     "rarity": "rare",
-    "bgShiftUp": 0,
-    "bgScale": 1
+    "bgShiftUp": 10,
+    "bgScale": 1.17
   }
 }

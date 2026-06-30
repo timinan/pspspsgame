@@ -20,7 +20,8 @@
     "smoke-test": "for a in idle hiss lick meow; do python3 scripts/smoke-anim.py --anim=$a; done",
     "cosmetics:refresh": "npm run extract:assets && npm run smoke-test",
     "cosmetic-variants": "python3 scripts/gen-cosmetic-variants.py",
-    "ship-cosmetic-variants": "python3 scripts/ship-cosmetic-variants.py"
+    "ship-cosmetic-variants": "python3 scripts/ship-cosmetic-variants.py",
+    "catalogs": "python3 scripts/gen-catalogs.py"
   },
   "engines": {
     "node": ">=22.2.0"

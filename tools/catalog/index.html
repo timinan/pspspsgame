@@ -1,0 +1,68 @@
+<!doctype html>
+<html><head><meta charset="utf-8"/>
+<title>meowcert · catalogs</title>
+<style>
+  body { margin: 0; background: #1a0a2e; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; padding-top: 50px; }
+  .hdr { padding: 14px 20px 10px; border-bottom: 1px solid #341c5a;
+    position: sticky; top: 40px; background: #1a0a2e; z-index: 50; }
+  .hdr h1 { margin: 0 0 4px; font-size: 18px; color: #ffd34d; }
+  .hdr .sub { color: #c0a0e6; font-size: 12px; }
+  .navbtn { display: inline-block; padding: 4px 12px; background: #4a7c3a; color: #fff;
+    border: 1px solid #6ba85a; border-radius: 4px; font-size: 12px; cursor: pointer;
+    font-family: inherit; margin-left: 8px; }
+  .navbtn:hover { background: #5a9c44; }
+  .navbtn:disabled { opacity: 0.55; cursor: progress; }
+  section { padding: 20px; }
+  section h2 { margin: 0 0 10px; font-size: 16px; color: #ffd34d; }
+  section img { display: block; max-width: 100%; image-rendering: pixelated;
+    border: 1px solid #341c5a; border-radius: 6px; }
+  .download { color: #ffd34d; text-decoration: none; font-size: 12px;
+    margin-left: 12px; }
+  .download:hover { text-decoration: underline; }
+</style></head>
+<body>
+  <div class="hdr">
+    <h1>catalogs</h1>
+    <div class="sub">
+      Live snapshots of every cosmetic + cat in the game, pulled from the
+      atlas. Regenerates after any catalog change.
+      <button class="navbtn" id="gen-btn" onclick="regenerate()">🔄 Generate</button>
+    </div>
+  </div>
+
+  <section>
+    <h2>Cosmetics — 498 entries
+      <a class="download" href="cosmetics-catalog.png" download>↓ download PNG</a>
+    </h2>
+    <img src="cosmetics-catalog.png?t=1782781883.9467976" alt="cosmetics catalog"/>
+  </section>
+
+  <section>
+    <h2>Cats — 14 entries
+      <a class="download" href="cats-catalog.png" download>↓ download PNG</a>
+    </h2>
+    <img src="cats-catalog.png" alt="cats catalog"/>
+  </section>
+
+  <script src="/tools-nav.js"></script>
+  <script>
+    async function regenerate() {
+      const btn = document.getElementById('gen-btn');
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳ Generating…';
+      try {
+        const res = await fetch('/run-catalogs', { method: 'POST' });
+        const body = await res.json().catch(() => ({ ok: false, error: 'bad json' }));
+        if (!res.ok || !body.ok) throw new Error(body.error || `HTTP ${res.status}`);
+        btn.textContent = '✅ Reloading…';
+        location.reload();
+      } catch (e) {
+        btn.textContent = '❌ ' + (e.message || 'failed');
+        btn.disabled = false;
+        setTimeout(() => { btn.textContent = original; }, 5000);
+      }
+    }
+  </script>
+</body></html>
