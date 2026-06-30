@@ -30,64 +30,69 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
   'merch-intro':
     "Welcome to the band, <catname>! Let's check the merch table to spice up your new bandmember.",
   'box-cosmetic':
-    "First up, let's open a cosmetic box. here's where you'll get hats, bows, and other accessories for your cats.",
+    "First up, let's open a cosmetic box. Here's where you'll get hats, bows, and other accessories for your cats.",
   'box-effect':
-    "Next we have effect boxes where you'll find sparkles, flames, and particle flair that make your cats stand out.",
+    "Next we have effect boxes — where you'll find sparkles, flames, and particle flair that make your cats stand out.",
+  'merch-reveal':
+    "Wow, looking great!",
   'stage-set-confirm':
     "Your stage is set! Now let's get to practicing.",
   'rehearsal-intro':
-    "You can come REHEARSE anytime with your band by coming to this tab.",
+    "You can rehearse with your band anytime by coming to this tab.",
   'play-tutorial-intro': [
     // 0 — pspsps explainer. Shown in Game scene before the chart starts;
     //   Continue tap clears it and the next line takes over.
-    "When you attend a show or even just practicing, you'll want to give the kitties on stage some pspsps — they prefer this over loud claps. Try not to time it wrong or you'll make them mad.",
+    "When you attend a show or even just practice, you'll want to give the cats on stage some pspspsps — they prefer this over loud claps. Try not to time it wrong or you'll make them mad.",
     // 1 — chart kicks off as this line appears.
-    "Ready for the show? You'll start seeing some fuzzy balls fall down — that's the optimal time for a lil ps for the kitties. Tap them as they get inside the circle.",
+    "Ready for the show? You'll start seeing some fuzz balls fall down — the optimal time to tap is when they get inside the circles.",
   ],
   'play-tutorial': [
     // 0 — taps + chord intro (drops chord notes after first tap-only round)
-    "nice! those are taps — the basic note. two or three lanes at once? both work, it's just a chord.",
+    "Nice! Those are taps — the basic note. Two or three lanes at once? Both work, it's just a chord.",
     // 1 — holds (single + double-lane)
-    "holds are tap-and-hold — keep your finger down until it ends. double-lane holds need both fingers down at once.",
+    "Holds are tap-and-hold — keep your finger down until it ends. Double-lane holds need both fingers down at once.",
     // 2 — slides (1 lane)
-    "slides next! tap and drag to the next lane.",
+    "Slides next! Tap and drag to the next lane.",
     // 3 — slides (2 lanes)
-    "you can slide across 2 lanes too — same gesture, longer drag.",
+    "You can slide across 2 lanes too — same gesture, longer drag.",
     // 4 — double slide
-    "and the double slide ◀▶ — drag out, then drag back. takes practice.",
+    "And the double slide ◀▶ — drag out, then drag back. Takes practice.",
     // 5 — insane chart, gated by a Yes pre-roll in Game scene. The
     //   bubble line sits on top of the lane view; chart starts on Yes.
-    "wow, it looks like you've got the hang of it. ready for a real chart?",
+    "Wow, it looks like you've got the hang of it. Ready for a real chart?",
     // 6 — outro + menu mock w/ PUT ON A SHOW highlighted
-    "just kidding — you've got a long way to go before that. now let's hit the put on a show tab and i'll guide you through it!",
+    "Just kidding — you've got a long way to go before that. Now we'll check out the Put on a Show tab and I'll guide you through the process.",
   ],
   'editor-tour-intro':
-    "tap a cell to place a note.",
+    "Here is the editor for your chart. You can start with an empty chart or a pregenerated one.",
   'editor-tour': [
-    // 0 — hold note demo
-    "tap and drag up or down for a hold note.",
-    // 1 — slide note demo
-    "tap and drag left or right for a slide note (double notes too).",
-    // 2 — ready-to-rehearse pointer
-    "when you're ready, press rehearse to practice your chart. you can come back here anytime to keep tweaking.",
-    // 3 — required-to-rehearse-pass gate
-    "before you can put on a show, you must rehearse your chart from the top and pass it.",
+    // 0 — tap demo
+    "Tap a cell to place a note.",
+    // 1 — hold note demo (ball at the BOTTOM, tail extending up)
+    "Tap and drag up or down for a hold note.",
+    // 2 — slide note demo
+    "Tap and drag left or right for a slide note.",
+    // 3 — double-slide demo (slide-and-return)
+    "Drag out and back for a double slide ◀▶.",
+    // 4 — REHEARSE pointer
+    "Press the Rehearse button.",
+    // 5 — required-to-rehearse-pass gate
+    "You must rehearse your chart from the top without failing, then you'll be able to create a post for all to see.",
   ],
   'visit-pointer': [
-    // 0 — CATCH A SHOW highlighted; opens with a preview list per Tim:
-    // 'say Next the Catch A Show tab the merch table rewards settings'.
-    "next — the catch a show tab, the merch table, rewards, and settings. here's where you can find other people's shows to attend.",
+    // 0 — CATCH A SHOW highlighted
+    "Next, the Catch a Show tab — here is where you can find other people's shows to attend.",
     // 1 — MERCH highlighted
-    "the merch table is where you can find more cosmetics — like the ones you just got.",
+    "And then the merch table — where you can find more cosmetics like the ones you just got.",
     // 2 — REWARDS highlighted (stub for now; real feature coming)
-    "the rewards tab — be sure to check it often for new goodies.",
+    "Be sure to check the rewards tab from time to time for new goodies.",
     // 3 — SETTINGS highlighted
-    "and the settings tab lets you adjust things to match your gameplay style.",
+    "And finally, you can come to the settings tab to adjust things to match your playstyle.",
   ],
   'route-a-outro':
-    "and that's all! i think you're ready to attend and host meowcert shows now!",
+    "And that's all! I think you're ready to attend and host Meowcert shows now!",
   'route-b-outro':
-    "now that you know the lay of the land, let's get you back to <poster>'s show!",
+    "Now that you know the lay of the land, let's get you back to <poster>'s show!",
 };
 
 /** Always-array view of the dialogue for a given step. Callers that
