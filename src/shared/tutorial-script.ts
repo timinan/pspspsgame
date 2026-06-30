@@ -69,8 +69,9 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
     "before you can put on a show, you must rehearse your chart from the top and pass it.",
   ],
   'visit-pointer': [
-    // 0 — CATCH A SHOW highlighted
-    "here's where you can go find other people's shows to attend.",
+    // 0 — CATCH A SHOW highlighted; opens with a preview list per Tim:
+    // 'say Next the Catch A Show tab the merch table rewards settings'.
+    "next — the catch a show tab, the merch table, rewards, and settings. here's where you can find other people's shows to attend.",
     // 1 — MERCH highlighted
     "the merch table is where you can find more cosmetics — like the ones you just got.",
     // 2 — REWARDS highlighted (stub for now; real feature coming)
