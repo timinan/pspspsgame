@@ -347,21 +347,15 @@ export class TutorialOrchestrator extends Scene {
       // Stage rig is already built at stage-set-confirm — no need to
       // re-tween here. Latched guard inside the stage-set-confirm branch
       // covers the re-entry case.
-      const proceed = () => {
-        if (this.busy) return;
-        void this.advance();
-      };
       this.renderHamburgerMock('REHEARSE');
       this.overlay = new TutorialCatOverlay(this);
       this.overlay.show(line, {
         continueLabel: 'Continue →',
-        onContinue: proceed,
+        onContinue: () => {
+          if (this.busy) return;
+          void this.advance();
+        },
       });
-      // Per Tim image 4 + voice note: the line is long and self-paced —
-      // tap Continue OR just wait 5s and the beat advances on its own.
-      // renderStep() clears the timer on step change so this only fires
-      // if the player lingers here.
-      this.autoAdvanceTimer = this.time.delayedCall(5000, proceed);
       this.renderSkipLinkIfUnlocked();
       return;
     }

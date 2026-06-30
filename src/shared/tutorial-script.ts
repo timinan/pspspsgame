@@ -34,9 +34,9 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
   'box-effect':
     "effect boxes are where you'll find sparkles, flames, and particle flair that make your cats stand out.",
   'stage-set-confirm':
-    "your stage is set! this is what you'll see when you practice or when you put on a show for others. you can always come back here with this tab on the menu.",
+    "your stage is set! for each show or practice you attend, we'll be pspspsing the performers — they prefer being cheered on that way over loud claps.",
   'rehearsal-intro':
-    "next, you can practice before the big show by coming to the rehearse tab. for each show or practice you attend, we'll be pspspsing the performers — they prefer being cheered on that way over loud claps.",
+    "now let's get to practicing. you'll find REHEARSE in here whenever you want to head to the stage for some practice.",
   'play-tutorial-intro':
     "ready? you'll start seeing some fuzzy balls fall down — that's the optimal time for a lil ps for the kitties. tap them as they get inside the circle.",
   'play-tutorial': [
