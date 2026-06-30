@@ -3,6 +3,7 @@ node_modules
 dist
 .env
 assets-raw/
+assets-raw-backups/
 
 # Python caches from scripts/audio/
 __pycache__/

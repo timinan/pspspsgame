@@ -6,11 +6,6 @@ import type { CatEntry } from './state';
 
 export const GENERATED_CAT_CATALOG: readonly CatEntry[] = [
   {
-    id: "rainbow",
-    name: "Rainbow Whiskers",
-    rarity: "legendary",
-  },
-  {
     id: "cat1",
     name: "Mochi",
     rarity: "common",
@@ -87,5 +82,530 @@ export const GENERATED_CAT_CATALOG: readonly CatEntry[] = [
     name: "Butters",
     rarity: "common",
     scale: 1,
+  },
+  {
+    id: "cat14",
+    name: "Cat 14",
+    rarity: "common",
+  },
+  {
+    id: "cat15",
+    name: "Cat 15",
+    rarity: "common",
+  },
+  {
+    id: "cat16",
+    name: "Cat 16",
+    rarity: "common",
+  },
+  {
+    id: "cat17",
+    name: "Cat 17",
+    rarity: "common",
+  },
+  {
+    id: "cat18",
+    name: "Cat 18",
+    rarity: "common",
+  },
+  {
+    id: "cat19",
+    name: "Cat 19",
+    rarity: "common",
+  },
+  {
+    id: "cat20",
+    name: "Cat 20",
+    rarity: "common",
+  },
+  {
+    id: "cat21",
+    name: "Cat 21",
+    rarity: "common",
+  },
+  {
+    id: "cat22",
+    name: "Cat 22",
+    rarity: "common",
+  },
+  {
+    id: "cat23",
+    name: "Cat 23",
+    rarity: "common",
+  },
+  {
+    id: "cat24",
+    name: "Cat 24",
+    rarity: "common",
+  },
+  {
+    id: "cat25",
+    name: "Cat 25",
+    rarity: "common",
+  },
+  {
+    id: "cat26",
+    name: "Cat 26",
+    rarity: "common",
+  },
+  {
+    id: "cat27",
+    name: "Cat 27",
+    rarity: "common",
+  },
+  {
+    id: "cat28",
+    name: "Cat 28",
+    rarity: "common",
+  },
+  {
+    id: "cat29",
+    name: "Cat 29",
+    rarity: "common",
+  },
+  {
+    id: "cat30",
+    name: "Cat 30",
+    rarity: "common",
+  },
+  {
+    id: "cat31",
+    name: "Cat 31",
+    rarity: "common",
+  },
+  {
+    id: "cat32",
+    name: "Cat 32",
+    rarity: "common",
+  },
+  {
+    id: "cat33",
+    name: "Cat 33",
+    rarity: "common",
+  },
+  {
+    id: "cat34",
+    name: "Cat 34",
+    rarity: "common",
+  },
+  {
+    id: "cat35",
+    name: "Cat 35",
+    rarity: "common",
+  },
+  {
+    id: "cat36",
+    name: "Cat 36",
+    rarity: "common",
+  },
+  {
+    id: "cat37",
+    name: "Cat 37",
+    rarity: "common",
+  },
+  {
+    id: "cat38",
+    name: "Cat 38",
+    rarity: "common",
+  },
+  {
+    id: "cat39",
+    name: "Cat 39",
+    rarity: "common",
+  },
+  {
+    id: "cat40",
+    name: "Cat 40",
+    rarity: "common",
+  },
+  {
+    id: "cat41",
+    name: "Cat 41",
+    rarity: "common",
+  },
+  {
+    id: "cat42",
+    name: "Cat 42",
+    rarity: "common",
+  },
+  {
+    id: "cat43",
+    name: "Cat 43",
+    rarity: "common",
+  },
+  {
+    id: "cat44",
+    name: "Cat 44",
+    rarity: "common",
+  },
+  {
+    id: "cat45",
+    name: "Cat 45",
+    rarity: "common",
+  },
+  {
+    id: "cat46",
+    name: "Cat 46",
+    rarity: "common",
+  },
+  {
+    id: "cat47",
+    name: "Cat 47",
+    rarity: "common",
+  },
+  {
+    id: "cat48",
+    name: "Cat 48",
+    rarity: "common",
+  },
+  {
+    id: "cat49",
+    name: "Cat 49",
+    rarity: "common",
+  },
+  {
+    id: "cat50",
+    name: "Cat 50",
+    rarity: "common",
+  },
+  {
+    id: "cat51",
+    name: "Cat 51",
+    rarity: "common",
+  },
+  {
+    id: "cat52",
+    name: "Cat 52",
+    rarity: "common",
+  },
+  {
+    id: "cat53",
+    name: "Cat 53",
+    rarity: "common",
+  },
+  {
+    id: "cat54",
+    name: "Cat 54",
+    rarity: "common",
+  },
+  {
+    id: "cat55",
+    name: "Cat 55",
+    rarity: "common",
+  },
+  {
+    id: "cat56",
+    name: "Cat 56",
+    rarity: "common",
+  },
+  {
+    id: "cat57",
+    name: "Cat 57",
+    rarity: "common",
+  },
+  {
+    id: "cat58",
+    name: "Cat 58",
+    rarity: "common",
+  },
+  {
+    id: "cat59",
+    name: "Cat 59",
+    rarity: "common",
+  },
+  {
+    id: "cat61",
+    name: "Cat 61",
+    rarity: "common",
+  },
+  {
+    id: "cat62",
+    name: "Cat 62",
+    rarity: "common",
+  },
+  {
+    id: "cat63",
+    name: "Cat 63",
+    rarity: "common",
+  },
+  {
+    id: "cat64",
+    name: "Cat 64",
+    rarity: "common",
+  },
+  {
+    id: "cat65",
+    name: "Cat 65",
+    rarity: "common",
+  },
+  {
+    id: "cat66",
+    name: "Cat 66",
+    rarity: "common",
+  },
+  {
+    id: "cat67",
+    name: "Cat 67",
+    rarity: "common",
+  },
+  {
+    id: "cat68",
+    name: "Cat 68",
+    rarity: "common",
+  },
+  {
+    id: "cat69",
+    name: "Cat 69",
+    rarity: "common",
+  },
+  {
+    id: "cat70",
+    name: "Cat 70",
+    rarity: "common",
+  },
+  {
+    id: "cat71",
+    name: "Cat 71",
+    rarity: "common",
+  },
+  {
+    id: "cat72",
+    name: "Cat 72",
+    rarity: "common",
+  },
+  {
+    id: "cat73",
+    name: "Cat 73",
+    rarity: "common",
+  },
+  {
+    id: "cat74",
+    name: "Cat 74",
+    rarity: "common",
+  },
+  {
+    id: "cat75",
+    name: "Cat 75",
+    rarity: "common",
+  },
+  {
+    id: "cat76",
+    name: "Cat 76",
+    rarity: "common",
+  },
+  {
+    id: "cat77",
+    name: "Cat 77",
+    rarity: "common",
+  },
+  {
+    id: "cat78",
+    name: "Cat 78",
+    rarity: "common",
+  },
+  {
+    id: "rainbow",
+    name: "Rainbow Whiskers",
+    rarity: "legendary",
+  },
+  {
+    id: "cat79",
+    name: "Goldie",
+    rarity: "common",
+  },
+  {
+    id: "cat80",
+    name: "Ruby",
+    rarity: "common",
+  },
+  {
+    id: "cat81",
+    name: "Coral",
+    rarity: "common",
+  },
+  {
+    id: "cat82",
+    name: "Tangerine",
+    rarity: "common",
+  },
+  {
+    id: "cat83",
+    name: "Lemon",
+    rarity: "common",
+  },
+  {
+    id: "cat84",
+    name: "Neon",
+    rarity: "common",
+  },
+  {
+    id: "cat85",
+    name: "Mint",
+    rarity: "common",
+  },
+  {
+    id: "cat86",
+    name: "Cyan",
+    rarity: "common",
+  },
+  {
+    id: "cat87",
+    name: "Sapphire",
+    rarity: "common",
+  },
+  {
+    id: "cat88",
+    name: "Violet",
+    rarity: "common",
+  },
+  {
+    id: "cat89",
+    name: "Magenta",
+    rarity: "common",
+  },
+  {
+    id: "cat90",
+    name: "Bubblegum",
+    rarity: "common",
+  },
+  {
+    id: "cat91",
+    name: "Sunset",
+    rarity: "common",
+  },
+  {
+    id: "cat92",
+    name: "Ocean",
+    rarity: "common",
+  },
+  {
+    id: "cat93",
+    name: "Forest",
+    rarity: "common",
+  },
+  {
+    id: "cat94",
+    name: "Royal",
+    rarity: "common",
+  },
+  {
+    id: "cat95",
+    name: "Watermelon",
+    rarity: "common",
+  },
+  {
+    id: "cat96",
+    name: "Berry",
+    rarity: "common",
+  },
+  {
+    id: "cat97",
+    name: "Aurora",
+    rarity: "common",
+  },
+  {
+    id: "cat98",
+    name: "Sundae",
+    rarity: "common",
+  },
+  {
+    id: "cat99",
+    name: "Twix",
+    rarity: "common",
+  },
+  {
+    id: "cat100",
+    name: "Inkwell",
+    rarity: "common",
+  },
+  {
+    id: "cat101",
+    name: "Tuxedo",
+    rarity: "common",
+  },
+  {
+    id: "cat102",
+    name: "Cookie",
+    rarity: "common",
+  },
+  {
+    id: "cat103",
+    name: "Cinnamon",
+    rarity: "common",
+  },
+  {
+    id: "cat104",
+    name: "Russet",
+    rarity: "common",
+  },
+  {
+    id: "cat105",
+    name: "Caramel",
+    rarity: "common",
+  },
+  {
+    id: "cat106",
+    name: "Smoke",
+    rarity: "common",
+  },
+  {
+    id: "cat107",
+    name: "Misty",
+    rarity: "common",
+  },
+  {
+    id: "cat108",
+    name: "Sand",
+    rarity: "common",
+  },
+  {
+    id: "cat109",
+    name: "Mocha",
+    rarity: "common",
+  },
+  {
+    id: "cat110",
+    name: "Pewter",
+    rarity: "common",
+  },
+  {
+    id: "cat111",
+    name: "Dust",
+    rarity: "common",
+  },
+  {
+    id: "cat112",
+    name: "Slate",
+    rarity: "common",
+  },
+  {
+    id: "cat113",
+    name: "Frost",
+    rarity: "common",
+  },
+  {
+    id: "cat114",
+    name: "Charcoal",
+    rarity: "common",
+  },
+  {
+    id: "cat115",
+    name: "Pearl",
+    rarity: "common",
+  },
+  {
+    id: "cat116",
+    name: "Bronze",
+    rarity: "common",
+  },
+  {
+    id: "cat117",
+    name: "Lavender",
+    rarity: "common",
+  },
+  {
+    id: "cat118",
+    name: "Peachy",
+    rarity: "common",
   },
 ];
