@@ -52,6 +52,11 @@ interface VisitData {
    *  so the inline preview reads like the in-game stage. */
   activeBackground?: string | null;
   song?: { title?: string; vibe?: string; difficulty?: string };
+  /** True when the post's chart has any taps / holds / slides /
+   *  slide-returns. False = default seeded post or an accidental empty
+   *  publish; splash swaps to the loading-screen composition (logo +
+   *  PLAY NOW, no info panel, no plays banner). */
+  hasChart?: boolean;
 }
 
 interface LeaderboardData {
@@ -67,11 +72,24 @@ interface LeaderboardData {
  *  the "Updated Xs ago" stamp. null until the first poll lands. */
 let lastUpdatedAt: number | null = null;
 
+/** Populated by the preview fetch. null = fetch hasn't landed / failed,
+ *  false = post has no chart notes (seeded default or empty publish) so
+ *  splash is in the empty-chart mode and renderLeaderboard should skip
+ *  unhiding the plays banner. true = normal splash. */
+let hasChart: boolean | null = null;
+
 if (postId) {
   // Visit data only needs to fetch once — owner / song / preview image
   // don't change after publish. Leaderboard re-polls on a timer.
   void fetch(`/api/preview-image?postId=${encodeURIComponent(postId)}`)
-    .then((r) => r.ok ? r.json() : null)
+    .then((r) => {
+      if (r.ok) return r.json();
+      // 404 = no owner mapping (default seeded post or otherwise
+      // unmapped). Same visual treatment as an empty published chart —
+      // no author to render, no song, no leaderboard-worthy stakes.
+      if (r.status === 404) applyEmptyChartMode();
+      return null;
+    })
     .then((visit) => { if (visit) renderVisit(visit as VisitData); })
     .catch((err) => { console.warn('[splash] preview-image fetch failed:', err); });
 
@@ -80,6 +98,20 @@ if (postId) {
   // Tick the "Updated Xs ago" stamp every second so the player can see
   // the freshness of the number, not just the poll cadence.
   setInterval(renderUpdatedStamp, 1000);
+}
+
+/** Swap the splash to the loading-screen composition — hide the
+ *  plays banner + info panel (via body class in CSS), swap marquee
+ *  for the V21 logo. Idempotent: safe to call from both the 404
+ *  branch and the hasChart=false branch of renderVisit. */
+function applyEmptyChartMode(): void {
+  hasChart = false;
+  document.body.classList.add('empty-chart');
+  // Belt-and-suspenders — hide the plays banner explicitly in case
+  // renderLeaderboard already flipped it visible before the empty-
+  // chart signal landed.
+  if (playsBannerEl) playsBannerEl.style.display = 'none';
+  if (infoPanel) infoPanel.style.display = 'none';
 }
 
 async function loadLeaderboard(): Promise<void> {
@@ -97,6 +129,14 @@ async function loadLeaderboard(): Promise<void> {
 }
 
 function renderVisit(d: VisitData): void {
+  // Empty-chart posts (default seed + accidental empty publish) drop
+  // straight into the loading-screen composition and skip the rest of
+  // the visit rendering — bg / preview / author / song are all noise
+  // when there's nothing to play.
+  if (d.hasChart === false) {
+    applyEmptyChartMode();
+    return;
+  }
   // Full-page bg layer — Preloader.ts loads theme bgs from
   // /assets/themes/<id>-bg.png; we use the same path here so splash
   // and in-game show the same source asset for any given post.
@@ -133,7 +173,7 @@ function renderLeaderboard(d: LeaderboardData): void {
   // visible as social proof. Prefer server-counted total plays (every
   // submission counts) over top.length (unique players, PB-only).
   const plays = d.totalPlays ?? top.length;
-  if (playsBannerEl && playsBannerCountEl && playsBannerLabelEl) {
+  if (playsBannerEl && playsBannerCountEl && playsBannerLabelEl && hasChart !== false) {
     playsBannerCountEl.textContent = plays.toLocaleString();
     playsBannerLabelEl.textContent = plays === 1 ? 'play' : 'plays';
     playsBannerEl.style.display = '';

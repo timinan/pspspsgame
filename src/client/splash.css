@@ -94,6 +94,46 @@
   text-shadow: 2px 2px 0 #0b041a;
 }
 
+/* V21 brand logo — hidden by default. splash.ts unhides it (and hides
+   marquee-fallback + info + plays-banner) when the post has no chart
+   notes, matching the loading-screen composition. */
+.brand-logo {
+  display: none;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  width: 66%;
+  max-width: 260px;
+  height: auto;
+}
+
+/* === Empty-chart mode (default seeded post + any empty publishes) =====
+       Body class flipped by splash.ts when /api/preview-image returns
+       hasChart=false OR the post has no owner mapping (404). Swaps the
+       marquee for the V21 logo, stretches the stage to fill the flex
+       column, and hides the info panel + plays banner so the CTA reads
+       as "install my game" instead of "0 plays". */
+.empty-chart .stage {
+  aspect-ratio: unset;
+  flex: 1 1 auto;
+  min-height: 300px;
+  background-color: #1a0a2e;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.empty-chart .marquee-fallback {
+  display: none;
+}
+.empty-chart .brand-logo {
+  display: block;
+}
+.empty-chart .info,
+.empty-chart .plays-banner {
+  display: none !important;
+}
+.empty-chart .play-button {
+  margin: 12px 0 16px;
+}
+
 /* === Info panel — matches the in-game dark-purple box with yellow
        stroke (same chrome as the chart editor / settings modals). ====== */
 .info {

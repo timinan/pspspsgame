@@ -19,9 +19,16 @@
 
     <!-- Cat-stage band — owner's captured screenshot fills this once
          the preview fetch resolves. Until then, the marquee fallback
-         keeps the splash branded instead of blank. -->
+         keeps the splash branded instead of blank.
+
+         For empty-chart / unmapped posts (default seeded post + any
+         accidental empty publish), splash.ts adds body.empty-chart which
+         swaps the marquee for the V21 brand logo and stretches the
+         stage to fill the viewport — matches the loading-screen +
+         VisitPost empty-chart splash composition. -->
     <div class="stage" id="stage">
       <div class="marquee-fallback" id="marquee-fallback">MEOWCERT</div>
+      <img class="brand-logo" id="brand-logo" src="/assets/images/logo.png" alt="Meowcert" />
     </div>
 
     <!-- Info panel — mirrors the VisitPost in-game info layout:

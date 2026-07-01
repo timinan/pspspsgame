@@ -78,11 +78,24 @@ preview.get('/', async (c) => {
   const vibe = chart?.vibe;
   const difficulty = chart?.difficulty;
 
+  // The default subreddit-seeded post + any accidental empty-chart posts
+  // have zero taps + zero holds + zero slides. splash.ts flips to the
+  // loading-screen composition (V21 logo + PLAY NOW, no plays banner
+  // or info panel) when this is false — matches the empty-chart branch
+  // in VisitPost.ts so both surfaces read the same.
+  const hasChart =
+    !!chart &&
+    (chart.steps.some((s) => s.lanes.length > 0) ||
+      (chart.holds ?? []).length > 0 ||
+      (chart.slides ?? []).length > 0 ||
+      (chart.slideReturns ?? []).length > 0);
+
   return c.json({
     postId,
     ownerUsername,
     previewImage: previewImage ?? null,
     activeBackground,
     song: { title, vibe, difficulty },
+    hasChart,
   });
 });

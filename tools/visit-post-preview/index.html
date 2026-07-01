@@ -29,15 +29,26 @@
 </style>
 </head>
 <body>
-  <h1>Visit-Post empty-chart splash</h1>
+  <h1>Empty-chart splash previews</h1>
   <p>
-    Shown by <code>VisitPost</code> when the loaded chart has no notes
-    (default seeded subreddit post + any accidental empty-chart posts).
-    Brand purple bg + V21 logo + PLAY NOW. Regenerate with
+    Both surfaces trigger on posts with no chart notes (default seeded
+    subreddit post + any accidental empty publishes). Regenerate with
     <code>python3 scripts/preview-visit-post-empty.py</code>.
   </p>
+
+  <h2 style="margin: 0 0 8px; font-size: 14px; color: #c0a0e6;">
+    Devvit HTML splash card (feed preview, before Phaser loads)
+  </h2>
+  <div class="preview" style="margin-bottom: 32px;">
+    <img src="empty-splash-card.png" alt="Splash card empty-chart preview"
+         style="width: 380px; height: 700px;" />
+  </div>
+
+  <h2 style="margin: 0 0 8px; font-size: 14px; color: #c0a0e6;">
+    Phaser VisitPost scene (after TAP TO PLAY)
+  </h2>
   <div class="preview">
-    <img src="empty-splash.png" alt="Empty-chart splash preview" />
+    <img src="empty-splash.png" alt="VisitPost empty-chart preview" />
   </div>
 </body>
 </html>
