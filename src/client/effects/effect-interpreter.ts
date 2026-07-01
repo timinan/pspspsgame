@@ -590,6 +590,820 @@ function runLightning(
 }
 
 // ===========================================================================
+// PENTAGRAM (5-pointed star + double ring, dim-pulse cycle)
+// ===========================================================================
+function runPentagram(scene: Scene, target: EffectTarget, scale: number, color: number): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const r = 30 * scale;
+    // Bright by default, brief dim pulse — matches the smoketest's
+    // "dim-down beat" reading.
+    const cyc = (t / 3000) % 1;
+    const bright = cyc < 0.08 ? 0.4 : Math.min(1.0, 0.4 + (cyc - 0.08) * 6);
+    const wobble = Math.sin(t / 2000) * 0.05;
+    // Draw in flattened coords (scaleY 0.32) via manual point transform
+    // since Phaser Graphics doesn't have save/scale/rotate stack.
+    const flat = 0.32;
+    // Star (5-point). Points at angles i*4/5 * 2π, rotated by -π/2 + wobble.
+    const rot = -Math.PI / 2 + wobble;
+    const pts: Array<[number, number]> = [];
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 4 / 5) * Math.PI * 2 + rot;
+      pts.push([Math.cos(a) * r, Math.sin(a) * r * flat]);
+    }
+    g.lineStyle(2.5, color, 0.95 * bright);
+    g.beginPath();
+    g.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+    g.closePath();
+    g.strokePath();
+    // Inner ring at r * 1.05
+    g.strokeEllipse(0, 0, r * 2 * 1.05, r * 2 * flat * 1.05);
+    // Outer glow ring at r * 1.15 with softer alpha + thicker stroke
+    g.lineStyle(6, color, 0.4 * bright);
+    g.strokeEllipse(0, 0, r * 2 * 1.15, r * 2 * flat * 1.15);
+  };
+  const sync = (): void => {
+    const p = footPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+function runPentagramMulti(scene: Scene, target: EffectTarget, scale: number, colors: number[]): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const r = 30 * scale;
+    const cyc = (t / 3000) % 1;
+    const bright = cyc < 0.08 ? 0.4 : Math.min(1.0, 0.4 + (cyc - 0.08) * 6);
+    const color = cycleColor(colors, t, 2000);
+    const flat = 0.32;
+    const rot = -Math.PI / 2 + Math.sin(t / 2000) * 0.05;
+    const pts: Array<[number, number]> = [];
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 4 / 5) * Math.PI * 2 + rot;
+      pts.push([Math.cos(a) * r, Math.sin(a) * r * flat]);
+    }
+    g.lineStyle(2.5, color, 0.95 * bright);
+    g.beginPath();
+    g.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+    g.closePath();
+    g.strokePath();
+    g.strokeEllipse(0, 0, r * 2 * 1.05, r * 2 * flat * 1.05);
+    g.lineStyle(6, color, 0.4 * bright);
+    g.strokeEllipse(0, 0, r * 2 * 1.15, r * 2 * flat * 1.15);
+  };
+  const sync = (): void => {
+    const p = footPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// MAGIC CIRCLE (dual ellipse + 8 radial spokes rotating)
+// ===========================================================================
+function runMagicCircle(scene: Scene, target: EffectTarget, scale: number, color: number, brightness = 0.75): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const r = 38 * scale;
+    const flat = 0.32;
+    const rot = t / 3000;
+    g.lineStyle(2, color, brightness);
+    g.strokeEllipse(0, 0, r * 2, r * 2 * flat);
+    g.strokeEllipse(0, 0, r * 2 * 0.7, r * 2 * 0.7 * flat);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + rot;
+      const ix = Math.cos(a) * r * 0.7, iy = Math.sin(a) * r * 0.7 * flat;
+      const ox = Math.cos(a) * r, oy = Math.sin(a) * r * flat;
+      g.beginPath(); g.moveTo(ix, iy); g.lineTo(ox, oy); g.strokePath();
+    }
+  };
+  const sync = (): void => {
+    const p = footPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+function runMagicCircleMulti(scene: Scene, target: EffectTarget, scale: number, colors: number[]): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const color = cycleColor(colors, t, 3000);
+    const r = 38 * scale;
+    const flat = 0.32;
+    const rot = t / 3000;
+    g.lineStyle(2, color, 0.85);
+    g.strokeEllipse(0, 0, r * 2, r * 2 * flat);
+    g.strokeEllipse(0, 0, r * 2 * 0.7, r * 2 * 0.7 * flat);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + rot;
+      const ix = Math.cos(a) * r * 0.7, iy = Math.sin(a) * r * 0.7 * flat;
+      const ox = Math.cos(a) * r, oy = Math.sin(a) * r * flat;
+      g.beginPath(); g.moveTo(ix, iy); g.lineTo(ox, oy); g.strokePath();
+    }
+  };
+  const sync = (): void => {
+    const p = footPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// CIRCLE PATTERN (ring + inner shape — heart/star6/hexagon/triangle)
+// ===========================================================================
+function runCirclePattern(scene: Scene, target: EffectTarget, scale: number, shape: string, color: number): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const r = 32 * scale;
+    const flat = 0.32;
+    const cyc = (t / 3000) % 1;
+    const bright = cyc < 0.08 ? 0.4 : Math.min(1.0, 0.4 + (cyc - 0.08) * 6);
+    const rot = t / 4000;
+    g.lineStyle(2, color, 0.85 * bright);
+    g.strokeEllipse(0, 0, r * 2, r * 2 * flat);
+    g.beginPath();
+    const rotate = (x: number, y: number): [number, number] =>
+      [x * Math.cos(rot) - y * Math.sin(rot), x * Math.sin(rot) + y * Math.cos(rot)];
+    if (shape === 'heart') {
+      let first = true;
+      for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+        const hx = 16 * Math.pow(Math.sin(a), 3);
+        const hy = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
+        const [rx, ry] = rotate(hx * (r / 24), hy * (r / 24));
+        if (first) { g.moveTo(rx, ry * flat); first = false; }
+        else g.lineTo(rx, ry * flat);
+      }
+      g.closePath();
+    } else if (shape === 'star6') {
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 - Math.PI / 2 + rot;
+        const rr = (i % 2 === 0) ? r * 0.75 : r * 0.3;
+        const px = Math.cos(a) * rr, py = Math.sin(a) * rr * flat;
+        if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+      }
+      g.closePath();
+    } else if (shape === 'hexagon') {
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + rot;
+        const px = Math.cos(a) * r * 0.7, py = Math.sin(a) * r * 0.7 * flat;
+        if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+      }
+      g.closePath();
+    } else {
+      // triangle
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2 - Math.PI / 2 + rot;
+        const px = Math.cos(a) * r * 0.75, py = Math.sin(a) * r * 0.75 * flat;
+        if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+      }
+      g.closePath();
+    }
+    g.strokePath();
+  };
+  const sync = (): void => {
+    const p = footPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// SUN RAYS (16 rays rotating slowly outward, gradient approx via layered strokes)
+// ===========================================================================
+function parseRgba(s: string): [number, number, number, number] {
+  const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/);
+  if (!m) return [255, 255, 255, 1];
+  return [parseInt(m[1]!), parseInt(m[2]!), parseInt(m[3]!), m[4] ? parseFloat(m[4]) : 1];
+}
+function rgb2int(r: number, g: number, b: number): number { return (r << 16) | (g << 8) | b; }
+
+function runSunRays(scene: Scene, target: EffectTarget, scale: number, innerRgba: string, outerRgba: string): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const [ir, ig, ib, ia] = parseRgba(innerRgba);
+  const [or, og, ob, oa] = parseRgba(outerRgba);
+  const innerInt = rgb2int(ir, ig, ib);
+  const outerInt = rgb2int(or, og, ob);
+  const rays = 16;
+  const draw = (t: number): void => {
+    g.clear();
+    const rot = t / 4000;
+    // Approximate the gradient: 3 layered strokes per ray — bright core near
+    // center, mid-band, fade at tip.
+    for (let i = 0; i < rays; i++) {
+      const a = (i / rays) * Math.PI * 2 + rot;
+      const len = (90 + 14 * Math.sin(t / 300 + i)) * scale;
+      const c = Math.cos(a), s = Math.sin(a);
+      // Layer 1: inner bright half
+      g.lineStyle(5, innerInt, ia * 0.9);
+      g.beginPath(); g.moveTo(0, 0); g.lineTo(c * len * 0.35, s * len * 0.35);
+      g.strokePath();
+      // Layer 2: outer color mid → out
+      g.lineStyle(5, outerInt, oa * 0.6);
+      g.beginPath(); g.moveTo(c * len * 0.35, s * len * 0.35); g.lineTo(c * len * 0.85, s * len * 0.85);
+      g.strokePath();
+      g.lineStyle(5, outerInt, oa * 0.15);
+      g.beginPath(); g.moveTo(c * len * 0.85, s * len * 0.85); g.lineTo(c * len, s * len);
+      g.strokePath();
+    }
+  };
+  const sync = (): void => {
+    // Sun rays sit at body-mid so the rays radiate from the cat's core.
+    const p = midPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// GOD RAYS (5 vertical light shafts, flickering)
+// ===========================================================================
+function runGodRays(scene: Scene, target: EffectTarget, scale: number, glowRgb: string, coreRgb: string): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const [gr, gg, gb] = glowRgb.split(',').map((n) => parseInt(n));
+  const [cr, cg, cb] = coreRgb.split(',').map((n) => parseInt(n));
+  const glowInt = rgb2int(gr, gg, gb);
+  const coreInt = rgb2int(cr, cg, cb);
+  const draw = (t: number): void => {
+    g.clear();
+    const centerX = target.x;
+    const top = target.y - target.displayHeight * target.originY - 60 * scale;
+    const bot = target.y + target.displayHeight * (1 - target.originY);
+    for (let i = 0; i < 5; i++) {
+      const offset = (-40 + i * 22) * scale;
+      const flick = 0.55 + 0.45 * Math.sin(t / 220 + i * 1.3);
+      const x = centerX + offset;
+      // Trapezoid from narrow top to wide bottom, layered alpha for gradient
+      // Layer 1 outer glow (wider)
+      g.fillStyle(glowInt, 0.28 * flick);
+      g.beginPath();
+      g.moveTo(x - 6 * scale, top);
+      g.lineTo(x + 6 * scale, top);
+      g.lineTo(x + 22 * scale, bot);
+      g.lineTo(x - 22 * scale, bot);
+      g.closePath();
+      g.fillPath();
+      // Layer 2 core (narrower, brighter)
+      g.fillStyle(coreInt, 0.45 * flick);
+      g.beginPath();
+      g.moveTo(x - 3 * scale, top);
+      g.lineTo(x + 3 * scale, top);
+      g.lineTo(x + 12 * scale, bot);
+      g.lineTo(x - 12 * scale, bot);
+      g.closePath();
+      g.fillPath();
+    }
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+  draw(scene.time.now);
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// SOUND BARS (14 vertical bars pulsing to sin waves)
+// ===========================================================================
+function runSoundBars(scene: Scene, target: EffectTarget, scale: number, hueBase: number): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const cx = target.x;
+    const baseY = target.y + target.displayHeight * (1 - target.originY);
+    const bars = 14;
+    const maxH = 80 * scale;
+    for (let i = 0; i < bars; i++) {
+      const h = (Math.sin(t / 180 + i) * 0.5 + 0.6) * maxH;
+      const a = i / bars - 0.5;
+      const px = cx + a * 100 * scale;
+      const hue = (hueBase + i * 8) / 360;
+      const rgb = Phaser.Display.Color.HSVToRGB(hue, 0.85, 0.85);
+      const c = (rgb as unknown as { color: number }).color;
+      g.fillStyle(c, 0.9);
+      g.fillRect(px - 3 * scale, baseY - h, 5 * scale, h);
+    }
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+  draw(scene.time.now);
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// AURORA RIBBON (4 sine waves stacked at body-mid line)
+// ===========================================================================
+function runAuroraRibbon(scene: Scene, target: EffectTarget, scale: number, hues: number[]): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const cy = midPosition(target).y;
+    const cx = target.x;
+    // Span roughly ±140 px around target center — narrow enough to stay
+    // "on the cat" rather than filling the whole scene.
+    const span = 140 * scale;
+    const x0 = cx - span, x1 = cx + span;
+    for (let layer = 0; layer < 4; layer++) {
+      const hueDeg = (hues[layer % hues.length] + t / 60) % 360;
+      const rgb = Phaser.Display.Color.HSVToRGB(hueDeg / 360, 0.9, 0.6);
+      const c = (rgb as unknown as { color: number }).color;
+      g.lineStyle(6, c, 0.85);
+      g.beginPath();
+      for (let x = x0; x <= x1; x += 4) {
+        const localX = x - cx;
+        const y = cy + Math.sin(localX / 22 + t / 900 + layer) * 14 - layer * 4;
+        if (x === x0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.strokePath();
+    }
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+  draw(scene.time.now);
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// PIXEL RAIN (50 falling colored pixels)
+// ===========================================================================
+type PixelRainMode = 'gold' | 'red' | 'neon';
+function runPixelRain(scene: Scene, target: EffectTarget, scale: number, mode: PixelRainMode = 'neon'): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth + 1);
+  const N = 50;
+  // Rain field spans roughly target width x2. Local coords centered on target.
+  const spanX = 120 * scale;
+  const spanY = 160 * scale;
+  const drops = Array.from({ length: N }, () => ({
+    x: (Math.random() - 0.5) * spanX * 2,
+    y: (Math.random() - 0.5) * spanY,
+    c: Math.random(),
+  }));
+  const draw = (t: number): void => {
+    g.clear();
+    const cx = target.x;
+    const topY = target.y - target.displayHeight * target.originY - 60 * scale;
+    const botY = target.y + target.displayHeight * (1 - target.originY);
+    const yRange = botY - topY;
+    for (const d of drops) {
+      d.y += 1.4;
+      if (d.y > yRange) { d.y -= yRange; d.x = (Math.random() - 0.5) * spanX * 2; }
+      let c: number;
+      if (mode === 'gold') c = 0xffdc50;
+      else if (mode === 'red') c = 0xff5050;
+      else {
+        const rgb = Phaser.Display.Color.HSVToRGB(d.c, 0.95, 0.62);
+        c = (rgb as unknown as { color: number }).color;
+      }
+      g.fillStyle(c, 0.95);
+      g.fillRect(cx + Math.floor(d.x), topY + Math.floor(d.y), 4 * scale, 4 * scale);
+    }
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+  draw(scene.time.now);
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// DISCO LINES (12 vertical color-cycling bars around cat)
+// ===========================================================================
+function runDiscoLines(scene: Scene, target: EffectTarget, scale: number, hueOffset: number): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const centerX = target.x;
+    const footY = target.y + target.displayHeight * (1 - target.originY);
+    const topY = target.y - target.displayHeight * target.originY - 40 * scale;
+    const span = 140 * scale;
+    const lines = 12;
+    for (let i = 0; i < lines; i++) {
+      const a = i / lines - 0.5;
+      const px = centerX + a * span * 2;
+      const hue = (t / 240 + i * 30 + hueOffset) % 360;
+      const flick = 0.7 + 0.3 * Math.sin(t / 180 + i * 1.3);
+      const rgb = Phaser.Display.Color.HSVToRGB(hue / 360, 0.85, 0.6);
+      const c = (rgb as unknown as { color: number }).color;
+      // Layered alpha strokes to approximate the top→bottom gradient
+      g.fillStyle(c, 0.75 * flick);
+      g.fillRect(px - 3, topY, 6, footY - topY);
+      // Fade band at the top
+      g.fillStyle(c, 0.3 * flick);
+      g.fillRect(px - 3, topY - 30 * scale, 6, 30 * scale);
+    }
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+  draw(scene.time.now);
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// GLITCH (random noise rects around cat)
+// ===========================================================================
+function runGlitch(scene: Scene, target: EffectTarget, scale: number, hueRange: [number, number]): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth + 1);
+  const draw = (): void => {
+    g.clear();
+    const cx = target.x;
+    const cyMid = midPosition(target).y;
+    const spanX = 100 * scale, spanY = 90 * scale;
+    for (let i = 0; i < 24; i++) {
+      const rx = cx + (Math.random() - 0.5) * spanX * 2;
+      const ry = cyMid + (Math.random() - 0.5) * spanY;
+      const rw = 6 + Math.random() * 50 * scale;
+      const rh = 1 + Math.random() * 5 * scale;
+      let hue = hueRange[0] + Math.random() * (hueRange[1] - hueRange[0]);
+      if (hue < 0) hue += 360;
+      if (hue >= 360) hue -= 360;
+      const rgb = Phaser.Display.Color.HSVToRGB(hue / 360, 0.9, 0.6);
+      const c = (rgb as unknown as { color: number }).color;
+      g.fillStyle(c, 0.7);
+      g.fillRect(rx, ry, rw, rh);
+    }
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, draw);
+  draw();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, draw);
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// TELEPORT PAD (expanding squares on the floor)
+// ===========================================================================
+function runTeleportPad(scene: Scene, target: EffectTarget, scale: number, color: number, bright = false): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const flat = 0.32;
+    const baseAlpha = bright ? 1.0 : 0.7;
+    for (let i = 0; i < 5; i++) {
+      const phase = ((t / 1400 + i / 5) % 1);
+      const r = (14 + phase * 100) * scale;
+      const alpha = (1 - phase) * baseAlpha;
+      g.lineStyle(2, color, alpha);
+      // Stroke a squished rect (Phaser Graphics has no scale stack). Just
+      // approximate the flatten with two thin horizontal lines + two vertical.
+      const w = r * 2, h = r * 2 * flat;
+      g.strokeRect(-w / 2, -h / 2, w, h);
+    }
+  };
+  const sync = (): void => {
+    const p = footPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+function runTeleportMulti(scene: Scene, target: EffectTarget, scale: number, colors: number[]): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const flat = 0.32;
+    for (let i = 0; i < 5; i++) {
+      const phase = ((t / 1400 + i / 5) % 1);
+      const r = (14 + phase * 100) * scale;
+      const alpha = (1 - phase) * 0.7;
+      const color = cycleColor(colors, t + i * 500, 2400);
+      g.lineStyle(2, color, alpha);
+      const w = r * 2, h = r * 2 * flat;
+      g.strokeRect(-w / 2, -h / 2, w, h);
+    }
+  };
+  const sync = (): void => {
+    const p = footPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// ICE PUDDLE (chunky cyan tile pattern under the cat's feet)
+// ===========================================================================
+function runIcePuddle(scene: Scene, target: EffectTarget, scale: number): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const TILE = 4;
+    const w = 78 * scale, h = 22 * scale;
+    const halfW = w / 2, halfH = h / 2;
+    const phase = Math.floor(t / 1400);
+    for (let py = -halfH; py < halfH; py += TILE) {
+      for (let px = -halfW; px < halfW; px += TILE) {
+        const ex = px / halfW, ey = py / halfH;
+        const dist = Math.sqrt(ex * ex + ey * ey);
+        if (dist > 1) continue;
+        const seed = ((px * 374761393) ^ (py * 668265263) ^ (phase * 2147483647)) >>> 0;
+        const r = (seed % 100) / 100;
+        let color: number;
+        if (r < 0.15) color = 0xffffff;
+        else if (r < 0.45) color = 0xb4f0ff;
+        else color = 0x64d2ff;
+        const alpha = 0.7 + (1 - dist) * 0.25;
+        g.fillStyle(color, alpha);
+        g.fillRect(px, py, TILE, TILE);
+      }
+    }
+  };
+  const sync = (): void => {
+    const p = footPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// LAVA PUDDLE (sum-of-sines flow with 4-tone palette)
+// ===========================================================================
+function runLavaPuddle(scene: Scene, target: EffectTarget, scale: number, palette: number[][]): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const colors = palette.map(([r, gg, b]) => rgb2int(r, gg, b));
+  const draw = (t: number): void => {
+    g.clear();
+    const TILE = 4;
+    const w = 92 * scale, h = 30 * scale;
+    const halfW = w / 2, halfH = h / 2;
+    for (let py = -halfH; py < halfH; py += TILE) {
+      for (let px = -halfW; px < halfW; px += TILE) {
+        const ex = px / halfW, ey = py / halfH;
+        const dist = Math.sqrt(ex * ex + ey * ey);
+        if (dist > 1) continue;
+        const w1 = Math.sin(px * 0.10 + py * 0.06 + t / 900);
+        const w2 = Math.sin(px * 0.22 - py * 0.15 + t / 1400 + 1.7);
+        const w3 = Math.sin(px * 0.06 + py * 0.20 + t / 1800 + 0.4);
+        const jitter = (((px * 374761393) ^ (py * 668265263)) >>> 0) % 100 / 100 - 0.5;
+        const flow = (w1 + w2 + w3) / 3 + jitter * 0.2;
+        const heat = (flow + 1) / 2 + (1 - dist) * 0.18;
+        let color: number;
+        if (heat > 1.05) color = colors[3];
+        else if (heat > 0.78) color = colors[2];
+        else if (heat > 0.45) color = colors[1];
+        else color = colors[0];
+        const alpha = 0.85 + (1 - dist) * 0.15;
+        g.fillStyle(color, alpha);
+        g.fillRect(px, py, TILE, TILE);
+      }
+    }
+  };
+  const sync = (): void => {
+    const p = footPosition(target); g.setPosition(p.x, p.y); draw(scene.time.now);
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, sync);
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// PILLARS MULTI (vertical color pillars around cat)
+// ===========================================================================
+function runPillarsMulti(scene: Scene, target: EffectTarget, scale: number, colors: number[]): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const cx = target.x;
+    const footY = target.y + target.displayHeight * (1 - target.originY);
+    const topY = target.y - target.displayHeight * target.originY - 40 * scale;
+    for (let idx = 0; idx < 4; idx++) {
+      const xo = (-54 + 36 * idx) * scale;
+      const flicker = 0.7 + 0.3 * Math.sin(t / 60 + xo * 0.1);
+      const c = colors[idx % colors.length];
+      g.fillStyle(c, 0.65 * flicker);
+      g.fillRect(cx + xo - 4 * scale, topY, 8 * scale, footY - topY);
+    }
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+  draw(scene.time.now);
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// STAR CIRCLE MULTI (6 stars orbiting with color cycle)
+// ===========================================================================
+function runStarCircleMulti(scene: Scene, target: EffectTarget, scale: number, colors: number[]): EffectHandle {
+  const N = 6;
+  const texts: GameObjects.Text[] = [];
+  for (let i = 0; i < N; i++) {
+    const t = scene.add.text(0, 0, '⭐', {
+      fontSize: `${Math.round(14 * scale)}px`, resolution: 0.42, padding: { x: 3, y: 4 },
+    }).setOrigin(0.5).setDepth(target.depth - 1);
+    t.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    texts.push(t);
+  }
+  const sync = (): void => {
+    const p = midPosition(target);
+    const r = 34 * scale;
+    const now = scene.time.now;
+    const color = cycleColor(colors, now, 3000);
+    texts.forEach((tx, i) => {
+      const a = (now / 2400) * Math.PI * 2 + (i / N) * Math.PI * 2;
+      tx.setPosition(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r * 0.4);
+      tx.setTint(color);
+    });
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, sync);
+  sync();
+  return {
+    destroy: () => {
+      scene.events.off(Scenes.Events.POST_UPDATE, sync);
+      texts.forEach((t) => t.destroy());
+    },
+  };
+}
+
+// ===========================================================================
+// CONSTELLATION (12 twinkling dots + connecting lines)
+// ===========================================================================
+function runConstellation(scene: Scene, target: EffectTarget, scale: number): EffectHandle {
+  const POOL = 12;
+  const RANGE = 45;
+  const dots = Array.from({ length: POOL }, () => ({
+    dx: -RANGE + Math.random() * RANGE * 2,
+    dy: -RANGE + Math.random() * RANGE * 2,
+    period: 4400 + Math.random() * 2600,
+    phaseOffset: Math.random(),
+  }));
+  const g = scene.add.graphics().setDepth(target.depth - 1);
+  const draw = (t: number): void => {
+    g.clear();
+    const cx = target.x;
+    const cy = target.y - target.displayHeight * (target.originY - 0.5) - target.displayHeight * 0.15;
+    const rot = t / 5000;
+    const cosR = Math.cos(rot), sinR = Math.sin(rot);
+    const live = dots.map((d, i) => {
+      const phase = ((t / d.period) + d.phaseOffset) % 1;
+      let alpha = 0;
+      if (phase < 0.2) alpha = phase / 0.2;
+      else if (phase < 0.6) alpha = 1;
+      else alpha = 1 - (phase - 0.6) / 0.4;
+      if (alpha < 0.02 && i % 3 === Math.floor(t / 600) % 3) {
+        d.dx = -RANGE + Math.random() * RANGE * 2;
+        d.dy = -RANGE + Math.random() * RANGE * 2;
+      }
+      const sx = d.dx * cosR - d.dy * sinR;
+      const sy = d.dx * sinR + d.dy * cosR;
+      return { x: cx + sx * scale, y: cy + sy * scale * 0.6, alpha };
+    });
+    const visible = live.filter((d) => d.alpha > 0.3);
+    for (let i = 0; i < visible.length; i++) {
+      let bestJ = -1, bestD = Infinity;
+      for (let j = i + 1; j < visible.length; j++) {
+        const dx = visible[i].x - visible[j].x;
+        const dy = visible[i].y - visible[j].y;
+        const dd = dx * dx + dy * dy;
+        if (dd < bestD) { bestD = dd; bestJ = j; }
+      }
+      if (bestJ >= 0 && bestD < 4500) {
+        const avg = Math.min(visible[i].alpha, visible[bestJ].alpha);
+        g.lineStyle(2.5, 0xdcebff, avg * 0.7);
+        g.beginPath();
+        g.moveTo(visible[i].x, visible[i].y);
+        g.lineTo(visible[bestJ].x, visible[bestJ].y);
+        g.strokePath();
+      }
+    }
+    for (const d of live) {
+      if (d.alpha < 0.02) continue;
+      g.fillStyle(0xffffff, d.alpha);
+      g.fillCircle(d.x, d.y, 3.5 * scale);
+      g.fillStyle(0xffffff, 0.25 * d.alpha);
+      g.fillCircle(d.x, d.y, 6 * scale);
+    }
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+  draw(scene.time.now);
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    g.destroy();
+  });
+}
+
+// ===========================================================================
+// WEATHER (snow / rain / wind / stars / dust / fog particle streams)
+// ===========================================================================
+function runWeather(scene: Scene, target: EffectTarget, scale: number, mode: string): EffectHandle {
+  const g = scene.add.graphics().setDepth(target.depth + 1);
+  const centerX = target.x;
+  const topY = target.y - target.displayHeight * target.originY - 60 * scale;
+  const botY = target.y + target.displayHeight * (1 - target.originY);
+  const spanX = 160 * scale;
+  const N = mode === 'rain' ? 60 : mode === 'wind' ? 44 : mode === 'dust' ? 130 : mode === 'stars' ? 120 : 48;
+  type Particle = { x: number; y: number; spd: number; drift: number; sz: number };
+  const items: Particle[] = Array.from({ length: N }, () => ({
+    x: (Math.random() - 0.5) * spanX * 2,
+    y: Math.random() * (botY - topY),
+    spd: 0.4 + Math.random() * 0.8,
+    drift: (Math.random() - 0.5) * 0.3,
+    sz: 1 + Math.random() * 2,
+  }));
+  const draw = (t: number): void => {
+    g.clear();
+    const yRange = botY - topY;
+    for (const it of items) {
+      if (mode !== 'wind') {
+        const speed = mode === 'rain' ? 4 : mode === 'snow' ? 1.6 : mode === 'dust' ? 0.5 : 0.2;
+        it.y += it.spd * speed;
+        it.x += it.drift;
+        if (it.y > yRange) { it.y -= yRange; it.x = (Math.random() - 0.5) * spanX * 2; }
+        if (it.x < -spanX) it.x = spanX;
+        if (it.x > spanX) it.x = -spanX;
+      } else {
+        it.x += 2;
+        it.y += 0.8;
+        if (it.x > spanX + 20) {
+          it.x = -spanX - 20;
+          it.y = Math.random() * yRange * (Math.random() < 0.7 ? 0.55 : 1);
+        }
+      }
+      const drawX = centerX + it.x;
+      const drawY = topY + it.y;
+      if (mode === 'snow') {
+        g.fillStyle(0xffffff, 0.5 + 0.5 * Math.sin(t / 300 + it.x));
+        g.fillCircle(drawX, drawY, it.sz);
+      } else if (mode === 'rain') {
+        g.lineStyle(2, 0x8cb4ff, 0.85);
+        g.beginPath(); g.moveTo(drawX, drawY); g.lineTo(drawX + 2, drawY + 14); g.strokePath();
+      } else if (mode === 'wind') {
+        g.lineStyle(1.5, 0xc8d2ff, 0.55 + 0.3 * Math.sin(t / 400 + it.x));
+        g.beginPath(); g.moveTo(drawX, drawY); g.lineTo(drawX + 26, drawY + 10); g.strokePath();
+      } else if (mode === 'fog') {
+        g.fillStyle(0xdcdcf0, 0.06 + 0.04 * Math.sin(t / 600 + it.x));
+        g.fillEllipse(drawX, drawY, 28, 8);
+      } else if (mode === 'dust') {
+        g.fillStyle(0xfff0b4, 0.5 + 0.3 * Math.sin(t / 500 + it.x));
+        g.fillRect(drawX, drawY, 2, 2);
+      } else {
+        g.fillStyle(0xffffff, 0.7 + 0.3 * Math.sin(t / 800 + it.x));
+        g.fillRect(drawX, drawY, 2, 2);
+      }
+    }
+  };
+  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+  draw(scene.time.now);
+  return withPulse(scene, g, () => {
+    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    g.destroy();
+  });
+}
+
+// ===========================================================================
 // FALLBACK (soft colored aura for kinds not yet fully implemented)
 // ===========================================================================
 function runFallback(scene: Scene, target: EffectTarget, scale: number, color = 0xa64dff): EffectHandle {
@@ -685,11 +1499,127 @@ export function runKind(
       const args = (params.args as unknown[]) ?? [];
       return runLightning(scene, target, scale, (args[0] as string), (args[1] as string));
     }
+    // ---------- ported from the smoketest canvas renders ----------
+    case 'pentagram': {
+      // params: { color } — kept ID-scoped for the shipped 6 variants.
+      const color = (params.color as number) ?? colorFromId(meta.id, 0xff3333);
+      return runPentagram(scene, target, scale, color);
+    }
+    case 'pentagram_multi': {
+      const colors = (params.colors as number[]) ?? [0xff3333, 0xffd34d];
+      return runPentagramMulti(scene, target, scale, colors);
+    }
+    case 'magic_circle': {
+      const color = (params.color as number) ?? colorFromId(meta.id, 0xa64dff);
+      return runMagicCircle(scene, target, scale, color);
+    }
+    case 'magic_circle_bright': {
+      const color = (params.color as number) ?? colorFromId(meta.id, 0xa64dff);
+      return runMagicCircle(scene, target, scale, color, 1.0);
+    }
+    case 'magic_circle_multi': {
+      const palette = (params.palette as number[]) ?? (params.colors as number[]) ?? [0xff3333, 0x33ff66, 0x3399ff];
+      return runMagicCircleMulti(scene, target, scale, palette);
+    }
+    case 'circle_pattern': {
+      const args = (params.args as unknown[]) ?? ['star6', 0xffd34d];
+      return runCirclePattern(scene, target, scale, args[0] as string, args[1] as number);
+    }
+    case 'sun_rays': {
+      const args = (params.args as unknown[]) ?? ['rgba(255,240,180,1)', 'rgba(255,220,110,0.85)'];
+      return runSunRays(scene, target, scale, args[0] as string, args[1] as string);
+    }
+    case 'god_rays': {
+      const args = (params.args as unknown[]) ?? ['255,255,235', '255,240,160'];
+      // The extractor sometimes splits comma-separated RGB triples into
+      // multiple positional args — recombine when we see 6 slots.
+      let glow: string, core: string;
+      if (args.length >= 6) {
+        glow = `${args[0]},${args[1]},${String(args[2]).replace(/'$/, '')}`;
+        core = `${args[3]},${args[4]},${String(args[5]).replace(/'$/, '')}`;
+      } else {
+        glow = args[0] as string; core = args[1] as string;
+      }
+      return runGodRays(scene, target, scale, glow, core);
+    }
+    case 'sound_bars': {
+      const hueBase = (params.hueBase as number) ?? 280;
+      return runSoundBars(scene, target, scale, hueBase);
+    }
+    case 'aurora_ribbon': {
+      const hues = (params.hues as number[]) ?? [120, 170, 220, 270];
+      return runAuroraRibbon(scene, target, scale, hues);
+    }
+    case 'pixel_rain': {
+      const cf = (params.colorFn as string) ?? 'neon';
+      return runPixelRain(
+        scene, target, scale,
+        cf.includes('gold') ? 'gold' : cf.includes('red') ? 'red' : 'neon',
+      );
+    }
+    case 'disco_lines': {
+      const hueOffset = (params.hueOffset as number) ?? 0;
+      return runDiscoLines(scene, target, scale, hueOffset);
+    }
+    case 'glitch': {
+      const range = (params.hueRange as number[]) ?? [0, 360];
+      return runGlitch(scene, target, scale, [range[0], range[1]]);
+    }
+    case 'teleport_pad': {
+      const args = (params.args as unknown[]) ?? [0x33ffe6];
+      return runTeleportPad(scene, target, scale, args[0] as number);
+    }
+    case 'teleport_bright': {
+      const args = (params.args as unknown[]) ?? [0x33ffe6];
+      return runTeleportPad(scene, target, scale, args[0] as number, /* bright */ true);
+    }
+    case 'teleport_multi': {
+      const palette = (params.palette as number[]) ?? (params.colors as number[]) ?? [0xff3333, 0xffd34d, 0x33ffe6];
+      return runTeleportMulti(scene, target, scale, palette);
+    }
+    case 'ice_puddle':
+      return runIcePuddle(scene, target, scale);
+    case 'lava_puddle': {
+      const palette = (params.colors as number[][]) ??
+        [[80, 20, 20], [180, 60, 20], [255, 140, 40], [255, 240, 120]];
+      return runLavaPuddle(scene, target, scale, palette);
+    }
+    case 'pillars_multi': {
+      const colors = (params.colors as number[]) ?? [0xff3333, 0x33ff66, 0x3399ff, 0xffd34d];
+      return runPillarsMulti(scene, target, scale, colors);
+    }
+    case 'star_circle_multi': {
+      const palette = (params.palette as number[]) ?? (params.colors as number[]) ?? [0xffd34d, 0x33ffe6, 0xff66cc];
+      return runStarCircleMulti(scene, target, scale, palette);
+    }
+    case 'constellation':
+      return runConstellation(scene, target, scale);
+    case 'custom_mkWeather': {
+      const args = (params.args as unknown[]) ?? ['snow'];
+      return runWeather(scene, target, scale, String(args[0] ?? 'snow'));
+    }
     default:
       // Fallback color derived from category so at least each category has
       // a distinct look until we implement the kind properly.
       return runFallback(scene, target, scale, catFallbackColor(meta.category));
   }
+}
+
+/** Best-guess color for kinds where the extractor lost the param — reads
+ *  the color hint out of the effect id (e.g. 'effect-floor-pentagram-gold'
+ *  → gold). Keeps the shipped variants visually distinct even when the
+ *  params object is empty. */
+function colorFromId(id: string, fallback: number): number {
+  if (id.includes('gold')) return 0xffd34d;
+  if (id.includes('purple') || id.includes('void')) return 0xa64dff;
+  if (id.includes('cyan') || id.includes('ice')) return 0x33ffe6;
+  if (id.includes('red')) return 0xff3333;
+  if (id.includes('blue')) return 0x3399ff;
+  if (id.includes('green')) return 0x33ff66;
+  if (id.includes('pink') || id.includes('magenta')) return 0xff66cc;
+  if (id.includes('orange')) return 0xff8833;
+  if (id.includes('white') || id.includes('silver')) return 0xf0f0ff;
+  return fallback;
 }
 
 function catFallbackColor(category: string): number {
