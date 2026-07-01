@@ -885,10 +885,11 @@ function runGodRays(scene: Scene, target: EffectTarget, scale: number, glowRgb: 
       g.fillPath();
     }
   };
-  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
-  draw(scene.time.now);
+  const tick = (): void => draw(scene.time.now);
+  scene.events.on(Scenes.Events.POST_UPDATE, tick);
+  tick();
   return withPulse(scene, g, () => {
-    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    scene.events.off(Scenes.Events.POST_UPDATE, tick);
     g.destroy();
   });
 }
@@ -915,10 +916,11 @@ function runSoundBars(scene: Scene, target: EffectTarget, scale: number, hueBase
       g.fillRect(px - 3 * scale, baseY - h, 5 * scale, h);
     }
   };
-  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
-  draw(scene.time.now);
+  const tick = (): void => draw(scene.time.now);
+  scene.events.on(Scenes.Events.POST_UPDATE, tick);
+  tick();
   return withPulse(scene, g, () => {
-    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    scene.events.off(Scenes.Events.POST_UPDATE, tick);
     g.destroy();
   });
 }
@@ -950,10 +952,11 @@ function runAuroraRibbon(scene: Scene, target: EffectTarget, scale: number, hues
       g.strokePath();
     }
   };
-  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
-  draw(scene.time.now);
+  const tick = (): void => draw(scene.time.now);
+  scene.events.on(Scenes.Events.POST_UPDATE, tick);
+  tick();
   return withPulse(scene, g, () => {
-    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    scene.events.off(Scenes.Events.POST_UPDATE, tick);
     g.destroy();
   });
 }
@@ -993,10 +996,11 @@ function runPixelRain(scene: Scene, target: EffectTarget, scale: number, mode: P
       g.fillRect(cx + Math.floor(d.x), topY + Math.floor(d.y), 4 * scale, 4 * scale);
     }
   };
-  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
-  draw(scene.time.now);
+  const tick = (): void => draw(scene.time.now);
+  scene.events.on(Scenes.Events.POST_UPDATE, tick);
+  tick();
   return withPulse(scene, g, () => {
-    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    scene.events.off(Scenes.Events.POST_UPDATE, tick);
     g.destroy();
   });
 }
@@ -1028,10 +1032,11 @@ function runDiscoLines(scene: Scene, target: EffectTarget, scale: number, hueOff
       g.fillRect(px - 3, topY - 30 * scale, 6, 30 * scale);
     }
   };
-  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
-  draw(scene.time.now);
+  const tick = (): void => draw(scene.time.now);
+  scene.events.on(Scenes.Events.POST_UPDATE, tick);
+  tick();
   return withPulse(scene, g, () => {
-    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    scene.events.off(Scenes.Events.POST_UPDATE, tick);
     g.destroy();
   });
 }
@@ -1226,10 +1231,11 @@ function runPillarsMulti(scene: Scene, target: EffectTarget, scale: number, colo
       g.fillRect(cx + xo - 4 * scale, topY, 8 * scale, footY - topY);
     }
   };
-  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
-  draw(scene.time.now);
+  const tick = (): void => draw(scene.time.now);
+  scene.events.on(Scenes.Events.POST_UPDATE, tick);
+  tick();
   return withPulse(scene, g, () => {
-    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    scene.events.off(Scenes.Events.POST_UPDATE, tick);
     g.destroy();
   });
 }
@@ -1327,10 +1333,11 @@ function runConstellation(scene: Scene, target: EffectTarget, scale: number): Ef
       g.fillCircle(d.x, d.y, 6 * scale);
     }
   };
-  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
-  draw(scene.time.now);
+  const tick = (): void => draw(scene.time.now);
+  scene.events.on(Scenes.Events.POST_UPDATE, tick);
+  tick();
   return withPulse(scene, g, () => {
-    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    scene.events.off(Scenes.Events.POST_UPDATE, tick);
     g.destroy();
   });
 }
@@ -1395,10 +1402,11 @@ function runWeather(scene: Scene, target: EffectTarget, scale: number, mode: str
       }
     }
   };
-  scene.events.on(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
-  draw(scene.time.now);
+  const tick = (): void => draw(scene.time.now);
+  scene.events.on(Scenes.Events.POST_UPDATE, tick);
+  tick();
   return withPulse(scene, g, () => {
-    scene.events.off(Scenes.Events.POST_UPDATE, () => draw(scene.time.now));
+    scene.events.off(Scenes.Events.POST_UPDATE, tick);
     g.destroy();
   });
 }
@@ -1598,11 +1606,205 @@ export function runKind(
       const args = (params.args as unknown[]) ?? ['snow'];
       return runWeather(scene, target, scale, String(args[0] ?? 'snow'));
     }
+    case 'custom_arrow':
+      // Extractor placeholder — the smoketest arrow-function bodies
+      // couldn't be lifted to params. Route by id so the shipped
+      // variants still hit their intended visual instead of a purple
+      // blob. 6 of the ids (stagelight color cycles) already route
+      // through CAT_EFFECT_BY_ID before this line runs — see
+      // getEffectById().
+      return runCustomArrow(scene, target, scale, meta.id, meta.category);
+    case 'custom_unknown':
+      return runCustomUnknown(scene, target, scale, meta.id);
     default:
       // Fallback color derived from category so at least each category has
       // a distinct look until we implement the kind properly.
       return runFallback(scene, target, scale, catFallbackColor(meta.category));
   }
+}
+
+/** Route a custom_arrow effect (extractor placeholder for smoketest
+ *  factories that resisted param extraction) to whichever existing
+ *  runner most closely matches its id. Each branch mirrors the smoke-
+ *  test factory the id came from. */
+function runCustomArrow(
+  scene: Scene, target: EffectTarget, scale: number,
+  id: string, category: string,
+): EffectHandle {
+  // Beams
+  if (id.startsWith('effect-beam-sun-rays')) {
+    if (id.includes('rainbow')) return runSunRays(scene, target, scale, 'rgba(255,255,255,1)', 'rgba(255,180,80,0.85)');
+    if (id.includes('bright-neon')) return runSunRays(scene, target, scale, 'rgba(255,255,220,1)', 'rgba(255,110,220,0.85)');
+    return runSunRays(scene, target, scale, 'rgba(255,240,180,1)', 'rgba(255,220,110,0.85)');
+  }
+  if (id.startsWith('effect-beam-god-rays')) {
+    if (id.includes('rainbow')) return runGodRays(scene, target, scale, '255,220,220', '255,150,200');
+    return runGodRays(scene, target, scale, '255,255,235', '255,240,160');
+  }
+  if (id === 'effect-beam-lightning') {
+    return runLightning(scene, target, scale, '255,228,77', '255,255,255');
+  }
+  if (id === 'effect-beam-twin-pillars') {
+    return runPillarsMulti(scene, target, scale, [0xff3333, 0x3399ff]);
+  }
+  if (id.startsWith('effect-beam-pillars')) {
+    return runPillarsMulti(scene, target, scale, [0xff3333, 0xffe44d, 0x33ff66, 0x3399ff]);
+  }
+  // Halos & Rings
+  if (id === 'effect-halo-saturn' || id === 'effect-halo-saturn-rainbow') {
+    return runSaturn(scene, target, scale, [0xff66cc, 0xffe44d]);
+  }
+  if (id.startsWith('effect-halo-double')) {
+    // Two concentric halos — id suffix picks color pair
+    let color = 0xff66cc;
+    if (id.includes('aurora')) color = 0x33ff99;
+    else if (id.includes('neon')) color = 0x33ffe6;
+    else if (id.includes('silver')) color = 0xdddddd;
+    else if (id.includes('sunset')) color = 0xff9a3c;
+    return runHalo(scene, target, scale, {
+      color, radius: 32, thickness: 2.5, pos: 'mid',
+      shape: 'ellipse', glow: true, rotateMs: 2800, tiltOscMs: 1700,
+    } as HaloParams);
+  }
+  if (id === 'effect-halo-segments-multi') {
+    return runHalo(scene, target, scale, {
+      color: 0x33ffe6, radius: 32, thickness: 3, pos: 'mid',
+      shape: 'segments', segments: 12, rotateMs: 2400, tiltOscMs: 1600,
+    } as HaloParams);
+  }
+  if (id === 'effect-halo-ground') {
+    return runPortal(scene, target, scale, {
+      core: 0xff66cc, ring: 0xffb0dc, mid: 0xcc4d99, pulse: 0xff88cc,
+    } as PortalParams);
+  }
+  // Floor / Ground
+  if (id === 'effect-floor-ice-patch' || id === 'effect-floor-ice-puddle') {
+    return runIcePuddle(scene, target, scale);
+  }
+  if (id === 'effect-floor-lava-puddle') {
+    return runLavaPuddle(scene, target, scale,
+      [[80, 20, 20], [180, 60, 20], [255, 140, 40], [255, 240, 120]]);
+  }
+  if (id === 'effect-floor-magic-circle') {
+    return runMagicCircle(scene, target, scale, 0xa64dff);
+  }
+  if (id === 'effect-floor-pentagram') {
+    return runPentagram(scene, target, scale, 0xff3333);
+  }
+  if (id === 'effect-floor-teleport-pad') {
+    return runTeleportPad(scene, target, scale, 0x33ffe6);
+  }
+  // Misc / Extras
+  if (id === 'effect-extra-aurora-ribbon' || id.startsWith('effect-extra-aurora-multi')) {
+    return runAuroraRibbon(scene, target, scale, [120, 170, 220, 270]);
+  }
+  if (id === 'effect-extra-constellation') return runConstellation(scene, target, scale);
+  if (id === 'effect-extra-disco-floor') return runDiscoLines(scene, target, scale, 0);
+  if (id === 'effect-extra-glitch-noise') return runGlitch(scene, target, scale, [0, 360]);
+  if (id === 'effect-extra-glitch-slow') return runGlitch(scene, target, scale, [190, 260]);
+  if (id === 'effect-extra-pixel-rain') return runPixelRain(scene, target, scale, 'neon');
+  if (id === 'effect-extra-sound-bars') return runSoundBars(scene, target, scale, 280);
+  if (id === 'effect-extra-starburst') {
+    return runSunRays(scene, target, scale, 'rgba(255,240,180,1)', 'rgba(255,220,110,0.85)');
+  }
+  if (id === 'effect-extra-cosmic-swirl') {
+    return runOrbiter(scene, target, scale, {
+      glyph: '✨', count: 10, radius: 30, pos: 'mid', size: 12, speedMs: 3200, flatten: 0.6,
+    } as OrbiterParams);
+  }
+  if (id === 'effect-extra-fairy-lights') {
+    return runOrbiter(scene, target, scale, {
+      glyph: '💡', count: 12, radius: 34, pos: 'mid', size: 14, speedMs: 4200, flatten: 0.5,
+    } as OrbiterParams);
+  }
+  if (id === 'effect-extra-bubble-shield') {
+    return runHalo(scene, target, scale, {
+      color: 0xb4dcff, radius: 38, thickness: 1.5, pos: 'mid',
+      shape: 'ellipse', glow: true, rotateMs: 6000, tiltOscMs: 3200,
+    } as HaloParams);
+  }
+  if (id === 'effect-extra-chromatic') return runFallback(scene, target, scale, 0xff33aa);
+  if (id === 'effect-extra-lens-flare') {
+    return runOrbiter(scene, target, scale, {
+      glyph: '☀️', count: 1, radius: 24, pos: 'mid', size: 22, speedMs: 4800,
+    } as OrbiterParams);
+  }
+  // Orbiters
+  if (id === 'effect-orbit-comet') {
+    return runOrbiter(scene, target, scale, {
+      glyph: '☄️', count: 3, radius: 32, pos: 'mid', size: 16, speedMs: 2400,
+    } as OrbiterParams);
+  }
+  if (id === 'effect-orbit-planets') {
+    return runOrbiter(scene, target, scale, {
+      glyph: '🪐', count: 3, radius: 32, pos: 'mid', size: 16, speedMs: 3000,
+    } as OrbiterParams);
+  }
+  // Pulse Waves
+  if (id === 'effect-pulse-echo') {
+    return runPulse(scene, target, scale, {
+      color: 0xff66cc, maxR: 60, intervalMs: 500, lifeMs: 1200, shape: 'ring',
+    } as PulseParams);
+  }
+  if (id === 'effect-pulse-heart-alt' || id === 'effect-pulse-heart-rainbow') {
+    return runPulse(scene, target, scale, {
+      color: 0xff3355, maxR: 44, intervalMs: 700, lifeMs: 1500, shape: 'heart', pos: 'mid',
+    } as PulseParams);
+  }
+  if (id === 'effect-pulse-radio-rainbow') {
+    return runPulse(scene, target, scale, {
+      color: 0x33ffe6, maxR: 60, intervalMs: 400, lifeMs: 1200, shape: 'semicircle', pos: 'feet',
+    } as PulseParams);
+  }
+  if (id === 'effect-pulse-sonar-pro-rainbow') {
+    return runPulse(scene, target, scale, {
+      color: 0x33ffe6, maxR: 60, intervalMs: 380, lifeMs: 1000, shape: 'ring',
+    } as PulseParams);
+  }
+  // Tint FX
+  if (id === 'effect-tint-strobe-blue' || id === 'effect-tint-strobe-gold' ||
+      id === 'effect-tint-strobe-red') {
+    return runTint(scene, target, scale, { args: ['strobe', undefined, 240, 1] } as TintParams);
+  }
+  if (id === 'effect-tint-strobe-rainbow') {
+    return runTint(scene, target, scale, { args: ['rainbow', undefined, 1400, 1] } as TintParams);
+  }
+  // Decorative — angel/devil wings + ghost double + tail flame. Approximated
+  // as orbiter of the relevant glyph so the cat gets a recognizable
+  // companion, not a purple blob.
+  if (id === 'effect-decor-angel-wings') {
+    return runOrbiter(scene, target, scale, {
+      glyph: '👼', count: 2, radius: 24, pos: 'mid', size: 20, speedMs: 5200,
+    } as OrbiterParams);
+  }
+  if (id === 'effect-decor-devil-wings') {
+    return runOrbiter(scene, target, scale, {
+      glyph: '😈', count: 2, radius: 24, pos: 'mid', size: 20, speedMs: 5200,
+    } as OrbiterParams);
+  }
+  if (id === 'effect-decor-ghost-double') {
+    return runOrbiter(scene, target, scale, {
+      glyph: '👻', count: 2, radius: 22, pos: 'mid', size: 18, speedMs: 3600,
+    } as OrbiterParams);
+  }
+  if (id === 'effect-decor-tail-flame') {
+    return runOrbiter(scene, target, scale, {
+      glyph: '🔥', count: 3, radius: 18, pos: 'feet', size: 14, speedMs: 1800,
+    } as OrbiterParams);
+  }
+  return runFallback(scene, target, scale, catFallbackColor(category));
+}
+
+/** custom_unknown — even more opaque; route by id for the 4 shipped
+ *  entries. Same pattern as runCustomArrow. */
+function runCustomUnknown(
+  scene: Scene, target: EffectTarget, scale: number, id: string,
+): EffectHandle {
+  if (id === 'effect-weather-dust') return runWeather(scene, target, scale, 'dust');
+  if (id === 'effect-extra-disco-cool') return runDiscoLines(scene, target, scale, 180);
+  if (id === 'effect-extra-glitch-green') return runGlitch(scene, target, scale, [100, 160]);
+  if (id === 'effect-halo-dots-cyan') return runRingOfDots(scene, target, scale, 0x33ffe6);
+  return runFallback(scene, target, scale);
 }
 
 /** Best-guess color for kinds where the extractor lost the param — reads
