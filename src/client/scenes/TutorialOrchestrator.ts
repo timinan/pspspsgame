@@ -16,8 +16,9 @@ import { getTutorialDialogue, personalize } from '@/../shared/tutorial-script';
 import { TUTORIAL_PHASE_CONFIGS } from '@/../shared/tutorial-chart';
 
 /** Slower than Balance.noteFallMs (2400) so the player has time to
- *  learn each gesture during the tutorial round. */
-const TUTORIAL_NOTE_FALL_MS = 4800;
+ *  learn each gesture. Tim 2026-06-30: bumped 1.2× faster (was 4800)
+ *  because the previous pace felt sluggish on tap/hold/slide phases. */
+const TUTORIAL_NOTE_FALL_MS = 4000;
 import {
   setTutorialStep,
   completeOnboarding,
