@@ -78,11 +78,21 @@ extractor drops them; labeling costs nothing and keeps options open).
 ```
 
 Rules:
-- Each base color auto-derives its shading ramp (coat → 4 shades,
-  markings → 3) in HSV: keep hue, step value/saturation to match cat2's
-  ramp ratios. Any ramp can be overridden with an explicit array
-  (`"coat": ["#...", "#...", "#...", "#..."]`).
-- Omitted regions keep cat2 defaults. `outline`, `whisker`, `fx` are
+- Each base color auto-derives its shading ramp (coat → 3 shades +
+  accent, markings → 3) in HSV. Derived coat shading uses SOFT steps
+  (0.94/0.82 brightness — Tim locked this 2026-07-01; cat2's own artist
+  ratios read as two-toned on solid cats). Any ramp can be overridden
+  with an explicit array (`"coat": ["#...", "#...", "#...", "#..."]`,
+  last slot = accent).
+- `"markings": "coat"` = solid-colored cat — belly/blaze/muzzle melt
+  into the coat and marking-shading pixels use the coat's shades.
+- Derived `accent` brightness is capped at 0.32 so pupils stay dark on
+  light coats (the "milky film" bug).
+- `whisker` follows the markings color unless explicitly set.
+- `"split": {"left": {...}, "right": {...}}` = two-face cat. Each side
+  is a full palette (base config + side overrides); the divide is the
+  body's vertical midline, recomputed per frame from non-fx pixels.
+- Omitted regions keep cat2 defaults. `outline`, `glint`, `fx` are
   locked unless explicitly set (fx can never be set).
 - Output: `assets-raw/cat<N>/cat<N>_<anim>_<NN>.png` (all 63 frames) +
   `variants/cats/previews/cat<N>.png` contact sheet, rendered every run.

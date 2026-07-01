@@ -12,6 +12,18 @@
     "preview": "previews/cat201.png"
   },
   {
+    "id": "cat202",
+    "name": "Ember",
+    "config": "cat202-ember.json",
+    "preview": "previews/cat202.png"
+  },
+  {
+    "id": "cat203",
+    "name": "Domino",
+    "config": "cat203-domino.json",
+    "preview": "previews/cat203.png"
+  },
+  {
     "id": "cat999",
     "name": "IdentityTest",
     "config": "cat999-identity-test.json",

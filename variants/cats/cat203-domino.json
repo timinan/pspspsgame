@@ -1,0 +1,9 @@
+{
+  "id": "cat203",
+  "name": "Domino",
+  "eyes": "#ffd34d",
+  "split": {
+    "left":  { "coat": ["#3c3c46", "#34343d", "#2c2c34", "#17171d"], "markings": "coat" },
+    "right": { "coat": ["#fbfbfd", "#eaeaf0", "#d6d6de", "#3c3f4a"], "markings": "coat" }
+  }
+}

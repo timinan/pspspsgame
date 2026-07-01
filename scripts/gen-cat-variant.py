@@ -65,6 +65,13 @@ def build_palette(cfg):
     single-base derivation beats cat2 defaults."""
     pal = {r: hex_rgb(c) for r, c in CAT2.items()}
 
+    # Derived coat shading uses GENTLER steps than cat2's artist ramp.
+    # cat2's own ratios (0.79/0.59 brightness) read as "two different
+    # colors" on solid cats — Butters (cat13) is really shaded at ~0.94
+    # of base. Tim locked the soft ramp for all generated cats
+    # (2026-07-01); explicit ramp arrays bypass this.
+    SOFT_COAT = {'coat2': (0.94, 1.15), 'coat3': (0.82, 1.35)}
+
     def ramp(key, slots, ref_base):
         val = cfg.get(key)
         if val is None:
@@ -77,6 +84,13 @@ def build_palette(cfg):
             return
         base = hex_rgb(val)
         for slot in slots:
+            if key == 'coat' and slot in SOFT_COAT:
+                v_ratio, s_ratio = SOFT_COAT[slot]
+                bh, bs, bv = to_hsv(base)
+                rh = to_hsv(hex_rgb(ref_base))[0]
+                th = to_hsv(hex_rgb(CAT2[slot]))[0]
+                pal[slot] = from_hsv(bh + (th - rh), bs * s_ratio, bv * v_ratio)
+                continue
             # Pupils/nose/mouth must stay dark on light coats or the eye
             # reads as a milky film — cap derived accent brightness at
             # cat2's own accent level.
@@ -111,7 +125,17 @@ def generate(cfg_path):
     cid, name = cfg['id'], cfg['name']
     if 'fx' in cfg:
         raise SystemExit('fx is never recolorable')
-    pal = build_palette(cfg)
+    # "split": {"left": {...}, "right": {...}} — two-face cat. Each side
+    # is a full palette (base config + side overrides); the divide is the
+    # body's vertical midline, recomputed per frame.
+    split = cfg.get('split')
+    if split:
+        base_cfg = {k: v for k, v in cfg.items() if k != 'split'}
+        pal = build_palette({**base_cfg, **split.get('left', {})})
+        pal_right = build_palette({**base_cfg, **split.get('right', {})})
+    else:
+        pal = build_palette(cfg)
+        pal_right = pal
 
     regions = json.loads((TPL / 'regions.json').read_text())
     ridx = {int(v): k for k, v in regions['palette_index'].items()}
@@ -128,13 +152,21 @@ def generate(cfg_path):
         tp, sp = tpl.load(), src.load()
         out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
         op = out.load()
+        # Body midline for split cats: bbox center of non-fx pixels (fx
+        # overlays like the MEOW text would skew the bbox to the right).
+        cx = W // 2
+        if split:
+            xs = [x for y in range(H) for x in range(W)
+                  if tp[x, y] and ridx[tp[x, y]] != 'fx']
+            cx = (min(xs) + max(xs)) // 2
         for y in range(H):
             for x in range(W):
                 idx = tp[x, y]
                 if idx == 0:
                     continue
                 region = ridx[idx]
-                op[x, y] = (*sp[x, y][:3], 255) if region == 'fx' else (*pal[region], 255)
+                side = pal if x <= cx else pal_right
+                op[x, y] = (*sp[x, y][:3], 255) if region == 'fx' else (*side[region], 255)
         out.save(out_dir / f'{cid}_{f.stem}.png')
 
     # Preview contact sheet: the four anims that actually ship, 4x.

@@ -1,7 +1,7 @@
 {
   "id": "cat999",
   "name": "IdentityTest",
-  "coat": "#92a1b9",
+  "coat": ["#92a1b9", "#657392", "#424c6e", "#2a2f4e"],
   "markings": "#ffffff",
   "earInner": "#891e2b",
   "eyes": "#ffa214",
