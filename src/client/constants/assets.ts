@@ -56,11 +56,13 @@ export const AssetKeys = {
     Background: 'background-music',
     Meowcert: 'meowcert-sfx',
     ThemeDefaultMusic: 'theme-default-music',
-    ThemeCozyMusic: 'theme-cozy-music',
     ThemeSpookyMusic: 'theme-spooky-music',
+    /** Lantern Tutorial — the home / tutorial track. Plays under every
+     *  menu, ChartEditor, VisitShows, and every tutorial beat. Preloaded
+     *  in Preloader so scene entries are instant. */
+    LanternTutorial: 'lantern-tutorial',
     /** Steel Phase Loop — plays during the play-tutorial insane phase
-     *  only, to bait the joke run. Lantern Tutorial was retired —
-     *  Cozy plays everywhere now per Tim's 2026-06-30 spec. */
+     *  only, to bait the joke run. Lazy-loaded via home-music.ts. */
     InsaneMusic: 'insane-music',
   },
   Json: {

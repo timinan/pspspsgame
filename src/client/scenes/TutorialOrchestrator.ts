@@ -26,7 +26,7 @@ import {
   openBox,
 } from '@/services/state-client';
 import { TutorialCatOverlay } from '@/ui/tutorial-cat';
-import { playCozyMusic } from '@/systems/home-music';
+import { playLanternMusic } from '@/systems/home-music';
 import { Picker } from '@/ui/picker';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
 import { CatNamingModal } from '@/ui/cat-naming-modal';
@@ -209,7 +209,7 @@ export class TutorialOrchestrator extends Scene {
     // plays ALL THE TIME"). The insane phase swaps to Steel Phase Loop
     // via Game scene, then this scene's create swaps back when the
     // orchestrator boots for the outro.
-    playCozyMusic(this);
+    playLanternMusic(this);
     const { width, height } = this.scale;
 
     // Persistent backdrop — sits below everything and stays for the

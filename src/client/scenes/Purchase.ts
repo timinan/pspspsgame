@@ -4,7 +4,7 @@ import { AssetKeys } from '@/constants/assets';
 import { playBoxOpenAnimation } from '@/ui/box-open-animation';
 import { TopHud } from '@/ui/top-hud';
 import { buildMenuItems } from '@/ui/menu-items';
-import { playCozyMusic } from '@/systems/home-music';
+import { playLanternMusic } from '@/systems/home-music';
 import { openBox, fetchState, renameCat } from '@/services/state-client';
 import { CatNamingModal } from '@/ui/cat-naming-modal';
 import { CAT_EFFECT_BY_ID, isEffectCosmeticId } from '@/effects/cat-effects';
@@ -49,7 +49,7 @@ export class Purchase extends Scene {
   }
 
   async create(): Promise<void> {
-    playCozyMusic(this);
+    playLanternMusic(this);
     const { width, height } = this.scale;
 
     // Solid dark backdrop — no star field for the gated state; the empty

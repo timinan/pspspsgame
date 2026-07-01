@@ -1,5 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
-import { playCozyMusic } from '@/systems/home-music';
+import { playLanternMusic } from '@/systems/home-music';
 
 export class MainMenu extends Scene {
   background: GameObjects.Image | null = null;
@@ -22,7 +22,7 @@ export class MainMenu extends Scene {
   }
 
   create() {
-    playCozyMusic(this);
+    playLanternMusic(this);
     this.refreshLayout();
 
     // Re-calculate positions whenever the game canvas is resized (e.g. orientation change).

@@ -4,12 +4,12 @@ import { AssetKeys } from '@/constants/assets';
 /**
  * Cross-scene music manager for the menu + tutorial soundtrack.
  *
- * Tim's spec (locked 2026-06-30): Cozy plays EVERYWHERE — menus,
- * ChartEditor, every tutorial beat. The play-tutorial insane phase
+ * Tim's spec: Lantern Tutorial plays EVERYWHERE — menus, ChartEditor,
+ * VisitShows, every tutorial beat. The play-tutorial insane phase
  * lazy-loads + swaps to "Steel Phase Loop" for the joke run, then
- * swaps back to Cozy when Butters says "just kidding". When a player
- * attends someone else's post (VisitPost / Game-visitor-mode), the
- * post's own chart song takes over via MusicSystem and home music
+ * swaps back to Lantern when Butters says "just kidding". When a
+ * player attends someone else's post (VisitPost / Game-visitor-mode),
+ * the post's own chart song takes over via MusicSystem and home music
  * gets out of the way (stopHomeMusic).
  *
  * Singleton on the Phaser global sound manager so the track survives
@@ -18,9 +18,9 @@ import { AssetKeys } from '@/constants/assets';
  * loads first, then both tracks play briefly while the new fades in
  * and the old fades out. No silent gap during lazy-load.
  *
- * ThemeCozyMusic is preloaded in Preloader so it's always instant.
- * Steel Phase Loop lazy-loads (~600 KB) on first request — Cozy keeps
- * playing UNDER the load so the player never hears silence.
+ * LanternTutorial is preloaded in Preloader so it's always instant.
+ * Steel Phase Loop lazy-loads (~600 KB) on first request — Lantern
+ * keeps playing UNDER the load so the player never hears silence.
  */
 
 const FADE_MS = 240;
@@ -152,9 +152,9 @@ export function preloadInsaneMusic(scene: Scene): void {
   loader.start();
 }
 
-/** Cozy theme — plays EVERYWHERE per Tim's spec: menus, ChartEditor,
- *  every tutorial beat. ThemeCozyMusic is preloaded in Preloader so
- *  every swap into Cozy is instant. */
-export function playCozyMusic(scene: Scene): void {
-  startHomeMusic(scene, AssetKeys.Audio.ThemeCozyMusic);
+/** Lantern Tutorial — plays EVERYWHERE per Tim's spec: menus,
+ *  ChartEditor, VisitShows, every tutorial beat. LanternTutorial is
+ *  preloaded in Preloader so every swap in is instant. */
+export function playLanternMusic(scene: Scene): void {
+  startHomeMusic(scene, AssetKeys.Audio.LanternTutorial);
 }

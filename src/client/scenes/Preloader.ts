@@ -148,11 +148,12 @@ export class Preloader extends Scene {
     this.load.audio(AssetKeys.Audio.Background, ['sounds/background.mp3']);
     this.load.audio(AssetKeys.Audio.Meowcert, ['sounds/meowcert.mp3']);
     this.load.audio(AssetKeys.Audio.ThemeDefaultMusic, ['themes/default-music.mp3']);
-    this.load.audio(AssetKeys.Audio.ThemeCozyMusic, ['themes/cozy-music.mp3']);
     this.load.audio(AssetKeys.Audio.ThemeSpookyMusic, ['themes/spooky-music.mp3']);
-    // Lantern Tutorial + Steel Phase Loop are LAZY-loaded via
-    // systems/home-music.ts on first play (saves ~3.6 MB from boot
-    // preload). Not registered here.
+    // Lantern Tutorial is the home track under every menu + tutorial
+    // beat — preload so scene entries are instant. Steel Phase Loop
+    // still lazy-loads via systems/home-music.ts (only needed for the
+    // insane joke run).
+    this.load.audio(AssetKeys.Audio.LanternTutorial, ['audio/backings/lantern-tutorial.mp3']);
 
     // Meow stems are tiny (~50KB each) so they all preload — the cost
     // of upfront-loading the whole pool is well under a single backing

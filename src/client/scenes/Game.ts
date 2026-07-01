@@ -30,7 +30,7 @@ import { SongPickerModal, type SongPickerResult } from '@/ui/song-picker-modal';
 import { DifficultyPickerModal } from '@/ui/difficulty-picker-modal';
 import { CommentComposeModal } from '@/ui/comment-compose-modal';
 import {
-  playCozyMusic,
+  playLanternMusic,
   playInsaneMusic,
   preloadInsaneMusic,
   stopHomeMusic,
@@ -385,7 +385,7 @@ export class Game extends Scene {
     //     now; we stop it just before beginRound when the chart's own
     //     backing is about to take over.
     if (this.tutorialPhase !== null) {
-      playCozyMusic(this);
+      playLanternMusic(this);
       // Preload Steel Phase Loop as soon as we enter ANY tutorial Game
       // boot so the file is cached by the time the player taps Yes on
       // the insane pre-roll (Tim: "the hard song should start playing

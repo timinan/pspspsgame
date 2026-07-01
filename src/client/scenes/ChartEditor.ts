@@ -2,7 +2,7 @@ import { Scene, Scenes, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { TopHud } from '@/ui/top-hud';
 import { buildMenuItems } from '@/ui/menu-items';
-import { playCozyMusic } from '@/systems/home-music';
+import { playLanternMusic } from '@/systems/home-music';
 import { BackgroundManager } from '@/entities/background-manager';
 import { liftTowardWhite, darkenTowardBlack, LANE_BRIGHTNESS_LIFT } from '@/entities/note-colors';
 import * as L from '@/constants/scene-layout';
@@ -157,10 +157,9 @@ export class ChartEditor extends Scene {
   private pendingResume = false;
 
   create(): void {
-    // Per Tim: 'for editor we want cozy until they pick a song'.
-    // ThemeCozyMusic is already preloaded for theme bg music so the
-    // swap from menu's Lantern Tutorial is instant.
-    playCozyMusic(this);
+    // Lantern Tutorial plays under the editor until the player picks a
+    // song; the picker starts the chart's own backing.
+    playLanternMusic(this);
     this.root = this.add.container(0, 0).setDepth(0);
 
     this.bg = new BackgroundManager(this);
