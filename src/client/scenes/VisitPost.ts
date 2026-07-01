@@ -42,6 +42,21 @@ import type { LeaderboardEntry } from '@/../shared/social-loop';
  */
 const SEAT_ORDER: SeatId[] = ['seat-left', 'seat-center', 'seat-right'];
 
+/** Empty-chart detection — true when the post has zero taps AND no
+ *  holds / slides / slide-returns. The default subreddit-seeded post
+ *  hits this because Devvit auto-creates it before any author has run
+ *  the editor, so `state.chart` is still `emptyChart(username,
+ *  'Untitled')` with 32 empty steps. Any accidental empty-chart post
+ *  (author published without adding notes) also hits this. */
+function isChartEmpty(c: Chart | null): boolean {
+  if (!c) return true;
+  const hasTaps = c.steps.some((s) => s.lanes.length > 0);
+  const hasHolds = (c.holds ?? []).length > 0;
+  const hasSlides = (c.slides ?? []).length > 0;
+  const hasSlideReturns = (c.slideReturns ?? []).length > 0;
+  return !hasTaps && !hasHolds && !hasSlides && !hasSlideReturns;
+}
+
 interface VisitInitData {
   postId: string;
   playerState?: PlayerState | null;
@@ -168,6 +183,10 @@ export class VisitPost extends Scene {
     // If visit's chart load already raced ahead, don't clobber.
     if (this.chart) return;
     this.chart = chart;
+    if (isChartEmpty(chart)) {
+      this.applyEmptyChartMode();
+      return;
+    }
     this.songText.setText(this.formatSongLine(chart));
     this.startSplashMusic(chart);
   }
@@ -204,6 +223,10 @@ export class VisitPost extends Scene {
       }
       if (!this.scene.isActive()) return;
       this.chart = chart;
+      if (isChartEmpty(chart)) {
+        this.applyEmptyChartMode();
+        return;
+      }
       this.songText.setText(this.formatSongLine(chart));
       // Start the backing track on the splash so the visitor hears the
       // song they're about to play. Same MusicSystem the round will use
@@ -213,7 +236,7 @@ export class VisitPost extends Scene {
       this.startSplashMusic(chart);
     } catch (err) {
       console.warn('[VisitPost] chart load failed:', err);
-      this.songText.setText('— song unavailable —');
+      if (!this.altSplashApplied) this.songText.setText('— song unavailable —');
     }
   }
 
@@ -392,10 +415,9 @@ export class VisitPost extends Scene {
     const panelY = laneTopY + 6;
 
     // Translucent dark panel so cats above still read through subtly.
-    const panel = this.add
+    this.panelRect = this.add
       .rectangle(panelX + panelW / 2, panelY + panelH / 2, panelW, panelH, 0x1a0a2e, 0.78)
       .setStrokeStyle(2, 0xffd34d, 0.6);
-    void panel;
 
     // Layout inside the panel, top to bottom:
     //   author (15px) → song (10px) → stats (10px) → LB header (10px)
@@ -429,7 +451,7 @@ export class VisitPost extends Scene {
 
     // Leaderboard subsection
     const lbY = padTop + 64;
-    this.add.text(panelX + 14, lbY, 'TOP SCORES', {
+    this.topScoresLabel = this.add.text(panelX + 14, lbY, 'TOP SCORES', {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontStyle: 'bold',
       fontSize: '9px',
@@ -457,6 +479,9 @@ export class VisitPost extends Scene {
   }
 
   private refreshLeaderboardUi(): void {
+    // Empty-chart splash tore down every ref this method touches — skip
+    // rather than throw on late leaderboard fetches.
+    if (this.altSplashApplied) return;
     // Plays + average accuracy in the stats line.
     this.statsText.setText(`${this.leaderboardTotal} plays`);
     this.playsText.setText(`${this.leaderboardTotal.toLocaleString()} PLAYS`);
@@ -515,7 +540,7 @@ export class VisitPost extends Scene {
     // (was at height - 18 which is the literal pixel bottom; on
     // shorter actual viewport sizes that was being clipped).
     const linkY = (L.LANE_BOTTOM_Y * scaleY) - 8;
-    this.add.text(width / 2, linkY, '⛏  MAKE YOUR OWN', {
+    this.buildLinkText = this.add.text(width / 2, linkY, '⛏  MAKE YOUR OWN', {
       fontFamily: 'Pixeloid Sans, sans-serif',
       fontStyle: 'bold',
       fontSize: '10px',
