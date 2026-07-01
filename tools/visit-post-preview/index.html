@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Visit-Post empty-chart splash preview</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0;
+    padding: 32px;
+    background: #12081f;
+    color: #e8dcff;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  h1 { margin: 0 0 8px; font-size: 20px; color: #ffd34d; }
+  p  { margin: 0 0 24px; color: #c0a0e6; max-width: 640px; line-height: 1.5; }
+  .preview {
+    display: inline-block;
+    border: 2px solid #ffd34d;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+  .preview img {
+    display: block;
+    width: 320px;
+    height: 580px;
+    image-rendering: pixelated;
+  }
+  code { background: #1a0a2e; padding: 2px 6px; border-radius: 3px; }
+</style>
+</head>
+<body>
+  <h1>Visit-Post empty-chart splash</h1>
+  <p>
+    Shown by <code>VisitPost</code> when the loaded chart has no notes
+    (default seeded subreddit post + any accidental empty-chart posts).
+    Brand purple bg + V21 logo + PLAY NOW. Regenerate with
+    <code>python3 scripts/preview-visit-post-empty.py</code>.
+  </p>
+  <div class="preview">
+    <img src="empty-splash.png" alt="Empty-chart splash preview" />
+  </div>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import { Scene, Scenes, GameObjects } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
+import { AssetKeys } from '@/constants/assets';
 import { BackgroundManager } from '@/entities/background-manager';
 import { Cat } from '@/entities/cat';
 import { TopHud } from '@/ui/top-hud';
@@ -73,7 +74,16 @@ export class VisitPost extends Scene {
   private yourBestText!: GameObjects.Text;
   private playBtnBg!: GameObjects.Rectangle;
   private playBtnText!: GameObjects.Text;
+  private panelRect?: GameObjects.Rectangle;
+  private topScoresLabel?: GameObjects.Text;
+  private buildLinkText?: GameObjects.Text;
   private playBusy = false;
+
+  /** True once applyEmptyChartMode has torn down the normal splash and
+   *  painted the loading-screen composition (logo + PLAY NOW). Guards
+   *  the async fetch handlers so a late-resolving fetch doesn't try to
+   *  update destroyed UI or re-seat cats we already tore down. */
+  private altSplashApplied = false;
 
   /** Music plays on the splash so visitors hear the track they're about
    *  to play (Tim: "lets make this page start playing the music so they
@@ -107,6 +117,7 @@ export class VisitPost extends Scene {
     this.leaderboardYourScore = null;
     this.leaderboardRows = [];
     this.playBusy = false;
+    this.altSplashApplied = false;
   }
 
   create(): void {
@@ -222,6 +233,10 @@ export class VisitPost extends Scene {
 
   private startSplashMusic(chart: Chart): void {
     if (this.music) return; // idempotent — only ever one backing at a time
+    // Empty-chart posts have no song attached — skip the preview so we
+    // don't spin up a MusicSystem that then gets torn down on the same
+    // tick by applyEmptyChartMode.
+    if (this.altSplashApplied) return;
     try {
       this.music = new MusicSystem(this, chart);
       // iOS Safari + the Reddit webview block audio playback until the
@@ -286,6 +301,9 @@ export class VisitPost extends Scene {
    *  Only seated cats render — the owner's full ownedCats list is
    *  trimmed server-side. */
   private seatOwnerCats(): void {
+    // Empty-chart splash strips the whole stage — bail so a late-
+    // resolving loadVisit doesn't re-add cats over the alt UI.
+    if (this.altSplashApplied) return;
     for (const c of this.cats) c.destroy();
     this.cats = [];
     for (const l of this.seatedNameLabels) l.destroy();

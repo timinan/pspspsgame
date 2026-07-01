@@ -2287,8 +2287,7 @@ function mkLightningColored(glowRgb, coreRgb) {
           for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
           ctx.stroke();
         };
-        // Tim round 6: dark background ALL the time (~75% duration net dark
-        // after strikes flicker); strikes appear against black.
+        // Dark background always (~75% of time when no strike is live).
         ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, W, H);
         const hasLive = strikes.some(s => t <= s.untilT);
         for (let i = strikes.length - 1; i >= 0; i--) {
@@ -2299,7 +2298,9 @@ function mkLightningColored(glowRgb, coreRgb) {
           for (const br of s.branches) drawPath(br, 0.45, 3, 0.7);
           ctx.restore();
         }
-        // No bright screen flash — strikes appear on dark background only.
+        // Tim round 8: strike flash back — tinted with the strike's core
+        // color, 0.22 alpha (matches the original lightning frequency).
+        if (hasLive) { ctx.fillStyle = `rgba(${coreRgb},0.22)`; ctx.fillRect(0, 0, W, H); }
       },
     };
   };
@@ -2905,85 +2906,6 @@ FX.halo_portal_forest_bright = mkGroundPortal(0x33ff66, 0xffe44d, 0x66ff99, 0xff
 FX.halo_portal_galaxy        = mkGroundPortal(0xa64dff, 0x33ffe6, 0xff66cc, 0xffe44d);
 
 // --- Lightning with small flash back (Tim: "a few back in") for 3 colors ---
-function mkLightningColoredFlash(glowRgb, coreRgb, flashRgb) {
-  return (cat) => {
-    const strikes = [];
-    const buildBolt = () => {
-      const main = []; let x = cat.footX + (Math.random() - 0.5) * 60, y = 0;
-      main.push([x, y]);
-      while (y < cat.y) { x += (Math.random() - 0.5) * 36; y += 8 + Math.random() * 14; main.push([x, y]); }
-      const branches = [];
-      const nB = 1 + Math.floor(Math.random() * 3);
-      for (let b = 0; b < nB; b++) {
-        const si = 1 + Math.floor(Math.random() * (main.length - 2));
-        let [bx, by] = main[si]; const br = [[bx, by]];
-        const dir = Math.random() < 0.5 ? -1 : 1;
-        const len = 3 + Math.floor(Math.random() * 4);
-        for (let i = 0; i < len; i++) { bx += dir * (8 + Math.random() * 16); by += 4 + Math.random() * 10; br.push([bx, by]); }
-        branches.push(br);
-      }
-      return { main, branches };
-    };
-    return {
-      render: (ctx, t) => {
-        if (Math.random() < 0.09 && strikes.length < 4) strikes.push({ untilT: t + 150, ...buildBolt() });
-        ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, W, H);
-        const hasLive = strikes.some(s => t <= s.untilT);
-        const drawPath = (pts, gA, gW, cA) => {
-          ctx.strokeStyle = `rgba(${glowRgb},${gA})`; ctx.lineWidth = gW;
-          ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
-          for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
-          ctx.stroke();
-          ctx.strokeStyle = `rgba(${coreRgb},${cA})`; ctx.lineWidth = gW * 0.3;
-          ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
-          for (let j = 1; j < pts.length; j++) ctx.lineTo(pts[j][0], pts[j][1]);
-          ctx.stroke();
-        };
-        for (let i = strikes.length - 1; i >= 0; i--) {
-          const s = strikes[i];
-          if (t > s.untilT) { strikes.splice(i, 1); continue; }
-          ctx.save(); drawPath(s.main, 0.6, 5, 0.95);
-          for (const br of s.branches) drawPath(br, 0.45, 3, 0.7);
-          ctx.restore();
-        }
-        // Subtle colored flash tint during strikes (Tim round 7).
-        if (hasLive) { ctx.fillStyle = `rgba(${flashRgb},0.18)`; ctx.fillRect(0, 0, W, H); }
-      },
-    };
-  };
-}
-FX.beam_lightning_purple_flash = mkLightningColoredFlash('180,120,255', '235,220,255', '180,120,255');
-FX.beam_lightning_green_flash  = mkLightningColoredFlash('120,255,150', '220,255,230', '120,255,150');
-FX.beam_lightning_red_flash    = mkLightningColoredFlash('255,100,100', '255,220,220', '255,100,100');
-
-// --- 2 & 3 color hearts / sonars / radios (alternating palettes) ---
-function mkHeartMultiPalette(palette, interval) {
-  return (cat) => {
-    const pulses = []; let lastSpawn = -1e9; let idx = 0;
-    return {
-      render: (ctx, t) => {
-        if (t - lastSpawn > interval) { pulses.push({ start: t, color: palette[idx % palette.length] }); idx++; lastSpawn = t; }
-        const cy = cat.y + cat.h * 0.5;
-        for (let i = pulses.length - 1; i >= 0; i--) {
-          const p = pulses[i]; const age = (t - p.start) / 1900;
-          if (age >= 1) { pulses.splice(i, 1); continue; }
-          const r = 96 * cat.scale * age; const alpha = (1 - age) * 0.9;
-          ctx.save(); ctx.translate(cat.footX, cy);
-          ctx.lineWidth = 7; ctx.strokeStyle = rgbStr(p.color, alpha);
-          const sc = r / 30;
-          ctx.beginPath();
-          for (let a = 0; a <= Math.PI * 2; a += 0.1) {
-            const hx = 16 * Math.pow(Math.sin(a), 3);
-            const hy = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
-            const px = hx * sc, py = hy * sc;
-            if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-          }
-          ctx.stroke(); ctx.restore();
-        }
-      },
-    };
-  };
-}
 FX.pulse_heart_2c_pk_gd = mkHeartMultiPalette([0xff66cc, 0xffd34d], 240);
 FX.pulse_heart_2c_rd_wh = mkHeartMultiPalette([0xff3333, 0xffffff], 240);
 FX.pulse_heart_2c_pp_cy = mkHeartMultiPalette([0xa64dff, 0x33ffe6], 240);
@@ -3682,9 +3604,6 @@ const CANDIDATES = [
   { id: 'effect-halo-portal-galaxy',       name: 'Galaxy Portal',        category: 'Halos & Rings', rarity: 'legendary', factory: 'halo_portal_galaxy' },
 
   // Lightning with subtle flash-back for 3 colors.
-  { id: 'effect-beam-lightning-purple-flash', name: 'Purple Lightning (Flash)', category: 'Beams', rarity: 'legendary', factory: 'beam_lightning_purple_flash' },
-  { id: 'effect-beam-lightning-green-flash',  name: 'Green Lightning (Flash)',  category: 'Beams', rarity: 'legendary', factory: 'beam_lightning_green_flash' },
-  { id: 'effect-beam-lightning-red-flash',    name: 'Red Lightning (Flash)',    category: 'Beams', rarity: 'legendary', factory: 'beam_lightning_red_flash' },
 
   // 2 & 3 color hearts / sonars / radios.
   { id: 'effect-pulse-heart-2c-pk-gd',    name: '2-Color Heart Pk/Gd',    category: 'Pulse Waves', rarity: 'rare',      factory: 'pulse_heart_2c_pk_gd' },

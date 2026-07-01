@@ -1,7 +1,7 @@
 {
   "timmymmit": {
-    "tutorialCheck": false,
-    "godmode": true,
-    "setAt": 1782869772791
+    "tutorialCheck": true,
+    "godmode": false,
+    "setAt": 1782870807968
   }
 }
