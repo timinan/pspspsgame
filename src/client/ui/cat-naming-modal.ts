@@ -82,7 +82,13 @@ export class CatNamingModal {
       'border-radius:0',
       'color:#ffffff',
       'font-family:"Pixeloid Sans",monospace',
-      'font-size:15px',
+      // iOS Safari auto-zooms into any input with font-size < 16px on
+      // focus and does NOT auto-zoom back out when unfocused. Inside
+      // the Reddit webview the user then can't pinch-out to reset,
+      // which reads as "the game is stuck zoomed in and I can't reach
+      // the hamburger" (Tim playtest 2026-06-30 Image 10). Bump to 16px
+      // to skip the auto-zoom entirely.
+      'font-size:16px',
       'padding:8px 10px',
       'text-align:center',
       'outline:none',
