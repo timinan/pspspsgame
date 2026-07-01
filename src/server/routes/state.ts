@@ -56,6 +56,12 @@ state.post('/box/open', async (c) => {
   player.coins -= box.price;
   const pull = pullBox(boxId, player);
   applyPullToState(player, pull);
+  // Stats — every box open bumps the per-type counter + folds the box
+  // price into lifetime spend. Refund coins from duplicate pulls are
+  // handled on the client via /api/coins/sync, so we don't double-count
+  // the refund as "earned" here — that path fires later.
+  player.stats.coinsSpentLifetime += box.price;
+  player.stats.boxesOpened[boxId] = (player.stats.boxesOpened[boxId] ?? 0) + 1;
   await save(redis, player);
   return c.json({ ok: true, pull, state: player });
 });
@@ -70,10 +76,15 @@ state.post('/coins/sync', async (c) => {
   };
   const username = await currentUsername();
   const player = await loadOrInit(redis, username);
-  player.coins = Math.max(0, player.coins + Math.floor(coinsDelta));
+  const delta = Math.floor(coinsDelta);
+  player.coins = Math.max(0, player.coins + delta);
   if (bestScore !== undefined && bestScore > player.bestScore) {
     player.bestScore = bestScore;
   }
+  // Stats — only positive deltas count as "earned". Negative deltas
+  // are handled at their spend site (box/open bumps coinsSpentLifetime
+  // directly). Sync-driven deductions are rare but not unheard of.
+  if (delta > 0) player.stats.coinsEarnedLifetime += delta;
   await save(redis, player);
   return c.json({ state: player });
 });
@@ -443,6 +454,10 @@ state.post('/inventory/sell', async (c) => {
 
   const SELL_PRICE = 25;
   player.coins += SELL_PRICE;
+  // Stats — sold cosmetics count toward lifetime earned like any other
+  // coin gain. No matching "cosmeticsSold" counter yet; add one when
+  // there's a quest that needs it.
+  player.stats.coinsEarnedLifetime += SELL_PRICE;
 
   await save(redis, player);
   return c.json({ ok: true, state: player });

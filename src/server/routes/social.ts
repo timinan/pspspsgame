@@ -27,6 +27,7 @@ import {
   type InboxEvent,
 } from '../../shared/social-loop';
 import { BACKING_CATALOG, type Chart } from '../../shared/state';
+import { loadOrInit, save } from '../core/player-state';
 
 /**
  * Server routes for the social loop:
@@ -124,6 +125,28 @@ social.post('/play', async (c) => {
   }
   // Leaderboard: only passing runs land on it.
   await submitLeaderboardScore(r, summary);
+  // Stats — a non-owner completed round bumps visitor.playsOnOthers +
+  // host.playsReceived. Wrapped: stats-side failures MUST NOT block
+  // the play pipeline (leaderboard + inbox + auto-comment). Owner
+  // self-plays don't count on either side — they'd double-inflate as
+  // "played my own show" AND "someone played my show", which is not
+  // what the counters mean.
+  if (visitor !== body.owner) {
+    try {
+      const v = await loadOrInit(redis, visitor);
+      v.stats.playsOnOthers += 1;
+      await save(redis, v);
+    } catch (err) {
+      console.error('[social/play] visitor stats bump failed (continuing)', err);
+    }
+    try {
+      const h = await loadOrInit(redis, body.owner);
+      h.stats.playsReceived += 1;
+      await save(redis, h);
+    } catch (err) {
+      console.error('[social/play] host stats bump failed (continuing)', err);
+    }
+  }
   // Inbox: EVERY play, pass or fail (so the owner sees every visitor).
   // Only push if the visitor isn't the owner — playing your own preview
   // shouldn't fill the inbox. (Owner self-play is blocked elsewhere

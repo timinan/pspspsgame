@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { redis, reddit } from '@devvit/web/server';
-import { loadOrInit } from '../core/player-state';
+import { loadOrInit, save } from '../core/player-state';
 
 /**
  * Visitor-splash data endpoint. Mounted at /api/visit.
@@ -88,6 +88,39 @@ visit.get('/', async (c) => {
   // visitor-mode UI when an owner navigates to their own post URL.
   const currentUsername = (await reddit.getCurrentUsername()) ?? 'anonymous';
   const isOwner = currentUsername === ownerUsername;
+
+  // Stats — a non-owner splash open counts as a visit. Best-effort
+  // (wrapped so a stats-side failure never blocks the splash response).
+  //   - visitor.showsVisited bumps only when this postId isn't already
+  //     in their visitedPostIds set — repeat splashes on the same show
+  //     don't inflate the counter but the visit dedup list is bounded
+  //     to the most recent 500 postIds.
+  //   - host.visitsReceived bumps on EVERY non-owner splash open — the
+  //     host wants raw engagement traffic, not unique-visitor counts
+  //     (that would need a separate set-per-post which we can add if a
+  //     quest needs it).
+  if (!isOwner && currentUsername !== 'anonymous') {
+    try {
+      const visitor = await loadOrInit(redis, currentUsername);
+      if (!visitor.stats.visitedPostIds.includes(postId)) {
+        visitor.stats.visitedPostIds.push(postId);
+        if (visitor.stats.visitedPostIds.length > 500) {
+          visitor.stats.visitedPostIds.splice(0, visitor.stats.visitedPostIds.length - 500);
+        }
+        visitor.stats.showsVisited += 1;
+        await save(redis, visitor);
+      }
+    } catch (err) {
+      console.warn('[visit] stats bump for visitor failed:', err);
+    }
+    try {
+      const host = await loadOrInit(redis, ownerUsername);
+      host.stats.visitsReceived += 1;
+      await save(redis, host);
+    } catch (err) {
+      console.warn('[visit] stats bump for host failed:', err);
+    }
+  }
 
   return c.json({
     postId,

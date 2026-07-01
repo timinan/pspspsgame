@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { redis, reddit, context } from '@devvit/web/server';
-import { loadOrInit } from '../core/player-state';
+import { loadOrInit, save } from '../core/player-state';
 import {
   setPostOwner,
   submitLeaderboardScore,
@@ -115,6 +115,18 @@ publish.post('/chart', async (c) => {
     // leaderboard / inbox endpoints can route to the right author the
     // first time a visitor opens the post.
     await setPostOwner(redis, post.id, username);
+
+    // Stats — count the show. Best-effort: a stats bump failure MUST
+    // NOT unwind the publish (post already exists on Reddit). Re-load
+    // the state so we don't stomp any concurrent writes from other
+    // routes with the older `state` snapshot from line 40.
+    try {
+      const author = await loadOrInit(redis, username);
+      author.stats.showsPosted += 1;
+      await save(redis, author);
+    } catch (err) {
+      console.error('[publish] author stats bump failed (continuing)', err);
+    }
 
     // Bot-pinned root comment — the anchor that auto-stats comments
     // nest under on every play (Nuzzle-style social loop). Posted as
