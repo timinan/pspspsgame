@@ -971,18 +971,25 @@ export class TutorialOrchestrator extends Scene {
       const modal = new CatNamingModal(this, {
         defaultName,
         existingCats: otherCats,
-        onSubmit: (name) => {
+        onSubmit: async (name) => {
           // Optimistic local update first so the live preview reflects
-          // the name immediately, then persist server-side (fire-and-
-          // forget — advance even if the rename request fails).
+          // the name immediately.
           if (this.playerState) {
             const live = this.playerState.ownedCats.find((c) => c.id === seatedInstance.id);
             if (live) live.name = name;
           }
           this.renderSeatedCatNameLabel();
-          renameCat(seatedInstance.id, name).catch((e) =>
-            console.warn('[tutorial] renameCat failed (advancing anyway)', e),
-          );
+          // AWAIT the server write before advancing — otherwise the
+          // next step's persistStep call races renameCat's request and
+          // the returned playerState overwrites the optimistic rename
+          // with the old server-side name. Tim playtest 2026-06-30:
+          // "if the cat gets renamed it doesnt persist".
+          try {
+            const updated = await renameCat(seatedInstance.id, name);
+            this.playerState = updated;
+          } catch (e) {
+            console.warn('[tutorial] renameCat failed (advancing anyway)', e);
+          }
           void this.advance();
         },
       });
