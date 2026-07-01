@@ -146,19 +146,33 @@ def generate(cfg_path):
 
     frames = sorted(TPL.glob('*.png'))
     frames = [f for f in frames if f.name != 'qa-sheet.png']
+
+    # Split midline per frame: midpoint of the eye bbox (stable even when
+    # one eye squints). Blink frames have no eye pixels — they inherit
+    # the mean anchor of their own animation so the line never jumps.
+    split_cx = {}
+    if split:
+        eye_ids = {v for k, v in json.loads((TPL / 'regions.json').read_text())['palette_index'].items()
+                   if k in ('iris', 'irisHi1', 'irisHi2', 'glint')}
+        by_anim = {}
+        for f in frames:
+            tp = Image.open(f).load()
+            xs = [x for y in range(H) for x in range(W) if tp[x, y] in eye_ids]
+            if xs:
+                split_cx[f.stem] = (min(xs) + max(xs)) // 2
+                by_anim.setdefault(f.stem.rsplit('_', 1)[0], []).append(split_cx[f.stem])
+        for f in frames:
+            if f.stem not in split_cx:
+                anim = by_anim.get(f.stem.rsplit('_', 1)[0])
+                split_cx[f.stem] = round(sum(anim) / len(anim)) if anim else W // 2
+
     for f in frames:
         tpl = Image.open(f)
         src = Image.open(SRC / f'cat2_{f.stem}.png').convert('RGBA')
         tp, sp = tpl.load(), src.load()
         out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
         op = out.load()
-        # Body midline for split cats: bbox center of non-fx pixels (fx
-        # overlays like the MEOW text would skew the bbox to the right).
-        cx = W // 2
-        if split:
-            xs = [x for y in range(H) for x in range(W)
-                  if tp[x, y] and ridx[tp[x, y]] != 'fx']
-            cx = (min(xs) + max(xs)) // 2
+        cx = split_cx.get(f.stem, W // 2)
         for y in range(H):
             for x in range(W):
                 idx = tp[x, y]
