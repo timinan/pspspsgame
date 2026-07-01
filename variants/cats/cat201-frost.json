@@ -1,6 +1,11 @@
 {
   "id": "cat201",
   "name": "Frost",
-  "coat": ["#fbfbfd", "#eaeaf0", "#d6d6de", "#3c3f4a"],
-  "markings": "#ffffff"
+  "coat": [
+    "#fbfbfd",
+    "#eaeaf0",
+    "#d6d6de",
+    "#3c3f4a"
+  ],
+  "markings": "coat"
 }

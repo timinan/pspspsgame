@@ -1,8 +1,13 @@
 {
   "id": "cat200",
   "name": "Buttermilk",
-  "coat": ["#7d8896", "#5a6471", "#4a5360", "#2a313a"],
-  "markings": "#dfe0e2",
+  "coat": [
+    "#7d8896",
+    "#5a6471",
+    "#4a5360",
+    "#2a313a"
+  ],
+  "markings": "coat",
   "earInner": "#dd97a4",
   "eyes": "#ffd34d"
 }

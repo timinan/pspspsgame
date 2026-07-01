@@ -84,7 +84,14 @@ def build_palette(cfg):
             pal[slot] = derive(base, ref_base, CAT2[slot], v_cap=cap)
 
     ramp('coat', ['coat1', 'coat2', 'coat3', 'accent'], CAT2['coat1'])
-    ramp('markings', ['mark1', 'mark2', 'mark3'], CAT2['mark1'])
+    # "markings": "coat" = solid-colored cat: belly/blaze/muzzle melt into
+    # the coat, and their shading pixels use the coat's own shades (the
+    # white-marking shading greys read as smudge artifacts otherwise).
+    if cfg.get('markings') == 'coat':
+        for m, c in (('mark1', 'coat1'), ('mark2', 'coat2'), ('mark3', 'coat3')):
+            pal[m] = pal[c]
+    else:
+        ramp('markings', ['mark1', 'mark2', 'mark3'], CAT2['mark1'])
     ramp('earInner', ['earInner2', 'earInner1'], CAT2['earInner2'])
     ramp('eyes', ['iris', 'irisHi1', 'irisHi2'], CAT2['iris'])
     if 'accent' in cfg:
