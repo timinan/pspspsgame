@@ -26,9 +26,10 @@ swap tints things it shouldn't. Region labels fix this permanently.
 | `accent` | pupils, nose, mouth, creases, soft outline parts | `#2a2f4e` | auto-derives from coat (darkest shade) |
 | `mark1..mark3` | white markings ramp (belly, chest, muzzle, blaze, paws, tail tip, muzzle whiskers) | `#ffffff #b4b4b4 #858585` | yes |
 | `earInner1..2` | inner ear, dark→bright | `#571c27 #891e2b` | yes |
-| `iris` | eye base | `#ffa214` | yes |
-| `irisHi1..2` | eye highlight + meow star-eyes | `#ffc825 #ffeb57` | auto-derives from eyes |
-| `glint` | white dots inside eyes | white | locked by default |
+| `iris` | eye OUTER ring | `#ffa214` | yes — `eyeOuter` (alias `eyes`) |
+| `eyeMid` | eye MIDDLE (dark pupil area) | `#2a2f4e` | yes — `eyeMid`; never derived from coat |
+| `glint` | eye INNER (white dots) | white | yes — `eyeInner` |
+| `irisHi1..2` | meow star-eyes + glimmer | `#ffc825 #ffeb57` | LOCKED yellow for all cats (Tim, 2026-07-01) |
 | `tongue` | tongue pink (lick) | `#f68187` | yes |
 | `outline` | black outline (incl. text glyph borders) | `#000000` | locked by default |
 | `whisker` | detached 1px white flecks (eye corners) | white | locked by default |
@@ -92,8 +93,12 @@ Rules:
 - `"split": {"left": {...}, "right": {...}}` = two-face cat. Each side
   is a full palette (base config + side overrides); the divide is the
   body's vertical midline, recomputed per frame from non-fx pixels.
-- Omitted regions keep cat2 defaults. `outline`, `glint`, `fx` are
-  locked unless explicitly set (fx can never be set).
+- Eyes are a three-part model: `eyeOuter` (iris ring), `eyeMid` (dark
+  middle — stays cat2 navy unless set, never tinted by the coat),
+  `eyeInner` (white glints). The meow star-eyes and glimmer stay yellow
+  on every cat — no parameter exists for them.
+- Omitted regions keep cat2 defaults. `outline` and `fx` are locked
+  unless explicitly set (fx can never be set).
 - Output: `assets-raw/cat<N>/cat<N>_<anim>_<NN>.png` (all 63 frames) +
   `variants/cats/previews/cat<N>.png` contact sheet, rendered every run.
 

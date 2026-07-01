@@ -22,7 +22,7 @@ REGIONS = [
     'coat1', 'coat2', 'coat3', 'accent',
     'mark1', 'mark2', 'mark3',
     'earInner1', 'earInner2',
-    'iris', 'irisHi1', 'irisHi2', 'glint',
+    'iris', 'irisHi1', 'irisHi2', 'glint', 'eyeMid',
     'tongue', 'outline', 'whisker', 'fx',
 ]
 RIDX = {r: i + 1 for i, r in enumerate(REGIONS)}
@@ -35,7 +35,7 @@ FLAG = {
     'mark1': (90, 230, 90), 'mark2': (60, 175, 60), 'mark3': (35, 120, 35),
     'earInner1': (200, 40, 40), 'earInner2': (140, 20, 20),
     'iris': (255, 150, 0), 'irisHi1': (255, 210, 0), 'irisHi2': (255, 245, 120),
-    'glint': (255, 255, 255),
+    'glint': (255, 255, 255), 'eyeMid': (180, 255, 0),
     'tongue': (255, 130, 180), 'outline': (110, 110, 110),
     'whisker': (0, 230, 230), 'fx': (170, 0, 255),
 }
@@ -200,6 +200,21 @@ def label_frame(im):
                 fx_n = sum(1 for n in neighbors8(x, y) if labels.get(n) == 'fx')
                 if fx_n >= 3:
                     labels[(x, y)] = 'fx'
+
+    # The eye MIDDLE (dark pupil area) shares its color with the
+    # nose/mouth/creases (accent), but must be independently recolorable
+    # — Tim's three-part eye model (outer=iris, middle=eyeMid,
+    # inner=glint). An accent component belongs to the eye when it
+    # touches any eye pixel (iris ring in idle/hiss, star/glint in meow).
+    eye_px = {p for p, r in labels.items() if r in ('iris', 'irisHi1', 'irisHi2', 'glint')}
+
+    def is_accent(x, y):
+        return labels.get((x, y)) == 'accent'
+
+    for comp in components(is_accent):
+        if any(n in eye_px for p in comp for n in neighbors8(*p)):
+            for p in comp:
+                labels[p] = 'eyeMid'
 
     return labels
 

@@ -25,7 +25,8 @@ CAT2 = {
     'mark1': '#ffffff', 'mark2': '#b4b4b4', 'mark3': '#858585',
     'earInner1': '#571c27', 'earInner2': '#891e2b',
     'iris': '#ffa214', 'irisHi1': '#ffc825', 'irisHi2': '#ffeb57',
-    'glint': '#ffffff', 'tongue': '#f68187', 'outline': '#000000',
+    'glint': '#ffffff', 'eyeMid': '#2a2f4e',
+    'tongue': '#f68187', 'outline': '#000000',
     'whisker': '#ffffff',
 }
 
@@ -107,7 +108,16 @@ def build_palette(cfg):
     else:
         ramp('markings', ['mark1', 'mark2', 'mark3'], CAT2['mark1'])
     ramp('earInner', ['earInner2', 'earInner1'], CAT2['earInner2'])
-    ramp('eyes', ['iris', 'irisHi1', 'irisHi2'], CAT2['iris'])
+    # Three-part eye model (Tim, 2026-07-01): outer = iris ring, middle =
+    # the dark part (default cat2 navy, NEVER derived from anything),
+    # inner = the white glints. The meow star-eyes + glimmer (irisHi)
+    # stay cat2's yellows for ALL cats — locked, no param.
+    if 'eyeOuter' in cfg or 'eyes' in cfg:
+        pal['iris'] = hex_rgb(cfg.get('eyeOuter', cfg.get('eyes')))
+    if 'eyeMid' in cfg:
+        pal['eyeMid'] = hex_rgb(cfg['eyeMid'])
+    if 'eyeInner' in cfg:
+        pal['glint'] = hex_rgb(cfg['eyeInner'])
     if 'accent' in cfg:
         pal['accent'] = hex_rgb(cfg['accent'])
     # Whisker flecks follow the markings color (they're white on cat2
