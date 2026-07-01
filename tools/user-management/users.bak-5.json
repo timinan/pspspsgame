@@ -1,6 +1,6 @@
 {
   "timmymmit": {
-    "tutorialCheck": true,
-    "godmode": false
+    "tutorialCheck": false,
+    "godmode": true
   }
 }
