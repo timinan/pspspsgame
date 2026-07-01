@@ -551,6 +551,109 @@ export class VisitPost extends Scene {
       });
   }
 
+  /** Swap the normal splash (info panel + leaderboard + play button +
+   *  build link + cats + splash music) for the loading-screen
+   *  composition (full-canvas brand purple + V21 logo + PLAY NOW). Fires
+   *  when the loaded chart has no notes — the default seeded subreddit
+   *  post is the canonical case, but any accidental empty-chart post
+   *  hits the same path. Menu drawer stays wired (TopHud sits above the
+   *  1500-depth purple rect). */
+  private applyEmptyChartMode(): void {
+    if (this.altSplashApplied) return;
+    this.altSplashApplied = true;
+
+    // Splash music was never wanted for empty posts, but guard anyway
+    // in case a race let it start.
+    this.music?.destroy?.();
+    this.music = null;
+
+    // Tear down the stage — full-canvas purple would clip the cats
+    // partially and read broken. Drop them cleanly.
+    for (const c of this.cats) c.destroy();
+    this.cats = [];
+    for (const l of this.seatedNameLabels) l.destroy();
+    this.seatedNameLabels = [];
+    this.loadingScrim?.destroy();
+    this.loadingScrim = null;
+
+    // Info panel + all its children (author, song, stats, leaderboard
+    // rows, your-best, TOP SCORES label, panel rect).
+    this.panelRect?.destroy();
+    this.topScoresLabel?.destroy();
+    this.playsText?.destroy();
+    this.authorText?.destroy();
+    this.songText?.destroy();
+    this.statsText?.destroy();
+    for (const r of this.leaderboardRows) r.destroy();
+    this.leaderboardRows = [];
+    this.yourBestText?.destroy();
+
+    // Play CTA + MAKE YOUR OWN link — replaced by the alt PLAY NOW.
+    this.playBtnBg?.destroy();
+    this.playBtnText?.destroy();
+    this.buildLinkText?.destroy();
+
+    const { width, height } = this.scale;
+    const cx = width / 2;
+
+    // Full-canvas brand purple (same #1a0a2e as Preloader). Depth 1500
+    // sits above the stage bg / cats and below the TopHud (depth 2000+)
+    // so the menu drawer still opens over the splash.
+    this.add
+      .rectangle(0, 0, width, height, 0x1a0a2e)
+      .setOrigin(0, 0)
+      .setDepth(1500);
+
+    // V21 logo centered upper-mid, matches Preloader's y=0.36 anchor +
+    // 220-wide size scaled for the wider portrait vs the 200 used in
+    // Preloader's loading screen. NEAREST scaling preserves the pixel
+    // grid at this downscale.
+    const logo = this.add
+      .image(cx, height * 0.36, AssetKeys.Image.Logo)
+      .setDisplaySize(220, 220)
+      .setDepth(1501);
+    (logo.texture.source[0] as { scaleMode: number }).scaleMode = 0;
+
+    // PLAY NOW button — same size + brand yellow as the normal PLAY
+    // button. Sits lower (y=0.72) so the logo dominates the composition.
+    const btnW = 220;
+    const btnH = 48;
+    const btnY = height * 0.72;
+    const btnBg = this.add
+      .rectangle(cx, btnY, btnW, btnH, 0xffd34d, 1)
+      .setDepth(1501)
+      .setInteractive({ useHandCursor: true });
+    this.add
+      .text(cx, btnY, '▶  PLAY NOW', {
+        fontFamily: 'Pixeloid Sans, sans-serif',
+        fontStyle: 'bold',
+        fontSize: '18px',
+        color: '#1a0a2e',
+      })
+      .setOrigin(0.5)
+      .setDepth(1502);
+    btnBg.on('pointerover', () => btnBg.setFillStyle(0xffe680, 1));
+    btnBg.on('pointerout', () => btnBg.setFillStyle(0xffd34d, 1));
+    btnBg.on('pointerdown', () => this.onEmptyChartPlayNow());
+  }
+
+  /** PLAY NOW handler for the empty-chart splash. Routes to the tutorial
+   *  when the visitor hasn't onboarded (their first exposure to the game
+   *  came via the default post — treat it as cold-start), otherwise
+   *  drops them into Decorate the same way Preloader's post-onboarding
+   *  cold-start path does. */
+  private onEmptyChartPlayNow(): void {
+    const isFirstTime =
+      this.playerState !== null && !this.playerState.onboardingDone;
+    if (isFirstTime) {
+      this.scene.start(SceneKeys.TutorialOrchestrator, {
+        playerState: this.playerState,
+      });
+      return;
+    }
+    this.scene.start(SceneKeys.Decorate, { playerState: this.playerState });
+  }
+
   private onPlayClicked(): void {
     if (this.playBusy) return;
     if (!this.chart) {
