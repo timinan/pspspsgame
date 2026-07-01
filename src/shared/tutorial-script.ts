@@ -61,7 +61,7 @@ export const TUTORIAL_DIALOGUE: Record<TutorialStepId, string | string[]> = {
     //   bubble line sits on top of the lane view; chart starts on Yes.
     "Wow, it looks like you've got the hang of it. Ready for a real chart?",
     // 6 — outro + menu mock w/ PUT ON A SHOW highlighted
-    "Just kidding — you've got a long way to go before that. Now we'll check out the Put on a Show tab and I'll guide you through the process.",
+    "Just kidding — we won't throw you in the deep end like that. Now we'll check out the Put on a Show tab and I'll guide you through the process.",
   ],
   'editor-tour-intro':
     "Here is the editor for your chart. You can start with an empty chart or a pregenerated one — this is what others will play when they visit your show.",
