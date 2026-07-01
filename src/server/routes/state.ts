@@ -13,6 +13,8 @@ import {
   type SeatId,
   type CosmeticId,
   type CatBreed,
+  type RoundStatsDelta,
+  type PerSongStats,
 } from '../../shared/state';
 import type { TutorialStepId } from '../../shared/tutorial-types';
 
@@ -226,6 +228,114 @@ state.post('/dev/apply-godmode', async (c) => {
   player.onboardingDone = true;
   player.tutorialStep = null;
   player.forcedGodmodeAppliedAt = Date.now();
+  await save(redis, player);
+  return c.json({ ok: true, state: player });
+});
+
+/** POST /api/stats/round — client posts a RoundStatsDelta at the end
+ *  of a real (non-tutorial) round (or at scene teardown when the round
+ *  didn't finish). Server folds the delta into PlayerStats: bumps
+ *  lifetime counters, updates per-song best-score / best-combo /
+ *  best-accuracy / plays / lastPlayedAt, and re-evaluates the daily
+ *  streak. Non-negative clamps + integer coercion guard against
+ *  spoofed client payloads. Returns the updated state so the client can
+ *  cache-invalidate immediately if any UI reads stats. */
+state.post('/stats/round', async (c) => {
+  const raw = (await c.req.json()) as Partial<RoundStatsDelta>;
+  const clampNonNeg = (n: number | undefined): number =>
+    Number.isFinite(n) ? Math.max(0, Math.floor(n as number)) : 0;
+  const clampFloat = (n: number | undefined, lo: number, hi: number): number =>
+    Number.isFinite(n) ? Math.min(hi, Math.max(lo, n as number)) : 0;
+  const delta: RoundStatsDelta = {
+    songKey: (typeof raw.songKey === 'string' ? raw.songKey : '').slice(0, 200) || 'untitled',
+    finalScore: clampNonNeg(raw.finalScore),
+    accuracy: clampFloat(raw.accuracy, 0, 1),
+    perfects: clampNonNeg(raw.perfects),
+    hits: clampNonNeg(raw.hits),
+    misses: clampNonNeg(raw.misses),
+    tapsAttempted: clampNonNeg(raw.tapsAttempted),
+    maxCombo: clampNonNeg(raw.maxCombo),
+    combosCompleted: clampNonNeg(raw.combosCompleted),
+    slidesLanded: clampNonNeg(raw.slidesLanded),
+    slidesMissed: clampNonNeg(raw.slidesMissed),
+    holdsStarted: clampNonNeg(raw.holdsStarted),
+    holdsCompleted: clampNonNeg(raw.holdsCompleted),
+    holdMsAccumulated: clampNonNeg(raw.holdMsAccumulated),
+    longestHoldMs: clampNonNeg(raw.longestHoldMs),
+    finished: raw.finished === true,
+  };
+
+  const username = await currentUsername();
+  const player = await loadOrInit(redis, username);
+  const s = player.stats;
+
+  // Lifetime rhythm counters.
+  s.totalPerfects += delta.perfects;
+  s.totalHits += delta.hits;
+  s.totalMisses += delta.misses;
+  s.totalTapsAttempted += delta.tapsAttempted;
+  s.longestCombo = Math.max(s.longestCombo, delta.maxCombo);
+  s.totalCombos += delta.combosCompleted;
+
+  // Songs finished vs abandoned. Perfect songs = finished + non-zero
+  // attempts + zero misses. Zero-attempt finishes (empty rehearsal / stub
+  // charts) don't count as "perfect" — they're just noise.
+  if (delta.finished) {
+    s.songsFinished += 1;
+    if (delta.misses === 0 && delta.tapsAttempted > 0) s.perfectSongs += 1;
+  } else {
+    s.songsAbandoned += 1;
+  }
+
+  // Slides + holds.
+  s.slidesHit += delta.slidesLanded;
+  s.slidesMissed += delta.slidesMissed;
+  s.holdsStarted += delta.holdsStarted;
+  s.holdsCompleted += delta.holdsCompleted;
+  s.totalHoldMs += delta.holdMsAccumulated;
+  s.longestHoldMs = Math.max(s.longestHoldMs, delta.longestHoldMs);
+
+  // Per-song aggregate — keyed by the delta's songKey so audioKey-less
+  // charts still group under their title.
+  const prev: PerSongStats = s.perSong[delta.songKey] ?? {
+    plays: 0,
+    bestScore: 0,
+    bestCombo: 0,
+    bestAccuracy: 0,
+    lastPlayedAt: 0,
+  };
+  s.perSong[delta.songKey] = {
+    plays: prev.plays + 1,
+    bestScore: Math.max(prev.bestScore, delta.finalScore),
+    bestCombo: Math.max(prev.bestCombo, delta.maxCombo),
+    bestAccuracy: Math.max(prev.bestAccuracy, delta.accuracy),
+    lastPlayedAt: Date.now(),
+  };
+
+  // Timestamps + streak. currentDailyStreak bumps when yesterday is in
+  // the recorded set; otherwise resets to 1. Bounded to 365 days so the
+  // list can't grow forever.
+  const now = Date.now();
+  s.lastPlayAt = now;
+  if (s.firstPlayAt === null) s.firstPlayAt = now;
+  const isoToday = new Date(now).toISOString().slice(0, 10);
+  if (!s.daysPlayedISO.includes(isoToday)) {
+    s.daysPlayedISO.push(isoToday);
+    const yDate = new Date(now);
+    yDate.setUTCDate(yDate.getUTCDate() - 1);
+    const isoYesterday = yDate.toISOString().slice(0, 10);
+    s.currentDailyStreak = s.daysPlayedISO.includes(isoYesterday)
+      ? (s.currentDailyStreak || 0) + 1
+      : 1;
+    if (s.currentDailyStreak > s.longestDailyStreak) {
+      s.longestDailyStreak = s.currentDailyStreak;
+    }
+    if (s.daysPlayedISO.length > 365) {
+      s.daysPlayedISO.sort();
+      s.daysPlayedISO.splice(0, s.daysPlayedISO.length - 365);
+    }
+  }
+
   await save(redis, player);
   return c.json({ ok: true, state: player });
 });

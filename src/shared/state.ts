@@ -670,6 +670,35 @@ export interface PlayerStats {
   currentDailyStreak: number;
 }
 
+/** Payload the client sends after a round ends (or is abandoned mid-
+ *  chart). Server applies it to PlayerStats via /api/stats/round. Every
+ *  counter is a positive integer or 0; the server clamps negatives
+ *  defensively before folding into the aggregate. `finished=false`
+ *  means the player quit before the chart ended — bumps songsAbandoned
+ *  instead of songsFinished. `songKey` groups per-song aggregates
+ *  (chart.audioKey when present, else chart.title). */
+export interface RoundStatsDelta {
+  songKey: string;
+  finalScore: number;
+  /** 0..1 (perfects+greats / attempted). */
+  accuracy: number;
+  perfects: number;
+  hits: number;
+  misses: number;
+  tapsAttempted: number;
+  maxCombo: number;
+  combosCompleted: number;
+  slidesLanded: number;
+  slidesMissed: number;
+  holdsStarted: number;
+  holdsCompleted: number;
+  /** Cumulative held-ms across every hold this round. */
+  holdMsAccumulated: number;
+  /** Longest single hold this round in ms. */
+  longestHoldMs: number;
+  finished: boolean;
+}
+
 /** Fresh stats block for new players + forward-compat fill. Every
  *  counter starts at zero; timestamps at null; lists empty. */
 export function createFreshStats(): PlayerStats {

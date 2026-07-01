@@ -13,9 +13,10 @@ import * as L from '@/constants/scene-layout';
 import { AssetKeys } from '@/constants/assets';
 import { Balance } from '@/constants/balance';
 import { fetchState, loadChart, completeOnboarding } from '@/services/state-client';
+import { submitRoundStats } from '@/services/stats-client';
 import { CAT_CATALOG, emptyChart, CHART_PAGE_SIZE } from '@/../shared/state';
 import { resolveLaneTintsFromSeatedCats } from '@/constants/cat-colors';
-import type { PlayerState, LaneId, Chart, SeatId } from '@/../shared/state';
+import type { PlayerState, LaneId, Chart, SeatId, RoundStatsDelta } from '@/../shared/state';
 import type { CatModel } from '@/types/game';
 import { generateChart, type GenDifficulty } from '@/../shared/chart-generator';
 import {
@@ -177,6 +178,25 @@ export class Game extends Scene {
    *  more time to learn each gesture. Replaces every direct
    *  Balance.noteFallMs read inside this scene. */
   private noteFallMsActual = Balance.noteFallMs;
+
+  // Round-stat trackers — fields the ScoreSystem doesn't capture but
+  // that need to end up in PlayerStats. Reset alongside score at every
+  // round start; folded into the RoundStatsDelta at round-end (or
+  // round-abandon via cleanup()). Non-tutorial only — endRound bails
+  // early on tutorialPhase !== null.
+  private roundSlidesLanded = 0;
+  private roundSlidesMissed = 0;
+  private roundHoldsStarted = 0;
+  private roundHoldsCompleted = 0;
+  private roundHoldMsAccumulated = 0;
+  private roundLongestHoldMs = 0;
+  /** Timestamp (scene time) each engaged hold started at, so
+   *  endActiveHold can compute the held duration. Keyed by Note
+   *  reference — WeakMap survives note recycling without leaking. */
+  private holdEngagedAt = new WeakMap<Note, number>();
+  /** True once /api/stats/round has fired for this round — stops
+   *  cleanup() from double-submitting an abandon after a natural end. */
+  private roundStatsSubmitted = false;
   private songPicker: SongPickerModal | null = null;
   private difficultyPicker: DifficultyPickerModal | null = null;
   /** Carries the song picked in step 1 through to step 2 so the
@@ -2070,6 +2090,7 @@ export class Game extends Scene {
     // case the engage grade wasn't captured (defensive only).
     const grade: 'perfect' | 'great' = n.slideEngageGrade ?? 'great';
     this.score.registerHit(grade);
+    this.roundSlidesLanded++;
     this.showHitFeedback(targetLane, grade);
     this.flashTarget(targetLane, grade);
     this.cats[targetLane]?.playMeow(Balance.catReactionMs);
@@ -2087,6 +2108,7 @@ export class Game extends Scene {
    *  Used both on wrong-direction drag and on incomplete release. */
   private failSlide(n: Note): void {
     this.score.registerHit('miss');
+    this.roundSlidesMissed++;
     this.showHitFeedback(n.laneId, 'miss');
     this.flashTarget(n.laneId, 'miss');
     this.cats[n.laneId]?.playAngry(Balance.catReactionMs);
@@ -2175,6 +2197,46 @@ export class Game extends Scene {
       // afterward.
       void this.recordPlay(summary, undefined, undefined);
     }
+
+    // Stats — fold the round's counters into PlayerStats. Fire-and-
+    // forget; the response isn't awaited so the summary UI paints
+    // immediately. cleanup() checks roundStatsSubmitted to avoid
+    // double-firing if the player abandons the summary before the
+    // POST resolves.
+    this.score.finalizeInFlightCombo();
+    this.roundStatsSubmitted = true;
+    void submitRoundStats(this.buildRoundStatsDelta(/* finished= */ true));
+  }
+
+  /** Gather the current in-round counters + ScoreSystem readouts into
+   *  the shape the /api/stats/round route expects. Called by endRound
+   *  (finished=true) and by doCleanup for abandoned runs
+   *  (finished=false). Non-tutorial gated at the call sites. */
+  private buildRoundStatsDelta(finished: boolean): RoundStatsDelta {
+    const chart = this.playChart;
+    const songKey = (chart?.audioKey || chart?.title || 'untitled').slice(0, 200);
+    const perfects = this.score.getPerfects();
+    const hits = this.score.getGreats();
+    const misses = this.score.getMisses();
+    const tapsAttempted = perfects + hits + misses;
+    return {
+      songKey,
+      finalScore: this.score.get(),
+      accuracy: tapsAttempted > 0 ? (perfects + hits) / tapsAttempted : 0,
+      perfects,
+      hits,
+      misses,
+      tapsAttempted,
+      maxCombo: this.score.getMaxCombo(),
+      combosCompleted: this.score.getCombosCompleted(),
+      slidesLanded: this.roundSlidesLanded,
+      slidesMissed: this.roundSlidesMissed,
+      holdsStarted: this.roundHoldsStarted,
+      holdsCompleted: this.roundHoldsCompleted,
+      holdMsAccumulated: this.roundHoldMsAccumulated,
+      longestHoldMs: this.roundLongestHoldMs,
+      finished,
+    };
   }
 
   private showSummary(): void {
@@ -2370,6 +2432,14 @@ export class Game extends Scene {
     // Anything that's per-round and consulted by update() needs to go
     // back to its init() value.
     this.score = new ScoreSystem();
+    this.roundSlidesLanded = 0;
+    this.roundSlidesMissed = 0;
+    this.roundHoldsStarted = 0;
+    this.roundHoldsCompleted = 0;
+    this.roundHoldMsAccumulated = 0;
+    this.roundLongestHoldMs = 0;
+    this.holdEngagedAt = new WeakMap();
+    this.roundStatsSubmitted = false;
     this.roundOver = false;
     // Reset playSubmitted so the next endRound actually fires the
     // auto-record. Without this, RESTART / Play Again in visitor mode
@@ -3541,6 +3611,10 @@ export class Game extends Scene {
         note!.holdActive = true;
         note!.holdLastEffectMs = this.time.now - this.startTimeMs;
         note!.setHoldTint(engagedTint);
+        // Stats — record the engagement time so endActiveHold can
+        // compute duration + bump the "holds started" counter.
+        this.roundHoldsStarted++;
+        this.holdEngagedAt.set(note!, this.time.now);
       } else if (note!.isSlide && pointer) {
         // Slide engaged. Lock to this pointer id; scene-level pointermove
         // tracks the head's local x until pointerup decides success/miss.
@@ -3617,6 +3691,9 @@ export class Game extends Scene {
       if (n.isSlide && n.slideActive) continue;
       if (n.y > missY) {
         this.score.registerHit('miss');
+        // Stats — slides that auto-missed (never engaged) count as
+        // slidesMissed alongside the generic totalMisses bump.
+        if (n.isSlide && !n.slideActive) this.roundSlidesMissed++;
         // Same miss-buzz as a tap-but-missed grade so the player feels
         // a consistent "you lost that note" signal whether they tapped
         // wrong or didn't tap at all.
@@ -3707,7 +3784,7 @@ export class Game extends Scene {
    *  the note. Scoring is now continuous via tickHolds, so endActive
    *  only needs to award the trailing remainder between the last tick
    *  and the release/auto-end moment (max ~220 ms worth). */
-  private endActiveHold(note: Note, _fullCredit: boolean): void {
+  private endActiveHold(note: Note, fullCredit: boolean): void {
     const now = this.time.now - this.startTimeMs;
     const dt = now - note.holdLastEffectMs;
     if (dt > 0) {
@@ -3717,6 +3794,20 @@ export class Game extends Scene {
         this.showHoldScorePop(note, points);
       }
     }
+    // Stats — measure how long this hold was actually engaged (from
+    // handleTap's engage stamp to now) and roll it into the round's
+    // totals. fullCredit=true = auto-ended at holdEndAtMs (natural
+    // completion); false = player released before the tail arrived.
+    // Both contribute their held-ms, but only fullCredit=true bumps
+    // holdsCompleted.
+    const engagedAt = this.holdEngagedAt.get(note);
+    if (engagedAt !== undefined) {
+      const heldMs = Math.max(0, Math.floor(this.time.now - engagedAt));
+      this.roundHoldMsAccumulated += heldMs;
+      if (heldMs > this.roundLongestHoldMs) this.roundLongestHoldMs = heldMs;
+      this.holdEngagedAt.delete(note);
+    }
+    if (fullCredit) this.roundHoldsCompleted++;
     note.holdActive = false;
     note.consumed = true;
     note.recycle();
@@ -3768,6 +3859,22 @@ export class Game extends Scene {
     // can re-enter. Better to short-circuit than to destroy twice.
     if (this.cleanedUp) return;
     this.cleanedUp = true;
+    // Stats — the round started (startTimeMs > 0), isn't a tutorial,
+    // didn't finish naturally (roundOver false), and stats haven't
+    // been submitted for it yet. Count it as an abandoned play so
+    // songsAbandoned reflects reality. Fire-and-forget — the fetch
+    // may not resolve before Phaser tears down the scene, and that's
+    // ok; dropped abandons are less costly than blocking shutdown.
+    if (
+      !this.roundStatsSubmitted &&
+      this.tutorialPhase === null &&
+      this.startTimeMs > 0 &&
+      !this.roundOver
+    ) {
+      this.roundStatsSubmitted = true;
+      this.score.finalizeInFlightCombo();
+      void submitRoundStats(this.buildRoundStatsDelta(/* finished= */ false));
+    }
     console.info('[Game] cleanup start');
     try {
       this.doCleanup();
