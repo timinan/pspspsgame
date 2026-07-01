@@ -801,12 +801,17 @@ export class TutorialOrchestrator extends Scene {
           // advance target — no in-anim button (Tim image 20).
           autoDismiss: true,
         },
-        () => {
+        async () => {
           // Animation finished — auto-equip the pull on the live cat
-          // before advancing so the player sees it land. Cat-pull
-          // (not used in the tutorial) is a no-op here.
+          // before advancing so the player sees it land, and AWAIT the
+          // server write so the next step's persistStep doesn't fetch
+          // a stale playerState that misses the equip. Tim playtest
+          // 2026-06-30: "beps doent have his effect" — the cosmetic
+          // was applied visually but the server round-trip lost the
+          // race with setTutorialStep. Cat-pull (unused in tutorial)
+          // is a no-op here.
           if (pull.kind === 'cosmetic' && pull.instanceId) {
-            void this.autoEquipCosmetic(pull.itemId, pull.instanceId);
+            await this.autoEquipCosmetic(pull.itemId, pull.instanceId);
           }
           this.busy = false;
           // box-cosmetic: PAUSE on a fresh Continue overlay so the
@@ -1051,11 +1056,20 @@ export class TutorialOrchestrator extends Scene {
     if (!cosEntry) return;
     const slot = cosEntry.slot;
 
-    // Server-side equip — fire-and-forget. Local visual is what the
-    // player notices; server state can lag a moment.
-    equipCosmetic(seatedCatInstance.id, slot, instanceId).catch((e) =>
-      console.warn('[tutorial] equipCosmetic failed (visual still applied)', e),
-    );
+    // Server-side equip — AWAIT so the returned playerState is adopted
+    // BEFORE the next tutorial step's persistStep call. Without this,
+    // setTutorialStep races equipCosmetic and the fetched state misses
+    // equippedCosmetics + equippedCosmeticTypes for the just-equipped
+    // pull. Post-Game reapplyEquippedCosmeticsForSeatedCat then finds
+    // no effect entry to restore and the cat lands back on stage naked
+    // (Tim playtest 2026-06-30: "beps doent have his effect"). Local
+    // visual still applies below even if the write fails.
+    try {
+      const updated = await equipCosmetic(seatedCatInstance.id, slot, instanceId);
+      this.playerState = updated;
+    } catch (e) {
+      console.warn('[tutorial] equipCosmetic failed (visual still applied)', e);
+    }
 
     // Visual: effects use the cat-effects.ts apply() pattern; static
     // cosmetics stack a sprite at the seated cat's position.
