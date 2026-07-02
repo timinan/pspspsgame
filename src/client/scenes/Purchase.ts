@@ -20,17 +20,49 @@ import {
   type PlayerState,
 } from '@/../shared/state';
 
-// Box gradient colors: [topColor, bottomColor]
-const BOX_GRADIENTS: Record<BoxId, [number, number]> = {
-  catBox:        [0xff9bbf, 0xc44e87],
-  cosmeticBox:   [0xffd34d, 0xc8901f],
-  backgroundBox: [0x6fbcff, 0x2c63a6],
+// -- Shop taxonomy ---------------------------------------------------------
+
+type ShopCategory = 'cosmetic' | 'effect' | 'cat' | 'background';
+type ShopTier = 'standard' | 'golden' | 'mythic';
+
+/** The four category cards, in display order, each with an accent color. */
+const CATEGORY_DEFS: { key: ShopCategory; label: string; color: number }[] = [
+  { key: 'cosmetic',   label: 'COSMETICS',   color: 0xffd34d },
+  { key: 'effect',     label: 'EFFECTS',     color: 0xb066ff },
+  { key: 'cat',        label: 'CATS',        color: 0xff9bbf },
+  { key: 'background', label: 'BACKGROUNDS', color: 0x6fbcff },
+];
+
+const TIER_ORDER: ShopTier[] = ['standard', 'golden', 'mythic'];
+const TIER_LABEL: Record<ShopTier, string> = {
+  standard: 'Standard',
+  golden: 'Golden',
+  mythic: 'Mythic',
+};
+const TIER_CHIP_COLOR: Record<ShopTier, number> = {
+  standard: 0x9aa4bf,
+  golden: 0xffcf3f,
+  mythic: 0xc06bff,
 };
 
+// Resolve (category, tier) -> BoxId once from the catalog so nothing here
+// hardcodes a SKU id, price, or drop rate — the card reads them live.
+const BOX_BY_CAT_TIER: Record<string, BoxId> = (() => {
+  const map: Record<string, BoxId> = {};
+  for (const id of Object.keys(BOX_CATALOG) as BoxId[]) {
+    const cfg = BOX_CATALOG[id];
+    map[`${cfg.category}:${cfg.tier}`] = id;
+  }
+  return map;
+})();
+
+const hex = (c: number): string => '#' + c.toString(16).padStart(6, '0');
+
 /**
- * Purchase scene — three box cards stacked vertically, each roughly 1/3 of
- * the canvas height. Tap to open via the server; the existing box-open-animation
- * handles the reveal. Price chip goes red when the player can't afford the box.
+ * Purchase scene — the Merch shop. Four category cards (Cosmetics, Effects,
+ * Cats, Backgrounds), each with a Standard/Golden/Mythic tier selector that
+ * drives the price, drop odds, and the BOX_CATALOG SKU that BUY opens. Buying
+ * reuses the existing `/api/box/open` flow + box-open reveal animation.
  */
 export class Purchase extends Scene {
   private playerState: PlayerState | null = null;
@@ -38,6 +70,14 @@ export class Purchase extends Scene {
 
   private topHud!: TopHud;
   private uiRoot!: GameObjects.Container;
+
+  /** Selected tier per category card; defaults to the cheapest (standard). */
+  private selectedTier: Record<ShopCategory, ShopTier> = {
+    cosmetic: 'standard',
+    effect: 'standard',
+    cat: 'standard',
+    background: 'standard',
+  };
 
   constructor() {
     super(SceneKeys.Purchase);
@@ -52,8 +92,6 @@ export class Purchase extends Scene {
     playLanternMusic(this);
     const { width, height } = this.scale;
 
-    // Solid dark backdrop — no star field for the gated state; the empty
-    // dark canvas reads as "blocked" instead of "decorated but empty".
     this.add.rectangle(0, 0, width, height, 0x0b041a, 1).setOrigin(0, 0);
 
     this.topHud = new TopHud(this, {
@@ -62,200 +100,165 @@ export class Purchase extends Scene {
       items: buildMenuItems(this, () => this.playerState),
     });
 
-    // Pre-test gate: the box pulls + cosmetic economy aren't ready for
-    // the playtest cohort. Hamburger still navigates so testers can get
-    // out, but the scene's actual content is hidden until the launch
-    // build re-enables it. Drop this branch when boxes ship.
     this.uiRoot = this.add.container(0, 0);
-    this.drawComingSoon();
+    this.drawShop();
+    this.refreshCoins();
   }
 
-  /** Draws the "coming soon" placeholder used while the box economy is
-   *  parked. Centered title, supporting subtitle, faint lock glyph. */
-  private drawComingSoon(): void {
+  /** Rebuild the title, legend, and all four cards into uiRoot. Called on
+   *  first draw and whenever a tier chip flips or coins change. */
+  private drawShop(): void {
     const { width, height } = this.scale;
-    const cx = width / 2;
-    const cy = height / 2;
     const fontBase = { fontFamily: 'Pixeloid Sans, sans-serif' };
+    const cx = width / 2;
 
-    const lock = this.add
-      .text(cx, cy - 70, '🔒', {
-        ...fontBase,
-        fontSize: '48px',
-      })
-      .setOrigin(0.5);
-    this.uiRoot.add(lock);
-
+    const titleY = TopHud.HEIGHT + 6;
     const title = this.add
-      .text(cx, cy - 8, 'COMING SOON', {
+      .text(cx, titleY, 'MERCH SHOP', {
         ...fontBase,
         fontStyle: 'bold',
-        fontSize: '24px',
+        fontSize: '16px',
         color: '#ffd34d',
         stroke: '#000000',
-        strokeThickness: 4,
+        strokeThickness: 3,
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5, 0);
     this.uiRoot.add(title);
 
-    const sub = this.add
-      .text(
-        cx,
-        cy + 28,
-        'Merch tables open soon.\nTour shirts, plushies, and cosmetic drops are on the way.',
-        {
-          ...fontBase,
-          fontSize: '11px',
-          color: '#c0a0e6',
-          align: 'center',
-          wordWrap: { width: width - 48 },
-        },
-      )
-      .setOrigin(0.5, 0);
-    this.uiRoot.add(sub);
-  }
-
-  /**
-   * Dev-only inventory panel. Shows what the player owns so we can verify box
-   * pulls landed without inspecting Redis. Remove before shipping.
-   */
-  private drawInventoryDebugPanel(): void {
-    const { width } = this.scale;
-    const cats = this.playerState?.ownedCats?.length ?? 0;
-    const cosmetics = this.playerState?.ownedCosmetics?.length ?? 0;
-    const bgs = this.playerState?.ownedBackgrounds?.length ?? 0;
-    const catNames = (this.playerState?.ownedCats ?? []).slice(-3).map((c) => c.name).join(', ') || '—';
-    const cosNames = (this.playerState?.ownedCosmetics ?? []).slice(-3).map((c) => c.type).join(', ') || '—';
-    const bgNames = (this.playerState?.ownedBackgrounds ?? []).join(', ') || '—';
-
-    const x = width - 8;
-    const y = TopHud.HEIGHT + 6;
-    const text = [
-      `INV  🐱 ${cats}  🎩 ${cosmetics}  🖼 ${bgs}`,
-      `cats: ${catNames}`,
-      `cos:  ${cosNames}`,
-      `bgs:  ${bgNames}`,
-    ].join('\n');
-
-    const panel = this.add
-      .text(x, y, text, {
-        fontFamily: 'monospace',
+    const legend = this.add
+      .text(cx, titleY + 20, 'Odds: Common / Uncommon / Rare / Legendary', {
+        ...fontBase,
         fontSize: '9px',
-        color: '#9fffd4',
-        backgroundColor: 'rgba(0,0,0,0.55)',
-        padding: { x: 6, y: 4 },
-        align: 'right',
+        color: '#8f80b0',
       })
-      .setOrigin(1, 0)
-      .setDepth(500);
+      .setOrigin(0.5, 0);
+    this.uiRoot.add(legend);
 
-    this.uiRoot.add(panel);
-  }
+    const topPad = TopHud.HEIGHT + 40;
+    const bottomPad = 10;
+    const gap = 8;
+    const cardW = Math.min(width - 20, 300);
+    const usableH = height - topPad - bottomPad;
+    const cardH = Math.floor((usableH - gap * (CATEGORY_DEFS.length - 1)) / CATEGORY_DEFS.length);
 
-  private drawCards(): void {
-    const { width, height } = this.scale;
-    const hudH = TopHud.HEIGHT + 44; // HUD strip + title row
-    const bottomPad = 12;
-    const gap = 10;
-    const usableH = height - hudH - bottomPad;
-    const cardH = Math.floor((usableH - gap * 2) / 3);
-    const cardW = Math.min(width - 32, 480);
-    const cardX = width / 2;
-
-    const boxIds: BoxId[] = ['catBox', 'cosmeticBox', 'backgroundBox'];
-    boxIds.forEach((boxId, i) => {
-      const cardY = hudH + i * (cardH + gap) + cardH / 2;
-      this.drawCard(boxId, cardX, cardY, cardW, cardH);
+    CATEGORY_DEFS.forEach((def, i) => {
+      const cardY = topPad + i * (cardH + gap) + cardH / 2;
+      this.drawCategoryCard(def, cx, cardY, cardW, cardH);
     });
   }
 
-  private drawCard(boxId: BoxId, cx: number, cy: number, w: number, h: number): void {
-    const entry = BOX_CATALOG[boxId];
-    const [topColor, bottomColor] = BOX_GRADIENTS[boxId];
+  private drawCategoryCard(
+    def: { key: ShopCategory; label: string; color: number },
+    cx: number,
+    cy: number,
+    w: number,
+    h: number,
+  ): void {
+    const fontBase = { fontFamily: 'Pixeloid Sans, sans-serif' };
+    const tier = this.selectedTier[def.key];
+    const boxId = BOX_BY_CAT_TIER[`${def.key}:${tier}`]!;
+    const cfg = BOX_CATALOG[boxId];
+    const accentCss = hex(def.color);
+    const affordable = this.canAfford(boxId);
+
     const container = this.add.container(cx, cy);
     this.uiRoot.add(container);
 
-    // Card background
-    const bg = this.add.rectangle(0, 0, w, h, 0x1e0f35, 0.97);
-    bg.setStrokeStyle(2, topColor);
-    bg.setInteractive({ useHandCursor: true });
+    const padX = 10;
+    const leftX = -w / 2 + padX;
+    const rightX = w / 2 - padX;
 
-    // Left art block: colored gradient rectangle with bow emoji
-    const artW = Math.min(80, h - 16);
-    const artX = -w / 2 + 12 + artW / 2;
-    const artBlock = this.add.graphics();
-    artBlock.fillGradientStyle(topColor, topColor, bottomColor, bottomColor, 1);
-    artBlock.fillRoundedRect(artX - artW / 2, -artW / 2, artW, artW, 8);
+    // Card background — always a visible stroke (cell-border rule).
+    const bg = this.add.rectangle(0, 0, w, h, 0x1a0e30, 0.98);
+    bg.setStrokeStyle(2, def.color);
+    container.add(bg);
 
-    const bowFontSize = Math.max(20, Math.min(32, artW - 12));
-    const bowEmoji = this.add
-      .text(artX, 0, '🎀', {
-        fontSize: `${bowFontSize}px`,
-        align: 'center',
+    // Header row: category name (left) + live price (right).
+    const label = this.add
+      .text(leftX, -h / 2 + 8, def.label, {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '14px',
+        color: accentCss,
+      })
+      .setOrigin(0, 0);
+    const price = this.add
+      .text(rightX, -h / 2 + 8, `🪙 ${cfg.price}`, {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '14px',
+        color: affordable ? '#ffd34d' : '#cc4444',
+      })
+      .setOrigin(1, 0);
+    container.add([label, price]);
+
+    // Tier selector — three chips, each with a visible stroke; the
+    // selected chip is filled with its tier color + dark text.
+    const chipH = 22;
+    const chipGap = 6;
+    const chipY = -h / 2 + 32;
+    const chipW = (w - padX * 2 - chipGap * (TIER_ORDER.length - 1)) / TIER_ORDER.length;
+    TIER_ORDER.forEach((t, ti) => {
+      const chipCx = leftX + chipW / 2 + ti * (chipW + chipGap);
+      const selected = t === tier;
+      const tc = TIER_CHIP_COLOR[t];
+      const chipBg = this.add.rectangle(chipCx, chipY, chipW, chipH, selected ? tc : 0x120826, 1);
+      chipBg.setStrokeStyle(selected ? 2 : 1, selected ? 0xffffff : tc, selected ? 1 : 0.6);
+      chipBg.setInteractive({ useHandCursor: true });
+      chipBg.on('pointerdown', () => {
+        if (this.busy) return;
+        if (this.selectedTier[def.key] === t) return;
+        this.selectedTier[def.key] = t;
+        this.redrawCards();
+      });
+      const chipTxt = this.add
+        .text(chipCx, chipY, TIER_LABEL[t], {
+          ...fontBase,
+          fontStyle: 'bold',
+          fontSize: '11px',
+          color: selected ? '#1a0a2e' : hex(tc),
+        })
+        .setOrigin(0.5);
+      container.add([chipBg, chipTxt]);
+    });
+
+    // Odds line — read straight off the catalog's rates.
+    const r = cfg.rates;
+    const oddsStr = `${r.common} / ${r.uncommon} / ${r.rare} / ${r.legendary}`;
+    const odds = this.add
+      .text(leftX, chipY + chipH / 2 + 8, `Drop odds   ${oddsStr}`, {
+        ...fontBase,
+        fontSize: '11px',
+        color: '#b0a0d0',
+      })
+      .setOrigin(0, 0);
+    container.add(odds);
+
+    // BUY button — full-width at the card bottom. Disabled + greyed with a
+    // coin-shortfall label when the player can't afford the selected tier.
+    const buyH = 26;
+    const buyW = w - padX * 2;
+    const buyCy = h / 2 - 8 - buyH / 2;
+    const buyBg = this.add.rectangle(0, buyCy, buyW, buyH, affordable ? def.color : 0x2a2140, 1);
+    buyBg.setStrokeStyle(2, affordable ? 0xffffff : 0x4a4060, affordable ? 1 : 0.8);
+    const need = cfg.price - (this.playerState?.coins ?? 0);
+    const buyTxt = this.add
+      .text(0, buyCy, affordable ? `BUY   🪙 ${cfg.price}` : `NEED ${need} MORE`, {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '12px',
+        color: affordable ? '#1a0a2e' : '#9a8fb5',
       })
       .setOrigin(0.5);
-
-    // Right text area starts just past the art block
-    const textX = artX + artW / 2 + 14;
-    const rightW = w / 2 - 10 - (textX - cx + w / 2 - cx);
-
-    const nameFontSize = w >= 360 ? 16 : 13;
-    const accentCss = '#' + topColor.toString(16).padStart(6, '0');
-    const nameText = this.add
-      .text(textX, -h / 2 + 14, entry.displayName, {
-        fontFamily: 'Pixeloid Sans, monospace',
-        fontStyle: 'bold',
-        fontSize: `${nameFontSize}px`,
-        color: accentCss,
-        wordWrap: { width: Math.max(rightW, 80) },
-      })
-      .setOrigin(0, 0);
-
-    const descFontSize = w >= 360 ? 12 : 10;
-    const descText = this.add
-      .text(textX, nameText.y + nameFontSize + 6, entry.description, {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontSize: `${descFontSize}px`,
-        color: '#a090c0',
-        wordWrap: { width: Math.max(rightW, 80) },
-      })
-      .setOrigin(0, 0);
-
-    // Price chip — bottom-right of card
-    const chipText = this.add
-      .text(w / 2 - 10, h / 2 - 12, `🪙 ${entry.price}`, {
-        fontFamily: 'Pixeloid Sans, sans-serif',
-        fontStyle: 'bold',
-        fontSize: '15px',
-        color: '#ffd34d',
-        backgroundColor: '#1a0a2e',
-        padding: { x: 6, y: 3 },
-      })
-      .setOrigin(1, 1);
-
-    // Thin accent stripe down the center
-    const stripe = this.add.graphics();
-    stripe.fillStyle(topColor, 0.15);
-    stripe.fillRect(-1, -h / 2 + 4, 2, h - 8);
-
-    container.add([bg, artBlock, bowEmoji, nameText, descText, stripe, chipText]);
-
-    // Tag this container so refreshAffordability can find it
-    const tagged = container as TaggedContainer;
-    tagged._boxId = boxId;
-    tagged._bg = bg;
-    tagged._chipText = chipText;
-    tagged._topColor = topColor;
-
-    bg.on('pointerdown', () => {
-      if (this.busy) return;
-      if (!this.canAfford(boxId)) {
-        this.flashTooPoor(container);
-        return;
-      }
-      this.tweens.add({ targets: container, scale: 0.97, duration: 70, yoyo: true });
-      void this.onOpenBox(boxId);
-    });
+    if (affordable) {
+      buyBg.setInteractive({ useHandCursor: true });
+      buyBg.on('pointerdown', () => {
+        if (this.busy) return;
+        this.tweens.add({ targets: container, scale: 0.98, duration: 70, yoyo: true });
+        void this.onOpenBox(boxId);
+      });
+    }
+    container.add([buyBg, buyTxt]);
   }
 
   private canAfford(boxId: BoxId): boolean {
@@ -266,33 +269,11 @@ export class Purchase extends Scene {
     this.topHud?.setCoins(this.playerState?.coins ?? 0);
   }
 
-  private refreshAffordability(): void {
-    for (const child of this.uiRoot.list as TaggedContainer[]) {
-      if (!child._boxId) continue;
-      const boxId = child._boxId;
-      const affordable = this.canAfford(boxId);
-      child.setAlpha(affordable ? 1 : 0.45);
-      child._bg?.setStrokeStyle(2, affordable ? (child._topColor ?? 0xffffff) : 0x444444);
-      const entry = BOX_CATALOG[boxId];
-      if (child._chipText) {
-        if (affordable) {
-          child._chipText.setText(`🪙 ${entry.price}`).setColor('#ffd34d');
-        } else {
-          const need = entry.price - (this.playerState?.coins ?? 0);
-          child._chipText.setText(`🪙 ${entry.price} · need ${need}`).setColor('#cc4444');
-        }
-      }
-    }
-  }
-
-  private flashTooPoor(container: GameObjects.Container): void {
-    this.tweens.add({
-      targets: container,
-      x: container.x - 6,
-      duration: 50,
-      yoyo: true,
-      repeat: 3,
-    });
+  /** Tear down and rebuild the shop grid — used on tier flips and after a
+   *  purchase so prices/odds/affordability all re-read the current state. */
+  private redrawCards(): void {
+    this.uiRoot.removeAll(true);
+    this.drawShop();
   }
 
   private async onOpenBox(boxId: BoxId): Promise<void> {
@@ -308,7 +289,7 @@ export class Purchase extends Scene {
       }
       this.playerState = result.state;
       this.refreshCoins();
-      this.refreshAffordability();
+      this.redrawCards();
 
       const pull = result.pull;
 
@@ -392,13 +373,6 @@ export class Purchase extends Scene {
 }
 
 // -- helpers ---------------------------------------------------------------
-
-interface TaggedContainer extends GameObjects.Container {
-  _boxId?: BoxId;
-  _bg?: GameObjects.Rectangle;
-  _chipText?: GameObjects.Text;
-  _topColor?: number;
-}
 
 function resolveFrame(
   itemId: CatBreed | CosmeticId,
