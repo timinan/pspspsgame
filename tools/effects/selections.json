@@ -1,7 +1,43 @@
 {
-  "selected": [],
-  "notes": {},
-  "categoryPrompts": {},
-  "timestamp": "",
-  "totalAvailable": 441
+  "selected": [
+    "effect-beam-lightsaber",
+    "effect-beam-spotlight",
+    "effect-tint-sepia",
+    "effect-floor-shadow-boost",
+    "effect-weather-fog",
+    "effect-floor-crack-glow",
+    "effect-decor-halo-wings",
+    "effect-decor-crown",
+    "effect-decor-shadow-trio",
+    "effect-extra-tv-static",
+    "effect-extra-smoke-rise",
+    "effect-extra-mist-puff",
+    "effect-extra-steam-puff",
+    "effect-pulse-shockwave"
+  ],
+  "notes": {
+    "effect-pulse-heart": "even more heart ringsmore pronouced hearts escially edges are hard to see",
+    "effect-tint-rainbow": "effect too strong now make it transition faster",
+    "effect-extra-starburst": "bigger effect",
+    "effect-tint-holographic": "make it transition faster",
+    "effect-extra-constellation": "dots appearing to fast slow it down a little bit and make lines more visable",
+    "effect-extra-aurora-ribbon": "ok too many now lets go back to what it was",
+    "effect-beam-lightning": "only have minimal light frames it should almost be black around 75% of the time",
+    "effect-beam-sun-rays": "needs to shine through more i cant see anything",
+    "effect-pulse-echo": "a little more intenity",
+    "effect-pulse-radio": "a few more rings",
+    "effect-weather-wind": "more wind up top",
+    "effect-decor-ghost-double": "make effect faster"
+  },
+  "categoryPrompts": {
+    "Stagelights (live)": "what i meant by split lights 2 ways and 3 ways is like how we split the cat in 2 colors down the middle that is what i want try generating more like that make sure the current colors we have arent too similar",
+    "Halos & Rings": "get rid of the single halos and generate more of everything else more colors",
+    "Beams": "perfect also are there variations of lightning we can do like maybe bluish, white ligthnign more colors for the rest as well",
+    "Pulse Waves": "more heart and radios radios with multi color and same for ripples more colors get rid of ripples actually its moving too fast and add one more ring to sonar so the first two rings are a little bit more intense as they go further out. more colors for all",
+    "Orbiters": "more emoji spinners but ones that make sense or are funny like money hearts i dont know just think of good ones and put them",
+    "Floor / Ground": "more differen colors of magic circle pentagram also i want more like the pentagram a circle and then an inner patter like heart start etc different color variations, for the puddles can you also try like an ice one and then do like different colors of the lava i like that one a lot and then different colors for teleport pad",
+    "Misc / Extras": "more differnt colors of aurora pixel ran disco soundbar and glitch"
+  },
+  "timestamp": "2026-07-01T05:35:34.078Z",
+  "totalAvailable": 156
 }

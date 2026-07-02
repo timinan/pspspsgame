@@ -6,6 +6,11 @@ import {
 } from '../src/server/core/player-state';
 import { STARTER_COINS, createFreshPlayerState, COSMETIC_CATALOG, type SeatId } from '../src/shared/state';
 
+/** YYYY-MM-DD for a date N days from today (negative = past). Pure UTC arithmetic. */
+function dateISO(offsetDays: number): string {
+  return new Date(Date.now() + offsetDays * 86400000).toISOString().slice(0, 10);
+}
+
 class FakeRedis implements RedisLike {
   private store = new Map<string, string>();
   async get(key: string): Promise<string | null> {
@@ -179,5 +184,96 @@ describe('PlayerState.seatedCats', () => {
     const fresh = createFreshPlayerState();
     fresh.seatedCats['seat-left'] = 'some-instance-id-123';
     expect(fresh.seatedCats['seat-left']).toBe('some-instance-id-123');
+  });
+});
+
+describe('PlayerState.economy — daily rollover via loadOrInit', () => {
+  it('resets daily counters when daily.day is yesterday', async () => {
+    const redis = new FakeRedis();
+    const yesterdayISO = dateISO(-1);
+    await redis.set(
+      'meowcert:state:eve',
+      JSON.stringify({
+        username: 'eve',
+        coins: 500,
+        economy: {
+          daily: { day: yesterdayISO, playIncome: 800, chartPlays: { 'song-a': 3 }, hostPotAccrued: 0, questProgress: {}, questClaimed: {}, questBonusClaimed: false },
+          pendingCollect: 0,
+          streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+        },
+      }),
+    );
+
+    const state = await loadOrInit(redis, 'eve');
+    expect(state.economy.daily.playIncome).toBe(0);
+    expect(state.economy.daily.chartPlays).toEqual({});
+    expect(state.economy.daily.day).toBe(dateISO(0));
+  });
+
+  it('does NOT reset when daily.day is already today', async () => {
+    const redis = new FakeRedis();
+    const today = dateISO(0);
+    await redis.set(
+      'meowcert:state:frank',
+      JSON.stringify({
+        username: 'frank',
+        coins: 500,
+        economy: {
+          daily: { day: today, playIncome: 400, chartPlays: { 'song-b': 2 }, hostPotAccrued: 0, questProgress: {}, questClaimed: {}, questBonusClaimed: false },
+          pendingCollect: 0,
+          streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+        },
+      }),
+    );
+
+    const state = await loadOrInit(redis, 'frank');
+    expect(state.economy.daily.playIncome).toBe(400);
+    expect(state.economy.daily.chartPlays).toEqual({ 'song-b': 2 });
+    expect(state.economy.daily.day).toBe(today);
+  });
+
+  it('fresh user gets economy with daily.day set to today', async () => {
+    const redis = new FakeRedis();
+    const state = await loadOrInit(redis, 'grace');
+    expect(state.economy).toBeDefined();
+    expect(state.economy.daily.playIncome).toBe(0);
+    expect(state.economy.daily.chartPlays).toEqual({});
+    expect(state.economy.daily.day).toBe(dateISO(0));
+  });
+
+  it('backfills economy on old saves without an economy field', async () => {
+    const redis = new FakeRedis();
+    await redis.set(
+      'meowcert:state:heidi',
+      JSON.stringify({
+        username: 'heidi',
+        coins: 300,
+        // economy intentionally absent — simulates pre-Task-2 save
+      }),
+    );
+    const state = await loadOrInit(redis, 'heidi');
+    expect(state.economy).toBeDefined();
+    expect(state.economy.daily.playIncome).toBe(0);
+    expect(state.economy.daily.chartPlays).toEqual({});
+  });
+
+  it('backfills streak sub-shape on partial economy saves', async () => {
+    const redis = new FakeRedis();
+    await redis.set(
+      'meowcert:state:ivan',
+      JSON.stringify({
+        username: 'ivan',
+        coins: 150,
+        economy: {
+          daily: { day: dateISO(0), playIncome: 50, chartPlays: {}, hostPotAccrued: 0, questProgress: {}, questClaimed: {}, questBonusClaimed: false },
+          pendingCollect: 10,
+          // streak intentionally absent
+        },
+      }),
+    );
+    const state = await loadOrInit(redis, 'ivan');
+    expect(state.economy.streak).toBeDefined();
+    expect(state.economy.streak.count).toBe(0);
+    expect(state.economy.pendingCollect).toBe(10);
   });
 });
