@@ -27,9 +27,9 @@ import {
   type PlaySummary,
   type InboxEvent,
 } from '../../shared/social-loop';
-import { BACKING_CATALOG, type Chart } from '../../shared/state';
+import { BACKING_CATALOG, rolloverEconomy, type Chart } from '../../shared/state';
 import { loadOrInit, save } from '../core/player-state';
-import { computePlayReward, type Difficulty, type PlayRewardBreakdown, type PlayRewardInput } from '../../shared/economy';
+import { ECONOMY, computePlayReward, type Difficulty, type PlayRewardBreakdown, type PlayRewardInput } from '../../shared/economy';
 import { applyPlayReward } from '../../shared/economy-apply';
 
 /**
@@ -407,11 +407,33 @@ social.post('/comment', async (c) => {
       runAs: 'USER',
     });
     console.info('[social/comment] root-level comment posted on', body.postId, { visitor });
-    return c.json({ ok: true, posted: true });
   } catch (err) {
     console.error('[social/comment] comment failed', err);
     return c.json({ ok: false, reason: 'reddit submitComment failed' }, 500);
   }
+
+  // First-comment-per-post bonus — wrapped so redis hiccup never fails the post
+  let commentBonus = 0;
+  if (visitor !== body.owner) {
+    try {
+      const key = `meowcert:commented:${body.postId}:${visitor}`;
+      const existing = await redis.get(key);
+      if (!existing) {
+        await redis.set(key, '1');
+        const isoToday = new Date().toISOString().slice(0, 10);
+        const player = await loadOrInit(visitor);
+        rolloverEconomy(player, isoToday);
+        player.coins += ECONOMY.commentBonus;
+        player.stats.coinsEarnedLifetime += ECONOMY.commentBonus;
+        await save(visitor, player);
+        commentBonus = ECONOMY.commentBonus;
+      }
+    } catch (err) {
+      console.error('[social/comment] bonus credit failed (continuing)', err);
+    }
+  }
+
+  return c.json({ ok: true, posted: true, commentBonus });
 });
 
 social.get('/leaderboard', async (c) => {

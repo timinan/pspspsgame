@@ -281,6 +281,7 @@ export class Game extends Scene {
   private summaryPage3: Phaser.GameObjects.Container | null = null;
   private summaryPage3StageBg!: Phaser.GameObjects.Rectangle;
   private summaryPage3ShowsBg!: Phaser.GameObjects.Rectangle;
+  private summaryPage3BonusText: Phaser.GameObjects.Text | null = null;
   // HTML textarea overlay over the page-2 placeholder rect. Mounted on
   // page-2 show, unmounted on page-2 hide / summary close / scene shutdown.
   // Lives outside Phaser so it survives canvas redraws but follows the
@@ -1251,6 +1252,11 @@ export class Game extends Scene {
           owner: summary.owner,
           summary,
           commentBody: body,
+        }).then((res) => {
+          if (res.ok && res.commentBonus && res.commentBonus > 0 && this.summaryPage3BonusText) {
+            this.summaryPage3BonusText.setText('+50 COINS!');
+            this.summaryPage3BonusText.setVisible(true);
+          }
         });
       }
     });
@@ -1302,6 +1308,17 @@ export class Game extends Scene {
       })
       .setOrigin(0.5, 0);
     page3.add(page3Sub);
+
+    this.summaryPage3BonusText = this.add
+      .text(cx, cy - panelH / 2 + 66, '', {
+        ...fontBase,
+        fontStyle: 'bold',
+        fontSize: '11px',
+        color: '#ffd34d',
+      })
+      .setOrigin(0.5, 0)
+      .setVisible(false);
+    page3.add(this.summaryPage3BonusText);
 
     // Stacked CTA buttons. Stage (yellow primary, top) sits where the
     // eye is drawn after reading the title. Shows (purple secondary,
@@ -1379,6 +1396,10 @@ export class Game extends Scene {
     this.summaryPage3.setVisible(page === 3);
     if (page === 2) this.mountSummaryPage2Overlay();
     else this.unmountSummaryPage2Overlay();
+    if (page === 3 && this.summaryPage3BonusText) {
+      this.summaryPage3BonusText.setText('');
+      this.summaryPage3BonusText.setVisible(false);
+    }
   }
 
   /** Position + append the HTML <textarea> over the page-2 placeholder
@@ -2980,7 +3001,7 @@ export class Game extends Scene {
 
   /** Seat Butters' sprite in the lane-0 (top-left) band-member slot
    *  during tutorial mode. Mirrors seatCats's coordinate math + scale so
-   *  Butters reads as a real seated band-member. Plays cat13_idle so he
+   *  Butters reads as a real seated band-member. Plays cat12_idle so he
    *  bobs with the same idle loop as the player's seated starter cat. */
   private seatTutorialButters(): void {
     if (this.tutorialPhase === null) return;
@@ -2991,10 +3012,10 @@ export class Game extends Scene {
     const cx = L.laneCenterX(0, width);
 
     const butters = this.add
-      .sprite(cx, catY, AssetKeys.Atlas.Cats, 'cat13_idle_00')
+      .sprite(cx, catY, AssetKeys.Atlas.Cats, 'cat12_idle_00')
       .setOrigin(0.5, 1)
       .setScale(CAT_SCALE);
-    butters.play('cat13_idle', true);
+    butters.play('cat12_idle', true);
     this.tutorialButtersGfx.push(butters);
 
     // Grey glasses — narrator Butters' signature cosmetic (see

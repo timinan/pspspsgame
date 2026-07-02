@@ -74,14 +74,14 @@ export interface SubmitCommentArgs {
   commentBody?: string;
 }
 
-export async function submitComment(args: SubmitCommentArgs): Promise<{ ok: true; posted: boolean } | { ok: false; reason: string }> {
+export async function submitComment(args: SubmitCommentArgs): Promise<{ ok: true; posted: boolean; commentBonus?: number } | { ok: false; reason: string }> {
   const r = await fetch('/api/social/comment', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(args),
   });
   if (!r.ok) return { ok: false, reason: `submitComment ${r.status}` };
-  return (await r.json()) as { ok: true; posted: boolean };
+  return (await r.json()) as { ok: true; posted: boolean; commentBonus?: number };
 }
 
 export interface FetchLeaderboardResult {
