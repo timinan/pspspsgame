@@ -130,6 +130,61 @@ def build_palette(cfg):
     return pal
 
 
+def propagate_labels(frame_seq, seed_labels, src_pixels, body_masks):
+    """Body-locked pattern tracking. seed_labels: {(x,y): 0|1} for frame 0
+    of an animation (screen-space assignment in the reference pose).
+    For each subsequent frame, every body pixel inherits the label of the
+    best-matching pixel in the PREVIOUS frame: nearest pixel (expanding
+    Chebyshev window r=1..4) whose cat2 source color matches exactly,
+    ties broken by majority. Unmatched pixels fall back to the nearest
+    labeled pixel regardless of color. A final per-frame cleanup gives
+    isolated speckles (<=2 same-label neighbors) the local majority label
+    so boundaries stay coherent. Returns {frame_stem: {(x,y): 0|1}}."""
+    out = {frame_seq[0]: dict(seed_labels)}
+    for prev_stem, cur_stem in zip(frame_seq, frame_seq[1:]):
+        prev_labels = out[prev_stem]
+        prev_src = src_pixels[prev_stem]
+        cur_src = src_pixels[cur_stem]
+        labels = {}
+        for (x, y) in body_masks[cur_stem]:
+            color = cur_src[(x, y)]
+            found = None
+            for r in range(0, 5):
+                votes = []
+                for dy in range(-r, r + 1):
+                    for dx in range(-r, r + 1):
+                        if max(abs(dx), abs(dy)) != r:
+                            continue
+                        q = (x + dx, y + dy)
+                        lab = prev_labels.get(q)
+                        if lab is not None and prev_src.get(q) == color:
+                            votes.append(lab)
+                if votes:
+                    found = round(sum(votes) / len(votes))
+                    break
+            if found is None:
+                for r in range(1, 7):
+                    votes = [prev_labels[q] for dy in range(-r, r + 1) for dx in range(-r, r + 1)
+                             if (q := (x + dx, y + dy)) in prev_labels]
+                    if votes:
+                        found = round(sum(votes) / len(votes))
+                        break
+            labels[(x, y)] = found if found is not None else 0
+        # Speckle cleanup: a pixel whose 8-neighbourhood disagrees flips
+        # to the local majority.
+        for _ in range(2):
+            flips = []
+            for (x, y), lab in labels.items():
+                nb = [labels[q] for dy in (-1, 0, 1) for dx in (-1, 0, 1)
+                      if (dx or dy) and (q := (x + dx, y + dy)) in labels]
+                if len(nb) >= 3 and sum(1 for v in nb if v == lab) <= 1:
+                    flips.append(((x, y), round(sum(nb) / len(nb))))
+            for p, v in flips:
+                labels[p] = v
+        out[cur_stem] = labels
+    return out
+
+
 def generate(cfg_path):
     cfg = json.loads(Path(cfg_path).read_text())
     cid, name = cfg['id'], cfg['name']
@@ -190,40 +245,46 @@ def generate(cfg_path):
     # Split midline per frame: midpoint of the eye bbox (stable even when
     # one eye squints). Blink frames have no eye pixels — they inherit
     # the mean anchor of their own animation so the line never jumps.
-    # Per-anim checker anchor: mean of each frame's (eye-anchor x, body
-    # top y), rounded once — stable across the whole loop.
-    checker_anchor = {}
-    if pattern:
-        sums = {}
-        for f in frames:
-            tp = Image.open(f).load()
-            xs = [x for y in range(H) for x in range(W) if tp[x, y] and ridx[tp[x, y]] != 'fx']
-            ys = [y for y in range(H) for x in range(W) if tp[x, y] and ridx[tp[x, y]] != 'fx']
-            if not xs:
-                continue
-            anim = f.stem.rsplit('_', 1)[0]
-            sums.setdefault(anim, []).append(((min(xs) + max(xs)) // 2, min(ys)))
-        for anim, pts in sums.items():
-            checker_anchor[anim] = (
-                round(sum(p[0] for p in pts) / len(pts)),
-                round(sum(p[1] for p in pts) / len(pts)),
-            )
-
-    split_cx = {}
-    if pattern or (split and not horizontal):
-        eye_ids = {v for k, v in json.loads((TPL / 'regions.json').read_text())['palette_index'].items()
-                   if k in ('iris', 'irisHi1', 'irisHi2', 'glint')}
+    # Body-locked patterns (Tim, 2026-07-01): splits and checkers are
+    # PAINTED ON the cat, not stencils it animates through. Each anim's
+    # frame 00 gets the screen-space assignment (reference pose: paws
+    # down, so parts land on their anatomical side), then labels ride the
+    # pixels through the animation via propagate_labels().
+    locked = {}
+    if split or pattern:
+        tmaps = {f.stem: Image.open(f).load() for f in frames}
+        smaps = {f.stem: Image.open(SRC / f'cat2_{f.stem}.png').convert('RGBA').load() for f in frames}
+        body_masks = {
+            stem: {(x, y) for y in range(H) for x in range(W)
+                   if tp[x, y] and ridx[tp[x, y]] != 'fx'}
+            for stem, tp in tmaps.items()
+        }
+        src_pixels = {
+            stem: {p: smaps[stem][p[0], p[1]][:3] for p in mask}
+            for stem, mask in body_masks.items()
+        }
+        eye_regions = ('iris', 'irisHi1', 'irisHi2', 'glint')
         by_anim = {}
         for f in frames:
-            tp = Image.open(f).load()
-            xs = [x for y in range(H) for x in range(W) if tp[x, y] in eye_ids]
-            if xs:
-                split_cx[f.stem] = (min(xs) + max(xs)) // 2
-                by_anim.setdefault(f.stem.rsplit('_', 1)[0], []).append(split_cx[f.stem])
-        for f in frames:
-            if f.stem not in split_cx:
-                anim = by_anim.get(f.stem.rsplit('_', 1)[0])
-                split_cx[f.stem] = round(sum(anim) / len(anim)) if anim else W // 2
+            by_anim.setdefault(f.stem.rsplit('_', 1)[0], []).append(f.stem)
+        for anim, seq in by_anim.items():
+            seq.sort()
+            stem0 = seq[0]
+            tp0 = tmaps[stem0]
+            mask0 = body_masks[stem0]
+            if pattern:
+                cell = int(pattern.get('size', 5))
+                ax = (min(p[0] for p in mask0) + max(p[0] for p in mask0)) // 2
+                ay = min(p[1] for p in mask0)
+                seed = {p: ((p[0] - ax) // cell + (p[1] - ay) // cell) % 2 for p in mask0}
+            elif horizontal:
+                sy = waist_y(tp0)
+                seed = {p: (0 if p[1] < sy else 1) for p in mask0}
+            else:
+                eyes = [p[0] for p in mask0 if ridx[tp0[p[0], p[1]]] in eye_regions]
+                cx = (min(eyes) + max(eyes)) // 2 if eyes else W // 2
+                seed = {p: (0 if p[0] <= cx else 1) for p in mask0}
+            locked.update(propagate_labels(seq, seed, src_pixels, body_masks))
 
     for f in frames:
         tpl = Image.open(f)
@@ -231,27 +292,14 @@ def generate(cfg_path):
         tp, sp = tpl.load(), src.load()
         out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
         op = out.load()
-        cx = split_cx.get(f.stem, W // 2)
-        sy = waist_y(tp) if (split and horizontal) else None
-        cell = int(pattern.get('size', 5)) if pattern else 0
-        top_y = 0
-        if pattern:
-            # Anchor the grid per ANIMATION, not per frame — a per-frame
-            # anchor snaps with the idle bob and the cells strobe at
-            # playback. checker_anchor is precomputed below.
-            cx, top_y = checker_anchor[f.stem.rsplit('_', 1)[0]]
+        frame_labels = locked.get(f.stem, {})
         for y in range(H):
             for x in range(W):
                 idx = tp[x, y]
                 if idx == 0:
                     continue
                 region = ridx[idx]
-                if pattern:
-                    side = pal if ((x - cx) // cell + (y - top_y) // cell) % 2 == 0 else pal_right
-                elif horizontal:
-                    side = pal if y < sy else pal_right
-                else:
-                    side = pal if x <= cx else pal_right
+                side = pal_right if frame_labels.get((x, y)) == 1 else pal
                 op[x, y] = (*sp[x, y][:3], 255) if region == 'fx' else (*side[region], 255)
         out.save(out_dir / f'{cid}_{f.stem}.png')
 
