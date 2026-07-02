@@ -61,6 +61,7 @@ Extend `tools/economy/index.html` (my artifact; other agents' tools WIP untouche
 
 - Schema additions (`src/shared/state.ts`): `economy.weekly`, `economy.achievementsClaimed`. Same three-level `loadOrInit` merge treatment. **Staging discipline:** state.ts is shared with parallel agents — diff-check before staging, stage by name.
 - New/changed reward numbers live in `ECONOMY` (`src/shared/economy.ts`): weekly coin values, achievement tier rewards.
+- **Tweakability is a hard requirement (Tim):** daily pool, weekly set, and achievement defs are data-driven arrays — adding/removing/re-valuing an entry means editing ONE defs table (and its test), never engine code. UI renders whatever the defs contain (row counts, tab lists, choosers all derive from the data).
 - Testing: vitest for `isoWeekOf`/weekly rollover/`recordWeeklyEvent`/`achievementProgress`/claim validation (pure modules); pixel-check (rule 9) for every scene tab state + shop states + each crate sprite vs reference.
 - Build order within this pass: scene shell + daily port → weekly engine → achievements engine → shop art last (generation rounds need Tim's preview approval) → tools tab.
 
