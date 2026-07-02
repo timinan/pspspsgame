@@ -2,7 +2,7 @@ import { ECONOMY, type PlayRewardBreakdown } from './economy';
 import type { PlayerState } from './state';
 import { rolloverEconomy } from './state';
 
-export interface ApplyPlayRewardResult {
+export interface PlayCreditResult {
   breakdown: PlayRewardBreakdown;
   royalty: number;
 }
@@ -20,16 +20,16 @@ export interface ApplyPlayRewardResult {
  */
 export function applyPlayReward(
   visitor: PlayerState,
-  owner: PlayerState,
+  owner: PlayerState | null,
   breakdown: PlayRewardBreakdown,
   postId: string,
   isoToday: string,
-): ApplyPlayRewardResult {
+): PlayCreditResult {
   // Ensure both parties have today's daily block (idempotent if already today).
   rolloverEconomy(visitor, isoToday);
-  rolloverEconomy(owner, isoToday);
+  if (owner) rolloverEconomy(owner, isoToday);
 
-  if (visitor.username === owner.username) {
+  if (owner && visitor.username === owner.username) {
     visitor.stats.playsOnOwnShow += 1;
     return { breakdown, royalty: 0 };
   }
@@ -46,6 +46,8 @@ export function applyPlayReward(
   // surfaces as the "your show earned N while you were away — COLLECT"
   // moment in the Rewards drawer. coinsFromShow/coinsEarnedLifetime are
   // credited at collect time, not here.
+  if (!owner || breakdown.final <= 0) return { breakdown, royalty: 0 };
+
   const rawRoyalty = Math.floor(breakdown.final * ECONOMY.hostRoyaltyRate);
   const remainingPot = Math.max(0, ECONOMY.hostPotDailyCap - owner.economy.daily.hostPotAccrued);
   const royalty = Math.min(rawRoyalty, remainingPot);
