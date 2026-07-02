@@ -10,7 +10,7 @@ import { buildMenuItems } from '@/ui/menu-items';
 import { playLanternMusic } from '@/systems/home-music';
 import * as L from '@/constants/scene-layout';
 import { CAT_CATALOG, COSMETIC_CATALOG, BACKGROUND_CATALOG } from '@/../shared/state';
-import { CAT_EFFECT_BY_ID, getEffectById } from '@/effects/cat-effects';
+import { CAT_EFFECT_BY_ID, getEffectById, isEffectCosmeticId } from '@/effects/cat-effects';
 import { fetchState, setSeat, setBackground } from '@/services/state-client';
 import type {
   PlayerState,
@@ -735,8 +735,10 @@ export class Decorate extends Scene {
         // Effect cosmetics are code-driven (glow / bobbing / particles) — they
         // can't render as a static thumbnail overlay. Skip them silently here;
         // the tray still indicates the cat is wearing one via the cat sprite
-        // itself in the preview stage.
-        if (getEffectById(cosTypeId)) continue;
+        // itself in the preview stage. isEffectCosmeticId (not getEffectById)
+        // so DELETED effects a player still has equipped are skipped too
+        // instead of hunting for a nonexistent atlas frame.
+        if (isEffectCosmeticId(cosTypeId)) continue;
         const cos = COSMETIC_CATALOG.find((c) => c.id === cosTypeId);
         if (!cos) continue;
         const cosParent = cos.sourceFrame?.match(/^cosmetic_(c\d+)_/)?.[1] ?? cos.id;

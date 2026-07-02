@@ -1009,8 +1009,35 @@ for (const meta of NEW_EFFECT_CATALOG) {
   NEW_EFFECT_BY_ID[meta.id] = makeCatEffectFromMeta(meta);
 }
 
+/**
+ * Effects removed via the effects-game review tool (Tim, 2026-07-02 round 1:
+ * rainbow stagelight + the whole "Ring of X" family — "too similar to our
+ * orbits"). Filtered from every lookup below so they can't be equipped,
+ * browsed, or rendered; instances already granted to players resolve to
+ * undefined and the isEffectCosmeticId guards keep them off the sprite
+ * paths. TODO when the generated-catalog grant loop lands in
+ * src/shared/state.ts: filter DELETED_EFFECT_IDS there too so fresh player
+ * states stop receiving them.
+ */
+export const DELETED_EFFECT_IDS = new Set<string>([
+  'effect-rainbow-glow',
+  'effect-halo-ring-of-dots',
+  'effect-halo-ring-of-fire',
+  'effect-halo-dots-blue',
+  'effect-halo-dots-pink',
+  'effect-halo-dots-green',
+  'effect-halo-dots-rainbow',
+  'effect-halo-dots-gold',
+  'effect-halo-dots-red',
+  'effect-halo-dots-purple',
+  'effect-halo-dots-cyan',
+  'effect-halo-dots-white',
+  'effect-halo-dots-neon',
+]);
+
 /** Return a CatEffect for any id — hand-authored or metadata-driven. */
 export function getEffectById(id: string): CatEffect | undefined {
+  if (DELETED_EFFECT_IDS.has(id)) return undefined;
   return CAT_EFFECT_BY_ID[id] ?? NEW_EFFECT_BY_ID[id];
 }
 
@@ -1019,7 +1046,7 @@ export function getAllEffectIds(): string[] {
   return [
     ...CAT_EFFECTS.map((e) => e.id),
     ...NEW_EFFECT_CATALOG.map((m) => m.id),
-  ];
+  ].filter((id) => !DELETED_EFFECT_IDS.has(id));
 }
 
 /** Metadata for grid rendering (id/name/iconEmoji/rarity/category). */
@@ -1041,12 +1068,14 @@ export function getEffectGridEntries(): EffectGridEntry[] {
   };
   const out: EffectGridEntry[] = [];
   for (const e of CAT_EFFECTS) {
+    if (DELETED_EFFECT_IDS.has(e.id)) continue;
     out.push({
       id: e.id, name: e.name, iconEmoji: e.iconEmoji,
       rarity: e.rarity, category: legacyCat(e.id),
     });
   }
   for (const m of NEW_EFFECT_CATALOG) {
+    if (DELETED_EFFECT_IDS.has(m.id)) continue;
     out.push({
       id: m.id, name: m.name, iconEmoji: m.iconEmoji,
       rarity: m.rarity, category: m.category,
@@ -1055,7 +1084,9 @@ export function getEffectGridEntries(): EffectGridEntry[] {
   return out;
 }
 
-/** Convenience for catalog filtering. */
+/** Convenience for catalog filtering. Deliberately TRUE for deleted
+ *  effects — "this id is effect-shaped" — so sprite/cosmetic code paths
+ *  skip them instead of hunting for a nonexistent atlas frame. */
 export function isEffectCosmeticId(id: string): boolean {
-  return id in CAT_EFFECT_BY_ID || id in NEW_EFFECT_BY_ID;
+  return DELETED_EFFECT_IDS.has(id) || id in CAT_EFFECT_BY_ID || id in NEW_EFFECT_BY_ID;
 }

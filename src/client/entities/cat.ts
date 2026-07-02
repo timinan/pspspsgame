@@ -5,7 +5,7 @@ import { Balance } from '@/constants/balance';
 import { hslToInt } from '@/util/color';
 import type { CatBreed, CatAnimationState, CatModel, CosmeticId } from '@/types/game';
 import { COSMETIC_CATALOG } from '@/../shared/state';
-import { CAT_EFFECT_BY_ID, type EffectHandle, getEffectById } from '@/effects/cat-effects';
+import { CAT_EFFECT_BY_ID, type EffectHandle, getEffectById, isEffectCosmeticId } from '@/effects/cat-effects';
 
 // Cosmetic sprites are drawn on the same 91×64 canvas as the cats, so
 // when both share origin (0.5, 1) at the same screen position they
@@ -189,6 +189,10 @@ export class Cat {
       this.activeEffects[slot] = effect.apply(this.scene, this.sprite, this.sprite.scaleX);
       return;
     }
+    // DELETED effects (removed via the effects-game review) may still be
+    // equipped on existing player states — occupy the slot, render nothing,
+    // never fall through to the atlas-sprite path below.
+    if (isEffectCosmeticId(cosmeticId)) return;
 
     // Tint variants (sourceFrame + tint) render the parent's atlas frames
     // and apply the tint via setTint(). Animation keys are keyed on the

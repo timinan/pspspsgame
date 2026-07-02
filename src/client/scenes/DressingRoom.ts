@@ -4,7 +4,7 @@ import { CAT_CATALOG, COSMETIC_CATALOG } from '@/../shared/state';
 import { AssetKeys } from '@/constants/assets';
 import { equipCosmetic } from '@/services/state-client';
 import { Cat, parentIdFor } from '@/entities/cat';
-import { CAT_EFFECT_BY_ID, getEffectById, getEffectGridEntries, type EffectHandle } from '@/effects/cat-effects';
+import { CAT_EFFECT_BY_ID, getEffectById, getEffectGridEntries, isEffectCosmeticId, type EffectHandle } from '@/effects/cat-effects';
 import type { PlayerState, OwnedCosmetic } from '@/../shared/state';
 
 // Effect-category filter — matches EffectCategory from the generated
@@ -419,6 +419,9 @@ export class DressingRoom extends Scene {
         this.heroEffects[slotKey] = effect.apply(this, this.heroSprite, this.heroSprite.scaleX);
         continue;
       }
+      // DELETED effect still equipped on an existing state — occupy the
+      // slot, render nothing, don't hunt for an atlas frame.
+      if (isEffectCosmeticId(cosTypeId)) continue;
       const cos = COSMETIC_CATALOG.find((c) => c.id === cosTypeId);
       if (!cos) continue;
       const renderId = parentIdFor(cos) ?? cos.id;
@@ -626,6 +629,8 @@ export class DressingRoom extends Scene {
     // The grid shows cosmetics currently IN ownedCosmetics (not equipped anywhere).
     // Equipped cosmetics are removed from ownedCosmetics, so they don't appear here.
     const ownedInSlot: OwnedCosmetic[] = this.playerState.ownedCosmetics.filter((cosItem) => {
+      // DELETED effects a player still owns never show in the grid.
+      if (isEffectCosmeticId(cosItem.type) && !getEffectById(cosItem.type)) return false;
       const cos = COSMETIC_CATALOG.find((c) => c.id === cosItem.type);
       const slot = cos?.slot ?? 'head';
       if (slot !== this.activeSlot) return false;
