@@ -910,6 +910,7 @@ export interface EconomyState {
   pendingCollect: number;
   streak: EconomyStreak;
   weekly: EconomyWeekly;
+  achievementsClaimed: Record<string, ('bronze' | 'silver' | 'gold')[]>;
 }
 
 export function createFreshEconomy(day = ''): EconomyState {
@@ -926,6 +927,7 @@ export function createFreshEconomy(day = ''): EconomyState {
     pendingCollect: 0,
     streak: { lastDay: '', count: 0, lastClaimedDay: '' },
     weekly: createFreshWeekly(),
+    achievementsClaimed: {},
   };
 }
 

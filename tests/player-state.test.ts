@@ -279,6 +279,30 @@ describe('PlayerState.economy — daily rollover via loadOrInit', () => {
   });
 });
 
+describe('PlayerState.economy — achievementsClaimed backfill', () => {
+  it('backfills achievementsClaimed on saves without that field', async () => {
+    const redis = new FakeRedis();
+    const today = dateISO(0);
+    await redis.set(
+      'meowcert:state:lily',
+      JSON.stringify({
+        username: 'lily',
+        coins: 50,
+        economy: {
+          daily: { day: today, playIncome: 0, chartPlays: {}, hostPotAccrued: 0, questProgress: {}, questClaimed: {}, questBonusClaimed: false },
+          pendingCollect: 0,
+          streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+          weekly: { weekKey: today.slice(0, 7), progress: {}, claimed: {}, bonusClaimed: false },
+          // achievementsClaimed intentionally absent — simulates pre-Task-5 save
+        },
+      }),
+    );
+    const state = await loadOrInit(redis, 'lily');
+    expect(state.economy.achievementsClaimed).toBeDefined();
+    expect(state.economy.achievementsClaimed).toEqual({});
+  });
+});
+
 describe('PlayerState.economy — weekly rollover via loadOrInit', () => {
   it('backfills economy.weekly on old saves without a weekly field', async () => {
     const redis = new FakeRedis();
