@@ -1,0 +1,74 @@
+[
+  {
+    "id": "catBox",
+    "category": "cat",
+    "tier": "standard",
+    "file": "crate-catBox.png"
+  },
+  {
+    "id": "catBoxGolden",
+    "category": "cat",
+    "tier": "golden",
+    "file": "crate-catBoxGolden.png"
+  },
+  {
+    "id": "catBoxMythic",
+    "category": "cat",
+    "tier": "mythic",
+    "file": "crate-catBoxMythic.png"
+  },
+  {
+    "id": "cosmeticBox",
+    "category": "cosmetic",
+    "tier": "standard",
+    "file": "crate-cosmeticBox.png"
+  },
+  {
+    "id": "cosmeticBoxGolden",
+    "category": "cosmetic",
+    "tier": "golden",
+    "file": "crate-cosmeticBoxGolden.png"
+  },
+  {
+    "id": "cosmeticBoxMythic",
+    "category": "cosmetic",
+    "tier": "mythic",
+    "file": "crate-cosmeticBoxMythic.png"
+  },
+  {
+    "id": "backgroundBox",
+    "category": "background",
+    "tier": "standard",
+    "file": "crate-backgroundBox.png"
+  },
+  {
+    "id": "backgroundBoxGolden",
+    "category": "background",
+    "tier": "golden",
+    "file": "crate-backgroundBoxGolden.png"
+  },
+  {
+    "id": "backgroundBoxMythic",
+    "category": "background",
+    "tier": "mythic",
+    "file": "crate-backgroundBoxMythic.png"
+  },
+  {
+    "id": "effectsBox",
+    "category": "effect",
+    "tier": "standard",
+    "file": "crate-effectsBox.png"
+  },
+  {
+    "id": "effectsBoxGolden",
+    "category": "effect",
+    "tier": "golden",
+    "file": "crate-effectsBoxGolden.png"
+  },
+  {
+    "id": "effectsBoxMythic",
+    "category": "effect",
+    "tier": "mythic",
+    "file": "crate-effectsBoxMythic.png"
+  }
+]
