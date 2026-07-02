@@ -8,8 +8,17 @@ import {
   claimQuest,
   claimQuestBonus,
   claimStreak,
+  claimWeekly,
+  claimWeeklyBonus,
 } from '@/services/state-client';
-import { dailyQuestsFor, STREAK_TRACK, type DailyQuest } from '@/../shared/quests';
+import {
+  dailyQuestsFor,
+  STREAK_TRACK,
+  WEEKLY_QUEST_POOL,
+  WEEKLY_BONUS_COINS,
+  type DailyQuest,
+  type WeeklyQuest,
+} from '@/../shared/quests';
 import { BOX_CATALOG, type BoxConfig, type BoxId, type PlayerState } from '@/../shared/state';
 
 /**
@@ -231,7 +240,7 @@ export class Rewards extends Scene {
     if (!this.bodyRoot) return;
     this.bodyRoot.removeAll(true);
     if (this.activeTab === 'daily') this.renderDaily();
-    else if (this.activeTab === 'weekly') this.renderPlaceholder('Weekly rewards coming soon');
+    else if (this.activeTab === 'weekly') this.renderWeekly();
     else this.renderPlaceholder('Trophies coming soon');
   }
 
@@ -446,6 +455,216 @@ export class Rewards extends Scene {
     }
   }
 
+  // -- weekly tab --------------------------------------------------------
+
+  /** Milliseconds until next Monday 00:00 UTC, as "Resets in Nd Nh". */
+  private weeklyResetLabel(): string {
+    const now = new Date();
+    const day = now.getUTCDay() || 7;
+    const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + (8 - day));
+    const ms = next - now.getTime();
+    const d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000);
+    return `Resets in ${d}d ${h}h`;
+  }
+
+  private renderWeekly(): void {
+    const { width } = this.scale;
+    const cx = width / 2;
+    const rowW = width - 24;
+    const top = this.bodyTop();
+
+    // Header line: title on the left, reset countdown on the right.
+    this.sectionHeader(cx, top, rowW, '📅  WEEKLY QUESTS');
+    this.bodyRoot!.add(
+      this.add
+        .text(cx + rowW / 2, top, this.weeklyResetLabel(), {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontSize: '9px',
+          color: '#c0a0e6',
+        })
+        .setOrigin(1, 0.5),
+    );
+
+    const weekly = this.playerState?.economy?.weekly;
+    const progress = weekly?.progress ?? {};
+    const claimed = weekly?.claimed ?? {};
+
+    const rowStride = 30;
+    WEEKLY_QUEST_POOL.forEach((q, i) => {
+      this.addWeeklyRow(
+        cx,
+        top + 24 + i * rowStride,
+        rowW,
+        q,
+        progress[q.id] ?? 0,
+        claimed[q.id] === true,
+      );
+    });
+
+    const allClaimed = WEEKLY_QUEST_POOL.every((q) => claimed[q.id] === true);
+    this.addWeeklyBonusRow(
+      cx,
+      top + 24 + WEEKLY_QUEST_POOL.length * rowStride,
+      rowW,
+      allClaimed,
+      weekly?.bonusClaimed === true,
+    );
+  }
+
+  private addWeeklyRow(
+    cx: number,
+    cy: number,
+    w: number,
+    quest: WeeklyQuest,
+    progress: number,
+    claimed: boolean,
+  ): void {
+    const rowH = 26;
+    const complete = progress >= quest.target;
+    const bg = this.add
+      .rectangle(cx, cy, w, rowH, 0x120726, 1)
+      .setStrokeStyle(1, complete && !claimed ? 0xffd34d : 0xc0a0e6, complete && !claimed ? 0.7 : 0.4);
+    this.bodyRoot!.add(bg);
+
+    const labelColor = claimed ? '#6b8a6b' : complete ? '#ffffff' : '#c0a0e6';
+    this.bodyRoot!.add(
+      this.add
+        .text(cx - w / 2 + 10, cy, quest.label, {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontSize: '9px',
+          color: labelColor,
+        })
+        .setOrigin(0, 0.5),
+    );
+
+    const rightX = cx + w / 2 - 10;
+
+    // Per-quest reward (coins + a golden box), shown until the row is claimed.
+    if (!claimed) {
+      this.bodyRoot!.add(
+        this.add
+          .text(rightX - 66, cy, `🪙${quest.coins} + 🎁`, {
+            fontFamily: 'Pixeloid Sans, sans-serif',
+            fontSize: '9px',
+            color: '#8f80b0',
+          })
+          .setOrigin(1, 0.5),
+      );
+    }
+
+    if (claimed) {
+      this.bodyRoot!.add(
+        this.add
+          .text(rightX, cy, '✓ CLAIMED', {
+            fontFamily: 'Pixeloid Sans, sans-serif',
+            fontStyle: 'bold',
+            fontSize: '9px',
+            color: '#7ee08a',
+          })
+          .setOrigin(1, 0.5),
+      );
+    } else if (complete) {
+      // Gold CLAIM button — every weekly claim picks a golden box first.
+      const btnW = 56;
+      const btnH = 20;
+      const btnCX = rightX - btnW / 2;
+      const btnBg = this.add
+        .rectangle(btnCX, cy, btnW, btnH, 0xffd34d, 1)
+        .setStrokeStyle(2, 0x0b041a, 0.9)
+        .setInteractive({ useHandCursor: true });
+      btnBg.on('pointerdown', () =>
+        this.openTierChooser('golden', 'PICK YOUR GOLDEN BOX', (boxId) =>
+          void this.onClaimWeekly(quest.id, boxId),
+        ),
+      );
+      this.bodyRoot!.add(btnBg);
+      this.bodyRoot!.add(
+        this.add
+          .text(btnCX, cy, 'CLAIM', {
+            fontFamily: 'Pixeloid Sans, sans-serif',
+            fontStyle: 'bold',
+            fontSize: '11px',
+            color: '#0b041a',
+          })
+          .setOrigin(0.5),
+      );
+    } else {
+      this.bodyRoot!.add(
+        this.add
+          .text(rightX, cy, `${progress}/${quest.target}`, {
+            fontFamily: 'Pixeloid Sans, sans-serif',
+            fontStyle: 'bold',
+            fontSize: '11px',
+            color: '#c0a0e6',
+          })
+          .setOrigin(1, 0.5),
+      );
+    }
+  }
+
+  private addWeeklyBonusRow(
+    cx: number,
+    cy: number,
+    w: number,
+    unlocked: boolean,
+    bonusClaimed: boolean,
+  ): void {
+    const rowH = 26;
+    const bg = this.add
+      .rectangle(cx, cy, w, rowH, 0x1c1030, 1)
+      .setStrokeStyle(1, unlocked && !bonusClaimed ? 0xffd34d : 0xc0a0e6, unlocked && !bonusClaimed ? 0.8 : 0.35);
+    this.bodyRoot!.add(bg);
+
+    this.bodyRoot!.add(
+      this.add
+        .text(cx - w / 2 + 10, cy, `🎁 ALL ${WEEKLY_QUEST_POOL.length} → GOLDEN BOX + ${WEEKLY_BONUS_COINS}`, {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '10px',
+          color: bonusClaimed ? '#6b8a6b' : unlocked ? '#ffd34d' : '#c0a0e6',
+        })
+        .setOrigin(0, 0.5),
+    );
+
+    const rightX = cx + w / 2 - 10;
+    if (bonusClaimed) {
+      this.bodyRoot!.add(
+        this.add
+          .text(rightX, cy, '✓ CLAIMED', {
+            fontFamily: 'Pixeloid Sans, sans-serif',
+            fontStyle: 'bold',
+            fontSize: '9px',
+            color: '#7ee08a',
+          })
+          .setOrigin(1, 0.5),
+      );
+    } else if (unlocked) {
+      const btnW = 66;
+      const btnH = 20;
+      const btnCX = rightX - btnW / 2;
+      const btnBg = this.add
+        .rectangle(btnCX, cy, btnW, btnH, 0xffd34d, 1)
+        .setStrokeStyle(2, 0x0b041a, 0.9)
+        .setInteractive({ useHandCursor: true });
+      btnBg.on('pointerdown', () =>
+        this.openTierChooser('golden', 'PICK YOUR GOLDEN BOX', (boxId) =>
+          void this.onWeeklyBonus(boxId),
+        ),
+      );
+      this.bodyRoot!.add(btnBg);
+      this.bodyRoot!.add(
+        this.add
+          .text(btnCX, cy, 'CHOOSE', {
+            fontFamily: 'Pixeloid Sans, sans-serif',
+            fontStyle: 'bold',
+            fontSize: '10px',
+            color: '#0b041a',
+          })
+          .setOrigin(0.5),
+      );
+    }
+  }
+
   /** LOGIN STREAK — 7 pips + reward label + CLAIM when claimable. */
   private renderStreakSection(cx: number, top: number, w: number): void {
     this.sectionHeader(cx, top, w, '🔥  LOGIN STREAK');
@@ -590,6 +809,46 @@ export class Rewards extends Scene {
         this.adopt(res.state);
         // No coin count-up — the reward is an item; flash the box name.
         this.flyText(`🎁 ${BOX_CATALOG[boxId].displayName}!`);
+      }
+    } catch {
+      /* leave the tab as-is on network error */
+    }
+    this.busy = false;
+  }
+
+  private async onClaimWeekly(questId: string, boxId: BoxId): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    this.closeChooser();
+    try {
+      const res = await claimWeekly(questId, boxId);
+      if (!this.scene.isActive()) return;
+      if (res.ok) {
+        this.adopt(res.state);
+        this.flyCoins(res.claimed);
+        this.flyText(`+ ${res.pull.itemId}`);
+      } else {
+        this.renderTabBody(); // state drifted server-side — repaint from current
+      }
+    } catch {
+      /* leave the tab as-is on network error */
+    }
+    this.busy = false;
+  }
+
+  private async onWeeklyBonus(boxId: BoxId): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    this.closeChooser();
+    try {
+      const res = await claimWeeklyBonus(boxId);
+      if (!this.scene.isActive()) return;
+      if (res.ok) {
+        this.adopt(res.state);
+        this.flyCoins(res.claimed);
+        this.flyText(`+ ${res.pull.itemId}`);
+      } else {
+        this.renderTabBody(); // state drifted server-side — repaint from current
       }
     } catch {
       /* leave the tab as-is on network error */

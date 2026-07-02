@@ -77,12 +77,25 @@ await new Promise((r) => setTimeout(r, 150));
 await page.evaluate(() => window.__openGoldenChooser());
 await shoot('golden-chooser');
 
-// WEEKLY / TROPHIES placeholders
+// WEEKLY tab states — start the scene, then switch to the weekly tab.
+for (const name of ['weekly-mid', 'weekly-claimable', 'weekly-two-claimed', 'weekly-all-claimed']) {
+  await page.evaluate((n) => window.__scene(n), name);
+  await new Promise((r) => setTimeout(r, 120));
+  await page.evaluate(() => window.__tab('weekly'));
+  await shoot(name);
+}
+
+// weekly golden chooser (the overlay a CLAIM tap opens — exactly 4 golden SKUs)
+await page.evaluate(() => window.__scene('weekly-claimable'));
+await new Promise((r) => setTimeout(r, 120));
+await page.evaluate(() => window.__tab('weekly'));
+await new Promise((r) => setTimeout(r, 120));
+await page.evaluate(() => window.__openGoldenChooser());
+await shoot('weekly-chooser');
+
+// TROPHIES placeholder
 await page.evaluate(() => window.__open(0));
 await new Promise((r) => setTimeout(r, 150));
-await page.evaluate(() => window.__tab('weekly'));
-await shoot('tab-weekly-placeholder');
-
 await page.evaluate(() => window.__tab('trophies'));
 await shoot('tab-trophies-placeholder');
 

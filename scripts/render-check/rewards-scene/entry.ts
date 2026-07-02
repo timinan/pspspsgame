@@ -52,9 +52,16 @@ function fakeState(pendingCollect: number, coins = 1000): PlayerState {
         questBonusClaimed: false,
       },
       streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+      weekly: { weekKey: '', progress: {}, claimed: {}, bonusClaimed: false },
     },
   } as unknown as PlayerState;
 }
+
+type WeeklyPin = {
+  progress: Record<string, number>;
+  claimed: Record<string, boolean>;
+  bonusClaimed: boolean;
+};
 
 type QuestScene = {
   isoToday: string;
@@ -62,6 +69,7 @@ type QuestScene = {
   questClaimed: Record<string, boolean>;
   questBonusClaimed: boolean;
   streak: { lastDay: string; count: number; lastClaimedDay: string };
+  weekly?: WeeklyPin;
 };
 
 const SCENES: Record<string, QuestScene> = {
@@ -100,17 +108,69 @@ const SCENES: Record<string, QuestScene> = {
     questBonusClaimed: false,
     streak: { lastDay: DAY, count: 7, lastClaimedDay: '' },
   },
+  // Weekly scenarios — daily fields idle; weekly is what's under test.
+  'weekly-mid': {
+    isoToday: DAY,
+    questProgress: {},
+    questClaimed: {},
+    questBonusClaimed: false,
+    streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+    weekly: {
+      progress: { wplays15: 9, whardpass5: 2, whostplays25: 11 },
+      claimed: {},
+      bonusClaimed: false,
+    },
+  },
+  'weekly-claimable': {
+    isoToday: DAY,
+    questProgress: {},
+    questClaimed: {},
+    questBonusClaimed: false,
+    streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+    weekly: {
+      progress: { wplays15: 15, whardpass5: 5, whostplays25: 25 },
+      claimed: {},
+      bonusClaimed: false,
+    },
+  },
+  'weekly-two-claimed': {
+    isoToday: DAY,
+    questProgress: {},
+    questClaimed: {},
+    questBonusClaimed: false,
+    streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+    weekly: {
+      progress: { wplays15: 15, whardpass5: 5, whostplays25: 25 },
+      claimed: { wplays15: true, whardpass5: true },
+      bonusClaimed: false,
+    },
+  },
+  'weekly-all-claimed': {
+    isoToday: DAY,
+    questProgress: {},
+    questClaimed: {},
+    questBonusClaimed: false,
+    streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+    weekly: {
+      progress: { wplays15: 15, whardpass5: 5, whostplays25: 25 },
+      claimed: { wplays15: true, whardpass5: true, whostplays25: true },
+      bonusClaimed: false,
+    },
+  },
 };
 
 function sceneState(name: string): PlayerState {
   const s = SCENES[name]!;
   const st = fakeState(0) as unknown as {
-    economy: { daily: Record<string, unknown>; streak: unknown };
+    economy: { daily: Record<string, unknown>; streak: unknown; weekly: WeeklyPin & { weekKey: string } };
   };
   st.economy.daily.questProgress = s.questProgress;
   st.economy.daily.questClaimed = s.questClaimed;
   st.economy.daily.questBonusClaimed = s.questBonusClaimed;
   st.economy.streak = s.streak;
+  if (s.weekly) {
+    st.economy.weekly = { weekKey: '2026-W27', ...s.weekly };
+  }
   return st as unknown as PlayerState;
 }
 
@@ -150,6 +210,26 @@ window.fetch = ((input: RequestInfo | URL) => {
   }
   if (url.includes('/api/streak/claim')) {
     return Promise.resolve(jsonRes({ ok: true, claimed: 100, state: current }));
+  }
+  if (url.includes('/api/weekly/claim')) {
+    return Promise.resolve(
+      jsonRes({
+        ok: true,
+        claimed: 100,
+        pull: { kind: 'cat', itemId: 'siamese', rarity: 'rare', duplicate: false, refundCoins: 0 },
+        state: current,
+      }),
+    );
+  }
+  if (url.includes('/api/weekly/bonus')) {
+    return Promise.resolve(
+      jsonRes({
+        ok: true,
+        claimed: 500,
+        pull: { kind: 'cat', itemId: 'tabby', rarity: 'legendary', duplicate: false, refundCoins: 0 },
+        state: current,
+      }),
+    );
   }
   return Promise.resolve(jsonRes({ ok: true, state: current }));
 }) as typeof window.fetch;
