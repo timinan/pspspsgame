@@ -130,58 +130,95 @@ def build_palette(cfg):
     return pal
 
 
-def propagate_labels(frame_seq, seed_labels, src_pixels, body_masks):
-    """Body-locked pattern tracking. seed_labels: {(x,y): 0|1} for frame 0
-    of an animation (screen-space assignment in the reference pose).
-    For each subsequent frame, every body pixel inherits the label of the
-    best-matching pixel in the PREVIOUS frame: nearest pixel (expanding
-    Chebyshev window r=1..4) whose cat2 source color matches exactly,
-    ties broken by majority. Unmatched pixels fall back to the nearest
-    labeled pixel regardless of color. A final per-frame cleanup gives
-    isolated speckles (<=2 same-label neighbors) the local majority label
-    so boundaries stay coherent. Returns {frame_stem: {(x,y): 0|1}}."""
-    out = {frame_seq[0]: dict(seed_labels)}
-    for prev_stem, cur_stem in zip(frame_seq, frame_seq[1:]):
-        prev_labels = out[prev_stem]
-        prev_src = src_pixels[prev_stem]
-        cur_src = src_pixels[cur_stem]
-        labels = {}
-        for (x, y) in body_masks[cur_stem]:
-            color = cur_src[(x, y)]
-            found = None
-            for r in range(0, 5):
-                votes = []
-                for dy in range(-r, r + 1):
-                    for dx in range(-r, r + 1):
-                        if max(abs(dx), abs(dy)) != r:
-                            continue
-                        q = (x + dx, y + dy)
-                        lab = prev_labels.get(q)
-                        if lab is not None and prev_src.get(q) == color:
-                            votes.append(lab)
+def _propagate_step(prev_labels, prev_src, cur_src, cur_mask, max_r):
+    """One frame-to-frame label transfer. Every body pixel inherits the
+    majority label of the nearest pixels in the previous frame with the
+    SAME cat2 source color (expanding Chebyshev rings, r=0..max_r);
+    pixels with no color match anywhere fall back to nearest-any."""
+    labels = {}
+    for (x, y) in cur_mask:
+        color = cur_src[(x, y)]
+        found = None
+        for r in range(0, max_r + 1):
+            votes = []
+            for dy in range(-r, r + 1):
+                for dx in range(-r, r + 1):
+                    if max(abs(dx), abs(dy)) != r:
+                        continue
+                    q = (x + dx, y + dy)
+                    lab = prev_labels.get(q)
+                    if lab is not None and prev_src.get(q) == color:
+                        votes.append(lab)
+            if votes:
+                found = round(sum(votes) / len(votes))
+                break
+        if found is None:
+            for r in range(1, max_r + 4):
+                votes = [prev_labels[q] for dy in range(-r, r + 1) for dx in range(-r, r + 1)
+                         if (q := (x + dx, y + dy)) in prev_labels]
                 if votes:
                     found = round(sum(votes) / len(votes))
                     break
-            if found is None:
-                for r in range(1, 7):
-                    votes = [prev_labels[q] for dy in range(-r, r + 1) for dx in range(-r, r + 1)
-                             if (q := (x + dx, y + dy)) in prev_labels]
-                    if votes:
-                        found = round(sum(votes) / len(votes))
-                        break
-            labels[(x, y)] = found if found is not None else 0
-        # Speckle cleanup: a pixel whose 8-neighbourhood disagrees flips
-        # to the local majority.
-        for _ in range(2):
-            flips = []
-            for (x, y), lab in labels.items():
-                nb = [labels[q] for dy in (-1, 0, 1) for dx in (-1, 0, 1)
-                      if (dx or dy) and (q := (x + dx, y + dy)) in labels]
-                if len(nb) >= 3 and sum(1 for v in nb if v == lab) <= 1:
-                    flips.append(((x, y), round(sum(nb) / len(nb))))
-            for p, v in flips:
-                labels[p] = v
-        out[cur_stem] = labels
+        labels[(x, y)] = found if found is not None else 0
+    return labels
+
+
+def _cohere(labels, src, mask):
+    """Per-frame label coherence. Small connected blobs of one source
+    color (paw tips, ear tips, glint patches — anatomical units <= 30px)
+    get a winner-take-all label so half-flipped tips can't happen; then
+    two speckle sweeps flip isolated pixels to the local majority."""
+    seen = set()
+    from collections import deque
+    for start in mask:
+        if start in seen:
+            continue
+        color = src[start]
+        comp, q = [], deque([start])
+        seen.add(start)
+        while q:
+            (cx, cy) = q.popleft()
+            comp.append((cx, cy))
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    n = (cx + dx, cy + dy)
+                    if n in mask and n not in seen and src[n] == color:
+                        seen.add(n)
+                        q.append(n)
+        if len(comp) <= 30:
+            majority = round(sum(labels[p] for p in comp) / len(comp))
+            for p in comp:
+                labels[p] = majority
+    for _ in range(2):
+        flips = []
+        for (x, y), lab in labels.items():
+            nb = [labels[q] for dy in (-1, 0, 1) for dx in (-1, 0, 1)
+                  if (dx or dy) and (q := (x + dx, y + dy)) in labels]
+            if len(nb) >= 3 and sum(1 for v in nb if v == lab) <= 1:
+                flips.append(((x, y), round(sum(nb) / len(nb))))
+        for p, v in flips:
+            labels[p] = v
+    return labels
+
+
+def propagate_labels(anim_seqs, ref_stem, seed_labels, src_pixels, body_masks):
+    """Body-locked pattern tracking with ONE reference for the whole cat.
+    seed_labels: {(x,y): 0|1} on the reference frame (idle_00). Every
+    other animation's first frame is bridged FROM the reference with a
+    wide search window (all anims start near the sitting pose), then
+    propagation runs frame-to-frame within the anim. This keeps the
+    pattern consistent across animations — the same ear tip has the same
+    color in idle, lick, meow, and hiss. Returns {stem: {(x,y): 0|1}}."""
+    out = {ref_stem: _cohere(dict(seed_labels), src_pixels[ref_stem], body_masks[ref_stem])}
+    for anim, seq in anim_seqs.items():
+        chain = [s for s in seq if s != ref_stem]
+        prev = ref_stem
+        for i, stem in enumerate(chain):
+            max_r = 8 if i == 0 and not stem.startswith(prev.rsplit('_', 1)[0]) else 4
+            labels = _propagate_step(out[prev], src_pixels[prev], src_pixels[stem],
+                                     body_masks[stem], max_r)
+            out[stem] = _cohere(labels, src_pixels[stem], body_masks[stem])
+            prev = stem
     return out
 
 
@@ -267,24 +304,26 @@ def generate(cfg_path):
         by_anim = {}
         for f in frames:
             by_anim.setdefault(f.stem.rsplit('_', 1)[0], []).append(f.stem)
-        for anim, seq in by_anim.items():
+        for seq in by_anim.values():
             seq.sort()
-            stem0 = seq[0]
-            tp0 = tmaps[stem0]
-            mask0 = body_masks[stem0]
-            if pattern:
-                cell = int(pattern.get('size', 5))
-                ax = (min(p[0] for p in mask0) + max(p[0] for p in mask0)) // 2
-                ay = min(p[1] for p in mask0)
-                seed = {p: ((p[0] - ax) // cell + (p[1] - ay) // cell) % 2 for p in mask0}
-            elif horizontal:
-                sy = waist_y(tp0)
-                seed = {p: (0 if p[1] < sy else 1) for p in mask0}
-            else:
-                eyes = [p[0] for p in mask0 if ridx[tp0[p[0], p[1]]] in eye_regions]
-                cx = (min(eyes) + max(eyes)) // 2 if eyes else W // 2
-                seed = {p: (0 if p[0] <= cx else 1) for p in mask0}
-            locked.update(propagate_labels(seq, seed, src_pixels, body_masks))
+        # ONE geometric seed on the reference frame; every animation
+        # bridges from it (see propagate_labels).
+        ref = 'idle_00'
+        tp0 = tmaps[ref]
+        mask0 = body_masks[ref]
+        if pattern:
+            cell = int(pattern.get('size', 5))
+            ax = (min(p[0] for p in mask0) + max(p[0] for p in mask0)) // 2
+            ay = min(p[1] for p in mask0)
+            seed = {p: ((p[0] - ax) // cell + (p[1] - ay) // cell) % 2 for p in mask0}
+        elif horizontal:
+            sy = waist_y(tp0)
+            seed = {p: (0 if p[1] < sy else 1) for p in mask0}
+        else:
+            eyes = [p[0] for p in mask0 if ridx[tp0[p[0], p[1]]] in eye_regions]
+            cx = (min(eyes) + max(eyes)) // 2 if eyes else W // 2
+            seed = {p: (0 if p[0] <= cx else 1) for p in mask0}
+        locked = propagate_labels(by_anim, ref, seed, src_pixels, body_masks)
 
     for f in frames:
         tpl = Image.open(f)
