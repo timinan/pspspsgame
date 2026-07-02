@@ -14,8 +14,12 @@
   .summary b { color:var(--gold); }
   .summary .del { color:var(--red); }
   .savestate { margin-left:auto; font-size:11px; }
-  h2 { color:var(--gold); font-size:15px; border-bottom:1px solid var(--line); padding-bottom:4px; margin:30px 0 8px; }
+  h2 { color:var(--gold); font-size:15px; border-bottom:1px solid var(--line); padding-bottom:4px; margin:30px 0 8px;
+    cursor:pointer; user-select:none; }
+  h2:hover { color:#fff; }
   h2 .count { color:var(--mut); font-weight:normal; font-size:12px; }
+  h2 .chev { display:inline-block; width:16px; color:var(--mut); }
+  h2 .flag { color:var(--red); font-weight:normal; font-size:11px; margin-left:8px; }
   .catprompt { width:100%; box-sizing:border-box; background:#0b041a; color:#fff; border:1px solid var(--line);
     border-radius:6px; padding:8px; font-family:inherit; font-size:12px; min-height:40px; margin-bottom:12px; }
   .catprompt:focus { border-color:var(--gold); outline:none; }
@@ -117,68 +121,99 @@ async function boot() {
   for (const cat of CATEGORY_ORDER) {
     const list = byCat[cat];
     if (!list) continue;
+    let open = false;
+
     const h = document.createElement('h2');
-    h.innerHTML = `${cat} <span class="count">${list.length}</span>`;
+    const body = document.createElement('div');
+
+    const renderHeader = () => {
+      const marked = list.filter((fx) => state.deleted.has(fx.id) || (state.notes[fx.id] ?? '').trim()).length;
+      const hasPrompt = (state.categoryPrompts[cat] ?? '').trim();
+      h.innerHTML = `<span class="chev">${open ? '▾' : '▸'}</span>${cat} <span class="count">${list.length}</span>`
+        + (marked || hasPrompt ? `<span class="flag">${marked ? marked + ' marked' : ''}${hasPrompt ? ' · category prompt ✎' : ''}</span>` : '');
+    };
+
+    // Cards only exist in the DOM while the section is open — 578 live
+    // flipbooks at once was killing the laptop. Collapse tears everything
+    // down; notes/checkbox state lives in `state`, so re-opening restores.
+    const buildBody = () => {
+      const prompt = document.createElement('textarea');
+      prompt.className = 'catprompt';
+      prompt.placeholder = `Overall changes for ${cat}…`;
+      prompt.value = state.categoryPrompts[cat] ?? '';
+      prompt.addEventListener('input', () => {
+        state.categoryPrompts[cat] = prompt.value;
+        scheduleSave();
+      });
+      body.appendChild(prompt);
+
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      list.forEach((fx, i) => {
+        const card = document.createElement('div');
+        card.className = 'card' + (state.deleted.has(fx.id) ? ' deleted' : '');
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.dataset.fx = fx.id;
+        img.dataset.off = i % catalog.frames;
+        img.src = `frames/${fx.id}_0.jpg`;
+        io.observe(img);
+        card.appendChild(img);
+
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = fx.name;
+        card.appendChild(name);
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.innerHTML = `${fx.id} · <span class="rar-${fx.rarity}">${fx.rarity}</span>`;
+        card.appendChild(meta);
+
+        const row = document.createElement('label');
+        row.className = 'row';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = state.deleted.has(fx.id);
+        cb.addEventListener('change', () => {
+          if (cb.checked) state.deleted.add(fx.id); else state.deleted.delete(fx.id);
+          card.classList.toggle('deleted', cb.checked);
+          scheduleSave();
+        });
+        row.appendChild(cb);
+        row.appendChild(document.createTextNode(' delete'));
+        card.appendChild(row);
+
+        const notes = document.createElement('textarea');
+        notes.placeholder = 'Modifications…';
+        notes.value = state.notes[fx.id] ?? '';
+        notes.addEventListener('input', () => {
+          state.notes[fx.id] = notes.value;
+          scheduleSave();
+        });
+        card.appendChild(notes);
+
+        grid.appendChild(card);
+      });
+      body.appendChild(grid);
+    };
+
+    const teardownBody = () => {
+      for (const img of body.querySelectorAll('img')) {
+        io.unobserve(img);
+        visible.delete(img);
+      }
+      body.replaceChildren();
+    };
+
+    h.addEventListener('click', () => {
+      open = !open;
+      if (open) buildBody(); else teardownBody();
+      renderHeader();
+    });
+
+    renderHeader();
     root.appendChild(h);
-
-    const prompt = document.createElement('textarea');
-    prompt.className = 'catprompt';
-    prompt.placeholder = `Overall changes for ${cat}…`;
-    prompt.value = state.categoryPrompts[cat] ?? '';
-    prompt.addEventListener('input', () => {
-      state.categoryPrompts[cat] = prompt.value;
-      scheduleSave();
-    });
-    root.appendChild(prompt);
-
-    const grid = document.createElement('div');
-    grid.className = 'grid';
-    list.forEach((fx, i) => {
-      const card = document.createElement('div');
-      card.className = 'card' + (state.deleted.has(fx.id) ? ' deleted' : '');
-      const img = document.createElement('img');
-      img.loading = 'lazy';
-      img.dataset.fx = fx.id;
-      img.dataset.off = i % catalog.frames;
-      img.src = `frames/${fx.id}_0.jpg`;
-      io.observe(img);
-      card.appendChild(img);
-
-      const name = document.createElement('div');
-      name.className = 'name';
-      name.textContent = fx.name;
-      card.appendChild(name);
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.innerHTML = `${fx.id} · <span class="rar-${fx.rarity}">${fx.rarity}</span>`;
-      card.appendChild(meta);
-
-      const row = document.createElement('label');
-      row.className = 'row';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = state.deleted.has(fx.id);
-      cb.addEventListener('change', () => {
-        if (cb.checked) state.deleted.add(fx.id); else state.deleted.delete(fx.id);
-        card.classList.toggle('deleted', cb.checked);
-        scheduleSave();
-      });
-      row.appendChild(cb);
-      row.appendChild(document.createTextNode(' delete'));
-      card.appendChild(row);
-
-      const notes = document.createElement('textarea');
-      notes.placeholder = 'Modifications…';
-      notes.value = state.notes[fx.id] ?? '';
-      notes.addEventListener('input', () => {
-        state.notes[fx.id] = notes.value;
-        scheduleSave();
-      });
-      card.appendChild(notes);
-
-      grid.appendChild(card);
-    });
-    root.appendChild(grid);
+    root.appendChild(body);
   }
   refreshSummary();
 }
