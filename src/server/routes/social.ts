@@ -29,6 +29,8 @@ import {
 } from '../../shared/social-loop';
 import { BACKING_CATALOG, type Chart } from '../../shared/state';
 import { loadOrInit, save } from '../core/player-state';
+import { computePlayReward, type Difficulty, type PlayRewardBreakdown, type PlayRewardInput } from '../../shared/economy';
+import { applyPlayReward } from '../../shared/economy-apply';
 
 /**
  * Server routes for the social loop:
@@ -69,6 +71,12 @@ interface PlayBody {
   commentBody?: string;
   /** Optional gift sent alongside the play. */
   gift?: { coins: number; itemInstanceIds: string[] };
+  // Task 4 economy fields — optional until Task 5 client lands.
+  // Absent = legacy mode (no credit, no 400).
+  perfects?: number;
+  misses?: number;
+  difficulty?: Difficulty;
+  playToken?: string;
 }
 
 social.post('/play', async (c) => {
@@ -290,11 +298,74 @@ social.post('/play', async (c) => {
     console.info('[social/play] no pinned root for', body.postId, '— skipping auto-stats + summary refresh');
   }
 
+  // Economy credit block — only fires when the client sends a playToken
+  // (Task 5 client). Absent token = legacy mode: skip crediting entirely
+  // so the live playtest keeps working mid-plan. Never 400 on missing token.
+  let breakdown: PlayRewardBreakdown | undefined;
+  let royalty: number | undefined;
+
+  if (body.playToken) {
+    const tokenKey = `meowcert:play-token:${body.playToken}`;
+    try {
+      // Idempotency: return cached result on repeat submissions (set-if-unset
+      // pattern — same as setFirstPasserIfUnset in core/social.ts).
+      const cached = await r.get(tokenKey);
+      if (cached) {
+        const result = JSON.parse(cached) as { breakdown: PlayRewardBreakdown; royalty: number };
+        return c.json({
+          ok: true,
+          tier,
+          baseReward,
+          passed,
+          breakdown: result.breakdown,
+          royalty: result.royalty,
+          alreadyCredited: true,
+        });
+      }
+    } catch (err) {
+      console.error('[social/play] token cache read failed (continuing)', err);
+    }
+
+    const isoToday = new Date().toISOString().slice(0, 10);
+    try {
+      const v = await loadOrInit(redis, visitor);
+      const isOwner = visitor === body.owner;
+      const h = isOwner ? v : await loadOrInit(redis, body.owner);
+
+      const input: PlayRewardInput = {
+        accuracyPct: body.accuracy * 100,
+        maxCombo: body.maxCombo,
+        perfects: body.perfects ?? 0,
+        misses: body.misses ?? 0,
+        totalNotes: body.totalNotes,
+        difficulty: body.difficulty ?? 'easy',
+        isOwnShow: isOwner,
+        chartPlaysToday: v.economy.daily.chartPlays[body.postId] ?? 0,
+        playIncomeToday: v.economy.daily.playIncome,
+      };
+
+      const bd = computePlayReward(input);
+      const result = applyPlayReward(v, h, bd, body.postId, isoToday);
+      breakdown = result.breakdown;
+      royalty = result.royalty;
+
+      // Save owner first, then visitor
+      if (!isOwner) await save(redis, h);
+      await save(redis, v);
+
+      // Cache token so repeat submissions return the identical breakdown
+      await r.set(tokenKey, JSON.stringify({ breakdown, royalty }));
+    } catch (err) {
+      console.error('[social/play] economy credit failed (continuing)', err);
+    }
+  }
+
   return c.json({
     ok: true,
     tier,
     baseReward,
     passed,
+    ...(breakdown !== undefined ? { breakdown, royalty } : {}),
   });
 });
 
