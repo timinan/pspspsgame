@@ -282,13 +282,38 @@ def generate(cfg_path):
     # Split midline per frame: midpoint of the eye bbox (stable even when
     # one eye squints). Blink frames have no eye pixels — they inherit
     # the mean anchor of their own animation so the line never jumps.
-    # Body-locked patterns (Tim, 2026-07-01): splits and checkers are
-    # PAINTED ON the cat, not stencils it animates through. Each anim's
-    # frame 00 gets the screen-space assignment (reference pose: paws
-    # down, so parts land on their anatomical side), then labels ride the
-    # pixels through the animation via propagate_labels().
+    # Splits (Tim, 2026-07-02): a FIXED straight line — same x (or waist
+    # y) in every frame of every animation, derived once from idle_00.
+    # The only body-locked exception is the licking paw (template
+    # parts.json, frozen), which crosses the line and keeps its root
+    # side's color. No per-pixel propagation — that produced wobble.
+    split_line = None
+    paw_px = {}
+    if split:
+        tp0 = Image.open(TPL / 'idle_00.png').load()
+        eye_ids = {v for k, v in json.loads((TPL / 'regions.json').read_text())['palette_index'].items()
+                   if k in ('iris', 'irisHi1', 'irisHi2', 'glint')}
+        if horizontal:
+            def _waist(tp):
+                best_y, best_w = None, 10 ** 9
+                for y in range(36, 50):
+                    xs = [x for x in range(W) if tp[x, y]]
+                    if len(xs) >= 4 and (xs[-1] - xs[0] + 1) < best_w:
+                        best_w, best_y = xs[-1] - xs[0] + 1, y
+                return (best_y + 1) if best_y is not None else 44
+            split_line = _waist(tp0)
+        else:
+            xs = [x for y in range(H) for x in range(W) if tp0[x, y] in eye_ids]
+            split_line = (min(xs) + max(xs)) // 2 if xs else W // 2
+        parts_path = TPL / 'parts.json'
+        if parts_path.exists():
+            paw_px = {stem: {tuple(p) for p in pts}
+                      for stem, pts in json.loads(parts_path.read_text())['lick_paw'].items()}
+
+    # Checkers stay body-locked via propagation until the frozen
+    # correspondence map lands (see resume-prompt-2026-07-02).
     locked = {}
-    if split or pattern:
+    if pattern:
         tmaps = {f.stem: Image.open(f).load() for f in frames}
         smaps = {f.stem: Image.open(SRC / f'cat2_{f.stem}.png').convert('RGBA').load() for f in frames}
         body_masks = {
@@ -309,20 +334,11 @@ def generate(cfg_path):
         # ONE geometric seed on the reference frame; every animation
         # bridges from it (see propagate_labels).
         ref = 'idle_00'
-        tp0 = tmaps[ref]
         mask0 = body_masks[ref]
-        if pattern:
-            cell = int(pattern.get('size', 5))
-            ax = (min(p[0] for p in mask0) + max(p[0] for p in mask0)) // 2
-            ay = min(p[1] for p in mask0)
-            seed = {p: ((p[0] - ax) // cell + (p[1] - ay) // cell) % 2 for p in mask0}
-        elif horizontal:
-            sy = waist_y(tp0)
-            seed = {p: (0 if p[1] < sy else 1) for p in mask0}
-        else:
-            eyes = [p[0] for p in mask0 if ridx[tp0[p[0], p[1]]] in eye_regions]
-            cx = (min(eyes) + max(eyes)) // 2 if eyes else W // 2
-            seed = {p: (0 if p[0] <= cx else 1) for p in mask0}
+        cell = int(pattern.get('size', 5))
+        ax = (min(p[0] for p in mask0) + max(p[0] for p in mask0)) // 2
+        ay = min(p[1] for p in mask0)
+        seed = {p: ((p[0] - ax) // cell + (p[1] - ay) // cell) % 2 for p in mask0}
         locked = propagate_labels(by_anim, ref, seed, src_pixels, body_masks)
 
     for f in frames:
@@ -332,13 +348,26 @@ def generate(cfg_path):
         out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
         op = out.load()
         frame_labels = locked.get(f.stem, {})
+        frame_paw = paw_px.get(f.stem, set())
         for y in range(H):
             for x in range(W):
                 idx = tp[x, y]
                 if idx == 0:
                     continue
                 region = ridx[idx]
-                side = pal_right if frame_labels.get((x, y)) == 1 else pal
+                if split:
+                    if (x, y) in frame_paw:
+                        # licking paw keeps its root side: left palette
+                        # for L/R splits, body (bottom) for head/body.
+                        side = pal_right if horizontal else pal
+                    elif horizontal:
+                        side = pal if y < split_line else pal_right
+                    else:
+                        side = pal if x <= split_line else pal_right
+                elif pattern:
+                    side = pal_right if frame_labels.get((x, y)) == 1 else pal
+                else:
+                    side = pal
                 op[x, y] = (*sp[x, y][:3], 255) if region == 'fx' else (*side[region], 255)
         out.save(out_dir / f'{cid}_{f.stem}.png')
 
