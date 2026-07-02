@@ -124,6 +124,7 @@ class HarnessScene extends Phaser.Scene {
       __open: (n: number) => void;
       __scene: (name: string) => void;
       __openChooser: () => void;
+      __openGoldenChooser: () => void;
       __collectNow: () => Promise<void>;
       __ready: boolean;
     };
@@ -144,6 +145,10 @@ class HarnessScene extends Phaser.Scene {
 
     w.__openChooser = () => {
       (modal as unknown as { openBoxChooser: () => void }).openBoxChooser();
+    };
+
+    w.__openGoldenChooser = () => {
+      (modal as unknown as { openGoldenChooser: () => void }).openGoldenChooser();
     };
 
     w.__collectNow = async () => {

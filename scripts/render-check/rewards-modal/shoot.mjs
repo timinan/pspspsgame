@@ -75,6 +75,14 @@ await new Promise((r) => setTimeout(r, 250));
 await canvas.screenshot({ path: path.join(outDir, 'bonus-chooser.png') });
 console.log('shot bonus-chooser.png');
 
+// golden box chooser overlay (day-7 streak, then trigger golden chooser).
+await page.evaluate(() => window.__scene('streak-7'));
+await new Promise((r) => setTimeout(r, 150));
+await page.evaluate(() => window.__openGoldenChooser());
+await new Promise((r) => setTimeout(r, 250));
+await canvas.screenshot({ path: path.join(outDir, 'golden-chooser.png') });
+console.log('shot golden-chooser.png');
+
 await browser.close();
 server.close();
 console.log('done');

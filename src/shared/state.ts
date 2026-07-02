@@ -49,7 +49,13 @@ export function makeInstanceId(): string {
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
-export type BoxId = 'catBox' | 'cosmeticBox' | 'backgroundBox' | 'effectsBox';
+export type BoxId =
+  // Standard tier
+  | 'catBox' | 'cosmeticBox' | 'backgroundBox' | 'effectsBox'
+  // Golden tier
+  | 'catBoxGolden' | 'cosmeticBoxGolden' | 'backgroundBoxGolden' | 'effectsBoxGolden'
+  // Mythic tier
+  | 'catBoxMythic' | 'cosmeticBoxMythic' | 'backgroundBoxMythic' | 'effectsBoxMythic';
 
 // -- Catalog entries ----------------------------------------------------
 
@@ -126,6 +132,11 @@ export interface BoxConfig {
    *  player can target effects without touching the static-cosmetic
    *  pool. No-op when rewardKind !== 'cosmetic'. */
   effectsOnly?: boolean;
+  /** Quality tier — standard boxes are buyable with coins; golden and
+   *  mythic boxes are premium (streak rewards, events, etc.). */
+  tier: 'standard' | 'golden' | 'mythic';
+  /** Which reward category this box pulls from. */
+  category: 'cat' | 'cosmetic' | 'background' | 'effect';
 }
 
 // -- Cat catalog --------------------------------------------------------
@@ -324,41 +335,136 @@ export const MEOW_STEM_CATALOG: MeowStem[] = [
 // -- Box catalog --------------------------------------------------------
 
 export const BOX_CATALOG: Record<BoxId, BoxConfig> = {
+  // ── Standard tier ────────────────────────────────────────────────────
   catBox: {
     id: 'catBox',
     displayName: 'Cat Box',
     description: 'Opens a random cat. Could be a new face for your stage.',
-    price: 150,
+    price: 400,
     rewardKind: 'cat',
-    rates: { common: 70, uncommon: 25, rare: 5, legendary: 0 },
+    rates: { common: 60, uncommon: 30, rare: 9, legendary: 1 },
+    tier: 'standard',
+    category: 'cat',
   },
   cosmeticBox: {
     id: 'cosmeticBox',
     displayName: 'Cosmetic Box',
     description: 'Opens a random hat, bow, or accessory for the Dressing Room.',
-    price: 80,
+    price: 200,
     rewardKind: 'cosmetic',
-    rates: { common: 70, uncommon: 25, rare: 5, legendary: 0 },
+    rates: { common: 60, uncommon: 30, rare: 9, legendary: 1 },
+    tier: 'standard',
+    category: 'cosmetic',
   },
   backgroundBox: {
     id: 'backgroundBox',
     displayName: 'Background Box',
     description: 'Opens a random stage background.',
-    price: 250,
+    price: 350,
     rewardKind: 'background',
-    rates: { common: 70, uncommon: 25, rare: 5, legendary: 0 },
+    rates: { common: 60, uncommon: 30, rare: 9, legendary: 1 },
+    tier: 'standard',
+    category: 'background',
   },
   effectsBox: {
     id: 'effectsBox',
     displayName: 'Effects Box',
     description: 'Opens a random effect — sparkles, flames, particle flair that makes your cats stand out.',
-    price: 80,
+    price: 200,
     // Effects are stored alongside static cosmetics in COSMETIC_CATALOG;
     // the `effectsOnly: true` flag tells box-pull to filter the pool to
     // entries registered in CAT_EFFECT_BY_ID.
     rewardKind: 'cosmetic',
-    rates: { common: 70, uncommon: 25, rare: 5, legendary: 0 },
+    rates: { common: 60, uncommon: 30, rare: 9, legendary: 1 },
     effectsOnly: true,
+    tier: 'standard',
+    category: 'effect',
+  },
+
+  // ── Golden tier ───────────────────────────────────────────────────────
+  catBoxGolden: {
+    id: 'catBoxGolden',
+    displayName: 'Golden Cat Box',
+    description: 'A premium cat box — guaranteed uncommon or better, with a real shot at legendary.',
+    price: 1200,
+    rewardKind: 'cat',
+    rates: { common: 0, uncommon: 60, rare: 32, legendary: 8 },
+    tier: 'golden',
+    category: 'cat',
+  },
+  cosmeticBoxGolden: {
+    id: 'cosmeticBoxGolden',
+    displayName: 'Golden Cosmetic Box',
+    description: 'A premium cosmetic box — guaranteed uncommon or better.',
+    price: 600,
+    rewardKind: 'cosmetic',
+    rates: { common: 0, uncommon: 60, rare: 32, legendary: 8 },
+    tier: 'golden',
+    category: 'cosmetic',
+  },
+  backgroundBoxGolden: {
+    id: 'backgroundBoxGolden',
+    displayName: 'Golden Background Box',
+    description: 'A premium background box — guaranteed uncommon or better.',
+    price: 1000,
+    rewardKind: 'background',
+    rates: { common: 0, uncommon: 60, rare: 32, legendary: 8 },
+    tier: 'golden',
+    category: 'background',
+  },
+  effectsBoxGolden: {
+    id: 'effectsBoxGolden',
+    displayName: 'Golden Effects Box',
+    description: 'A premium effects box — guaranteed uncommon or better effect.',
+    price: 600,
+    rewardKind: 'cosmetic',
+    rates: { common: 0, uncommon: 60, rare: 32, legendary: 8 },
+    effectsOnly: true,
+    tier: 'golden',
+    category: 'effect',
+  },
+
+  // ── Mythic tier ───────────────────────────────────────────────────────
+  catBoxMythic: {
+    id: 'catBoxMythic',
+    displayName: 'Mythic Cat Box',
+    description: 'An ultra-rare cat box — only rare and legendary cats inside.',
+    price: 2000,
+    rewardKind: 'cat',
+    rates: { common: 0, uncommon: 0, rare: 70, legendary: 30 },
+    tier: 'mythic',
+    category: 'cat',
+  },
+  cosmeticBoxMythic: {
+    id: 'cosmeticBoxMythic',
+    displayName: 'Mythic Cosmetic Box',
+    description: 'An ultra-rare cosmetic box — only rare and legendary cosmetics inside.',
+    price: 2000,
+    rewardKind: 'cosmetic',
+    rates: { common: 0, uncommon: 0, rare: 70, legendary: 30 },
+    tier: 'mythic',
+    category: 'cosmetic',
+  },
+  backgroundBoxMythic: {
+    id: 'backgroundBoxMythic',
+    displayName: 'Mythic Background Box',
+    description: 'An ultra-rare background box — only rare and legendary backgrounds inside.',
+    price: 2000,
+    rewardKind: 'background',
+    rates: { common: 0, uncommon: 0, rare: 70, legendary: 30 },
+    tier: 'mythic',
+    category: 'background',
+  },
+  effectsBoxMythic: {
+    id: 'effectsBoxMythic',
+    displayName: 'Mythic Effects Box',
+    description: 'An ultra-rare effects box — only rare and legendary effects inside.',
+    price: 2000,
+    rewardKind: 'cosmetic',
+    rates: { common: 0, uncommon: 0, rare: 70, legendary: 30 },
+    effectsOnly: true,
+    tier: 'mythic',
+    category: 'effect',
   },
 };
 

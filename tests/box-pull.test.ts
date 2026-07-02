@@ -48,14 +48,12 @@ describe('box-pull', () => {
     expect(typeof result.instanceId).toBe('string');
   });
 
-  it('catBox NEVER drops a legendary cat over many pulls', () => {
-    let legendaryCount = 0;
-    const rng = Math.random;
-    for (let i = 0; i < 5000; i++) {
-      const r = pullBox('catBox', emptyState(), rng);
-      if (r.rarity === 'legendary') legendaryCount++;
-    }
-    expect(legendaryCount).toBe(0);
+  it('catBox CAN drop legendary (rate 1) — seeded roll at 99.5% lands legendary', () => {
+    // Standard catBox has legendary: 1. A seeded rng returning 0.995 (i.e. 99.5)
+    // falls in the legendary bucket (cumulative: common 60, uncommon 90, rare 99,
+    // legendary 100). The second call (0.0) picks the first item in the pool.
+    const result = pullBox('catBox', emptyState(), seqRng([0.995, 0.0]));
+    expect(result.rarity).toBe('legendary');
   });
 
   it('cat pulls are never duplicates — every pull is a fresh instance', () => {
@@ -194,32 +192,144 @@ describe('box-pull: backgroundBox', () => {
   });
 });
 
-describe('Phase 5 box catalog', () => {
-  it('includes catBox at 150 coins for cats', () => {
+describe('Box catalog — 12 SKUs (standard / golden / mythic)', () => {
+  it('standard catBox: 400 coins, cat reward', () => {
     const box = BOX_CATALOG.catBox;
     expect(box).toBeDefined();
-    expect(box.price).toBe(150);
+    expect(box.price).toBe(400);
     expect(box.rewardKind).toBe('cat');
+    expect(box.tier).toBe('standard');
+    expect(box.category).toBe('cat');
   });
 
-  it('includes cosmeticBox at 80 coins for cosmetics', () => {
+  it('standard cosmeticBox: 200 coins, cosmetic reward', () => {
     const box = BOX_CATALOG.cosmeticBox;
     expect(box).toBeDefined();
-    expect(box.price).toBe(80);
+    expect(box.price).toBe(200);
     expect(box.rewardKind).toBe('cosmetic');
+    expect(box.tier).toBe('standard');
   });
 
-  it('includes backgroundBox at 250 coins for backgrounds', () => {
+  it('standard backgroundBox: 350 coins, background reward', () => {
     const box = BOX_CATALOG.backgroundBox;
     expect(box).toBeDefined();
-    expect(box.price).toBe(250);
+    expect(box.price).toBe(350);
     expect(box.rewardKind).toBe('background');
+    expect(box.tier).toBe('standard');
   });
 
-  it('drop weights sum to 100 for all boxes', () => {
+  it('standard effectsBox: 200 coins, effects-only cosmetic', () => {
+    const box = BOX_CATALOG.effectsBox;
+    expect(box).toBeDefined();
+    expect(box.price).toBe(200);
+    expect(box.effectsOnly).toBe(true);
+    expect(box.tier).toBe('standard');
+    expect(box.category).toBe('effect');
+  });
+
+  it('golden catBox: 1200 coins, tier golden', () => {
+    const box = BOX_CATALOG.catBoxGolden;
+    expect(box).toBeDefined();
+    expect(box.price).toBe(1200);
+    expect(box.tier).toBe('golden');
+    expect(box.category).toBe('cat');
+  });
+
+  it('golden cosmeticBox: 600 coins, tier golden', () => {
+    expect(BOX_CATALOG.cosmeticBoxGolden.price).toBe(600);
+    expect(BOX_CATALOG.cosmeticBoxGolden.tier).toBe('golden');
+  });
+
+  it('golden backgroundBox: 1000 coins, tier golden', () => {
+    expect(BOX_CATALOG.backgroundBoxGolden.price).toBe(1000);
+    expect(BOX_CATALOG.backgroundBoxGolden.tier).toBe('golden');
+  });
+
+  it('golden effectsBox: 600 coins, effects-only, tier golden', () => {
+    const box = BOX_CATALOG.effectsBoxGolden;
+    expect(box.price).toBe(600);
+    expect(box.effectsOnly).toBe(true);
+    expect(box.tier).toBe('golden');
+    expect(box.category).toBe('effect');
+  });
+
+  it('all mythic boxes: 2000 coins, tier mythic', () => {
+    for (const id of ['catBoxMythic', 'cosmeticBoxMythic', 'backgroundBoxMythic', 'effectsBoxMythic'] as const) {
+      expect(BOX_CATALOG[id].price).toBe(2000);
+      expect(BOX_CATALOG[id].tier).toBe('mythic');
+    }
+  });
+
+  it('drop rates sum to 100 for all 12 boxes', () => {
     for (const [id, box] of Object.entries(BOX_CATALOG)) {
       const total = Object.values(box.rates).reduce((a, b) => a + b, 0);
       expect(total, `${id} rates should sum to 100`).toBe(100);
     }
+  });
+
+  it('golden and mythic boxes have zero common rate', () => {
+    for (const [id, box] of Object.entries(BOX_CATALOG)) {
+      if (box.tier === 'golden' || box.tier === 'mythic') {
+        expect(box.rates.common, `${id} must have zero common`).toBe(0);
+      }
+    }
+  });
+
+  it('mythic boxes have zero uncommon rate', () => {
+    for (const [id, box] of Object.entries(BOX_CATALOG)) {
+      if (box.tier === 'mythic') {
+        expect(box.rates.uncommon, `${id} must have zero uncommon`).toBe(0);
+      }
+    }
+  });
+
+  it('standard tier legendary rate is 1 (now reachable)', () => {
+    for (const [id, box] of Object.entries(BOX_CATALOG)) {
+      if (box.tier === 'standard') {
+        expect(box.rates.legendary, `${id} legendary rate`).toBe(1);
+      }
+    }
+  });
+});
+
+describe('box-pull: empty-pool fallback', () => {
+  it('mythic backgroundBox: both legendary bgs owned → falls back to rare', () => {
+    const state = createFreshPlayerState();
+    // Own both legendary backgrounds so the legendary pool for unowned is empty.
+    // The mythic box (rates: 0/0/70/30): seqRng(0.995) → 99.5 → legendary bucket.
+    // Fallback walks: legendary empty → one step toward common → rare (non-empty).
+    state.ownedBackgrounds = ['volcanicpalace', 'cathedral'];
+    const result = pullBox('backgroundBoxMythic', state, seqRng([0.995, 0.0]));
+    expect(result.kind).toBe('background');
+    expect(result.duplicate).toBe(false);
+    // Must NOT hand back an already-owned legendary.
+    expect(['volcanicpalace', 'cathedral']).not.toContain(result.itemId);
+    // Result should be a rare background (nearest non-empty rarity).
+    expect(BACKGROUND_CATALOG[result.itemId as keyof typeof BACKGROUND_CATALOG]?.rarity).toBe('rare');
+  });
+
+  it('mythic backgroundBox: legendary + all rare bgs owned → refunds (all owned)', () => {
+    const state = createFreshPlayerState();
+    // Own every background so the entire pool is exhausted → duplicate refund.
+    state.ownedBackgrounds = Object.keys(BACKGROUND_CATALOG) as (keyof typeof BACKGROUND_CATALOG)[];
+    const result = pullBox('backgroundBoxMythic', state, seqRng([0.995, 0.0]));
+    expect(result.kind).toBe('background');
+    expect(result.duplicate).toBe(true);
+    expect(result.refundCoins).toBe(DUPLICATE_REFUND);
+  });
+
+  it('mythic catBox: legendary cats exist → legendary pull works (no fallback needed)', () => {
+    // There ARE 2 legendary cats in the catalog; seeded legendary roll should land one.
+    const result = pullBox('catBoxMythic', emptyState(), seqRng([0.995, 0.0]));
+    expect(result.kind).toBe('cat');
+    expect(result.rarity).toBe('legendary');
+  });
+
+  it('standard catBox: legendary roll (rate 1) lands a legendary or rare cat', () => {
+    // Standard box has legendary: 1. seqRng(0.995) rolls legendary (99.5 < 100).
+    // Catalog has 2 legendary cats → no fallback needed; result should be legendary.
+    const result = pullBox('catBox', emptyState(), seqRng([0.995, 0.0]));
+    expect(result.kind).toBe('cat');
+    expect(['rare', 'legendary']).toContain(result.rarity);
   });
 });

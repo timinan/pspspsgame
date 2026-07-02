@@ -101,13 +101,20 @@ export async function claimQuestBonus(boxId: BoxId): Promise<ClaimBonusResult> {
 }
 
 export type ClaimStreakResult =
-  | { ok: true; claimed: number; goldenBoxDue?: boolean; state: PlayerState }
+  | { ok: true; claimed: number; goldenBoxDue?: boolean; goldenPull?: PullResult; state: PlayerState }
   | { ok: false; reason: string };
 
-/** Claim today's login-streak reward. goldenBoxDue is true on day 7
- *  (Golden box grant lands with Task 11). */
-export async function claimStreak(): Promise<ClaimStreakResult> {
-  const r = await fetch('/api/streak/claim', { method: 'POST' });
+/** Claim today's login-streak reward.
+ *  On day 7, pass a golden-tier `boxId` to receive the free golden box pull
+ *  in the same request (server returns `goldenPull`). If no boxId is sent on
+ *  day 7, the server still awards coins and returns `goldenBoxDue: true` so
+ *  the client can re-ask after the player picks a box. */
+export async function claimStreak(boxId?: BoxId): Promise<ClaimStreakResult> {
+  const r = await fetch('/api/streak/claim', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(boxId ? { boxId } : {}),
+  });
   return (await r.json()) as ClaimStreakResult;
 }
 

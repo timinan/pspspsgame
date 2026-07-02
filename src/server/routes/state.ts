@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { redis, reddit } from '@devvit/web/server';
 import { loadOrInit, resetState, save } from '../core/player-state';
-import { pullBox, applyPullToState } from '../core/box-pull';
+import { pullBox, applyPullToState, type PullResult } from '../core/box-pull';
 import {
   BACKGROUND_CATALOG,
   BOX_CATALOG,
@@ -175,13 +175,17 @@ state.post('/quests/claim', async (c) => {
 /** POST /api/quests/bonus — body: { boxId }. Grants a FREE box pull
  *  (no price deduction, no coinsSpentLifetime bump) when all three of
  *  today's quests are claimed and the all-3 bonus hasn't been taken yet.
- *  boxId must be one of the current standard boxes (BOX_CATALOG). Bumps
- *  stats.boxesOpened so the free pull still counts toward box stats. */
+ *  boxId must be a standard-tier box — golden/mythic boxes are not
+ *  eligible as quest bonuses. Bumps stats.boxesOpened so the free pull
+ *  still counts toward box stats. */
 state.post('/quests/bonus', async (c) => {
   const { boxId } = (await c.req.json()) as { boxId: BoxId };
   const box = BOX_CATALOG[boxId];
   if (!box) {
     return c.json({ ok: false, reason: 'unknown_box' }, 400);
+  }
+  if (box.tier !== 'standard') {
+    return c.json({ ok: false, reason: 'not_standard_box' }, 400);
   }
   const username = await currentUsername();
   const player = await loadOrInit(redis, username);
@@ -208,9 +212,15 @@ state.post('/quests/bonus', async (c) => {
 /** POST /api/streak/claim — credits the login-streak reward for the
  *  current day when the streak was touched today (streak.lastDay ===
  *  today, set by GET /api/state) and today's reward hasn't been claimed
- *  yet. Day 7 also flags goldenBoxDue so the client can route into a
- *  Golden-tier box chooser once Task 11's SKUs land — coins only for now. */
+ *  yet.
+ *
+ *  Day-7 golden box: the client sends `{ boxId }` with the chosen golden-
+ *  tier box. If boxId is present and valid golden tier, the server performs
+ *  a free golden pull in the same request and returns `goldenPull`. If no
+ *  boxId is sent on day 7, coins are still awarded but `goldenBoxDue: true`
+ *  is returned so the client can re-ask with a box choice. */
 state.post('/streak/claim', async (c) => {
+  const body = await c.req.json().catch(() => ({})) as { boxId?: BoxId };
   const username = await currentUsername();
   const player = await loadOrInit(redis, username);
   const isoToday = new Date().toISOString().slice(0, 10);
@@ -225,14 +235,26 @@ state.post('/streak/claim', async (c) => {
   player.coins += reward;
   player.stats.coinsEarnedLifetime += reward;
   streak.lastClaimedDay = isoToday;
-  // TODO(golden): grant Golden box when Task 11 SKUs land — day 7 pays
-  // coins only for now; the client shows the goldenBoxDue flag.
-  const goldenBoxDue = streak.count === 7;
+
+  let goldenBoxDue = streak.count === 7;
+  let goldenPull: PullResult | undefined;
+
+  if (streak.count === 7 && body?.boxId) {
+    const goldenBox = BOX_CATALOG[body.boxId];
+    if (goldenBox && goldenBox.tier === 'golden') {
+      goldenPull = pullBox(body.boxId, player);
+      applyPullToState(player, goldenPull);
+      player.stats.boxesOpened[body.boxId] = (player.stats.boxesOpened[body.boxId] ?? 0) + 1;
+      goldenBoxDue = false;
+    }
+  }
+
   await save(redis, player);
   return c.json({
     ok: true,
     claimed: reward,
     ...(goldenBoxDue ? { goldenBoxDue: true } : {}),
+    ...(goldenPull ? { goldenPull } : {}),
     state: player,
   });
 });

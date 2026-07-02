@@ -427,7 +427,14 @@ export class RewardsModal {
         .rectangle(btnCX, rowY, btnW, btnH, 0xffd34d, 1)
         .setStrokeStyle(2, 0x0b041a, 0.9)
         .setInteractive({ useHandCursor: true });
-      btnBg.on('pointerdown', () => void this.onClaimStreak());
+      // Day 7: open the golden box chooser first; other days claim immediately.
+      btnBg.on('pointerdown', () => {
+        if (count === 7) {
+          this.openGoldenChooser();
+        } else {
+          void this.onClaimStreak();
+        }
+      });
       this.container!.add(btnBg);
       this.container!.add(
         this.scene.add
@@ -473,15 +480,18 @@ export class RewardsModal {
     this.busy = false;
   }
 
-  private async onClaimStreak(): Promise<void> {
+  private async onClaimStreak(boxId?: BoxId): Promise<void> {
     if (this.busy) return;
     this.busy = true;
     try {
-      const res = await claimStreak();
+      const res = await claimStreak(boxId);
       if (!this.container) return;
       if (res.ok) {
         this.adopt(res.state);
         this.flyCoins(res.claimed);
+        if ('goldenPull' in res && res.goldenPull) {
+          this.flyText(`🏆 ${BOX_CATALOG[boxId!]?.displayName ?? 'Golden Box'}!`);
+        }
         this.rebuild();
         return;
       }
@@ -489,6 +499,87 @@ export class RewardsModal {
       /* leave the drawer as-is on network error */
     }
     this.busy = false;
+  }
+
+  /** Golden box chooser overlay for the day-7 streak reward.
+   *  Shows only the four golden-tier boxes. On pick, calls claimStreak(boxId)
+   *  which awards the streak coins AND performs the golden pull in one shot. */
+  private openGoldenChooser(): void {
+    if (this.busy || this.chooser) return;
+    const { width, height } = this.scene.scale;
+    const cx = width / 2;
+    const cy = height / 2;
+    const w = Math.min(240, width - 40);
+    const options: Array<[BoxId, string]> = [
+      ['catBoxGolden', '🐱  Golden Cat Box'],
+      ['cosmeticBoxGolden', '🎀  Golden Cosmetic Box'],
+      ['backgroundBoxGolden', '🖼  Golden Background Box'],
+      ['effectsBoxGolden', '✨  Golden Effects Box'],
+    ];
+    const btnH = 32;
+    const gap = 10;
+    const h = 72 + options.length * (btnH + gap) + 20;
+    const top = cy - h / 2;
+
+    this.chooser = this.scene.add.container(0, 0).setDepth(470);
+    const dim = this.scene.add
+      .rectangle(0, 0, width, height, 0x0b041a, 0.7)
+      .setOrigin(0, 0)
+      .setInteractive();
+    dim.on('pointerdown', () => this.closeChooser());
+    this.chooser.add(dim);
+
+    const panel = this.scene.add
+      .rectangle(cx, cy, w, h, 0x1a0a2e, 1)
+      .setStrokeStyle(2, 0xffd34d, 0.9)
+      .setInteractive();
+    panel.on('pointerdown', (_p: unknown, _x: unknown, _y: unknown, e: Phaser.Types.Input.EventData) =>
+      e.stopPropagation(),
+    );
+    this.chooser.add(panel);
+
+    this.chooser.add(
+      this.scene.add
+        .text(cx, top + 22, '🏆 DAY 7 — PICK A GOLDEN BOX', {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontStyle: 'bold',
+          fontSize: '12px',
+          color: '#ffd34d',
+        })
+        .setOrigin(0.5),
+    );
+    this.chooser.add(
+      this.scene.add
+        .text(cx, top + 40, 'Guaranteed uncommon or better!', {
+          fontFamily: 'Pixeloid Sans, sans-serif',
+          fontSize: '9px',
+          color: '#c0a0e6',
+        })
+        .setOrigin(0.5),
+    );
+
+    options.forEach(([boxId, label], i) => {
+      const by = top + 58 + i * (btnH + gap) + btnH / 2;
+      const bg = this.scene.add
+        .rectangle(cx, by, w - 28, btnH, 0x2c1856, 1)
+        .setStrokeStyle(2, 0xffd34d, 0.7)
+        .setInteractive({ useHandCursor: true });
+      bg.on('pointerdown', () => {
+        this.closeChooser();
+        void this.onClaimStreak(boxId);
+      });
+      this.chooser!.add(bg);
+      this.chooser!.add(
+        this.scene.add
+          .text(cx, by, label, {
+            fontFamily: 'Pixeloid Sans, sans-serif',
+            fontStyle: 'bold',
+            fontSize: '12px',
+            color: '#ffffff',
+          })
+          .setOrigin(0.5),
+      );
+    });
   }
 
   private async onBonusPick(boxId: BoxId): Promise<void> {

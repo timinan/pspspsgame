@@ -28,6 +28,31 @@ export interface PullResult {
 
 const RARITIES = ['common', 'uncommon', 'rare', 'legendary'] as const;
 
+/**
+ * Walk the rarity ladder to find the nearest non-empty pool.
+ * Prefers the rarer side when both sides are equidistant from the rolled
+ * rarity (e.g. rolled=uncommon, dist=1 → checks rare before common).
+ */
+function resolvePool<T>(rolled: Rarity, poolByRarity: (r: Rarity) => T[]): T[] {
+  const direct = poolByRarity(rolled);
+  if (direct.length > 0) return direct;
+
+  const idx = RARITIES.indexOf(rolled);
+  for (let dist = 1; dist < RARITIES.length; dist++) {
+    const rarerIdx = idx + dist; // toward legendary
+    const commonerIdx = idx - dist; // toward common
+    if (rarerIdx < RARITIES.length) {
+      const pool = poolByRarity(RARITIES[rarerIdx]!);
+      if (pool.length > 0) return pool;
+    }
+    if (commonerIdx >= 0) {
+      const pool = poolByRarity(RARITIES[commonerIdx]!);
+      if (pool.length > 0) return pool;
+    }
+  }
+  return [];
+}
+
 function rollRarity(
   rates: Record<Rarity, number>,
   rng: () => number,
@@ -67,13 +92,13 @@ export function pullBox(
   const rarity = rollRarity(box.rates, rng);
 
   if (box.rewardKind === 'cat') {
-    const pool = CAT_CATALOG.filter((c) => c.rarity === rarity);
+    const pool = resolvePool(rarity, (r) => CAT_CATALOG.filter((c) => c.rarity === r));
     const pick = pool[Math.floor(rng() * pool.length)]!;
     const instanceId = makeInstanceId();
     return {
       kind: 'cat',
       itemId: pick.id,
-      rarity,
+      rarity: pick.rarity,
       duplicate: false,
       refundCoins: 0,
       instanceId,
@@ -88,12 +113,7 @@ export function pullBox(
     const sourcePool = box.effectsOnly
       ? COSMETIC_CATALOG.filter((c) => effectIds.has(c.id))
       : COSMETIC_CATALOG;
-    let pool = sourcePool.filter((c) => c.rarity === rarity);
-    if (pool.length === 0) {
-      // Effects-only with no entries at the rolled rarity — fall back
-      // to ANY effect rarity so the roll never returns nothing.
-      pool = sourcePool;
-    }
+    const pool = resolvePool(rarity, (r) => sourcePool.filter((c) => c.rarity === r));
     const pick = pool[Math.floor(rng() * pool.length)]!;
     const instanceId = makeInstanceId();
     return {
@@ -123,7 +143,11 @@ export function pullBox(
     };
   }
 
-  const pick = unowned[Math.floor(rng() * unowned.length)]!;
+  // Walk rarities to find the nearest non-empty unowned pool.
+  const pool = resolvePool(rarity, (r) => unowned.filter((id) => BACKGROUND_CATALOG[id].rarity === r));
+  // If resolvePool returns empty (shouldn't happen since unowned.length > 0), fall back to all unowned.
+  const finalPool = pool.length > 0 ? pool : unowned;
+  const pick = finalPool[Math.floor(rng() * finalPool.length)]!;
   const entry = BACKGROUND_CATALOG[pick];
   return {
     kind: 'background',
