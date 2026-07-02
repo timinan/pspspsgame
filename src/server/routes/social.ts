@@ -31,6 +31,7 @@ import { BACKING_CATALOG, rolloverEconomy, type Chart } from '../../shared/state
 import { loadOrInit, save } from '../core/player-state';
 import { ECONOMY, computePlayReward, type Difficulty, type PlayRewardBreakdown, type PlayRewardInput } from '../../shared/economy';
 import { applyPlayReward } from '../../shared/economy-apply';
+import { milestonesEarned } from '../../shared/post-milestones';
 
 /**
  * Server routes for the social loop:
@@ -348,6 +349,33 @@ social.post('/play', async (c) => {
       const result = applyPlayReward(v, h, bd, body.postId, isoToday);
       breakdown = result.breakdown;
       royalty = result.royalty;
+
+      // Per-post milestones — visitor ≠ owner only. Both counters are
+      // atomic (incrBy returns the new value) so no TOCTOU race. The
+      // milestone play counter uses a dedicated key distinct from the
+      // incrementPlayCount counter (which runs outside this block on
+      // every submission regardless of credit eligibility).
+      if (!isOwner) {
+        try {
+          const newPlays = await r.incrBy('meowcert:post-plays:' + body.postId, 1);
+          const passClaims = passed
+            ? await r.incrBy('meowcert:first-pass-claimed:' + body.postId, 1)
+            : 0;
+          const isFirstPass = passClaims === 1;
+          const { coins: mCoins, labels } = milestonesEarned(newPlays - 1, newPlays, isFirstPass);
+          if (mCoins > 0) {
+            h.economy.pendingCollect += mCoins;
+            console.info('[social/play] milestones credited to host pot', {
+              postId: body.postId,
+              coins: mCoins,
+              labels,
+              owner: body.owner,
+            });
+          }
+        } catch (err) {
+          console.error('[social/play] milestone credit failed (continuing)', err);
+        }
+      }
 
       // Save owner first, then visitor
       if (!isOwner) await save(redis, h);
