@@ -87,23 +87,29 @@ function refreshSummary() {
   document.getElementById('s-cats').textContent = Object.values(state.categoryPrompts).filter((v) => v.trim()).length;
 }
 
-// One global ticker drives all visible flipbooks; offscreen cards are
-// frozen via IntersectionObserver so 440 animations stay cheap.
-const visible = new Set();
-const io = new IntersectionObserver((entries) => {
-  for (const e of entries) {
-    if (e.isIntersecting) visible.add(e.target); else visible.delete(e.target);
-  }
-}, { rootMargin: '200px' });
-let tick = 0;
-setInterval(() => {
-  tick++;
-  for (const img of visible) {
-    const id = img.dataset.fx;
-    const offset = Number(img.dataset.off);
-    img.src = `frames/${id}_${(tick + offset) % catalog.frames}.jpg`;
-  }
-}, 170);
+// Animate ON DEMAND only — the grid is static frames (one decoded image
+// per card, zero timers at rest); hovering/touching a card plays that ONE
+// flipbook. Ambient always-on animation was decoding ~150 jpgs/sec and
+// ballooning the decoded-bitmap cache into the-whole-laptop-dies territory.
+let playing = null; // { img, timer }
+function stopPlayback() {
+  if (!playing) return;
+  clearInterval(playing.timer);
+  playing.img.src = `frames/${playing.img.dataset.fx}_0.jpg`;
+  playing = null;
+}
+function startPlayback(img) {
+  if (playing?.img === img) return;
+  stopPlayback();
+  let tick = 0;
+  playing = {
+    img,
+    timer: setInterval(() => {
+      tick++;
+      img.src = `frames/${img.dataset.fx}_${tick % catalog.frames}.jpg`;
+    }, 170),
+  };
+}
 
 async function boot() {
   catalog = await (await fetch('catalog.json')).json();
@@ -155,9 +161,14 @@ async function boot() {
         const img = document.createElement('img');
         img.loading = 'lazy';
         img.dataset.fx = fx.id;
-        img.dataset.off = i % catalog.frames;
         img.src = `frames/${fx.id}_0.jpg`;
-        io.observe(img);
+        img.title = 'hover / tap to play';
+        img.addEventListener('mouseenter', () => startPlayback(img));
+        img.addEventListener('mouseleave', stopPlayback);
+        // Touch: tap toggles playback (no hover on mobile).
+        img.addEventListener('click', () => {
+          if (playing?.img === img) stopPlayback(); else startPlayback(img);
+        });
         card.appendChild(img);
 
         const name = document.createElement('div');
@@ -198,10 +209,7 @@ async function boot() {
     };
 
     const teardownBody = () => {
-      for (const img of body.querySelectorAll('img')) {
-        io.unobserve(img);
-        visible.delete(img);
-      }
+      if (playing && body.contains(playing.img)) stopPlayback();
       body.replaceChildren();
     };
 
