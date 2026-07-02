@@ -39,12 +39,6 @@
    "rarity": "common"
   },
   {
-   "id": "effect-rainbow-glow",
-   "name": "Rainbow Stagelight",
-   "category": "Stagelights (live)",
-   "rarity": "legendary"
-  },
-  {
    "id": "effect-sunset-glow",
    "name": "Sunset Stagelight",
    "category": "Stagelights (live)",
@@ -831,12 +825,6 @@
    "rarity": "common"
   },
   {
-   "id": "effect-rainbow-glow",
-   "name": "Rainbow Stagelight",
-   "category": "Stagelights (live)",
-   "rarity": "legendary"
-  },
-  {
    "id": "effect-sunset-glow",
    "name": "Sunset Stagelight",
    "category": "Stagelights (live)",
@@ -887,18 +875,6 @@
   {
    "id": "effect-halo-double",
    "name": "Double Halo",
-   "category": "Halos & Rings",
-   "rarity": "rare"
-  },
-  {
-   "id": "effect-halo-ring-of-dots",
-   "name": "Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "rare"
-  },
-  {
-   "id": "effect-halo-ring-of-fire",
-   "name": "Ring of Fire",
    "category": "Halos & Rings",
    "rarity": "rare"
   },
@@ -1311,30 +1287,6 @@
    "rarity": "rare"
   },
   {
-   "id": "effect-halo-dots-blue",
-   "name": "Blue Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "rare"
-  },
-  {
-   "id": "effect-halo-dots-pink",
-   "name": "Pink Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "rare"
-  },
-  {
-   "id": "effect-halo-dots-green",
-   "name": "Green Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "rare"
-  },
-  {
-   "id": "effect-halo-dots-rainbow",
-   "name": "Rainbow Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "legendary"
-  },
-  {
    "id": "effect-beam-sun-rays-cyan",
    "name": "Cyan Sun Rays",
    "category": "Beams",
@@ -1399,12 +1351,6 @@
    "name": "Red Heart Pulse",
    "category": "Pulse Waves",
    "rarity": "rare"
-  },
-  {
-   "id": "effect-pulse-heart-alt",
-   "name": "Alternating Hearts",
-   "category": "Pulse Waves",
-   "rarity": "legendary"
   },
   {
    "id": "effect-pulse-sonar-red",
@@ -1831,24 +1777,6 @@
    "name": "Rainbow Portal",
    "category": "Halos & Rings",
    "rarity": "legendary"
-  },
-  {
-   "id": "effect-halo-dots-gold",
-   "name": "Gold Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "rare"
-  },
-  {
-   "id": "effect-halo-dots-red",
-   "name": "Red Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "rare"
-  },
-  {
-   "id": "effect-halo-dots-purple",
-   "name": "Purple Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "rare"
   },
   {
    "id": "effect-halo-double-sunset",
@@ -2352,24 +2280,6 @@
    "id": "effect-stagelight-quad-neon",
    "name": "4-Way Neon Quads",
    "category": "Stagelights (live)",
-   "rarity": "legendary"
-  },
-  {
-   "id": "effect-halo-dots-cyan",
-   "name": "Cyan Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "rare"
-  },
-  {
-   "id": "effect-halo-dots-white",
-   "name": "White Ring of Dots",
-   "category": "Halos & Rings",
-   "rarity": "rare"
-  },
-  {
-   "id": "effect-halo-dots-neon",
-   "name": "Neon Ring of Dots",
-   "category": "Halos & Rings",
    "rarity": "legendary"
   },
   {
