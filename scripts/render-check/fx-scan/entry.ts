@@ -10,8 +10,10 @@ import { NEW_EFFECT_CATALOG } from '@/shared/effect-catalog-gen';
 import { makeCatEffectFromMeta } from '@/effects/effect-interpreter';
 import type { EffectHandle } from '@/effects/cat-effects';
 
-// Interpreter references the global Phaser namespace (Phaser.Display.…).
-(window as unknown as { Phaser: typeof Phaser }).Phaser = Phaser;
+// Deliberately NO `window.Phaser` polyfill — the real game bundle has no
+// global Phaser, and polyfilling one here masked the effect-interpreter's
+// unbound `Phaser.*` references (the strobe/rainbow/aurora freeze class).
+// The harness must fail exactly where the game fails.
 
 type ScanApi = {
   ids(): string[];

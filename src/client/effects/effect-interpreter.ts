@@ -18,6 +18,13 @@
  *     paints a soft colored aura so equipping doesn't crash. Follow-up
  *     sessions fill each remaining renderer in place.
  */
+// The namespace import is LOAD-BEARING: this file references Phaser.Display,
+// Phaser.Textures and Phaser.TintModes. Without it those are unbound global
+// lookups at runtime — tsc stays silent (the @types package declares an
+// ambient global Phaser) and every POST_UPDATE tick that touches them throws
+// a ReferenceError, which kills Phaser's RAF loop = total game freeze
+// (the strobe / rainbow / aurora / sound-bars freeze class, 2026-07-01).
+import * as Phaser from 'phaser';
 import { Scene, Scenes, GameObjects, Tweens } from 'phaser';
 import type { EffectHandle, EffectTarget, CatEffect } from './cat-effects';
 import type { EffectMeta } from '@/shared/effect-catalog-gen';
