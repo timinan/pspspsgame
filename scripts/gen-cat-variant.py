@@ -135,14 +135,20 @@ def generate(cfg_path):
     cid, name = cfg['id'], cfg['name']
     if 'fx' in cfg:
         raise SystemExit('fx is never recolorable')
-    # "split": {"left": {...}, "right": {...}} — two-face cat. Each side
-    # is a full palette (base config + side overrides); the divide is the
-    # body's vertical midline, recomputed per frame.
+    # "split": {"left": {...}, "right": {...}} — two-face cat, divided at
+    # the body's vertical midline (eye-anchored, recomputed per frame).
+    # "split": {"top": {...}, "bottom": {...}} — head/body cat, divided
+    # at the chin-safe neck waist (ported from gen-cat-variants.py:
+    # narrowest silhouette row in y=36..50, split one row below, so the
+    # chin always stays head-colored).
     split = cfg.get('split')
+    horizontal = bool(split) and 'top' in split
     if split:
         base_cfg = {k: v for k, v in cfg.items() if k != 'split'}
-        pal = build_palette({**base_cfg, **split.get('left', {})})
-        pal_right = build_palette({**base_cfg, **split.get('right', {})})
+        first = split.get('top', split.get('left', {}))
+        second = split.get('bottom', split.get('right', {}))
+        pal = build_palette({**base_cfg, **first})
+        pal_right = build_palette({**base_cfg, **second})
     else:
         pal = build_palette(cfg)
         pal_right = pal
@@ -157,11 +163,24 @@ def generate(cfg_path):
     frames = sorted(TPL.glob('*.png'))
     frames = [f for f in frames if f.name != 'qa-sheet.png']
 
+    def waist_y(tp):
+        """Chin-safe head/body split row: narrowest silhouette row in the
+        neck zone (y=36..50), one row below. Fallback 44."""
+        best_y, best_w = None, 10 ** 9
+        for y in range(36, 50):
+            xs = [x for x in range(W) if tp[x, y]]
+            if len(xs) < 4:
+                continue
+            w = max(xs) - min(xs) + 1
+            if w < best_w:
+                best_w, best_y = w, y
+        return (best_y + 1) if best_y is not None else 44
+
     # Split midline per frame: midpoint of the eye bbox (stable even when
     # one eye squints). Blink frames have no eye pixels — they inherit
     # the mean anchor of their own animation so the line never jumps.
     split_cx = {}
-    if split:
+    if split and not horizontal:
         eye_ids = {v for k, v in json.loads((TPL / 'regions.json').read_text())['palette_index'].items()
                    if k in ('iris', 'irisHi1', 'irisHi2', 'glint')}
         by_anim = {}
@@ -183,13 +202,17 @@ def generate(cfg_path):
         out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
         op = out.load()
         cx = split_cx.get(f.stem, W // 2)
+        sy = waist_y(tp) if (split and horizontal) else None
         for y in range(H):
             for x in range(W):
                 idx = tp[x, y]
                 if idx == 0:
                     continue
                 region = ridx[idx]
-                side = pal if x <= cx else pal_right
+                if horizontal:
+                    side = pal if y < sy else pal_right
+                else:
+                    side = pal if x <= cx else pal_right
                 op[x, y] = (*sp[x, y][:3], 255) if region == 'fx' else (*side[region], 255)
         out.save(out_dir / f'{cid}_{f.stem}.png')
 
