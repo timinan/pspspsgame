@@ -43,45 +43,44 @@ export const GENERATED_CAT_CATALOG: readonly CatEntry[] = [
   },
   {
     id: "cat7",
-    name: "Pinky",
-    rarity: "common",
-    scale: 1,
-  },
-  {
-    id: "cat8",
     name: "Inky",
     rarity: "rare",
     scale: 1,
   },
   {
-    id: "cat9",
+    id: "cat8",
     name: "Gregre",
     rarity: "common",
     scale: 1,
   },
   {
-    id: "cat10",
+    id: "cat9",
     name: "Jade",
     rarity: "legendary",
     scale: 1,
   },
   {
-    id: "cat11",
+    id: "cat10",
     name: "Purps",
     rarity: "legendary",
     scale: 1,
   },
   {
-    id: "cat12",
+    id: "cat11",
     name: "Sakura",
     rarity: "common",
     scale: 1,
   },
   {
-    id: "cat13",
+    id: "cat12",
     name: "Butters",
     rarity: "common",
     scale: 1,
+  },
+  {
+    id: "cat13",
+    name: "Cat 13",
+    rarity: "common",
   },
   {
     id: "cat14",
@@ -314,6 +313,11 @@ export const GENERATED_CAT_CATALOG: readonly CatEntry[] = [
     rarity: "common",
   },
   {
+    id: "cat60",
+    name: "Cat 60",
+    rarity: "common",
+  },
+  {
     id: "cat61",
     name: "Cat 61",
     rarity: "common",
@@ -395,167 +399,20 @@ export const GENERATED_CAT_CATALOG: readonly CatEntry[] = [
   },
   {
     id: "cat77",
-    name: "Cat 77",
+    name: "Frost",
     rarity: "common",
+    scale: 1,
   },
   {
     id: "cat78",
-    name: "Cat 78",
+    name: "Ember",
     rarity: "common",
+    scale: 1,
   },
   {
     id: "cat79",
-    name: "Goldie",
-    rarity: "common",
-  },
-  {
-    id: "cat80",
-    name: "Ruby",
-    rarity: "common",
-  },
-  {
-    id: "cat81",
-    name: "Coral",
-    rarity: "common",
-  },
-  {
-    id: "cat82",
-    name: "Tangerine",
-    rarity: "common",
-  },
-  {
-    id: "cat83",
-    name: "Lemon",
-    rarity: "common",
-  },
-  {
-    id: "cat84",
-    name: "Neon",
-    rarity: "common",
-  },
-  {
-    id: "cat85",
-    name: "Mint",
-    rarity: "common",
-  },
-  {
-    id: "cat86",
-    name: "Cyan",
-    rarity: "common",
-  },
-  {
-    id: "cat87",
-    name: "Sapphire",
-    rarity: "common",
-  },
-  {
-    id: "cat88",
-    name: "Violet",
-    rarity: "common",
-  },
-  {
-    id: "cat89",
-    name: "Magenta",
-    rarity: "common",
-  },
-  {
-    id: "cat90",
-    name: "Bubblegum",
-    rarity: "common",
-  },
-  {
-    id: "rainbow",
-    name: "Rainbow Whiskers",
-    rarity: "legendary",
-  },
-  {
-    id: "cat91",
-    name: "Sherbet",
-    rarity: "common",
-  },
-  {
-    id: "cat92",
-    name: "Macaron",
-    rarity: "common",
-  },
-  {
-    id: "cat93",
-    name: "Seaglass",
-    rarity: "common",
-  },
-  {
-    id: "cat94",
-    name: "Lullaby",
-    rarity: "common",
-  },
-  {
-    id: "cat96",
-    name: "Cottoncandy",
-    rarity: "common",
-  },
-  {
-    id: "cat99",
-    name: "Lagoon",
-    rarity: "common",
-  },
-  {
-    id: "cat103",
-    name: "Tuxedo",
-    rarity: "common",
-  },
-  {
-    id: "cat104",
-    name: "Bandit",
-    rarity: "common",
-  },
-  {
-    id: "cat105",
-    name: "Cinnamon",
-    rarity: "common",
-  },
-  {
-    id: "cat106",
-    name: "Pumpkin",
-    rarity: "common",
-  },
-  {
-    id: "cat107",
     name: "Domino",
     rarity: "common",
-  },
-  {
-    id: "cat108",
-    name: "Spice",
-    rarity: "common",
-  },
-  {
-    id: "cat109",
-    name: "Storm",
-    rarity: "common",
-  },
-  {
-    id: "cat110",
-    name: "Mittens",
-    rarity: "common",
-  },
-  {
-    id: "cat113",
-    name: "Coal",
-    rarity: "common",
-  },
-  {
-    id: "cat114",
-    name: "Snowdrop",
-    rarity: "common",
-  },
-  {
-    id: "cat115",
-    name: "Caramel",
-    rarity: "common",
-  },
-  {
-    id: "cat116",
-    name: "Toffee",
-    rarity: "common",
+    scale: 1,
   },
 ];

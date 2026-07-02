@@ -18,10 +18,9 @@ describe('shared catalog', () => {
     }
   });
 
-  it('exactly one legendary cat exists and it is rainbow', () => {
+  it('the legendary cats are Jade and Purps (2026-07-01 roster: rainbow deleted)', () => {
     const legendaries = CAT_CATALOG.filter((c) => c.rarity === 'legendary');
-    expect(legendaries).toHaveLength(1);
-    expect(legendaries[0]!.id).toBe('rainbow');
+    expect(legendaries.map((c) => c.id).sort()).toEqual(['cat10', 'cat9']);
   });
 
   it('every cat rarity above legendary has at least one entry', () => {

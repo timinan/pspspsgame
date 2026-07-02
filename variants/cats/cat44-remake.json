@@ -1,0 +1,15 @@
+{
+  "id": "cat44",
+  "name": "Cat 44",
+  "earInner": "#dd97a4",
+  "split": {
+    "left": {
+      "coat": "#9653c6",
+      "markings": "coat"
+    },
+    "right": {
+      "coat": "#f0dea8",
+      "markings": "coat"
+    }
+  }
+}

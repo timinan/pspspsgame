@@ -2034,12 +2034,12 @@ export class TutorialOrchestrator extends Scene {
     const colW = (inner - L.LANE_GAP_PX * (L.LANE_COUNT - 1)) / L.LANE_COUNT;
 
     // Resolve the per-lane tint trio from the actual cats on stage in
-    // the tutorial: Butters on the LEFT seat (cat13), player cat on the
+    // the tutorial: Butters on the LEFT seat (cat12), player cat on the
     // CENTER seat (this.seatedCatBreed), right seat empty. Empty seats
     // inherit the color of the nearest occupied lane so the right lane
     // shows the player cat's tint instead of a stranger color.
     const laneTints: (number | null)[] = [
-      CAT_COLOR_BY_BREED['cat13'] ?? null,
+      CAT_COLOR_BY_BREED['cat12'] ?? null,
       this.seatedCatBreed ? (CAT_COLOR_BY_BREED[this.seatedCatBreed] ?? null) : null,
       null,
     ];

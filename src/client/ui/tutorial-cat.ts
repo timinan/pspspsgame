@@ -18,7 +18,7 @@ import { AssetKeys } from '@/constants/assets';
  * pick — present in the cats atlas as `cat6_idle_00`.
  */
 
-const HOST_BREED_FRAME = 'cat13_idle_00';
+const HOST_BREED_FRAME = 'cat12_idle_00';
 const HOST_ACCESSORY_FRAME = 'cosmetic_c2_idle_00'; // Grey Glasses
 const SPEECH_BUBBLE_COLOR = 0xfff8e7;
 const TEXT_COLOR = '#1a0a2e';
@@ -145,7 +145,7 @@ export class TutorialCatOverlay {
       // Play the idle anim so Butters' tail wags instead of standing
       // as a still frame. Preloader pre-registered every breed_idle
       // key, so this just kicks off the loop.
-      catSprite.play('cat13_idle', true);
+      catSprite.play('cat12_idle', true);
       // Kept at scene level (NOT in container) so its low depth can be
       // honored — children of a container share the container's depth.
       this.buttersSprites.push(catSprite);

@@ -199,6 +199,21 @@ export const EFFECT_COSMETIC_CATALOG: CosmeticEntry[] = [
   { id: 'effect-crown',       name: 'Crowns',        rarity: 'legendary', slot: 'effect' },
 ];
 
+// Tim 2026-06-30 batch: 440 metadata-driven effects registered via the
+// smoketest. Each gets a `slot: 'effect'` catalog entry so the DressingRoom
+// grid + createFreshPlayerState pick them up identically to hand-authored
+// entries. Metadata lives in src/client/shared/effect-catalog-gen.ts; the
+// runtime interpreter renders them via Phaser Graphics.
+import { NEW_EFFECT_CATALOG } from '@/../client/shared/effect-catalog-gen';
+for (const meta of NEW_EFFECT_CATALOG) {
+  EFFECT_COSMETIC_CATALOG.push({
+    id: meta.id,
+    name: meta.name,
+    rarity: meta.rarity,
+    slot: 'effect',
+  });
+}
+
 /** Merged cosmetic catalog: generated atlas-backed cosmetics + effect cosmetics. */
 export const COSMETIC_CATALOG: CosmeticEntry[] = [
   ...GENERATED_COSMETIC_CATALOG,
@@ -660,6 +675,9 @@ export interface PlayerStats {
   visitedPostIds: string[];
   /** Rounds finished on other people's posts. */
   playsOnOthers: number;
+  /** Rounds finished on your OWN show posts. Pays 0 coins (anti-farm) but
+   *  counts for leaderboard and achievement tracking. */
+  playsOnOwnShow: number;
 
   // Economy
   coinsEarnedLifetime: number;
@@ -740,6 +758,7 @@ export function createFreshStats(): PlayerStats {
     showsVisited: 0,
     visitedPostIds: [],
     playsOnOthers: 0,
+    playsOnOwnShow: 0,
     coinsEarnedLifetime: 0,
     coinsSpentLifetime: 0,
     boxesOpened: {},
@@ -749,6 +768,52 @@ export function createFreshStats(): PlayerStats {
     longestDailyStreak: 0,
     currentDailyStreak: 0,
   };
+}
+
+// -- Economy state -----------------------------------------------------
+
+export interface EconomyDaily {
+  day: string; // UTC ISO day these counters belong to
+  playIncome: number;
+  chartPlays: Record<string, number>;
+  hostPotAccrued: number;
+  questProgress: Record<string, number>;
+  questClaimed: Record<string, boolean>;
+  questBonusClaimed: boolean;
+}
+
+export interface EconomyStreak {
+  lastDay: string;
+  count: number; // 0 = never, cycles 1..7
+  lastClaimedDay: string;
+}
+
+export interface EconomyState {
+  daily: EconomyDaily;
+  pendingCollect: number;
+  streak: EconomyStreak;
+}
+
+export function createFreshEconomy(day = ''): EconomyState {
+  return {
+    daily: {
+      day,
+      playIncome: 0,
+      chartPlays: {},
+      hostPotAccrued: 0,
+      questProgress: {},
+      questClaimed: {},
+      questBonusClaimed: false,
+    },
+    pendingCollect: 0,
+    streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+  };
+}
+
+export function rolloverEconomy(p: PlayerState, isoToday: string): void {
+  if (p.economy.daily.day !== isoToday) {
+    p.economy.daily = createFreshEconomy(isoToday).daily;
+  }
 }
 
 export interface PlayerState {
@@ -811,6 +876,10 @@ export interface PlayerState {
    *  Populated by round-complete + box-open + publish + visit
    *  instrumentation. See PlayerStats + createFreshStats above. */
   stats: PlayerStats;
+  /** Daily-reset economy counters, pending collectibles, and streak tracking.
+   *  Rolled over by `rolloverEconomy` whenever the calendar date changes.
+   *  See EconomyState + createFreshEconomy above. */
+  economy: EconomyState;
 }
 
 /**
@@ -837,9 +906,9 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
   const findCatByBreed = (breedId: string): OwnedCat | undefined =>
     starterCats.find((c) => c.breed === breedId);
   const headliners: Array<{ cat: OwnedCat | undefined; effectId: string }> = [
-    { cat: findCatByBreed('cat9'),  effectId: 'effect-sparkle' },     // Snow White → Sparkles
-    { cat: findCatByBreed('cat10'), effectId: 'effect-green-glow' },  // Jade → Green Aura
-    { cat: findCatByBreed('cat12'), effectId: 'effect-blossom' },     // Sakura → Blossoms
+    { cat: findCatByBreed('cat8'),  effectId: 'effect-sparkle' },     // Snow White → Sparkles
+    { cat: findCatByBreed('cat9'),  effectId: 'effect-green-glow' },  // Jade → Green Aura
+    { cat: findCatByBreed('cat11'), effectId: 'effect-blossom' },     // Sakura → Blossoms
   ];
 
   const seatedCats: Partial<Record<SeatId, string>> = {};
@@ -903,6 +972,7 @@ export function createFreshPlayerState(username: string = ''): PlayerState {
     ownedBackgrounds: Object.keys(BACKGROUND_CATALOG) as BackgroundId[],
     activeBackground: 'stage',
     stats: createFreshStats(),
+    economy: createFreshEconomy(),
   };
 }
 
