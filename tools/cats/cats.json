@@ -408,5 +408,11 @@
     "name": "Domino",
     "rarity": "common",
     "scale": 1
+  },
+  {
+    "id": "cat80",
+    "name": "Checkers",
+    "rarity": "common",
+    "scale": 1
   }
 ]

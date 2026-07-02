@@ -3,8 +3,24 @@
   "name": "Checkers",
   "pattern": {
     "type": "checker",
-    "size": 5,
-    "a": { "coat": ["#3c3c46", "#34343d", "#2c2c34", "#17171d"], "markings": "coat" },
-    "b": { "coat": ["#fbfbfd", "#eaeaf0", "#d6d6de", "#3c3f4a"], "markings": "coat" }
+    "size": 7,
+    "a": {
+      "coat": [
+        "#3c3c46",
+        "#34343d",
+        "#2c2c34",
+        "#17171d"
+      ],
+      "markings": "coat"
+    },
+    "b": {
+      "coat": [
+        "#fbfbfd",
+        "#eaeaf0",
+        "#d6d6de",
+        "#3c3f4a"
+      ],
+      "markings": "coat"
+    }
   }
 }
