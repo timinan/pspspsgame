@@ -101,6 +101,28 @@ state.post('/coins/sync', async (c) => {
   return c.json({ state: player });
 });
 
+/** POST /api/rewards/collect — claims the host COLLECT pot.
+ * `economy.pendingCollect` accrues host royalties (25% of visitor
+ * rewards) + per-post milestones while the owner is away. This is the
+ * writer for `stats.coinsFromShow` — the "coins your shows earned"
+ * counter that had no writer until now. loadOrInit auto-rolls the daily
+ * economy on load; the pot itself is NOT daily-reset (it persists until
+ * collected). Idempotent at 0 — a double-tap collects nothing the
+ * second time. */
+state.post('/rewards/collect', async (c) => {
+  const username = await currentUsername();
+  const player = await loadOrInit(redis, username);
+  const amount = player.economy.pendingCollect;
+  if (amount > 0) {
+    player.coins += amount;
+    player.stats.coinsFromShow += amount;
+    player.stats.coinsEarnedLifetime += amount;
+    player.economy.pendingCollect = 0;
+    await save(redis, player);
+  }
+  return c.json({ ok: true, collected: amount, state: player });
+});
+
 /**
  * POST /api/cosmetic/equip
  * Body: { catInstanceId, slot, cosmeticInstanceId | null }

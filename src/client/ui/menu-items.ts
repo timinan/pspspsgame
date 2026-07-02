@@ -1,13 +1,13 @@
 import { Scene } from 'phaser';
 import { SceneKeys } from '@/constants/scenes';
 import { SettingsModal } from '@/ui/settings-modal';
-import { RewardsComingSoonModal } from '@/ui/rewards-coming-soon-modal';
+import { RewardsModal } from '@/ui/rewards-modal';
 import type { DrawerItem } from '@/ui/top-hud';
 import type { PlayerState } from '@/../shared/state';
 
 interface MenuModalCache {
   settings?: SettingsModal;
-  rewards?: RewardsComingSoonModal;
+  rewards?: RewardsModal;
 }
 
 const modalCache = new WeakMap<Scene, MenuModalCache>();
@@ -28,10 +28,10 @@ function openSettings(scene: Scene): void {
   cache.settings.open();
 }
 
-function openRewards(scene: Scene): void {
+function openRewards(scene: Scene, getPlayerState: () => PlayerState | null): void {
   const cache = modalsFor(scene);
-  if (!cache.rewards) cache.rewards = new RewardsComingSoonModal(scene);
-  cache.rewards.open();
+  if (!cache.rewards) cache.rewards = new RewardsModal(scene);
+  cache.rewards.open({ getPlayerState });
 }
 
 /**
@@ -41,8 +41,8 @@ function openRewards(scene: Scene): void {
  * page.
  *
  * The order is: SET STAGE · REHEARSE · PUT ON A SHOW · MERCH · CATCH A
- * SHOW · REWARDS · SETTINGS. REWARDS is a placeholder modal until that
- * feature ships.
+ * SHOW · REWARDS · SETTINGS. REWARDS opens the collect-pot + rewards
+ * drawer (RewardsModal).
  *
  * `getPlayerState` is a getter (not a value) so each navigation closure
  * picks up the freshest state at tap-time, matching the previous
@@ -89,7 +89,7 @@ export function buildMenuItems(scene: Scene, getPlayerState: () => PlayerState |
       label: 'REWARDS',
       description: 'Goodies on the way',
       icon: '🎁',
-      onTap: () => openRewards(scene),
+      onTap: () => openRewards(scene, getPlayerState),
     },
     {
       label: 'SETTINGS',

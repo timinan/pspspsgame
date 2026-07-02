@@ -57,6 +57,16 @@ export async function syncCoins(
   return data.state;
 }
 
+/** Claim the host COLLECT pot (economy.pendingCollect). Server folds
+ *  it into coins + coinsFromShow, zeroes the pot, and returns the fresh
+ *  state. Await-and-adopt: the caller replaces its playerState with
+ *  `state` wholesale — no optimistic local mutation. */
+export async function collectRewards(): Promise<{ collected: number; state: PlayerState }> {
+  const r = await fetch('/api/rewards/collect', { method: 'POST' });
+  if (!r.ok) throw new Error(`collectRewards ${r.status}`);
+  return (await r.json()) as { ok: true; collected: number; state: PlayerState };
+}
+
 /**
  * Equip a cosmetic instance on a cat instance.
  * Pass cosmeticInstanceId=null to clear the slot (cosmetic returns to inventory).
