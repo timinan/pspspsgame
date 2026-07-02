@@ -75,6 +75,14 @@ console.log('chip switch:', chipOk);
 await new Promise((r) => setTimeout(r, 500));
 await page.screenshot({ path: path.join(outDir, 'effects-orbiters.png') });
 
+// 3b. Tap the first effect cell (row 0, col 1 — after NONE) to verify
+// pointer input reaches cells through the grid camera; equip is optimistic
+// so the yellow stroke + hero effect should appear even though the
+// /api equip call 404s in the harness.
+await page.mouse.click(160, 330);
+await new Promise((r) => setTimeout(r, 600));
+await page.screenshot({ path: path.join(outDir, 'effects-tapped.png') });
+
 // 4. Dress-up mode (slot tabs + scrollable cosmetics)
 await page.evaluate(() => window.__openDR(false));
 await new Promise((r) => setTimeout(r, 600));

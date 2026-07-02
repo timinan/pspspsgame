@@ -12,7 +12,8 @@ import { NEW_EFFECT_CATALOG } from '@/shared/effect-catalog-gen';
 import { COSMETIC_CATALOG } from '@/../shared/state';
 import type { PlayerState } from '@/../shared/state';
 
-(window as unknown as { Phaser: typeof Phaser }).Phaser = Phaser;
+// NO window.Phaser polyfill — the game bundle has none; polyfilling here
+// masks unbound-global bugs (the 2026-07-01 strobe freeze class).
 
 function makePlayerState(): PlayerState {
   const ownedCosmetics = [

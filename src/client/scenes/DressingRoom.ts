@@ -50,6 +50,11 @@ const GRID_CELL = 76;
 const GRID_GAP = 8;
 const GRID_COLS = 3;
 const GRID_ROW_H = GRID_CELL + GRID_GAP;
+// Cells live in a far-away world band only the grid camera looks at; the
+// main camera never sees them, and the grid camera's viewport (the modal's
+// grid rect) scissor-clips them exactly — no masks (removed in Phaser 4
+// WebGL), no cover panels (cells poked past the modal bottom).
+const GRID_WORLD_OFF = 100000;
 // Effects moved out of the Dress Up tabs on 2026-07-01 — they get their own
 // entry point ('Add effect' on the cat context menu) which opens this modal
 // in effects-only mode with category tabs. The 'effect' SLOT key stays alive
@@ -68,8 +73,8 @@ export class DressingRoom extends Scene {
   private activeSlot: string = 'head';
   /** Live scene-level cell objects for the visible scroll window. */
   private gridCells: GameObjects.GameObject[] = [];
-  /** Scroll offset currently baked into gridCells' positions. */
-  private appliedScroll = 0;
+  /** Dedicated camera whose viewport is the grid rect. */
+  private gridCam!: Phaser.Cameras.Scene2D.Camera;
   private heroSprite!: GameObjects.Image;
   /** One layered sprite per equipped slot — keyed by slot name. */
   private heroCosmetics: Record<string, GameObjects.Sprite> = {};
@@ -282,22 +287,11 @@ export class DressingRoom extends Scene {
     this.gridViewH = Math.max(GRID_ROW_H * 2, modalY + modalH - 20 - gridTop);
     this.gridZoneX = modalX;
     this.gridZoneW = modalW;
-    // Viewport clipping via opaque cover panels instead of a mask —
-    // Phaser 4 removed setMask() under WebGL (masks became per-object
-    // DynamicTexture filters, far too heavy for 15+ scrolling cells).
-    // Cells render at depth 0 and slide UNDER these modal-bg covers;
-    // the header UI (title / hero / tabs / labels) sits above them at
-    // depth 10 (hero is already at 200).
-    const COVER_DEPTH = 5;
-    this.add
-      .rectangle(modalX + 2, modalY + 2, modalW - 4, gridTop - GRID_GAP - (modalY + 2), 0x1a0a2e, 1)
-      .setOrigin(0, 0)
-      .setDepth(COVER_DEPTH);
-    this.add
-      .rectangle(modalX + 2, gridTop + this.gridViewH + 2, modalW - 4,
-                 Math.max(0, modalY + modalH - 2 - (gridTop + this.gridViewH + 2)), 0x1a0a2e, 1)
-      .setOrigin(0, 0)
-      .setDepth(COVER_DEPTH);
+    // Grid camera — viewport is exactly the grid rect, so cells (which
+    // live at GRID_WORLD_OFF, out of the main camera's sight) clip
+    // pixel-perfectly at the viewport edges. Scrolling = camera scrollY.
+    this.gridCam = this.cameras.add(0, gridTop, this.scale.width, this.gridViewH);
+    this.gridCam.setScroll(0, GRID_WORLD_OFF);
 
     // Thin position indicator on the modal's right edge; hidden when the
     // whole list fits in the viewport.
@@ -366,6 +360,7 @@ export class DressingRoom extends Scene {
 
   private setScroll(v: number): void {
     this.scrollY = Math.max(0, Math.min(this.maxScroll(), v));
+    this.gridCam.setScroll(0, GRID_WORLD_OFF + this.scrollY);
     this.renderVisibleCells();
     this.updateScrollbar();
   }
@@ -671,6 +666,7 @@ export class DressingRoom extends Scene {
     this.gridItems = [null, ...merged];
     this.gridEquippedInstanceId = equippedInstanceId;
     this.scrollY = Math.max(0, Math.min(this.maxScroll(), this.scrollY));
+    this.gridCam.setScroll(0, GRID_WORLD_OFF + this.scrollY);
     this.visibleFirstRow = -1;
     this.visibleLastRow = -1;
     this.renderVisibleCells();
@@ -680,41 +676,30 @@ export class DressingRoom extends Scene {
   /** Rebuild only the cells whose rows intersect the scroll viewport
    *  (± one buffer row). Cheap enough to rebuild on window change —
    *  ~15 live cells regardless of whether the tab holds 8 items or 130.
-   *  Cells are scene-level objects at depth 0; the viewport illusion
-   *  comes from the modal-bg cover panels above/below (see create). */
+   *  Cells are static world objects at GRID_WORLD_OFF; scrolling is
+   *  purely the grid camera panning over them. */
   private renderVisibleCells(): void {
     const totalRows = Math.ceil(this.gridItems.length / GRID_COLS);
     const first = Math.max(0, Math.floor(this.scrollY / GRID_ROW_H) - 1);
     const last = Math.min(totalRows - 1, Math.floor((this.scrollY + this.gridViewH) / GRID_ROW_H) + 1);
-    if (first !== this.visibleFirstRow || last !== this.visibleLastRow) {
-      this.visibleFirstRow = first;
-      this.visibleLastRow = last;
-      for (const obj of this.gridCells) obj.destroy();
-      this.gridCells.length = 0;
-      this.appliedScroll = this.scrollY;
-      const lastIdx = Math.min(this.gridItems.length - 1, last * GRID_COLS + GRID_COLS - 1);
-      for (let idx = first * GRID_COLS; idx <= lastIdx; idx++) this.buildCell(idx);
-      return;
-    }
-    // Same window — just shift the live cells by the scroll delta.
-    const d = this.scrollY - this.appliedScroll;
-    if (d !== 0) {
-      for (const obj of this.gridCells) {
-        (obj as unknown as { y: number }).y -= d;
-      }
-      this.appliedScroll = this.scrollY;
-    }
+    if (first === this.visibleFirstRow && last === this.visibleLastRow) return;
+    this.visibleFirstRow = first;
+    this.visibleLastRow = last;
+    for (const obj of this.gridCells) obj.destroy();
+    this.gridCells.length = 0;
+    const lastIdx = Math.min(this.gridItems.length - 1, last * GRID_COLS + GRID_COLS - 1);
+    for (let idx = first * GRID_COLS; idx <= lastIdx; idx++) this.buildCell(idx);
   }
 
   /** Build one grid cell (cosmetic, effect, or the NONE tile) at its
-   *  on-screen position for the current scroll. */
+   *  virtual world position (grid-camera space). */
   private buildCell(idx: number): void {
     const cosItem = this.gridItems[idx];
     const col = idx % GRID_COLS;
     const row = Math.floor(idx / GRID_COLS);
     const gridStartX = (this.scale.width - (GRID_CELL * GRID_COLS + GRID_GAP * (GRID_COLS - 1))) / 2;
     const x = gridStartX + col * (GRID_CELL + GRID_GAP) + GRID_CELL / 2;
-    const y = this.gridTopY + row * GRID_ROW_H + GRID_CELL / 2 - this.scrollY;
+    const y = GRID_WORLD_OFF + row * GRID_ROW_H + GRID_CELL / 2;
     // Head atlas frames are authored with the hat at the very top of
     // the canvas (where the cat's head would be), so the default
     // -14 offset positions them way too high in the cell. Push head
