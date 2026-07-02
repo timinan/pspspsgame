@@ -894,10 +894,22 @@ export interface EconomyStreak {
   lastClaimedDay: string;
 }
 
+export interface EconomyWeekly {
+  weekKey: string; // UTC ISO week these counters belong to, e.g. '2026-W27'
+  progress: Record<string, number>;
+  claimed: Record<string, boolean>;
+  bonusClaimed: boolean;
+}
+
+export function createFreshWeekly(weekKey = ''): EconomyWeekly {
+  return { weekKey, progress: {}, claimed: {}, bonusClaimed: false };
+}
+
 export interface EconomyState {
   daily: EconomyDaily;
   pendingCollect: number;
   streak: EconomyStreak;
+  weekly: EconomyWeekly;
 }
 
 export function createFreshEconomy(day = ''): EconomyState {
@@ -913,12 +925,19 @@ export function createFreshEconomy(day = ''): EconomyState {
     },
     pendingCollect: 0,
     streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+    weekly: createFreshWeekly(),
   };
 }
 
 export function rolloverEconomy(p: PlayerState, isoToday: string): void {
   if (p.economy.daily.day !== isoToday) {
     p.economy.daily = createFreshEconomy(isoToday).daily;
+  }
+}
+
+export function rolloverWeekly(p: PlayerState, weekKey: string): void {
+  if (!p.economy.weekly || p.economy.weekly.weekKey !== weekKey) {
+    p.economy.weekly = createFreshWeekly(weekKey);
   }
 }
 

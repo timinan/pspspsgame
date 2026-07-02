@@ -1,5 +1,6 @@
 import type { PlayerState } from '../../shared/state';
-import { CAT_CATALOG, createFreshPlayerState, createFreshStats, rolloverEconomy } from '../../shared/state';
+import { CAT_CATALOG, createFreshPlayerState, createFreshStats, rolloverEconomy, rolloverWeekly } from '../../shared/state';
+import { isoWeekOf } from '../../shared/quests';
 
 /**
  * Minimal interface to Redis — the only operations player-state needs.
@@ -24,7 +25,9 @@ function todayISO(): string {
  * advanced.  Delegates to `rolloverEconomy` from the shared module.
  */
 function applyDailyRollover(state: PlayerState): PlayerState {
-  rolloverEconomy(state, todayISO());
+  const today = todayISO();
+  rolloverEconomy(state, today);
+  rolloverWeekly(state, isoWeekOf(today));
   return state;
 }
 
@@ -61,6 +64,7 @@ export async function loadOrInit(
             ...parsed.economy,
             daily: { ...fresh.economy.daily, ...parsed.economy.daily },
             streak: { ...fresh.economy.streak, ...parsed.economy.streak },
+            weekly: { ...fresh.economy.weekly, ...parsed.economy.weekly },
           }
         : fresh.economy;
       const merged: PlayerState = { ...fresh, ...parsed, stats, economy };

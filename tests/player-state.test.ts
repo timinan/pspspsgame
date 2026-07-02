@@ -5,6 +5,7 @@ import {
   type RedisLike,
 } from '../src/server/core/player-state';
 import { STARTER_COINS, createFreshPlayerState, COSMETIC_CATALOG, type SeatId } from '../src/shared/state';
+import { isoWeekOf } from '../src/shared/quests';
 
 /** YYYY-MM-DD for a date N days from today (negative = past). Pure UTC arithmetic. */
 function dateISO(offsetDays: number): string {
@@ -275,5 +276,55 @@ describe('PlayerState.economy — daily rollover via loadOrInit', () => {
     expect(state.economy.streak).toBeDefined();
     expect(state.economy.streak.count).toBe(0);
     expect(state.economy.pendingCollect).toBe(10);
+  });
+});
+
+describe('PlayerState.economy — weekly rollover via loadOrInit', () => {
+  it('backfills economy.weekly on old saves without a weekly field', async () => {
+    const redis = new FakeRedis();
+    const today = dateISO(0);
+    await redis.set(
+      'meowcert:state:judy',
+      JSON.stringify({
+        username: 'judy',
+        coins: 200,
+        economy: {
+          daily: { day: today, playIncome: 0, chartPlays: {}, hostPotAccrued: 0, questProgress: {}, questClaimed: {}, questBonusClaimed: false },
+          pendingCollect: 0,
+          streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+          // weekly intentionally absent — simulates pre-Task-2 save
+        },
+      }),
+    );
+    const state = await loadOrInit(redis, 'judy');
+    expect(state.economy.weekly).toBeDefined();
+    expect(state.economy.weekly.weekKey).toBe(isoWeekOf(today));
+    expect(state.economy.weekly.progress).toEqual({});
+    expect(state.economy.weekly.claimed).toEqual({});
+    expect(state.economy.weekly.bonusClaimed).toBe(false);
+  });
+
+  it('rolls over weekly when stored weekKey is stale', async () => {
+    const redis = new FakeRedis();
+    const today = dateISO(0);
+    const currentWeek = isoWeekOf(today);
+    await redis.set(
+      'meowcert:state:karl',
+      JSON.stringify({
+        username: 'karl',
+        coins: 300,
+        economy: {
+          daily: { day: today, playIncome: 0, chartPlays: {}, hostPotAccrued: 0, questProgress: {}, questClaimed: {}, questBonusClaimed: false },
+          pendingCollect: 0,
+          streak: { lastDay: '', count: 0, lastClaimedDay: '' },
+          weekly: { weekKey: '2020-W01', progress: { wplays15: 10 }, claimed: { whardpass5: true }, bonusClaimed: true },
+        },
+      }),
+    );
+    const state = await loadOrInit(redis, 'karl');
+    expect(state.economy.weekly.weekKey).toBe(currentWeek);
+    expect(state.economy.weekly.progress).toEqual({});
+    expect(state.economy.weekly.claimed).toEqual({});
+    expect(state.economy.weekly.bonusClaimed).toBe(false);
   });
 });
